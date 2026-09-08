@@ -9,5 +9,5 @@ export default async function Home() {
       ? domainParts[0]
       : "(none)";
 
-  return <p>Subdomain: {subdomain}</p>;
+  return <p className="text-xl font-semibold">Subdomain: {subdomain}</p>;
 }

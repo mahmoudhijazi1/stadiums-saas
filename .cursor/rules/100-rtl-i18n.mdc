@@ -1,0 +1,15 @@
+---
+description: Arabic-first RTL and i18n rules. Auto-attaches to UI and component files.
+globs: src/**/*.tsx,src/**/ui/**/*.ts
+alwaysApply: false
+---
+
+# RTL & i18n — applies to UI files
+
+- Arabic-first. The app defaults to Arabic with full RTL; English is secondary.
+- Tailwind logical properties ONLY: `ps`/`pe`, `ms`/`me`, `text-start`/`text-end`, `start-0`/`end-0`.
+  NEVER directional utilities: `pl`/`pr`/`ml`/`mr`/`text-left`/`text-right`/`left-0`/`right-0`.
+  Directional utilities break the Arabic layout — this is a hard rule, not a preference.
+- Western digits (123) even in the Arabic UI.
+- Tenant-authored content (pitch names, product names) is shown exactly as written, never translated.
+- Verify the current next-intl API against its installed docs before writing i18n code.

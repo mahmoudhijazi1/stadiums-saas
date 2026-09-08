@@ -1,0 +1,25 @@
+---
+description: Database, Prisma, and migration rules. Auto-attaches to schema, migrations, and infrastructure code.
+globs: prisma/**/*,src/**/infrastructure/**/*.ts
+alwaysApply: false
+---
+
+# Database & Prisma — applies to schema, migrations, repositories
+
+- Verify the current Prisma extension/client API against its installed docs before writing —
+  extension syntax has changed across Prisma versions.
+- The no-double-booking guard is a Postgres exclusion constraint written in a HAND-WRITTEN raw
+  SQL migration — Prisma cannot express it. Do not attempt to model it in the schema DSL.
+  `EXCLUDE USING gist (pitch_id WITH =, during WITH &&) WHERE (status = 'APPROVED')`
+- Every tenant-owned table (including children like `booking_participants`, `payment_tenders`,
+  `slot_interests`) has `tenant_id`. No exceptions — this is the condition for deferring RLS.
+- Append-only tables: `exchange_rates`, `ledger_entries`. No updates, no deletes — corrections
+  are new rows (a refund is a new OUT row, not an edit).
+- All money columns are `Decimal` (USD 12,2 / LBP 18,0). All times are `timestamptz`, stored UTC.
+- Repository functions accept the Prisma client (`tx` or `db`) as an argument — inside a
+  transaction they MUST use the passed `tx`, never the global `db`, or the write escapes the
+  transaction and won't roll back.
+- Every query lives in `infrastructure/`. No Prisma queries in `domain/`, `application/`, or `app/`.
+- Reads crossing more than two entities go through a named repository function, not inline queries.
+- jsonb fields (`schedule_config`, tenant `settings`) are Zod-validated at the application edge
+  before use — Prisma types them as `unknown`.

@@ -1,0 +1,42 @@
+---
+description: Core architecture and hard integrity rules for the Stadium SaaS. Always applies.
+globs:
+alwaysApply: true
+---
+
+# Core architecture — always applies
+
+Full reasoning lives in `docs/decisions/` (DR-001, DR-002, …). Index: `docs/README.md`.
+When a decision isn't covered by these rules, read those files; if still unclear, ASK — do not
+invent a decision.
+
+## Framework reality (this repo specifically)
+This Next.js version has breaking changes vs. training data (see `AGENTS.md`). Before writing
+ANY Next.js or Prisma API, verify the current API in `node_modules/next/dist/docs/`. Never write
+these APIs from memory. State what the local docs say, then write the code.
+
+## Module boundaries
+- Business logic lives in `src/modules/<feature>/`, never in `app/`.
+- `app/` is routes only: Server Actions do validate → authorize → delegate. No business logic.
+- Three layers per module: `domain/` (pure functions, no DB, no await), `application/` (use
+  cases, await + transactions), `infrastructure/` (all Prisma queries).
+- Dependencies point DOWN only. `payment/` never imports `booking/`. Never an upward import.
+- One slice at a time. Do not scaffold folders/files ahead of the current task.
+
+## Hard integrity rules (never violate)
+- `tenant_id` on EVERY tenant-owned table, including child tables. No exceptions.
+- Money is always `Decimal`, never a JS float. USD `Decimal(12,2)`, LBP `Decimal(18,0)`.
+- Ledger row + its cause (payment/expense) are written in the SAME `$transaction`. Always.
+- Notifications happen AFTER the transaction commits, never inside it.
+- Payment links to source by `source_type + source_id` (polymorphic). No `booking_id` on payments.
+- Tenant context comes from the URL (subdomain → header). Session only authorizes against it.
+- Domain functions take interfaces (e.g. `BookingLike`), not concrete Prisma types.
+
+## Testing (Jest)
+- Jest is the project test runner. Ship tests with each slice for `domain/` and other pure
+  helpers; follow `docs/guides/testing-jest.md`. SPECs list expected coverage under **Tests**.
+
+## Style
+- Functions, not classes, unless there's a real reason.
+- Keep responses scoped to the current task. Don't refactor unrelated code.
+- Prefer editing existing files over creating new ones.
