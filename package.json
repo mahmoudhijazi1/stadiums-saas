@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "db:seed": "npx prisma db seed --config prisma7.config.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
