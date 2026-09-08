@@ -142,7 +142,7 @@ docs) before or with step 2. See `docs/guides/testing-jest.md`.
 | Step | Jest expectation |
 |------|------------------|
 | 1 Schema | None required (migrate + inspect). |
-| 2 Middleware | Unit-test the pure host/slug parser (subdomain, `?tenant=` / local fallback, edge cases). |
+| 2 Middleware | Unit-test the pure host/slug parser in `test/lib/tenant-slug.test.ts` (mirrors `src/lib/tenant-slug.ts`). |
 | 3–4 Context / extension | No mandatory unit tests; isolation is proven by the acceptance test below. |
 | 5–6 List + seed | No mandatory unit tests; covered by acceptance test. |
 

@@ -18,9 +18,13 @@ introduces. Manual SPEC acceptance checks still matter; Jest is the repeatable s
 
 ## Conventions
 
-- Co-locate: `foo.ts` → `foo.test.ts` (or `__tests__/foo.test.ts` when co-location is awkward).
+- **Location:** all tests live under root `test/`, mirroring `src/`.
+  Example: `src/lib/tenant-slug.ts` → `test/lib/tenant-slug.test.ts`
+  Example: `src/modules/venue/domain/availability.ts` → `test/modules/venue/domain/availability.test.ts`
+- Import app code with the `@/` alias (same as production code).
 - Scripts: `npm test` (and `npm test -- --watch` while learning).
-- Config: use the official Next.js Jest setup for the **installed** Next version — verify against `node_modules/next/dist/docs/` (or Next’s testing guide) when installing; do not copy stale blog snippets from memory.
+- Config: use the official Next.js Jest setup for the **installed** Next version — verify against local Next docs when installing.
+- Import Jest helpers from `@jest/globals` (`describe`, `it`, `expect`) so TypeScript is happy.
 - New SPECs include a short **Tests** subsection listing which files must have Jest coverage for that slice’s Definition of Done.
 
 ## How this fits the architecture

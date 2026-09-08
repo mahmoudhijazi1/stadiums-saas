@@ -1,20 +1,33 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Prisma schema = the blueprint of your database tables.
+// Prisma reads this file and can create/update real Postgres tables from it.
 
 generator client {
+  // Generates TypeScript code so our app can query the DB safely
   provider = "prisma-client"
   output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+  // Connection URL is in prisma7.config.ts (Prisma 7 style), not here
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
+/// One stadium business (e.g. slug "ahmad" from ahmad.stadiums.com)
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
   createdAt DateTime @default(now())
+  pitches   Pitch[]
+}
+
+/// A pitch/field that belongs to exactly one tenant (tenantId is required)
+model Pitch {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
 }

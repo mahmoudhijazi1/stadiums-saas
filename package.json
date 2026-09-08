@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
