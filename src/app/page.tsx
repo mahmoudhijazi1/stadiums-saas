@@ -1,37 +1,55 @@
 import { headers } from "next/headers";
+import db from "@/lib/db";
+import { getCurrentTenant } from "@/lib/tenant-context";
 
 /**
- * Temporary hand-check for SPEC-01 step 2:
- * Prove that proxy set x-tenant-slug from the host / ?tenant=.
- * (Later steps will replace this with the real pitches list.)
+ * Hand-check for SPEC-01 step 4:
+ * findMany on pitches with NO tenantId in this file — extension must inject it.
+ * (Step 5 will move this query into modules/venue/infrastructure.)
  */
 export default async function Home() {
-  const h = await headers();
-  const host = h.get("host") ?? "(missing)";
-  const tenantSlug = h.get("x-tenant-slug") ?? "(not set)";
+  const host = (await headers()).get("host") ?? "(missing)";
+  const tenant = await getCurrentTenant();
+
+  // IMPORTANT: no tenantId here on purpose
+  const pitches = await db.pitch.findMany({
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
 
   return (
     <main style={{ fontFamily: "system-ui", padding: "1.5rem", lineHeight: 1.6 }}>
-      <h1>Tenant proxy check (Step 2)</h1>
+      <h1>Tenant DB scope check (Step 4)</h1>
       <p>
-        <strong>Host header:</strong> <code>{host}</code>
+        <strong>Host:</strong> <code>{host}</code>
       </p>
       <p>
-        <strong>x-tenant-slug:</strong> <code>{tenantSlug}</code>
+        Tenant: <code>{tenant.slug}</code> — {tenant.name}
       </p>
+      <h2>Pitches (auto-scoped)</h2>
+      {pitches.length === 0 ? (
+        <p>
+          No pitches for this tenant yet. Add some in Prisma Studio with this tenant&apos;s{" "}
+          <code>tenantId</code>.
+        </p>
+      ) : (
+        <ul>
+          {pitches.map((pitch) => (
+            <li key={pitch.id}>{pitch.name}</li>
+          ))}
+        </ul>
+      )}
       <hr />
-      <p>Try these in your browser (dev server must be running):</p>
+      <p>
+        <strong>Hand check:</strong> create two tenants (e.g. ahmad, sami), each with different
+        pitch names. Open each tenant URL — you must only see that tenant&apos;s pitches.
+      </p>
       <ol>
         <li>
-          <code>http://localhost:3000</code> → slug should be <code>(not set)</code>
+          <code>http://localhost:3000/?tenant=ahmad</code>
         </li>
         <li>
-          <code>http://localhost:3000/?tenant=ahmad</code> → slug should be{" "}
-          <code>ahmad</code>
-        </li>
-        <li>
-          <code>http://localhost:3000/?tenant=sami</code> → slug should be{" "}
-          <code>sami</code>
+          <code>http://localhost:3000/?tenant=sami</code>
         </li>
       </ol>
     </main>
