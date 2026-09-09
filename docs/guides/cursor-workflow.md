@@ -32,7 +32,8 @@ Instead, per slice:
 1. **You** hand it a build spec (one already written, e.g. `docs/specs/SPEC-01`).
 2. **It** implements just that slice.
 3. **You** verify against the spec's checklist before moving on.
-4. Only then, the next slice.
+4. Append what happened to [docs/progress.md](../progress.md) (what / why / files / how it connects).
+5. Only then, the next slice.
 
 Small scope = fewer tokens, fewer wrong turns, and you actually understand each piece — which
 matters because you're learning Next.js as you go.

@@ -10,6 +10,7 @@ tokens.
 ```
 .cursor/rules/
   000-core-architecture.mdc   ← alwaysApply: true  (loaded every request)
+  050-progress-log.mdc        ← alwaysApply: true  (append docs/progress.md)
   100-rtl-i18n.mdc            ← auto-attaches to .tsx / ui files only
   200-database-prisma.mdc     ← auto-attaches to schema / migrations / infrastructure only
 ```
@@ -24,6 +25,8 @@ Each `.mdc` file has frontmatter: `description`, `globs` (file patterns it attac
 
 - **000-core** is `alwaysApply: true` — the architecture and integrity rules that must hold
   everywhere. Small on purpose, because it rides along with every request.
+- **050-progress** is `alwaysApply: true` — after a finished SPEC step, append to
+  `docs/progress.md` (journey/defense log). Do not load that whole file unless the task is the log.
 - **100-rtl** only attaches when you're editing `.tsx`/UI files. No point paying for RTL rules
   while writing a database migration.
 - **200-database** only attaches when you're in the schema, a migration, or an `infrastructure/`
@@ -41,5 +44,5 @@ the content stays identical, only the packaging changes.
 
 ## Keep the numbering
 
-The `000/100/200` prefixes keep them ordered and make it obvious which is the always-on core
-(000) vs. the scoped ones. Add new scoped rules as `300-…`, `400-…` as the project grows.
+The `000/050/100/200` prefixes keep them ordered. `000` and `050` are always-on (keep them
+small). Add new scoped rules as `300-…`, `400-…` as the project grows.

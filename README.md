@@ -11,9 +11,10 @@ All planning and agent workflow docs live under [`docs/`](./docs/README.md):
 | [`docs/decisions/`](./docs/decisions/) | Architecture decisions (DR-NNN) |
 | [`docs/specs/`](./docs/specs/) | Build slices (SPEC-NN) |
 | [`docs/guides/`](./docs/guides/) | Cursor workflow, folder structure, rules, Jest testing |
+| [`docs/progress.md`](./docs/progress.md) | Learning/defense log (append after each step) |
 | [`docs/requirements/brd.md`](./docs/requirements/brd.md) | Product source of truth (BRD, draft v0.1) |
 
-**Work order:** decision → spec → code. SPEC-01 is implemented. Next slice: [SPEC-02](./docs/specs/SPEC-02-venue-availability.md) (written, not implemented).
+**Work order:** decision → spec → code. SPEC-01 and SPEC-02 are implemented. Next: write SPEC-03 (Booking), not invent it.
 
 Agent rules: [`.cursor/rules/`](./.cursor/rules/). Framework warning: [`AGENTS.md`](./AGENTS.md).
 

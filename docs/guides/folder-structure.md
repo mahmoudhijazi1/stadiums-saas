@@ -61,6 +61,7 @@ src/
     tenant-context.ts           ← request-scoped tenant context
     auth.ts                     ← sessions + can(user, 'permission')
     money.ts                    ← Decimal helpers, USD/LBP
+    logger.ts                  ← server file logger → /logs (info/error)
     i18n.ts
 
   prisma/

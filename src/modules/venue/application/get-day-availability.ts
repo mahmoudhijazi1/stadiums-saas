@@ -1,3 +1,4 @@
+import { logger } from "@/lib/logger";
 import { formatUsd } from "@/lib/money";
 import {
   generateSlotsForDay,
@@ -32,7 +33,13 @@ export async function getDayAvailability(input: {
   const pitches = await listPitches();
 
   return pitches.map((pitch) => {
-    const config = parseScheduleConfig(pitch.scheduleConfig);
+    let config;
+    try {
+      config = parseScheduleConfig(pitch.scheduleConfig);
+    } catch (error) {
+      logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error);
+      throw error;
+    }
     const slots = generateSlotsForDay({
       config,
       localDate: input.localDate,

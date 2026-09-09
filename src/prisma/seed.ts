@@ -8,6 +8,7 @@ import {
   type ScheduleConfig,
   type Weekday,
 } from "../modules/venue/schemas/schedule-config";
+import { logger } from "../lib/logger";
 
 /**
  * Seed crosses tenants, so it must use an UNSCOPED client (same idea as platformDb).
@@ -124,12 +125,12 @@ async function main() {
     },
   });
 
-  console.log("Seeded tenants: ahmad (3 pitches), sami (2 pitches) with schedule_config");
+  logger.info("Seeded tenants: ahmad (3 pitches), sami (2 pitches) with schedule_config");
 }
 
 main()
   .catch((error) => {
-    console.error(error);
+    logger.error("Seed failed", error);
     process.exit(1);
   })
   .finally(async () => {

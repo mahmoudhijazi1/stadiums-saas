@@ -40,3 +40,5 @@ these APIs from memory. State what the local docs say, then write the code.
 - Functions, not classes, unless there's a real reason.
 - Keep responses scoped to the current task. Don't refactor unrelated code.
 - Prefer editing existing files over creating new ones.
+- After a finished SPEC step or notable decision, append to `docs/progress.md`
+  (see `.cursor/rules/050-progress-log.mdc`). Do not rewrite that log.

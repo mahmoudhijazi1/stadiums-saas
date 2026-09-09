@@ -39,6 +39,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# app file logs (keep the folder via .gitkeep)
+/logs/*
+!/logs/.gitkeep
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

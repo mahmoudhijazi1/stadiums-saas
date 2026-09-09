@@ -39,9 +39,10 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ### Specs
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
-- [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (written, not implemented)
+- [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (implemented)
 
 ### Guides
+- [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
 - [Cursor workflow](./guides/cursor-workflow.md) — slices, tokens, staying on rules
 - [Folder structure](./guides/folder-structure.md) — modular monolith layout
 - [Cursor rules](./guides/cursor-rules.md) — why `.mdc` and how scoping works
@@ -52,7 +53,6 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- **Implement SPEC-02** (one numbered step at a time; verify before the next).
 - **SPEC-03** (not yet written): Booking — request/approve + exclusion constraint
 - Then payment, public page, dashboard (MVP order)
 - Auth (email@domain + password) before owner-facing slices

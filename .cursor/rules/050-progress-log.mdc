@@ -1,0 +1,15 @@
+---
+description: Always append to docs/progress.md after finished work. Learning/defense log.
+alwaysApply: true
+---
+
+# Progress log — always append
+
+After you **finish** a SPEC step, a slice, a notable decision, or a gotcha the human should remember, **append** a section to `docs/progress.md`. Do not rewrite or delete old chapters.
+
+Each new entry must include: **when**, **what**, **why** (link DR/SPEC/BRD if it exists), **files**, **how it connects** (and what it must not import), **how to verify**.
+
+- This file is the **journey**. It does not replace BRD / DRs / SPECs.
+- Do not dump the whole log into chat. Point at `docs/progress.md`.
+- Do not invent entries for work that was not done.
+- If the log and the repo disagree, fix with an appended **Correction** after changing code, or fix the code — repo wins.
