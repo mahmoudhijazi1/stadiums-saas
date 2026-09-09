@@ -1,11 +1,10 @@
-import type { Person, Prisma } from "@/app/generated/prisma/client";
+import type { Person } from "@/app/generated/prisma/client";
+import type { TenantTx } from "@/lib/db";
 
 /**
- * Prisma interactive-transaction client (Prisma 7 `$transaction` callback).
- * Callers must pass `tx` from `db.$transaction` so tenant scoping and the
- * booking transaction both apply. Never import `db` or `platformDb` here.
+ * `tx` from `db.$transaction` (tenant-scoped). Never import `db` or `platformDb` here.
  */
-export type PeopleTx = Prisma.TransactionClient;
+export type PeopleTx = TenantTx;
 
 /**
  * Find this tenant's person by already-normalized phone.

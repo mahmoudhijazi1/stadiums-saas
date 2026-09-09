@@ -28,13 +28,13 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-09)
 
-**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–5** done: tables, exclusion, tenant extension, People find-or-create, Booking domain slot rules. No public request UI yet.
+**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–7** done: tables through `requestPublicSlot`. No public form on the page yet.
 
 **What a visitor can do:** open `http://localhost:3000/?tenant=ahmad` (or `sami`) and see that stadium’s pitches and **today’s computed slots** in Asia/Beirut. `?date=YYYY-MM-DD` is a local proof, not a product date picker.
 
-**What they cannot do yet:** log in, book, pay, block a pitch, Arabic UI, owner dashboard.
+**What they cannot do yet:** log in, book from the page, pay, block a pitch, Arabic UI, owner dashboard.
 
-**Next:** SPEC-03 step 6 — Zod for the public form. Auth still before owner-facing screens.
+**Next:** SPEC-03 step 8 — thin form on the existing page. Auth still before owner-facing screens.
 
 ---
 
@@ -327,9 +327,8 @@ docs/  BRD, DRs, SPECs, guides, this log
 
 ## What’s next (do not invent)
 
-1. SPEC-03 **step 6** — Zod for the public form. Do not start until you OK it.
-2. Then remaining SPEC-03 steps (use case, thin UI).
-3. Auth (email@domain + password) **before** owner UI.
+1. SPEC-03 **step 8** — thin UI on the public page. Do not start until you OK it.
+2. Then auth (email@domain + password) **before** owner UI.
 
 One SPEC step at a time. Append here when a step is done.
 
@@ -516,6 +515,70 @@ Nothing is saved yet. No person row, no booking row. Just yes/no, plus the **rea
 **Why a Booking file, not inside Venue:** Venue’s job is to **list** possible games. Booking’s job is to **allow or refuse a request**. If we mixed them, “what hours do we sell?” and “may this visitor request this hour?” would live in one place and get messy when approve and payments arrive.
 
 **One sentence:** you may only request a real, still-open game, at the stadium’s price — as a pure function, so we can test it without the database or the webpage.
+
+---
+
+## Chapter 14 — 2026-09-09 — SPEC-03 step 6: Zod for the public form
+
+**When:** 2026-09-09
+
+**What:** `parsePublicSlotRequest` — name, phone (8–15 digits after normalize), pitchId, start/end as UTC ISO strings. Extra keys fail.
+
+**Why:** SPEC-03 step 6. The form is untrusted. Zod checks *shape* before the use case. Step 5 still decides “is this a real unfinished game?” Phone length lives here, not in `normalizePhone`. Zod 4: `z.strictObject`, `z.iso.datetime()` ([Zod API](https://zod.dev/api) — UTC with `Z`, no `+02:00` unless we opt in; we did not).
+
+**Files:** `src/modules/booking/schemas/public-slot-request.ts`; `test/modules/booking/schemas/public-slot-request.test.ts`.
+
+**Relation:** Schema uses People `normalizePhone`. Does not import domain `resolveOfferedSlot` (different question). Use case (step 7) will parse first, then domain.
+
+**How to verify:** `npx jest test/modules/booking/schemas/public-slot-request.test.ts` — missing name, `"12"` / `"abc"` phone, extra `priceUsd` all throw; `"03 123 456"` becomes `"03123456"`.
+
+### In plain language
+
+Two gates, different jobs:
+
+| Gate | Question | Example fail |
+|---|---|---|
+| **Zod (this step)** | Did they fill the form like we expect? | No name, phone `12`, extra `priceUsd` |
+| **Domain (step 5)** | Is that window a real game that has not ended? | Tuesday closed, 03:00, already finished |
+
+Zod never opens the database. A valid form can still be a fake slot — step 7 will run both.
+
+---
+
+## Chapter 15 — 2026-09-09 — SPEC-03 step 7: `requestPublicSlot`
+
+**When:** 2026-09-09
+
+**What:** One use case opens `db.$transaction` and writes Person (find-or-create) + PENDING/PUBLIC Booking + requester participant. Price from Venue. No notifications.
+
+**Why:** SPEC-03 step 7 / DR-001 (the starting use case owns the transaction and passes `tx`). DR-002 §2.10 requester is a participant. Prisma 7: `$transaction` callback + tagged `$executeRaw` for `during` ([raw SQL](https://www.prisma.io/docs/orm/v7/prisma-client/using-raw-sql); Client has no `booking.create`).
+
+**Files:**
+- `src/modules/booking/application/request-public-slot.ts`
+- `src/modules/booking/infrastructure/bookings.ts`
+- `src/modules/venue/infrastructure/pitches.ts` (`findPitchById(tx, id)`)
+- `src/modules/venue/domain/availability.ts` (`civilDateInTimeZone`)
+- `src/lib/db.ts` (`TenantTx` = the extended interactive `tx`)
+
+**Relation:** Booking asks Venue (pitch + schedule + civil date) and People (`findOrCreatePerson`). Venue must not import Booking. Page still has no form (step 8).
+
+**How to verify:** `npm test` (33 passed). No page yet — proof write waits for step 8 + Studio. Two overlapping PENDINGs are allowed (exclusion ignores them).
+
+### In plain language
+
+This is the **do-it** function. Zod already checked the form. Domain already knows the rule. Now we save:
+
+1. Load this stadium’s pitch (wrong id / Sami’s pitch on Ahmad’s site → not found).
+2. Parse opening hours. Ask: is this start/end a real game that has not ended? Copy the **engine** price.
+3. Find or create the person by phone (keep the old name if they exist).
+4. Insert a booking: PENDING, PUBLIC, time range in Postgres `during`.
+5. Insert one participant flagged “this is who asked,” owed the full game price.
+
+All of that is **one transaction**: if the participant insert fails, the booking and person-create roll back together.
+
+We log the booking id on success, not the phone (PII). Nothing is sent to WhatsApp.
+
+The page still cannot call this until step 8 (a small form + Server Action).
 
 
 

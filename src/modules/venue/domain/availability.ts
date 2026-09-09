@@ -183,6 +183,12 @@ function tzOffsetMs(instant: Date, timeZone: string): number {
   return wallAsUtc - instant.getTime();
 }
 
+/** Calendar day of an instant in a timezone (so UTC midnight is not Beirut's date). */
+export function civilDateInTimeZone(instant: Date, timeZone: string): CivilDate {
+  const parts = zonedParts(instant, timeZone);
+  return { year: parts.year, month: parts.month, day: parts.day };
+}
+
 function zonedParts(
   instant: Date,
   timeZone: string,

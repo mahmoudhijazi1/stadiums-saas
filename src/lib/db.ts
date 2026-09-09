@@ -86,4 +86,10 @@ const db = prismaBase.$extends({
   },
 });
 
+/** `tx` from `db.$transaction` — still tenant-scoped. Repositories take this, never import `db`. */
+export type TenantTx = Omit<
+  typeof db,
+  "$connect" | "$disconnect" | "$transaction" | "$extends"
+>;
+
 export default db;
