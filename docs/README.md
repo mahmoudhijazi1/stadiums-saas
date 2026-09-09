@@ -40,7 +40,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 ### Specs
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
 - [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (implemented)
-- [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (in progress — steps 1–4)
+- [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (in progress — steps 1–5)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step

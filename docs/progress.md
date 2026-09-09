@@ -28,13 +28,13 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-09)
 
-**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–4** done: tables, exclusion, tenant extension, People find-or-create. No public request UI yet.
+**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–5** done: tables, exclusion, tenant extension, People find-or-create, Booking domain slot rules. No public request UI yet.
 
 **What a visitor can do:** open `http://localhost:3000/?tenant=ahmad` (or `sami`) and see that stadium’s pitches and **today’s computed slots** in Asia/Beirut. `?date=YYYY-MM-DD` is a local proof, not a product date picker.
 
 **What they cannot do yet:** log in, book, pay, block a pitch, Arabic UI, owner dashboard.
 
-**Next:** SPEC-03 step 5 — Booking domain (pure slot rules). Auth still before owner-facing screens.
+**Next:** SPEC-03 step 6 — Zod for the public form. Auth still before owner-facing screens.
 
 ---
 
@@ -327,8 +327,8 @@ docs/  BRD, DRs, SPECs, guides, this log
 
 ## What’s next (do not invent)
 
-1. SPEC-03 **step 5** — Booking domain (pure). Do not start until you OK it.
-2. Then remaining SPEC-03 steps (Zod, use case, thin UI).
+1. SPEC-03 **step 6** — Zod for the public form. Do not start until you OK it.
+2. Then remaining SPEC-03 steps (use case, thin UI).
 3. Auth (email@domain + password) **before** owner UI.
 
 One SPEC step at a time. Append here when a step is done.
@@ -475,5 +475,47 @@ No `ui/` or empty folders.
 **Relation:** Booking (step 7) will call `findOrCreatePerson(tx, …)` inside its transaction. People must not import Booking. Venue unchanged.
 
 **How to verify:** `npm test` — new suite plus SPEC-01/02. Same digits after stripping spaces/`-`/`+` → same string. Isolation (two tenants, two people) waits until a request can write rows (step 7/8).
+
+---
+
+## Chapter 13 — 2026-09-09 — SPEC-03 step 5: Booking domain
+
+**When:** 2026-09-09
+
+**What:** Pure `resolveOfferedSlot`: the UTC window must be one of Venue’s generated slots for that civil date, and `end` must be after injected `now`. Price is copied from that slot. `overlaps` is half-open, for tests.
+
+**Why:** SPEC-03 step 5. Booking **asks** Venue (`generateSlotsForDay`); it does not invent times or trust a posted price (DR-002 §2.18). `occupied` stays `[]` — PENDING must not hide the slot (RULE-2). `now` is an argument so Jest can freeze time.
+
+**Files:** `src/modules/booking/domain/offered-slot.ts`; `test/modules/booking/domain/offered-slot.test.ts`. No application/infra/UI yet.
+
+**Relation:** Booking domain imports Venue domain. Venue must not import Booking.
+
+**How to verify:** `npx jest test/modules/booking/domain/offered-slot.test.ts` — closed day and unknown window fail; a real 16:00 Wednesday slot passes with `$30.00`; `now === slot.end` fails.
+
+### In plain language (what this step is for)
+
+This is a **gatekeeper**. It answers one question **before** we ever touch the database:
+
+> “Is this the kind of game Ahmad’s stadium actually sells, and has that game already finished?”
+
+Nothing is saved yet. No person row, no booking row. Just yes/no, plus the **real** price.
+
+**The situation:** a visitor will later click a slot on the public page, e.g. Wednesday 16:00–17:00. The form sends two times (start and end). We cannot trust that blindly. Someone can change the form and send 03:00–04:00, or a price of $1. The page is not the source of truth. The opening-hours **rule** is — the same function that draws the list: `generateSlotsForDay`.
+
+**What `resolveOfferedSlot` does:**
+
+1. Ask Venue: for this pitch, this calendar day, in Beirut, which games exist?
+2. Is the requested start/end **exactly** one of those games? If not → reject. Closed day, wrong time, 90 minutes when games are 60 — all fail the same way (`Slot is not offered`).
+3. Has that game **already ended**? If `end` is before or equal to `now` → reject (`Slot has already ended`). We pass `now` in so tests can pretend it is 5pm without waiting.
+4. If both pass: return that slot **and its price from the engine**. We copy `$30.00` from Venue. We never take a price from the browser (DR-002 §2.18).
+
+**What we skip on purpose:** we do **not** ask “is this already booked?” Two PENDING requests for the same hour are allowed (RULE-2). Occupied time comes later, when something is APPROVED. So this function always asks Venue with an empty occupied list.
+
+**`overlaps`:** a small helper — do two time ranges crash into each other? 16:00–17:00 and 17:00–18:00 do **not** (the first ends when the second starts). 16:00–17:00 and 16:30–17:30 **do**. Same half-open rule as Venue. The public request does not use it yet; it is here for tests and later approve.
+
+**Why a Booking file, not inside Venue:** Venue’s job is to **list** possible games. Booking’s job is to **allow or refuse a request**. If we mixed them, “what hours do we sell?” and “may this visitor request this hour?” would live in one place and get messy when approve and payments arrive.
+
+**One sentence:** you may only request a real, still-open game, at the stadium’s price — as a pure function, so we can test it without the database or the webpage.
+
 
 
