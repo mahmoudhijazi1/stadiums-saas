@@ -28,13 +28,13 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-09)
 
-**On `main`.** SPEC-01 (tenancy) and SPEC-02 (computed availability) are implemented. Local `main` was last known **ahead of `origin/main`** (not pushed unless you pushed later).
+**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–4** done: tables, exclusion, tenant extension, People find-or-create. No public request UI yet.
 
 **What a visitor can do:** open `http://localhost:3000/?tenant=ahmad` (or `sami`) and see that stadium’s pitches and **today’s computed slots** in Asia/Beirut. `?date=YYYY-MM-DD` is a local proof, not a product date picker.
 
 **What they cannot do yet:** log in, book, pay, block a pitch, Arabic UI, owner dashboard.
 
-**Next product slice (not written):** SPEC-03 Booking — request/approve + Postgres exclusion constraint. Auth before owner-facing screens.
+**Next:** SPEC-03 step 5 — Booking domain (pure slot rules). Auth still before owner-facing screens.
 
 ---
 
@@ -327,9 +327,9 @@ docs/  BRD, DRs, SPECs, guides, this log
 
 ## What’s next (do not invent)
 
-1. Write **SPEC-03** (Booking) from DR-002 + BRD — document first.
-2. Auth (email@domain + password) **before** owner UI.
-3. Then payment, public request page, dashboard (MVP order in `docs/README.md`).
+1. SPEC-03 **step 5** — Booking domain (pure). Do not start until you OK it.
+2. Then remaining SPEC-03 steps (Zod, use case, thin UI).
+3. Auth (email@domain + password) **before** owner UI.
 
 One SPEC step at a time. Append here when a step is done.
 
@@ -381,4 +381,99 @@ Keep entries boring and specific. This file is your memory, not a brochure.
 **Relation:** Booking → Venue (offered slots + price) and People. Venue must not import Booking. `user_person_links` waits for User/auth.
 
 **How to verify:** read the spec; no product code until you OK a numbered step.
+
+---
+
+## Chapter 9 — 2026-09-09 — SPEC-03 step 1: Person + Booking + BookingParticipant
+
+**When:** 2026-09-09
+
+**What:** Three tenant-owned tables for a public PENDING request. No modules, no UI, no exclusion yet.
+
+**Why:** DR-002 §2.1–2.3 (person = name+phone, unique per tenant phone), §2.9–2.10 (booking has no person; requester is a participant), §2.18 (`Decimal(12,2)`). SPEC-03 step 1. `tenant_id` on all three including the child table (DR-001 / DR-002 §3).
+
+**Prisma 7 docs (then the code):**
+- `enum` blocks map to Postgres enums ([Models — Defining enums](https://www.prisma.io/docs/orm/v7/prisma-schema/data-model/models)).
+- Money: `Decimal` + `@db.Decimal(12, 2)` so we do not get the default `decimal(65,30)`.
+- `tstzrange` has no Prisma scalar. [Unsupported field types](https://www.prisma.io/docs/orm/v7/prisma-schema/data-model/unsupported-database-features): `Unsupported("tstzrange")` creates the column; the field is **not** in Prisma Client. A required Unsupported field also drops typed `create` / `upsert` on that model (schema reference). Step 7 will insert `during` with raw SQL. We did **not** add `startAt`/`endAt` — DR-002’s column is `during`.
+- `team` omitted this slice (SPEC: omit or nullable; unused).
+
+**Files:** `src/prisma/schema.prisma`; migration `src/prisma/migrations/20260909080100_person_booking/migration.sql`.
+
+**Relation:** Tenant and Pitch gain reverse lists. Booking FK → Pitch. BookingParticipant FKs → Tenant, Booking, Person. Venue module must not import Booking (still true — we added no app code). `db.ts` still only scopes `Pitch` (step 3).
+
+**Gotcha:** `migrate dev` needs a shadow DB; this local URL is `template1` (Chapter 0). Same as SPEC-02: handwritten SQL from `migrate diff --from-config-datasource --to-schema`, then `migrate deploy`. `npx prisma migrate status` is clean.
+
+**How to verify:** Prisma Studio — three empty tables; Person unique on `(tenantId, phone)`; Booking has `during` tstzrange and `priceUsd` DECIMAL(12,2); no `personId` on Booking.
+
+```
+npx prisma studio --config prisma7.config.ts
+```
+
+---
+
+## Chapter 10 — 2026-09-09 — SPEC-03 step 2: APPROVED exclusion
+
+**When:** 2026-09-09
+
+**What:** GiST exclusion on `Booking`: same `"pitchId"` + overlapping `"during"` is refused **only** when `status = APPROVED`. PENDING may overlap (RULE-2 / BR-19).
+
+**Why:** DR-002 §2.8 — the database is the double-booking guard, not app code. Prisma cannot express `EXCLUDE`; it is handwritten SQL (`.cursor/rules/200-database-prisma.mdc`). Ships now so we do not “forget” why we picked Postgres, even though this slice only inserts PENDING.
+
+**Files:** `src/prisma/migrations/20260909080800_booking_approved_exclusion/migration.sql`. Schema DSL unchanged.
+
+**Relation:** Constraint lives on `Booking` only. No app code. Step 7 still writes PENDING, so this will not fire until an approve slice.
+
+**Gotcha:** `btree_gist` is required because GiST has no built-in `=` for `TEXT` (`pitchId` is a cuid string). Range overlap (`&&`) is native. Same `template1` path: `migrate deploy`, not `migrate dev`. `npx prisma migrate status` is clean.
+
+**How to verify:** Studio will not show the constraint as a Prisma field. In Studio SQL, or any client:
+
+```sql
+SELECT conname, pg_get_constraintdef(oid)
+FROM pg_constraint
+WHERE conname = 'Booking_approved_during_excl';
+```
+
+You should see `EXCLUDE USING gist ("pitchId" WITH =, "during" WITH &&) WHERE ("status" = 'APPROVED')`. You cannot collide two APPROVED rows until later; do not invent a proof approve.
+
+---
+
+## Chapter 11 — 2026-09-09 — SPEC-03 step 3: tenant extension
+
+**When:** 2026-09-09
+
+**What:** `Person`, `Booking`, and `BookingParticipant` are now in `TENANT_SCOPED_MODELS`. App queries must not pass `tenantId`.
+
+**Why:** DR-001 §3 — the Prisma extension is the isolation guard. SPEC-03 step 3. Child tables are scoped too, not “because they hang off Booking.” Prisma 7 query extensions: `$extends` + `query.$allModels.$allOperations` ([v7 query component](https://www.prisma.io/docs/orm/v7/prisma-client/client-extensions/query)).
+
+**Files:** `src/lib/db.ts` only.
+
+**Relation:** Same client `listPitches` already uses. Seed / tenant lookup still use `platformDb` (unscoped). No people/booking modules yet (step 4).
+
+**Gotcha:** required `Unsupported("tstzrange")` means Prisma Client has no `booking.create`. Prisma 7 then types `$allOperations` as the **intersection** of operations, so `create` disappeared from the type even though Person still creates. We compare `operation` as a string so Person/participant inserts still get `tenantId`. Step 7’s raw SQL for `during` will **not** be stamped by this extension — that write must include `tenantId` in the SQL.
+
+**How to verify:** read `TENANT_SCOPED_MODELS` in `src/lib/db.ts`. No Studio change. There is still no app query against Person/Booking; proof comes when step 4/7 repositories omit `tenantId` from `where`.
+
+---
+
+## Chapter 12 — 2026-09-09 — SPEC-03 step 4: People find-or-create
+
+**When:** 2026-09-09
+
+**What:** First `people/` module. Normalize phone to digits; find-or-create by phone inside the caller's `tx`; never overwrite an existing name.
+
+**Why:** DR-002 §2.2 / RULE-8 — phone unique per stadium. SPEC-03: Booking asks People, does not own “create person.” DR-001: the starting use case opens `$transaction` and passes `tx`; repositories never import `db`. Prisma 7 interactive transactions: `tx` is `Prisma.TransactionClient` ([Client `$transaction`](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions)).
+
+**Files:**
+- `src/modules/people/domain/phone.ts` — `normalizePhone` (pure)
+- `src/modules/people/infrastructure/persons.ts` — `findPersonByPhone`, `createPerson` (no `tenantId` in `where`/`data`)
+- `src/modules/people/application/find-or-create-person.ts`
+- `test/modules/people/domain/phone.test.ts`
+
+No `ui/` or empty folders.
+
+**Relation:** Booking (step 7) will call `findOrCreatePerson(tx, …)` inside its transaction. People must not import Booking. Venue unchanged.
+
+**How to verify:** `npm test` — new suite plus SPEC-01/02. Same digits after stripping spaces/`-`/`+` → same string. Isolation (two tenants, two people) waits until a request can write rows (step 7/8).
+
 

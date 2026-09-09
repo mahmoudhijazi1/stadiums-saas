@@ -14,23 +14,90 @@ datasource db {
 
 /// One stadium business (e.g. slug "ahmad" from ahmad.stadiums.com)
 model Tenant {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  pitches   Pitch[]
+  id                  String               @id @default(cuid())
+  slug                String               @unique
+  name                String
+  createdAt           DateTime             @default(now())
+  pitches             Pitch[]
+  persons             Person[]
+  bookings            Booking[]
+  bookingParticipants BookingParticipant[]
 }
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
 model Pitch {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   tenantId       String
   name           String
   /// Opening hours, slot length, gaps, pricing (DR-002 §2.4). Zod-validated in app code, not here.
   /// Default is a closed week so existing rows are valid jsonb (SPEC-02 step 1).
-  scheduleConfig Json     @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
-  createdAt      DateTime @default(now())
-  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  scheduleConfig Json      @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
+  createdAt      DateTime  @default(now())
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  bookings       Booking[]
 
   @@index([tenantId])
+}
+
+/// Name + phone at one stadium. Same phone at two stadiums = two rows (DR-002 §2.2 / RULE-8).
+model Person {
+  id                  String               @id @default(cuid())
+  tenantId            String
+  name                String
+  phone               String
+  createdAt           DateTime             @default(now())
+  tenant              Tenant               @relation(fields: [tenantId], references: [id])
+  bookingParticipants BookingParticipant[]
+
+  @@unique([tenantId, phone])
+  @@index([tenantId])
+}
+
+/// A pitch + a UTC window. People attach through BookingParticipant, not here (DR-002 §2.9).
+model Booking {
+  id           String                   @id @default(cuid())
+  tenantId     String
+  pitchId      String
+  /// Postgres tstzrange. Prisma 7 has no range scalar — Unsupported, not in Client (v7 Unsupported docs).
+  during       Unsupported("tstzrange")
+  status       BookingStatus
+  source       BookingSource
+  /// Snapshot of the slot price at request time (DR-002 §2.18). Never a float.
+  priceUsd     Decimal                  @db.Decimal(12, 2)
+  requestedAt  DateTime                 @default(now())
+  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
+  pitch        Pitch                    @relation(fields: [pitchId], references: [id])
+  participants BookingParticipant[]
+
+  @@index([tenantId])
+}
+
+/// Who is on a booking. The public requester is a row with isRequester (DR-002 §2.10).
+model BookingParticipant {
+  id           String    @id @default(cuid())
+  tenantId     String
+  bookingId    String
+  personId     String
+  amountDueUsd Decimal   @db.Decimal(12, 2)
+  paidAt       DateTime?
+  isRequester  Boolean
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  booking      Booking   @relation(fields: [bookingId], references: [id])
+  person       Person    @relation(fields: [personId], references: [id])
+
+  @@index([tenantId])
+}
+
+/// DR-002 §2.8 / §2.12. PENDING may overlap; only APPROVED will hit the exclusion (step 2).
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  NO_SHOW
+}
+
+enum BookingSource {
+  OWNER
+  PUBLIC
 }
