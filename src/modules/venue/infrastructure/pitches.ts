@@ -7,6 +7,6 @@ import db from "@/lib/db";
 export async function listPitches() {
   return db.pitch.findMany({
     orderBy: { name: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, scheduleConfig: true },
   });
 }
