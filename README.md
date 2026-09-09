@@ -14,7 +14,7 @@ All planning and agent workflow docs live under [`docs/`](./docs/README.md):
 | [`docs/progress.md`](./docs/progress.md) | Learning/defense log (append after each step) |
 | [`docs/requirements/brd.md`](./docs/requirements/brd.md) | Product source of truth (BRD, draft v0.1) |
 
-**Work order:** decision → spec → code. SPEC-01 and SPEC-02 are implemented. Next: write SPEC-03 (Booking), not invent it.
+**Work order:** decision → spec → code. SPEC-01 and SPEC-02 are implemented. Next: [SPEC-03](./docs/specs/SPEC-03-booking-public-request.md) (public request, not implemented).
 
 Agent rules: [`.cursor/rules/`](./.cursor/rules/). Framework warning: [`AGENTS.md`](./AGENTS.md).
 

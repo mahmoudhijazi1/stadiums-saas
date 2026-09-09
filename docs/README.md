@@ -40,6 +40,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 ### Specs
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
 - [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (implemented)
+- [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (written, not implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -53,9 +54,9 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- **SPEC-03** (not yet written): Booking — request/approve + exclusion constraint
-- Then payment, public page, dashboard (MVP order)
-- Auth (email@domain + password) before owner-facing slices
+- **Implement SPEC-03** (option A: public PENDING request). One numbered step at a time.
+- Then auth (email@domain + password) before owner approve UI
+- Then payment, public polish, dashboard (MVP order)
 
 ## Framework note
 

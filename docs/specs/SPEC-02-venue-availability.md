@@ -270,7 +270,8 @@ Re-seed after migrate.
 7. Page / infrastructure still contain **no** hand-written `tenantId` filter. ✅
 8. `npm test` includes slug + schedule-config + availability suites. ✅
 
-If all eight pass, SPEC-03 (Booking: request/approve + exclusion constraint) can ask Venue for a day's slots and pass occupied approved ranges into the same engine.
+If all eight pass, [SPEC-03](./SPEC-03-booking-public-request.md) (public PENDING request) can
+ask Venue for a day's slots. Approve/occupied ranges come after auth.
 
 ---
 

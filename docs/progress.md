@@ -365,3 +365,20 @@ Keep entries boring and specific. This file is your memory, not a brochure.
 **Relation:** Shared `lib/` like `money.ts`. **Must not** import from Client Components or `src/proxy.ts` (no Node filesystem). Domain stays pure — no logger in `availability.ts`. Do not log secrets.
 
 **How to verify:** trigger `logger.info` (e.g. `npm run db:seed`) then open `logs/<UTC-date>.log`.
+
+---
+
+## Chapter 8 — 2026-09-09 — SPEC-03 written (not built)
+
+**When:** 2026-09-09
+
+**What:** Branch `feature/spec-03-booking-public-request`. Spec for **option A**: public name+phone request → PENDING booking + person + requester participant. Exclusion SQL ships now; approve UI does not.
+
+**Why:** `docs/README.md` next slice is Booking; auth must exist before owner screens. BR-15/16, RULE-2. People module appears because Booking asks People find-or-create by phone (DR-002).
+
+**Files:** `docs/specs/SPEC-03-booking-public-request.md`; index links in `docs/README.md`, root `README.md`.
+
+**Relation:** Booking → Venue (offered slots + price) and People. Venue must not import Booking. `user_person_links` waits for User/auth.
+
+**How to verify:** read the spec; no product code until you OK a numbered step.
+
