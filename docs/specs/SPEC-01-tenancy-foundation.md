@@ -161,8 +161,8 @@ docs) before or with step 2. See `docs/guides/testing-jest.md`.
    (This is the "bug shows zero rows, not a leak" property. Restore after testing.)
 7. Jest suite for the tenant slug parser passes (`npm test`). ✅
 
-If all seven pass, the foundation is real and SPEC-02 (Venue: schedule config + availability
-engine) builds on it.
+If all seven pass, the foundation is real and [SPEC-02](./SPEC-02-venue-availability.md)
+(Venue: schedule config + availability engine) builds on it.
 
 ---
 

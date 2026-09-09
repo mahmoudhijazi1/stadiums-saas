@@ -4,7 +4,7 @@ Product requirements live here — separate from architecture decisions and buil
 
 | File | Purpose |
 |------|---------|
-| `brd.md` (add when ready) | Business requirements document — source of truth for *what the product must do* |
+| [brd.md](./brd.md) | Business requirements document — source of truth for *what the product must do* (draft v0.1) |
 
 **How this relates to the rest of `docs/`:**
 

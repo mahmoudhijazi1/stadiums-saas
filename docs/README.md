@@ -38,7 +38,8 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [DR-002 — Core data model](./decisions/DR-002-core-data-model.md)
 
 ### Specs
-- [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (first build slice)
+- [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
+- [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (written, not implemented)
 
 ### Guides
 - [Cursor workflow](./guides/cursor-workflow.md) — slices, tokens, staying on rules
@@ -47,12 +48,12 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [Testing with Jest](./guides/testing-jest.md) — always-on test practice per slice
 
 ### Requirements
-- Place the BRD here when ready (`docs/requirements/brd.md`). Until then, DRs + SPECs are the working truth for build order.
+- [BRD](./requirements/brd.md) — product source of truth (draft v0.1). Requirements folder notes: [requirements/README.md](./requirements/README.md).
 
-## What's next (not yet written)
+## What's next
 
-- **SPEC-02:** Venue — `schedule_config` jsonb + availability engine
-- **SPEC-03:** Booking — request/approve + exclusion constraint
+- **Implement SPEC-02** (one numbered step at a time; verify before the next).
+- **SPEC-03** (not yet written): Booking — request/approve + exclusion constraint
 - Then payment, public page, dashboard (MVP order)
 - Auth (email@domain + password) before owner-facing slices
 
