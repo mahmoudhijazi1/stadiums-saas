@@ -10,7 +10,7 @@ export type UtcRange = { start: Date; end: Date };
 /**
  * Confirm this UTC window is a slot Venue would offer that day, and it has not ended.
  * Price is copied from the engine — never trusted from the requester (DR-002 §2.18).
- * occupied is [] here: APPROVED occupancy is a later slice, not this public-request rule.
+ * Pass APPROVED ranges as occupied so a taken hour fails (SPEC-05). Default [] = none taken.
  */
 export function resolveOfferedSlot(input: {
   config: ScheduleConfig;
@@ -19,12 +19,13 @@ export function resolveOfferedSlot(input: {
   start: Date;
   end: Date;
   now: Date;
+  occupied?: UtcRange[];
 }): { start: Date; end: Date; priceUsd: Decimal } {
   const slots = generateSlotsForDay({
     config: input.config,
     localDate: input.localDate,
     timeZone: input.timeZone,
-    occupied: [],
+    occupied: input.occupied ?? [],
   });
 
   const offered = slots.find(
@@ -35,6 +36,10 @@ export function resolveOfferedSlot(input: {
 
   if (!offered) {
     throw new Error("Slot is not offered");
+  }
+
+  if (!offered.available) {
+    throw new Error("Slot is taken");
   }
 
   if (offered.end.getTime() <= input.now.getTime()) {
@@ -53,4 +58,27 @@ export function resolveOfferedSlot(input: {
  */
 export function overlaps(a: UtcRange, b: UtcRange): boolean {
   return a.start.getTime() < b.end.getTime() && a.end.getTime() > b.start.getTime();
+}
+
+export type PendingRangeLike = {
+  id: string;
+  pitchId: string;
+  start: Date;
+  end: Date;
+};
+
+/**
+ * Other PENDING on the same pitch whose window overlaps the approved range (BR-20 pin).
+ * Caller passes the losers, not the winner. Different pitch never matches.
+ */
+export function overlappingPendingIds(
+  approved: { pitchId: string } & UtcRange,
+  pending: PendingRangeLike[],
+): string[] {
+  return pending
+    .filter(
+      (row) =>
+        row.pitchId === approved.pitchId && overlaps(row, approved),
+    )
+    .map((row) => row.id);
 }

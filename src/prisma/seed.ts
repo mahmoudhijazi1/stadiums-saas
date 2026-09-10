@@ -103,6 +103,7 @@ async function main() {
   await platformDb.session.deleteMany();
   await platformDb.membership.deleteMany();
   await platformDb.userPersonLink.deleteMany();
+  await platformDb.slotInterest.deleteMany();
   await platformDb.bookingParticipant.deleteMany();
   await platformDb.booking.deleteMany();
   await platformDb.person.deleteMany();

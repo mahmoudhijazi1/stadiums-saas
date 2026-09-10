@@ -5,6 +5,7 @@ import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
   insertPendingPublicBooking,
   insertRequesterParticipant,
+  listApprovedRanges,
 } from "@/modules/booking/infrastructure/bookings";
 import type { PublicSlotRequest } from "@/modules/booking/schemas/public-slot-request";
 import { civilDateInTimeZone } from "@/modules/venue/domain/availability";
@@ -16,6 +17,7 @@ const TIME_ZONE = "Asia/Beirut";
 /**
  * Public name+phone request → PENDING booking + requester participant.
  * Opens the transaction (DR-001). Does not notify. Price from Venue, not the form.
+ * APPROVED ranges (same tx) are occupied — a taken hour fails "Slot is taken".
  */
 export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
   bookingId: string;
@@ -30,6 +32,7 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
       const config = parseScheduleConfig(pitch.scheduleConfig);
       const start = new Date(input.start);
       const end = new Date(input.end);
+      const approved = await listApprovedRanges(tx, pitch.id);
       const slot = resolveOfferedSlot({
         config,
         localDate: civilDateInTimeZone(start, TIME_ZONE),
@@ -37,6 +40,7 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
         start,
         end,
         now: new Date(),
+        occupied: approved.map((row) => ({ start: row.start, end: row.end })),
       });
 
       const person = await findOrCreatePerson(tx, {

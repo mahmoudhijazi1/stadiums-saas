@@ -1,10 +1,12 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { submitPublicSlotRequest } from "@/app/request-slot";
+import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 
 /**
  * Thin route. No Prisma and no tenantId.
+ * Occupied comes from Booking; Venue only receives UTC ranges (SPEC-05).
  * Next 16: searchParams is a Promise; <form action={Server Action}> (forms guide).
  */
 const TIME_ZONE = "Asia/Beirut";
@@ -14,7 +16,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const localDate = parseCivilDate(dateParam) ?? todayInTimeZone(TIME_ZONE);
-  const pitches = await getDayAvailability({ localDate, timeZone: TIME_ZONE });
+  const occupied = await listApprovedOccupied();
+  const pitches = await getDayAvailability({
+    localDate,
+    timeZone: TIME_ZONE,
+    occupied,
+  });
   const received = params.received === "1";
   const dateValue = formatCivilDate(localDate);
 
@@ -43,22 +50,24 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                   {pitch.slots.map((slot) => (
                     <li key={slot.startIso}>
                       {slot.startLocal}–{slot.endLocal} · ${slot.priceUsd}
-                      <form action={submitPublicSlotRequest}>
-                        <input type="hidden" name="pitchId" value={pitch.id} />
-                        <input type="hidden" name="start" value={slot.startIso} />
-                        <input type="hidden" name="end" value={slot.endIso} />
-                        <input type="hidden" name="date" value={dateValue} />
-                        <input type="hidden" name="tenant" value={tenant.slug} />
-                        <label>
-                          Name{" "}
-                          <input type="text" name="name" required autoComplete="name" />
-                        </label>{" "}
-                        <label>
-                          Phone{" "}
-                          <input type="tel" name="phone" required autoComplete="tel" />
-                        </label>{" "}
-                        <button type="submit">Request</button>
-                      </form>
+                      {slot.available ? (
+                        <form action={submitPublicSlotRequest}>
+                          <input type="hidden" name="pitchId" value={pitch.id} />
+                          <input type="hidden" name="start" value={slot.startIso} />
+                          <input type="hidden" name="end" value={slot.endIso} />
+                          <input type="hidden" name="date" value={dateValue} />
+                          <input type="hidden" name="tenant" value={tenant.slug} />
+                          <label>
+                            Name{" "}
+                            <input type="text" name="name" required autoComplete="name" />
+                          </label>{" "}
+                          <label>
+                            Phone{" "}
+                            <input type="tel" name="phone" required autoComplete="tel" />
+                          </label>{" "}
+                          <button type="submit">Request</button>
+                        </form>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

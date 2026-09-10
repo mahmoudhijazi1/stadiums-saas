@@ -43,6 +43,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (implemented)
 - [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (implemented)
 - [SPEC-04 — Access: login, session, `can(...)`](./specs/SPEC-04-access-login.md) (implemented)
+- [SPEC-05 — Owner approve (exclusion fires)](./specs/SPEC-05-owner-approve.md) (written — not started in code)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -57,7 +58,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- **Owner approve** (next SPEC) — exclusion fires. Wait for OK.
+- **Implement SPEC-05** — spec written; OK step 1 next (schema). One numbered step at a time.
 - Then payment, public polish, dashboard (MVP order)
 
 ## Framework note

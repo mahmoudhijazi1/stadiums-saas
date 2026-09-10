@@ -22,6 +22,7 @@ model Tenant {
   persons             Person[]
   bookings            Booking[]
   bookingParticipants BookingParticipant[]
+  slotInterests       SlotInterest[]
   memberships         Membership[]
   userPersonLinks     UserPersonLink[]
 }
@@ -35,8 +36,9 @@ model Pitch {
   /// Default is a closed week so existing rows are valid jsonb (SPEC-02 step 1).
   scheduleConfig Json      @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
   createdAt      DateTime  @default(now())
-  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
   bookings       Booking[]
+  slotInterests  SlotInterest[]
 
   @@index([tenantId])
 }
@@ -51,6 +53,7 @@ model Person {
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   bookingParticipants BookingParticipant[]
   userPersonLinks     UserPersonLink[]
+  slotInterests       SlotInterest[]
 
   @@unique([tenantId, phone])
   @@index([tenantId])
@@ -87,6 +90,22 @@ model BookingParticipant {
   tenant       Tenant    @relation(fields: [tenantId], references: [id])
   booking      Booking   @relation(fields: [bookingId], references: [id])
   person       Person    @relation(fields: [personId], references: [id])
+
+  @@index([tenantId])
+}
+
+/// Waitlist window (DR-002 §2.13). Written on auto-reject (SPEC-05). No UI this slice.
+model SlotInterest {
+  id        String                   @id @default(cuid())
+  tenantId  String
+  pitchId   String
+  /// Same tstzrange as Booking. Stores the *approved* window, not a rejected booking id.
+  during    Unsupported("tstzrange")
+  personId  String
+  createdAt DateTime                 @default(now())
+  tenant    Tenant                   @relation(fields: [tenantId], references: [id])
+  pitch     Pitch                    @relation(fields: [pitchId], references: [id])
+  person    Person                   @relation(fields: [personId], references: [id])
 
   @@index([tenantId])
 }

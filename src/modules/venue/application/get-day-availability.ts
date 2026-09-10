@@ -22,15 +22,24 @@ export type PitchDayAvailability = {
   slots: DaySlotView[];
 };
 
+/** Occupied UTC window on one pitch. Caller supplies these; Venue does not import Booking. */
+export type OccupiedWindow = {
+  pitchId: string;
+  start: Date;
+  end: Date;
+};
+
 /**
  * Load this tenant's pitches, parse jsonb, generate one day's slots.
- * occupied is [] until pitch_blocks / bookings exist (SPEC-02).
+ * Occupied ranges are an argument (APPROVED bookings from the page / Booking use case).
  */
 export async function getDayAvailability(input: {
   localDate: CivilDate;
   timeZone: string;
+  occupied?: OccupiedWindow[];
 }): Promise<PitchDayAvailability[]> {
   const pitches = await listPitches();
+  const occupied = input.occupied ?? [];
 
   return pitches.map((pitch) => {
     let config;
@@ -44,7 +53,9 @@ export async function getDayAvailability(input: {
       config,
       localDate: input.localDate,
       timeZone: input.timeZone,
-      occupied: [],
+      occupied: occupied
+        .filter((range) => range.pitchId === pitch.id)
+        .map((range) => ({ start: range.start, end: range.end })),
     });
 
     return {

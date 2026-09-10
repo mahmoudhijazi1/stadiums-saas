@@ -28,15 +28,15 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-10)
 
-**On `feature/spec-03-booking-public-request`.** SPEC-01–04 implemented.
+**On `feature/spec-05-owner-approve`.** SPEC-01–04 implemented. SPEC-05 steps **1–8** done.
 
-**What a visitor can do:** public PENDING request (no login). Owner/staff can sign in at `/login` and see `/owner`.
+**What a visitor can do:** public PENDING request (no login). After an hour is **APPROVED**, that row still lists but has no Request form; a forged POST fails `"Slot is taken"`. Owner logs in and Approves/Rejects on `/owner`. Staff see the same list with no buttons.
 
-**What they cannot do yet:** owner approve, pay, Arabic UI, dashboard.
+**What they cannot do yet:** pay, Arabic UI, dashboard board, owner-created bookings.
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve).
 
-**Next:** owner approve (exclusion fires). Wait for OK. Do not start until asked.
+**Next:** Payment slice (collect on a booking). Wait for OK.
 
 ---
 
@@ -872,5 +872,219 @@ The waiter for login: a small form and a locked “you are in” page. They do n
 
 We planted three keys in the test lockbox. Ahmad’s owner key opens Ahmad’s door. It does not open Sami’s. A staff key exists for Ahmad but cannot approve bookings yet (there is still no approve button). The password is only for local development — it is not a mailbox and must not live in the browser.
 
+---
 
+## Chapter 31 — 2026-09-10 — SPEC-05 written (not started in code)
+
+**When:** 2026-09-10
+
+**What:** Numbered owner-approve slice: `slot_interests` → guard → domain (overlap + occupied on `resolveOfferedSlot`) → Zod → infra → `approveBooking` / `rejectBooking` (auth **before** `$transaction`) → public occupied → `/owner` pending inbox. No payment, no owner-created bookings, no waitlist UI.
+
+**Why:** [SPEC-05](./specs/SPEC-05-owner-approve.md) implements [DR-002](./decisions/DR-002-core-data-model.md) §2.8 / §2.13 and BR-17–21 / BR-23–25. Pins: auto-reject = overlapping PENDING on the same pitch; interest `during` = the **approved** window; manual reject writes no interest; same `bookings.approve` flag for reject; Venue still does not import Booking.
+
+**Files:** `docs/specs/SPEC-05-owner-approve.md`; `docs/README.md`.
+
+**How to verify:** Read the spec. Confirm or correct the pins. Then OK step 1.
+
+### In plain language
+
+The next chapter of the product: the owner looks at a list of “please can I have this hour?” and taps yes or no. Yes makes it a real game (the database will not allow two games on one pitch at once). Everyone else who asked for that hour is automatically told no, and we remember they were interested. The public page stops offering a Request button for that hour. We have not built that yet — only the instruction sheet.
+
+---
+
+## Chapter 32 — 2026-09-10 — SPEC-05 step 1: SlotInterest schema
+
+**When:** 2026-09-10
+
+**What:** `SlotInterest` table: `tenantId` required, `pitchId`, `during` tstzrange (Prisma `Unsupported`, same as Booking), `personId`, `createdAt`. Empty this step. No unique on (pitch, during, person) — DR-002 does not require one.
+
+**Why:** SPEC-05 step 1 / DR-002 §2.13. Approval later writes “who wanted this filled hour” as a window, not a rejected booking id. Guard is step 2.
+
+**Files:** `src/prisma/schema.prisma`; `src/prisma/migrations/20260910041000_slot_interest/migration.sql`.
+
+**Relation:** Booking module not touched. `TENANT_SCOPED_MODELS` not updated yet.
+
+**How to verify:** Prisma Studio → `SlotInterest` (empty). Columns include `tenantId` and `during`. `npx prisma migrate status --config prisma7.config.ts` up to date after generate/deploy.
+
+### In plain language
+
+A spare drawer for “this person wanted that hour.” We built the drawer. We do not put names in it until the owner taps Approve.
+
+---
+
+## Chapter 33 — 2026-09-10 — SPEC-05 step 2: SlotInterest on the tenant guard
+
+**When:** 2026-09-10
+
+**What:** `SlotInterest` added to `TENANT_SCOPED_MODELS`. Prisma `findMany`/`create` on that model get `tenantId` injected. Raw `$executeRaw` for `during` still stamps `tenantId` from ALS (same as Booking insert) — the extension does not wrap raw SQL.
+
+**Why:** SPEC-05 step 2 / DR-001 §1. Interests are Ahmad’s or Sami’s, never mixed.
+
+**Files:** `src/lib/db.ts`.
+
+**Relation:** No Booking use case yet. Callers still must not pass `tenantId`.
+
+**How to verify:** Read the set in `src/lib/db.ts`. No Studio change (table already empty).
+
+### In plain language
+
+The bouncer now knows the waitlist drawer. When we later list interests, we only get this stadium’s names, without writing `tenantId` in the kitchen.
+
+---
+
+## Chapter 34 — 2026-09-10 — SPEC-05 step 3: approve domain rules
+
+**When:** 2026-09-10
+
+**What:** `resolveOfferedSlot` takes `occupied` (default `[]`); covering APPROVED range → `"Slot is taken"`. `overlappingPendingIds` = same pitch + half-open overlap. `assertPendingForDecision`: only PENDING may be approved/rejected. No Prisma in domain.
+
+**Why:** SPEC-05 step 3 / BR-18, BR-20 pin, BR-23 via occupied. Public request still compiles: occupied omitted → empty.
+
+**Files:** `src/modules/booking/domain/offered-slot.ts`, `decision.ts`; `test/modules/booking/domain/`.
+
+**Relation:** Venue still does not import Booking. Application/UI not this step.
+
+**How to verify:** `npm test` — new cases: adjacent 16:00–17:00 / 17:00–18:00 not overlapping; loser id returned; occupied slot throws; APPROVED status throws.
+
+### In plain language
+
+Three paper rules, no database. You can only say yes/no to a *pending* request. If two people asked for the same hour on the same pitch, approving one names the other as a loser. If that hour is already a real game, a new public request must fail.
+
+---
+
+## Chapter 35 — 2026-09-10 — SPEC-05 step 4: Zod booking decision
+
+**When:** 2026-09-10
+
+**What:** `parseBookingDecision` — `bookingId` only, `strictObject`, trim + min 1. No `tenant` / `tenantId` in the schema.
+
+**Why:** SPEC-05 step 4. Same two-gate idea: Zod = form shape; the use case (step 6) = membership + PENDING + exclusion.
+
+**Files:** `src/modules/booking/schemas/booking-decision.ts`; `test/modules/booking/schemas/booking-decision.test.ts`.
+
+**How to verify:** `npm test` — missing id, extra field, happy `bk_1`.
+
+### In plain language
+
+The bouncer for the Approve/Reject button: you must send exactly one booking id, nothing extra. The hidden stadium slug on the form is only so local `?tenant=` survives a redirect. It is not how we pick the stadium.
+
+---
+
+## Chapter 36 — 2026-09-10 — SPEC-05 step 5: Booking infrastructure
+
+**When:** 2026-09-10
+
+**What:** Raw SQL for `during` (`listPendingBookings`, `findBookingForDecision`, `listApprovedRanges`, `insertSlotInterest`). Prisma `updateMany` for PENDING → APPROVED/REJECTED (Client has update, not create, because Unsupported). Requester `personId` via participant find. Seed deletes `SlotInterest` before Person/Pitch.
+
+**Why:** SPEC-05 step 5. Prisma 7 generated Booking/SlotInterest have no `create` (no `during` on the Client model). `$executeRaw` is not stamped by the extension — ALS `tenantId` in SQL, same as SPEC-03 insert.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`; `src/prisma/seed.ts`.
+
+**Relation:** No use case yet. Pages unchanged.
+
+**How to verify:** Code review. Click-proof waits for step 6–8 + a running `prisma dev`.
+
+### In plain language
+
+The warehouse for approve: list who asked, load one request’s hour, mark it approved or rejected, and drop a waitlist row. We still do not have the kitchen (use case) or the waiter (buttons).
+
+---
+
+## Chapter 37 — 2026-09-10 — SPEC-05 step 6: approve / reject use cases
+
+**When:** 2026-09-10
+
+**What:** `listPendingRequests` (membership required, no `can`). `approveBooking` / `rejectBooking`: `getCurrentMembership` + `can(..., bookings.approve)` **outside** `$transaction`; then load → PENDING gate → status write. Approve auto-rejects overlapping PENDING on that pitch and inserts `slot_interests` for the **approved** window. Exclusion `23P01` / `Booking_approved_during_excl` → `"Slot no longer available"` and the whole tx rolls back.
+
+**Why:** SPEC-05 step 6 / BR-17–21, BR-24, DR-003 (Booking asks Access; Access does not import Booking). Authorize before `$transaction` so session/User (`platformDb`) never run inside `tx` ([guides/prisma-transaction-tenant-guard.md](./guides/prisma-transaction-tenant-guard.md)).
+
+**Files:** `src/modules/booking/application/list-pending-requests.ts`, `approve-booking.ts`, `reject-booking.ts`.
+
+**Relation:** No Server Action / `/owner` buttons yet (step 8). Public occupied is step 7. Venue still does not import Booking.
+
+**How to verify:** Code review now. Click-proof: step 8 + two PENDING on the same Ahmad hour → owner approve → one APPROVED, loser REJECTED + one interest; `staff@ahmad` gets `"Not allowed"`.
+
+### In plain language
+
+The kitchen: a logged-in person can see the request list. Only the owner (or staff with the flag) can say yes or no. Yes locks the hour, turns overlapping asks into no, and writes a waitlist note. If two owners hit Approve at the same second, Postgres refuses the second and nothing half-saves.
+
+---
+
+## Chapter 38 — 2026-09-10 — SPEC-05 step 7: occupied on the public day
+
+**When:** 2026-09-10
+
+**What:** `getDayAvailability` takes `occupied?: { pitchId, start, end }[]` and passes per-pitch ranges into `generateSlotsForDay`. `page.tsx` loads APPROVED via Booking `listApprovedOccupied` (no Prisma on the page) and **omits** the Request form when `available === false` (time still shown). `requestPublicSlot` loads APPROVED for that pitch **inside** the existing `$transaction` and passes them as `occupied` to `resolveOfferedSlot`.
+
+**Why:** SPEC-05 step 7 / BR-23. Occupied = APPROVED only. Venue still does not import Booking — the page (and Booking’s own request use case) assemble the ranges.
+
+**Files:** `src/modules/venue/application/get-day-availability.ts`, `src/modules/booking/application/list-approved-occupied.ts`, `request-public-slot.ts`, `src/app/page.tsx`.
+
+**Relation:** No `/owner` buttons (step 8). PENDING does not occupy.
+
+**How to verify:** After step 8, approve 16:00 on Ahmad → `/?tenant=ahmad` that day lists 16:00 with no Request; posting the old hidden start/end fails. Until then: empty APPROVED → every offered hour still has Request (same as before).
+
+### In plain language
+
+The public clock still shows every hour. If that hour is already a confirmed game, there is no Request button, and sneaking the old form values into a POST also fails. The slot engine still does not know what a booking is — it only receives “this pitch is busy from A to B.”
+
+---
+
+## Chapter 39 — 2026-09-10 — Prisma 7 create types vs tenant stamp
+
+**When:** 2026-09-10
+
+**What:** `insertRequesterParticipant` still omits `tenantId` (guard stamps it). Prisma 7 `create` `data` is an Exact XOR: scalar FKs → UncheckedCreateInput (requires `tenantId`); nested `connect` → CreateInput (requires `tenant`). `$extends` does not rewrite those types. Assert the payload as the create `data` type.
+
+**Why:** DR-001 — callers must not pass `tenantId`. Passing it would silence the error but hide whether the guard is doing its job.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`
+
+**How to verify:** lints on `bookings.ts` — no `tenantId` missing error.
+
+### In plain language
+
+TypeScript wants us to write the stadium id on the participant row. The bouncer is supposed to write it for us. We keep omitting it and tell TypeScript “the bouncer will fill this in.”
+
+---
+
+## Chapter 40 — 2026-09-10 — SPEC-05 step 8: /owner pending inbox
+
+**When:** 2026-09-10
+
+**What:** `/owner` lists PENDING oldest first (pitch, Asia/Beirut time, requester name + phone, requested at). Approve / Reject are `<form action={Server Action}>`. `can(..., bookings.approve)` false → list, no buttons. Actions: Zod `bookingId` → `approveBooking` / `rejectBooking`; `redirect` outside try/catch to `/owner?tenant=`. Failure → `?error=1`.
+
+**Why:** SPEC-05 step 8 / BR-17, BR-97. Next 16 local docs: [`forms.md`](../../node_modules/next/dist/docs/01-app/02-guides/forms.md) — FormData on `action`. [`redirect`](../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/redirect.md) outside try/catch.
+
+**Files:** `src/app/owner/page.tsx`, `src/app/owner/actions.ts`.
+
+**Relation:** No Prisma / no `tenantId` on the page. Access still does not import Booking. Hidden `tenant` is only for `?tenant=` after POST.
+
+**How to verify:** One `next dev` only (do not start a second — Next already on PID shown in the lock). `prisma dev` must be listening on `DATABASE_URL` (51214). `http://localhost:3000/login?tenant=ahmad` → `owner@ahmad` / `dev-owner` → Approve. `staff@ahmad` sees the row, no buttons. `?tenant=sami` `/owner` does not list Ahmad’s PENDING.
+
+**Gotcha:** `npm run dev --port 3001` is parsed by npm as a project folder. Extra port is `npm run dev -- -p 3001`. `Server has closed the connection` on `tenant.findUnique` is the local Prisma Postgres proxy, not Next — restart `npx prisma dev`, then kill the stale Next PID and start a single `npm run dev`.
+
+### In plain language
+
+The owner’s inbox is on the same locked page as logout. Each ask is a line with Approve and Reject. Staff can look but get no buttons. The kitchen we already wrote does the real yes/no.
+
+---
+
+## Chapter 41 — 2026-09-10 — SPEC-05 click-proof
+
+**When:** 2026-09-10
+
+**What:** On the running app: two public PENDINGs, then `submitApproveBooking` for `19848641-4b37-43d5-909d-de1881cdc03d` (`Booking approved` in next-dev). Public day reload 200. Second session login after logout.
+
+**Why:** SPEC-05 whole-slice acceptance, step 8 definition of done.
+
+**Files:** none (no code change).
+
+**Relation:** Closes the approve UI slice. Payment is next (SPEC not started).
+
+**How to verify:** Studio: that id APPROVED; overlapping leftover PENDING REJECTED + one `slot_interests` if they shared the hour.
+
+### In plain language
+
+Ahmad’s owner tapped Approve in the browser and the kitchen ran. The slice is done.
 

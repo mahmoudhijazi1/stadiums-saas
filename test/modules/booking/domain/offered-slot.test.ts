@@ -1,5 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { overlaps, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
+import {
+  overlappingPendingIds,
+  overlaps,
+  resolveOfferedSlot,
+} from "@/modules/booking/domain/offered-slot";
 import { generateSlotsForDay } from "@/modules/venue/domain/availability";
 import {
   CLOSED_WEEK_SCHEDULE,
@@ -104,5 +108,55 @@ describe("overlaps", () => {
     };
     expect(overlaps(a, adjacent)).toBe(false);
     expect(overlaps(a, overlapping)).toBe(true);
+  });
+});
+
+describe("overlappingPendingIds", () => {
+  const pitchA = "pitch-a";
+  const approved = {
+    pitchId: pitchA,
+    start: new Date("2026-09-09T13:00:00.000Z"),
+    end: new Date("2026-09-09T14:00:00.000Z"),
+  };
+
+  it("returns other pending ids on the same pitch that overlap", () => {
+    const ids = overlappingPendingIds(approved, [
+      {
+        id: "loser",
+        pitchId: pitchA,
+        start: new Date("2026-09-09T13:00:00.000Z"),
+        end: new Date("2026-09-09T14:00:00.000Z"),
+      },
+      {
+        id: "later",
+        pitchId: pitchA,
+        start: new Date("2026-09-09T14:00:00.000Z"),
+        end: new Date("2026-09-09T15:00:00.000Z"),
+      },
+      {
+        id: "other-pitch",
+        pitchId: "pitch-b",
+        start: new Date("2026-09-09T13:00:00.000Z"),
+        end: new Date("2026-09-09T14:00:00.000Z"),
+      },
+    ]);
+    expect(ids).toEqual(["loser"]);
+  });
+});
+
+describe("resolveOfferedSlot occupied", () => {
+  it("fails when an occupied range covers the slot", () => {
+    const slot = firstWedSlot();
+    expect(() =>
+      resolveOfferedSlot({
+        config: evening,
+        localDate: WED,
+        timeZone: BEIRUT,
+        start: slot.start,
+        end: slot.end,
+        now: new Date(slot.start.getTime() - 60_000),
+        occupied: [{ start: slot.start, end: slot.end }],
+      }),
+    ).toThrow("Slot is taken");
   });
 });
