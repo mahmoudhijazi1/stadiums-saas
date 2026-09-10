@@ -22,6 +22,8 @@ model Tenant {
   persons             Person[]
   bookings            Booking[]
   bookingParticipants BookingParticipant[]
+  memberships         Membership[]
+  userPersonLinks     UserPersonLink[]
 }
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
@@ -48,6 +50,7 @@ model Person {
   createdAt           DateTime             @default(now())
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   bookingParticipants BookingParticipant[]
+  userPersonLinks     UserPersonLink[]
 
   @@unique([tenantId, phone])
   @@index([tenantId])
@@ -100,4 +103,66 @@ enum BookingStatus {
 enum BookingSource {
   OWNER
   PUBLIC
+}
+
+/// Login account. No tenantId — memberships attach a user to a stadium (DR-003 §3).
+model User {
+  id            String           @id @default(cuid())
+  identifier    String           @unique
+  passwordHash  String
+  createdAt     DateTime         @default(now())
+  memberships   Membership[]
+  sessions      Session[]
+  personLinks   UserPersonLink[]
+}
+
+/// This user may work at this stadium. tenantId required (DR-001). Unique per tenant+user.
+model Membership {
+  id          String         @id @default(cuid())
+  tenantId    String
+  userId      String
+  role        MembershipRole
+  /// Zod-validated at the app edge (DR-003 §5). Default empty = staff has no extra flags.
+  permissions Json           @default("{}")
+  createdAt   DateTime       @default(now())
+  tenant      Tenant         @relation(fields: [tenantId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+}
+
+/// Server-side session. No tenantId — cookie is not the isolation key (DR-003 §4).
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+/// Optional account↔person. Empty this slice (DR-002 §2.1 / DR-003 §6). tenantId required.
+model UserPersonLink {
+  id        String             @id @default(cuid())
+  tenantId  String
+  userId    String
+  personId  String
+  relation  PersonLinkRelation
+  tenant    Tenant             @relation(fields: [tenantId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+  person    Person             @relation(fields: [personId], references: [id])
+
+  @@index([tenantId])
+}
+
+enum MembershipRole {
+  OWNER
+  STAFF
+}
+
+enum PersonLinkRelation {
+  SELF
+  GUARDIAN
 }

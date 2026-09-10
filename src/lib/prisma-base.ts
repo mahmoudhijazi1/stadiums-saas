@@ -4,8 +4,8 @@ import pg from "pg";
 
 /**
  * One Prisma client + one pool for the app.
- * - Tenant lookup / seeding → platformDb (same client, unscoped import)
- * - Normal queries → db (this client with the tenant extension)
+ * - Tenant / User / Session / seeding → platformDb (same client, unscoped import)
+ * - Membership and other tenant-owned models → db (this client + tenant extension)
  *
  * Do not import this from feature code. Do not create a second PrismaClient
  * on this pool — PrismaPg assumes exclusive use; a second client + $transaction

@@ -36,11 +36,13 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 ### Decisions
 - [DR-001 — Tenancy & modules](./decisions/DR-001-tenancy-and-modules.md)
 - [DR-002 — Core data model](./decisions/DR-002-core-data-model.md)
+- [DR-003 — Auth, sessions, memberships](./decisions/DR-003-auth-sessions.md)
 
 ### Specs
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
 - [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (implemented)
 - [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (implemented)
+- [SPEC-04 — Access: login, session, `can(...)`](./specs/SPEC-04-access-login.md) (in progress — steps 1–5)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -55,7 +57,8 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- Auth (email@domain + password) before owner approve UI
+- **Implement SPEC-04** — steps 1–5 done; OK step 6 next. One numbered step at a time.
+- Then owner approve UI
 - Then payment, public polish, dashboard (MVP order)
 
 ## Framework note

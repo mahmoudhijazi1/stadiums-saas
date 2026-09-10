@@ -10,12 +10,14 @@ const TENANT_SCOPED_MODELS = new Set([
   "Person",
   "Booking",
   "BookingParticipant",
+  "Membership",
+  "UserPersonLink",
 ]);
 
 /**
  * Tenant-scoped Prisma client — primary isolation guard (RLS comes later).
  *
- * For Pitch / Person / Booking / BookingParticipant:
+ * For Pitch / Person / Booking / BookingParticipant / Membership / UserPersonLink:
  * - reads (findMany, etc.) get `where.tenantId` injected automatically
  * - creates get `data.tenantId` stamped automatically
  *

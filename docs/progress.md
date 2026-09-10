@@ -28,13 +28,13 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-09)
 
-**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–8** done (slice complete at code level). Public page can submit a PENDING request.
+**On `feature/spec-03-booking-public-request`.** SPEC-01–03 implemented. SPEC-04 steps **1–5** done. No login page or seed owners yet.
 
-**What a visitor can do:** open `http://localhost:3000/?tenant=ahmad&date=2026-09-09`, type name + phone on a slot, submit, see **Request received**. Slot stays listed.
+**What a visitor can do:** still only the public PENDING request.
 
-**What they cannot do yet:** log in, owner approve, pay, block a pitch, Arabic UI, owner dashboard.
+**What they cannot do yet:** log in (use cases exist; no form, no seeded password), owner approve, pay, Arabic UI, dashboard.
 
-**Next:** Auth (email@domain + password) before owner-facing screens.
+**Next:** SPEC-04 step 6 — `/login` and `/owner` pages.
 
 ---
 
@@ -703,6 +703,130 @@ Two clerks sharing one switchboard still grabbed the same handset and yanked the
 **Files:** [docs/guides/prisma-transaction-tenant-guard.md](./guides/prisma-transaction-tenant-guard.md); linked from [docs/README.md](./README.md).
 
 **How to verify:** Open that file. §5 is the rule; §4 is what not to retry.
+
+---
+
+## Chapter 22 — 2026-09-10 — DR-003 written (auth)
+
+**When:** 2026-09-10
+
+**What:** Settled Access decisions before SPEC-04. No auth code yet.
+
+**Why:** [DR-003](./decisions/DR-003-auth-sessions.md). URL still chooses tenant; login is `local@tenant-slug` + hashed password (BR-99 vs the old “email@domain” note). Users have no `tenant_id`; memberships do.
+
+**Files:** `docs/decisions/DR-003-auth-sessions.md`; `docs/README.md`.
+
+**How to verify:** Read DR-003. Confirm or correct by section. Then SPEC-04, then code.
+
+---
+
+## Chapter 23 — 2026-09-10 — SPEC-04 written (not started in code)
+
+**When:** 2026-09-10
+
+**What:** Numbered Access slice: schema → guard → `can`/identifier → Zod → login/logout → `/login` + `/owner` → seed `owner@ahmad` / `owner@sami`. No approve UI.
+
+**Why:** [SPEC-04](./specs/SPEC-04-access-login.md) implements [DR-003](./decisions/DR-003-auth-sessions.md).
+
+**Files:** `docs/specs/SPEC-04-access-login.md`; `docs/README.md`.
+
+**How to verify:** Read the spec. OK step 1 before any Prisma models.
+
+---
+
+## Chapter 24 — 2026-09-10 — SPEC-04 step 1: Access schema
+
+**When:** 2026-09-10
+
+**What:** `User` (identifier + passwordHash, no `tenantId`), `Membership` (`tenantId` + role + permissions jsonb), `Session` (no `tenantId`), `UserPersonLink` (empty; `tenantId` required). Enums `OWNER|STAFF`, `SELF|GUARDIAN`.
+
+**Why:** SPEC-04 step 1 / DR-003 §3. Login accounts are not stadium rows; the **membership** is. Link table exists so we never retrofit Person↔User (DR-002 §2.1). Prisma 7 schema + handwritten SQL + `migrate deploy` (local DB is `template1`; no `migrate dev` shadow).
+
+**Files:** `src/prisma/schema.prisma`; `src/prisma/migrations/20260910032700_access_user_membership/migration.sql`.
+
+**Relation:** No Access module yet. Guard not updated (step 2). Seed does not create owners yet (step 7).
+
+**How to verify:** Prisma Studio: four new tables, `UserPersonLink` empty. `npx prisma migrate status --config prisma7.config.ts` → up to date.
+
+### In plain language
+
+A **User** is a login (who knows the password). A **Membership** is “this login may work at Ahmad’s stadium as OWNER.” The cookie will remember the login, not the stadium — the URL still picks the stadium. The person-link table is a spare drawer; we do not put anything in it yet.
+
+---
+
+## Chapter 25 — 2026-09-10 — SPEC-04 step 2: guard vs platformDb
+
+**When:** 2026-09-10
+
+**What:** `Membership` and `UserPersonLink` added to `TENANT_SCOPED_MODELS`. User and Session stay off that list (no `tenantId`). Still one Prisma client / one pool. No Access folders yet (step 3).
+
+**Why:** SPEC-04 step 2 / DR-003 §3. A membership list must be Ahmad-only without the caller writing `tenantId`. Looking up `owner@ahmad` must not be filtered to a tenant (User has no `tenantId`). Nested `platformDb` inside `db.$transaction` is still forbidden ([guide](./guides/prisma-transaction-tenant-guard.md)).
+
+**Files:** `src/lib/db.ts`; `src/lib/platform-db.ts`; `src/lib/prisma-base.ts` (comments).
+
+**Relation:** Login (step 5) will `platformDb.user.findUnique({ where: { identifier } })` then `db.membership.findFirst` (guard injects tenant).
+
+**How to verify:** Read the Set in `db.ts`. Studio still empty. Public page still works.
+
+### In plain language
+
+The security guard now also watches **memberships** (and the empty person-link drawer). Logins and cookies are not stamped with a stadium — the guard would have nothing to stamp. We still have one database client. Access code is not written yet.
+
+---
+
+## Chapter 26 — 2026-09-10 — SPEC-04 step 3: Access domain
+
+**When:** 2026-09-10
+
+**What:** Pure rules: login id is `local@slug` after trim/lower-case; `can(membership, "bookings.approve")` is always yes for OWNER, and for STAFF only if the jsonb flag is strictly `true`. No Prisma, no password hash (that needs `node:crypto` later).
+
+**Why:** SPEC-04 step 3 / DR-003 §2 and §5. Domain takes `MembershipLike`, not a Prisma type.
+
+**Files:** `src/modules/access/domain/identifier.ts`, `can.ts`; `test/modules/access/domain/`.
+
+**Relation:** Access must not import Booking. Booking will later ask `can`, not the other way around.
+
+**How to verify:** `npm test` — 9 suites, 39 passed.
+
+### In plain language
+
+Two small rules with no database. First: the username looks like `owner@ahmad`, not an email we send mail to. Second: the owner of a stadium can approve; a staff member cannot unless we later flip a switch on their membership. The login page is still not built.
+
+---
+
+## Chapter 27 — 2026-09-10 — SPEC-04 step 4: Zod login body
+
+**When:** 2026-09-10
+
+**What:** `parseLogin` — `identifier` + `password`, `strictObject`, identifier run through domain normalize + shape. Password not hashed here.
+
+**Why:** SPEC-04 step 4. Same two-gate idea as public booking: Zod = form shape; login use case (step 5) = user exists + membership on this URL.
+
+**Files:** `src/modules/access/schemas/login.ts`; `test/modules/access/schemas/login.test.ts`.
+
+**How to verify:** `npm test` — 10 suites, 42 passed.
+
+### In plain language
+
+The bouncer for the login form: you must send exactly a username and a password, nothing extra. `Owner@Ahmad` becomes `owner@ahmad`. We do not talk to the database yet.
+
+---
+
+## Chapter 28 — 2026-09-10 — SPEC-04 step 5: login / logout / membership
+
+**When:** 2026-09-10
+
+**What:** `login` (URL tenant → user on `platformDb` → hash verify → membership on `db` → session + HTTP-only cookie), `logout`, `getCurrentMembership`. Same `"Invalid login"` for unknown user, bad password, or no membership *here*. Cookie: no `domain` (host-only), `httpOnly`, 7 days. Next 16: `await cookies()`; `.set`/`.delete` only from a Server Action ([cookies.md](../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/cookies.md)). Password hash is `scrypt` via `node:crypto`. No `$transaction` wrapping User+membership (tenant-guard guide).
+
+**Files:** `src/modules/access/application/{login,logout,get-current-membership}.ts`; `infrastructure/{password,users,sessions,memberships,session-cookie}.ts`.
+
+**Relation:** Access does not import Booking. Pages not built (step 6). No seeded owners yet (step 7) — click-test waits.
+
+**How to verify:** `npm test` (42). Click-proof after steps 6–7.
+
+### In plain language
+
+The kitchen for login: first we know which stadium this URL is. Then we look up the username (not filtered by stadium). We check the password. Then we ask: does this person have a pass for **this** stadium? If not, we say “Invalid login” — we do not say “wrong stadium.” The cookie remembers the login, not Ahmad vs Sami. You cannot try this in the browser until we add the form and seed a password.
 
 
 
