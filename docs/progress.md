@@ -1088,3 +1088,23 @@ The owner’s inbox is on the same locked page as logout. Each ask is a line wit
 
 Ahmad’s owner tapped Approve in the browser and the kitchen ran. The slice is done.
 
+---
+
+## Chapter 42 — 2026-09-11 — Cursor/VS Code debugger
+
+**When:** 2026-09-11
+
+**What:** Replaced the dummy `.vscode/launch.json` (it launched `src/proxy.ts` as a Node script, so breakpoints never bound) with Next.js 16 debug configs: server-side (`next dev --inspect`), Chrome/Edge client, full stack, attach on 9229, and Jest. Workspace settings let breakpoints bind even when Turbopack source maps are messy. `npm run dev:debug` is the same inspect flag from a terminal.
+
+**Why:** Next 16 local docs: `next/dist/docs` plus [Debugging](https://nextjs.org/docs/app/guides/debugging) — `npm run dev -- --inspect` is the supported way to inspect only the process that runs app code (not every child). Not a SPEC slice.
+
+**Files:** `.vscode/launch.json`, `.vscode/settings.json`, `package.json` (`dev:debug`).
+
+**Relation:** Tooling only. Does not import any module. Stop the existing `npm run dev` before F5 or port 3000 / the inspect port will collide.
+
+**How to verify:** Stop the current `npm run dev`. Debug view → **Next.js: debug server-side** → F5. Click a gutter breakpoint in a Server Action or `src/modules/**/domain/*.ts`, hit that path in the browser (`/?tenant=ahmad`). Debugger must pause on that line. Jest: open a `test/**/*.test.ts` file → **Jest: current file** → F5.
+
+### In plain language
+
+Click in the left margin, press F5, use the app as usual. When that line runs, Cursor stops so you can see variables. The old debug button was starting the wrong file, which is why it never stopped.
+
