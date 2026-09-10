@@ -1,11 +1,11 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { submitPublicSlotRequest } from "@/app/request-slot";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 
 /**
- * Thin route (SPEC-02 step 6).
- * Next.js 16: searchParams is a Promise — await it (page convention docs).
- * No Prisma and no tenantId in this file.
+ * Thin route. No Prisma and no tenantId.
+ * Next 16: searchParams is a Promise; <form action={Server Action}> (forms guide).
  */
 const TIME_ZONE = "Asia/Beirut";
 
@@ -15,6 +15,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const localDate = parseCivilDate(dateParam) ?? todayInTimeZone(TIME_ZONE);
   const pitches = await getDayAvailability({ localDate, timeZone: TIME_ZONE });
+  const received = params.received === "1";
+  const dateValue = formatCivilDate(localDate);
 
   return (
     <main style={{ fontFamily: "system-ui", padding: "1.5rem", lineHeight: 1.6 }}>
@@ -23,8 +25,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         Tenant: <code>{tenant.slug}</code>
       </p>
       <p>
-        Schedule for <strong>{formatCivilDate(localDate)}</strong> ({TIME_ZONE})
+        Schedule for <strong>{dateValue}</strong> ({TIME_ZONE})
       </p>
+      {received ? <p>Request received</p> : null}
       <h2>Pitches</h2>
       {pitches.length === 0 ? (
         <p>No pitches yet.</p>
@@ -40,6 +43,22 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                   {pitch.slots.map((slot) => (
                     <li key={slot.startIso}>
                       {slot.startLocal}–{slot.endLocal} · ${slot.priceUsd}
+                      <form action={submitPublicSlotRequest}>
+                        <input type="hidden" name="pitchId" value={pitch.id} />
+                        <input type="hidden" name="start" value={slot.startIso} />
+                        <input type="hidden" name="end" value={slot.endIso} />
+                        <input type="hidden" name="date" value={dateValue} />
+                        <input type="hidden" name="tenant" value={tenant.slug} />
+                        <label>
+                          Name{" "}
+                          <input type="text" name="name" required autoComplete="name" />
+                        </label>{" "}
+                        <label>
+                          Phone{" "}
+                          <input type="tel" name="phone" required autoComplete="tel" />
+                        </label>{" "}
+                        <button type="submit">Request</button>
+                      </form>
                     </li>
                   ))}
                 </ul>

@@ -28,13 +28,13 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-09)
 
-**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–7** done: tables through `requestPublicSlot`. No public form on the page yet.
+**On `feature/spec-03-booking-public-request`.** SPEC-01 and SPEC-02 are on `main` and implemented. SPEC-03 steps **1–8** done (slice complete at code level). Public page can submit a PENDING request.
 
-**What a visitor can do:** open `http://localhost:3000/?tenant=ahmad` (or `sami`) and see that stadium’s pitches and **today’s computed slots** in Asia/Beirut. `?date=YYYY-MM-DD` is a local proof, not a product date picker.
+**What a visitor can do:** open `http://localhost:3000/?tenant=ahmad&date=2026-09-09`, type name + phone on a slot, submit, see **Request received**. Slot stays listed.
 
-**What they cannot do yet:** log in, book from the page, pay, block a pitch, Arabic UI, owner dashboard.
+**What they cannot do yet:** log in, owner approve, pay, block a pitch, Arabic UI, owner dashboard.
 
-**Next:** SPEC-03 step 8 — thin form on the existing page. Auth still before owner-facing screens.
+**Next:** Auth (email@domain + password) before owner-facing screens.
 
 ---
 
@@ -327,8 +327,8 @@ docs/  BRD, DRs, SPECs, guides, this log
 
 ## What’s next (do not invent)
 
-1. SPEC-03 **step 8** — thin UI on the public page. Do not start until you OK it.
-2. Then auth (email@domain + password) **before** owner UI.
+1. Auth (email@domain + password) **before** owner UI.
+2. Then owner approve (exclusion actually fires), payment, dashboard.
 
 One SPEC step at a time. Append here when a step is done.
 
@@ -579,6 +579,130 @@ All of that is **one transaction**: if the participant insert fails, the booking
 We log the booking id on success, not the phone (PII). Nothing is sent to WhatsApp.
 
 The page still cannot call this until step 8 (a small form + Server Action).
+
+---
+
+## Chapter 16 — 2026-09-09 — SPEC-03 step 8: thin public form
+
+**When:** 2026-09-09
+
+**What:** Each slot on the existing page has a name + phone form. Submit runs a Server Action: Zod → `requestPublicSlot` → redirect with `?received=1`. Slot stays listed. Plain “Request received”. No styling system.
+
+**Why:** SPEC-03 step 8. `app/` stays thin (no Prisma, no `tenantId`). Next 16 local docs: [`forms.md`](../../node_modules/next/dist/docs/01-app/02-guides/forms.md) — `<form action={serverFn}>` still receives `FormData`. [`redirect`](../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/redirect.md) after success, **outside** try/catch. `searchParams` stays a Promise.
+
+**Files:** `src/app/request-slot.ts`; `src/app/page.tsx`. Hidden `tenant` is the **slug** (already on the page), not `tenantId` — so local `?tenant=` survives the redirect.
+
+**Relation:** Page calls the Action only. Action calls Zod + use case. Isolation still comes from the proxy header, not from the hidden slug.
+
+**How to verify:**
+1. `http://localhost:3000/?tenant=ahmad&date=2026-09-09` — Pitch A1 16:00 form. Submit Ali / `03 123 456`.
+2. URL keeps `date=` and shows **Request received**. Slots still there.
+3. Prisma Studio: Person + Booking (PENDING, PUBLIC) + BookingParticipant (`isRequester`).
+4. Same slot, different phone → second PENDING. Same phone again → same Person, new Booking.
+5. `?tenant=sami` — Sami’s pitches only; Ahmad’s people/bookings stay Ahmad’s.
+6. `npm test` (33).
+
+Could not click-submit from this session (no browser automation). Page HTML was fetched: Ahmad/Sami forms render; `?received=1` shows the message.
+
+### In plain language
+
+The page is still just a **thin waiter**. It does not decide prices or create rows. It collects name + phone, plus hidden pitch/start/end, and hands that to the Action. The Action is the bouncer (Zod) then the kitchen (`requestPublicSlot`). After a successful save we send you back to the same day’s list with a sticky note: “Request received.” We do not hide the slot — PENDING is not occupancy.
+
+---
+
+## Chapter 17 — 2026-09-09 — Gotcha: expired interactive transaction on public request
+
+**When:** 2026-09-09
+
+**What:** Submitting the public form failed with Prisma “query cannot be executed on an expired transaction” (timeout 5000 ms, ~5029 ms elapsed) on `pitch.findUnique` — the **first** query inside `$transaction`, not a slow insert.
+
+**Why:** `platformDb` is an alias of the same Prisma client/pool as `db` (`src/lib/prisma-base.ts`). Interactive `$transaction` holds one connection (`BEGIN`). The tenant query extension then calls `getCurrentTenantId()` → `platformDb.tenant.findUnique` on that **same** client. The Server Action is a new request, so React `cache()` is cold. Tenant lookup waits for the connection the transaction is holding; the transaction waits for the tenant lookup. After 5s Prisma kills the transaction. Prisma 7 interactive options: `timeout` / `maxWait` ([transactions](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions)); we did **not** raise the timeout — that would only make the form hang longer.
+
+**Files:** `src/modules/booking/application/request-public-slot.ts` (await `getCurrentTenantId()` before `$transaction`); `src/lib/db.ts` (comment on the extension).
+
+**Relation:** Same rule as SPEC-01: one tenant lookup per request via `cache()`. The use case must fill that cache **before** `BEGIN`. Repositories still do not pass `tenantId`.
+
+**How to verify:** Submit name + phone on `/?tenant=ahmad&date=2026-09-09` again. Should redirect with **Request received** in well under 5s. Prisma Studio: new PENDING row.
+
+### In plain language
+
+Postgres will not let two things use the same “phone line” at once. The booking save picks up the line and says “wait, I’m in a transaction.” The security guard then tries to look up which stadium this is — on that **same** line — and both wait until the timer rings. We look up the stadium **first** (short call, then remembered for this click), and only then start the transaction. The guard’s later checks are free memory hits, not a second database call.
+
+---
+
+## Chapter 18 — 2026-09-09 — Correction: `platformDb` must be a second pool
+
+**When:** 2026-09-09
+
+**What:** Chapter 17’s warm-`cache()` fix did **not** work. Submit still 500’d at ~5.1s on `tx.pitch.findUnique` (`run(args)` in `db.ts`). Warming tenant before `BEGIN` does not help: React `cache()` does not apply inside Prisma’s `$allOperations` callback, so the guard still queried `platformDb` **during** the transaction.
+
+**Why:** `platformDb` was `export const platformDb = prismaBase` — one client, one pool. Prisma will not run a second query on that client while an interactive transaction is open. DR-001 already named a **separate** `platformDb`; the implementation had aliased it. Prisma 7: one `PrismaClient` per adapter/pool ([constructor](https://www.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/instantiate-prisma-client)).
+
+**Files:** `src/lib/platform-db.ts` (own `pg.Pool` + `PrismaClient`); `src/lib/prisma-base.ts` (comment); `src/lib/db.ts` (comment); `src/modules/booking/application/request-public-slot.ts` (removed the useless pre-warm).
+
+**Relation:** `db` = tenant-scoped, transactional. `platformDb` = unscoped Tenant lookup on a **different** connection. Repositories still do not pass `tenantId`.
+
+**How to verify:** Submit the public form again. Should finish well under 5s with **Request received**. Dev log: `POST` not 500.
+
+### In plain language
+
+Remembering the stadium in React’s notebook does not help the Prisma guard — that guard runs in a back room and never reads the notebook. Two clerks also cannot share one phone line: while the booking clerk says “I’m in a meeting,” the stadium-lookup clerk must use a **second** line. `platformDb` is that second line.
+
+---
+
+## Chapter 19 — 2026-09-09 — Correction: one pool, two Prisma clients
+
+**When:** 2026-09-09
+
+**What:** After Chapter 18, the homepage 500’d: `Connection terminated unexpectedly` on `listPitches`. Not a Venue bug — Postgres (local proxy, `connection_limit=10` on `DATABASE_URL`) dropped sockets.
+
+**Why:** Chapter 18 gave `platformDb` its **own** `pg.Pool` (default max 10). Two pools tried to open ~20 connections against a cap of 10. HMR also left old pools alive. Prisma 7 still wants two **PrismaClient** instances so tenant lookup is not serialized onto `db.$transaction` — they must **share one Pool**.
+
+**Files:** `src/lib/prisma-base.ts` (one `pg.Pool` `max: 10`, two clients); `src/lib/platform-db.ts` (re-export); `src/lib/db.ts` (comment).
+
+**Relation:** Same as Chapter 18’s intent. `platformDb` is a second clerk, not a second phone company.
+
+**How to verify:** Restart `npm run dev` (old leaked pools die with the process). `/?tenant=ahmad` renders pitches. Submit name+phone → **Request received** under 5s.
+
+### In plain language
+
+We gave the stadium-lookup clerk a second phone **company**, and the switchboard only has ten lines — it hung up on everyone, including the page that only lists pitches. Both clerks now share one switchboard (ten lines). They are still two different clerks, so the booking meeting does not block the stadium lookup.
+
+---
+
+## Chapter 20 — 2026-09-09 — Correction: one client; tenant in ALS before BEGIN
+
+**When:** 2026-09-09
+
+**What:** GET pitches worked (200). POST still 500 in ~52ms: `Connection terminated unexpectedly` inside `submitPublicSlotRequest` / `$transaction`. Not the 5s deadlock.
+
+**Why:** Two `PrismaClient`s on one `pg.Pool` is unsafe with Prisma 7 `adapter-pg`. The adapter treats the pool as exclusive. Interactive `$transaction` on client A plus Tenant lookup on client B (same sockets) kills the connection. React `cache()` still does not apply inside `$allOperations`.
+
+**Fix (matches DR-001):** one client, one pool. App code loads the tenant **before** `BEGIN` and stores it on the request (`AsyncLocalStorage` — this is the request-scoped context DR-001 already described; middleware still only sets the header). The Prisma guard reads that store. No nested Prisma query during the transaction. Prisma 7 interactive `$transaction` ([transactions](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions)).
+
+**Files:** `src/lib/prisma-base.ts` (single client; ends the Chapter 19 dual pool on HMR); `src/lib/platform-db.ts` (alias again); `src/lib/tenant-context.ts` (`withCurrentTenant`); `src/lib/db.ts` (`$transaction` wrapped).
+
+**Relation:** Repositories still do not pass `tenantId`. `platformDb` stays the unscoped *name* for Tenant lookup, not a second engine.
+
+**How to verify:** Reload `/?tenant=ahmad`. Submit name+phone. **Request received** in well under 5s. If HMR still looks sick, restart `npm run dev` once.
+
+### In plain language
+
+Two clerks sharing one switchboard still grabbed the same handset and yanked the cord out. So we went back to **one** database client. Before the booking meeting starts, we write the stadium’s name on a sticky note on the desk. During the meeting the guard only reads the sticky note — they do not call the database again. That is allowed: DR-001 said application code (not middleware) sets request-scoped tenant context.
+
+---
+
+## Chapter 21 — 2026-09-09 — Guide: Prisma transaction + tenant guard
+
+**When:** 2026-09-09
+
+**What:** Standalone write-up of Chapters 17–20 so we can return to it without rereading the chat.
+
+**Why:** Same gotcha will hit owner approve (next `$transaction` after auth) if we forget.
+
+**Files:** [docs/guides/prisma-transaction-tenant-guard.md](./guides/prisma-transaction-tenant-guard.md); linked from [docs/README.md](./README.md).
+
+**How to verify:** Open that file. §5 is the rule; §4 is what not to retry.
 
 
 

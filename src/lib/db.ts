@@ -1,5 +1,8 @@
 import { prismaBase } from "@/lib/prisma-base";
-import { getCurrentTenantId } from "@/lib/tenant-context";
+import {
+  getCurrentTenantId,
+  withCurrentTenant,
+} from "@/lib/tenant-context";
 
 /** Models that must always be filtered/stamped with tenantId (DR-001). */
 const TENANT_SCOPED_MODELS = new Set([
@@ -20,8 +23,13 @@ const TENANT_SCOPED_MODELS = new Set([
  *
  * Prisma 7 docs: Client Extensions → query component (`$allModels` + `$allOperations`).
  * https://www.prisma.io/docs/orm/v7/prisma-client/client-extensions/query
+ *
+ * `$transaction` is wrapped: tenant is loaded *before* BEGIN and stored on the
+ * request (ALS). The extension then reads memory, not platformDb — a nested
+ * query on the same PrismaClient during an interactive transaction deadlocks
+ * or kills the socket (Prisma 7 + adapter-pg).
  */
-const db = prismaBase.$extends({
+const scoped = prismaBase.$extends({
   name: "tenantScope",
   query: {
     $allModels: {
@@ -85,6 +93,17 @@ const db = prismaBase.$extends({
     },
   },
 });
+
+const beginTransaction = scoped.$transaction.bind(scoped);
+
+scoped.$transaction = ((
+  ...args: Parameters<typeof scoped.$transaction>
+) =>
+  withCurrentTenant(
+    () => beginTransaction(...args) as ReturnType<typeof scoped.$transaction>,
+  )) as typeof scoped.$transaction;
+
+const db = scoped;
 
 /** `tx` from `db.$transaction` — still tenant-scoped. Repositories take this, never import `db`. */
 export type TenantTx = Omit<

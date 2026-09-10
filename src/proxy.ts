@@ -11,7 +11,6 @@ import { parseTenantSlug } from "@/lib/tenant-slug";
  *   2. Put the slug on a request header: x-tenant-slug
  *   3. The page can read that header later
  *
- * What it does NOT do: talk to the database (DR-001).
  */
 export function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";

@@ -40,7 +40,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 ### Specs
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
 - [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md) (implemented)
-- [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (in progress — steps 1–7)
+- [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -48,14 +48,14 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [Folder structure](./guides/folder-structure.md) — modular monolith layout
 - [Cursor rules](./guides/cursor-rules.md) — why `.mdc` and how scoping works
 - [Testing with Jest](./guides/testing-jest.md) — always-on test practice per slice
+- [Prisma `$transaction` + tenant guard](./guides/prisma-transaction-tenant-guard.md) — SPEC-03 gotcha; read before the next transactional slice
 
 ### Requirements
 - [BRD](./requirements/brd.md) — product source of truth (draft v0.1). Requirements folder notes: [requirements/README.md](./requirements/README.md).
 
 ## What's next
 
-- **Implement SPEC-03** (option A: public PENDING request). One numbered step at a time.
-- Then auth (email@domain + password) before owner approve UI
+- Auth (email@domain + password) before owner approve UI
 - Then payment, public polish, dashboard (MVP order)
 
 ## Framework note
