@@ -26,15 +26,17 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ---
 
-## Where we are (2026-09-09)
+## Where we are (2026-09-10)
 
-**On `feature/spec-03-booking-public-request`.** SPEC-01–03 implemented. SPEC-04 steps **1–5** done. No login page or seed owners yet.
+**On `feature/spec-03-booking-public-request`.** SPEC-01–04 implemented.
 
-**What a visitor can do:** still only the public PENDING request.
+**What a visitor can do:** public PENDING request (no login). Owner/staff can sign in at `/login` and see `/owner`.
 
-**What they cannot do yet:** log in (use cases exist; no form, no seeded password), owner approve, pay, Arabic UI, dashboard.
+**What they cannot do yet:** owner approve, pay, Arabic UI, dashboard.
 
-**Next:** SPEC-04 step 6 — `/login` and `/owner` pages.
+**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve).
+
+**Next:** owner approve (exclusion fires). Wait for OK. Do not start until asked.
 
 ---
 
@@ -827,6 +829,48 @@ The bouncer for the login form: you must send exactly a username and a password,
 ### In plain language
 
 The kitchen for login: first we know which stadium this URL is. Then we look up the username (not filtered by stadium). We check the password. Then we ask: does this person have a pass for **this** stadium? If not, we say “Invalid login” — we do not say “wrong stadium.” The cookie remembers the login, not Ahmad vs Sami. You cannot try this in the browser until we add the form and seed a password.
+
+---
+
+## Chapter 29 — 2026-09-10 — SPEC-04 step 6: thin login / owner pages
+
+**When:** 2026-09-10
+
+**What:** `/login` form (identifier + password) and `/owner` (name, identifier, role, logout). Hidden `tenant` slug for local `?tenant=`. No Prisma / no `tenantId` on pages. Invalid login → same page with “Invalid login”. Unauthenticated `/owner` → `/login`. Public `/` unchanged.
+
+**Why:** SPEC-04 step 6. Next 16: `searchParams` Promise; `<form action>`; `redirect` outside try/catch ([redirect.md](../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/redirect.md)). Cookie `.set` only from the Server Action.
+
+**Files:** `src/app/login/page.tsx`, `src/app/login/actions.ts`, `src/app/owner/page.tsx`.
+
+**Relation:** Pages call Access only. Seed (step 7) still required to click-test.
+
+**How to verify:** `http://localhost:3000/login?tenant=ahmad` renders the form. `/owner?tenant=ahmad` redirects to login. Real sign-in after seed.
+
+### In plain language
+
+The waiter for login: a small form and a locked “you are in” page. They do not talk to Prisma. Until we plant a password in the database (next step), every login will fail on purpose.
+
+---
+
+## Chapter 30 — 2026-09-10 — SPEC-04 step 7: seed owners + staff
+
+**When:** 2026-09-10
+
+**What:** Seed now plants hashed logins on the unscoped client: `owner@ahmad` OWNER on Ahmad, `owner@sami` OWNER on Sami, `staff@ahmad` STAFF with `permissions: {}`. Password is `LOCAL_DEV_PASSWORD` (`dev-owner`) in `seed.ts` only — not imported from `app/`. Delete order now covers Session / Membership / UserPersonLink / User before Tenant. `npm run db:seed` ran successfully.
+
+**Why:** SPEC-04 step 7 / DR-003 §2–3. Owners must exist so login can be click-tested. Staff is optional in the spec; seeded so `can(..., "bookings.approve")` stays false until a later flag.
+
+**Files:** `src/prisma/seed.ts`; `src/app/login/actions.ts` (log unexpected login errors only — `"Invalid login"` stays silent); `docs/README.md`.
+
+**Relation:** Seed uses its own PrismaClient (not `@/lib/db`). Access still does not import Booking. Public `/` is unchanged.
+
+**Gotcha:** After adding User/Session models, a long-running `npm run dev` can keep an old `prismaBase` on `globalThis` (`src/lib/prisma-base.ts`). Then `platformDb.user` is undefined and login looks like “Invalid login”. Restart the Next process after `prisma generate` / new models. Seed in a separate process was fine; the app process was stale.
+
+**How to verify:** `http://localhost:3000/login?tenant=ahmad` → `owner@ahmad` / `dev-owner` → `/owner` shows Ahmad Stadium. Same cookie on `?tenant=sami` → `/login`. `owner@ahmad` on Sami → Invalid login. Logout → `/owner` redirects to login. Public form still loads without a cookie. `npm test` — 10 suites, 42 passed.
+
+### In plain language
+
+We planted three keys in the test lockbox. Ahmad’s owner key opens Ahmad’s door. It does not open Sami’s. A staff key exists for Ahmad but cannot approve bookings yet (there is still no approve button). The password is only for local development — it is not a mailbox and must not live in the browser.
 
 
 

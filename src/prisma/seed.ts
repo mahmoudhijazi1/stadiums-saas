@@ -9,11 +9,13 @@ import {
   type Weekday,
 } from "../modules/venue/schemas/schedule-config";
 import { logger } from "../lib/logger";
+import { hashPassword } from "../modules/access/infrastructure/password";
 
 /**
  * Seed crosses tenants, so it must use an UNSCOPED client (same idea as platformDb).
  * Do not import @/lib/db here — that client injects one request's tenantId.
  * Parse schedule_config with Zod before every write (DR-002 §2.4).
+ * Local login password is LOCAL_DEV_PASSWORD below — not used in app/ (SPEC-04 step 7).
  */
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const platformDb = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -94,11 +96,21 @@ const samiS2 = config({
   priceRules: [],
 });
 
+/** Local-dev only. Documented in docs/progress.md. Do not import from app/. */
+const LOCAL_DEV_PASSWORD = "dev-owner";
+
 async function main() {
+  await platformDb.session.deleteMany();
+  await platformDb.membership.deleteMany();
+  await platformDb.userPersonLink.deleteMany();
+  await platformDb.bookingParticipant.deleteMany();
+  await platformDb.booking.deleteMany();
+  await platformDb.person.deleteMany();
   await platformDb.pitch.deleteMany();
+  await platformDb.user.deleteMany();
   await platformDb.tenant.deleteMany();
 
-  await platformDb.tenant.create({
+  const ahmad = await platformDb.tenant.create({
     data: {
       slug: "ahmad",
       name: "Ahmad Stadium",
@@ -112,7 +124,7 @@ async function main() {
     },
   });
 
-  await platformDb.tenant.create({
+  const sami = await platformDb.tenant.create({
     data: {
       slug: "sami",
       name: "Sami Arena",
@@ -125,7 +137,44 @@ async function main() {
     },
   });
 
-  logger.info("Seeded tenants: ahmad (3 pitches), sami (2 pitches) with schedule_config");
+  const passwordHash = await hashPassword(LOCAL_DEV_PASSWORD);
+
+  const ownerAhmad = await platformDb.user.create({
+    data: { identifier: "owner@ahmad", passwordHash },
+  });
+  const ownerSami = await platformDb.user.create({
+    data: { identifier: "owner@sami", passwordHash },
+  });
+  const staffAhmad = await platformDb.user.create({
+    data: { identifier: "staff@ahmad", passwordHash },
+  });
+
+  await platformDb.membership.createMany({
+    data: [
+      {
+        tenantId: ahmad.id,
+        userId: ownerAhmad.id,
+        role: "OWNER",
+        permissions: {},
+      },
+      {
+        tenantId: sami.id,
+        userId: ownerSami.id,
+        role: "OWNER",
+        permissions: {},
+      },
+      {
+        tenantId: ahmad.id,
+        userId: staffAhmad.id,
+        role: "STAFF",
+        permissions: {},
+      },
+    ],
+  });
+
+  logger.info(
+    "Seeded tenants ahmad/sami, owners owner@ahmad and owner@sami, staff@ahmad (STAFF)",
+  );
 }
 
 main()
