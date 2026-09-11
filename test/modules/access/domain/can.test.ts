@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import {
   BOOKINGS_APPROVE,
+  BOOKINGS_CANCEL,
   BOOKINGS_CREATE,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
@@ -97,6 +98,29 @@ describe("can", () => {
   it("does not treat bookings.approve as bookings.create", () => {
     expect(
       can({ role: "STAFF", permissions: { "bookings.approve": true } }, BOOKINGS_CREATE),
+    ).toBe(false);
+  });
+
+  it("lets OWNER cancel without a json shopping list", () => {
+    expect(can({ role: "OWNER", permissions: {} }, BOOKINGS_CANCEL)).toBe(true);
+  });
+
+  it("does not let STAFF cancel by default", () => {
+    expect(can({ role: "STAFF", permissions: {} }, BOOKINGS_CANCEL)).toBe(false);
+    expect(
+      can({ role: "STAFF", permissions: { "bookings.cancel": false } }, BOOKINGS_CANCEL),
+    ).toBe(false);
+  });
+
+  it("lets STAFF cancel only when the flag is strictly true", () => {
+    expect(
+      can({ role: "STAFF", permissions: { "bookings.cancel": true } }, BOOKINGS_CANCEL),
+    ).toBe(true);
+  });
+
+  it("does not treat bookings.approve as bookings.cancel", () => {
+    expect(
+      can({ role: "STAFF", permissions: { "bookings.approve": true } }, BOOKINGS_CANCEL),
     ).toBe(false);
   });
 });

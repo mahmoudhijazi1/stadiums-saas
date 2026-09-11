@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
 import { parseLbp, parseUsd } from "@/lib/money";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
+import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { rejectBooking } from "@/modules/booking/application/reject-booking";
@@ -38,18 +39,22 @@ const EXPECTED = new Set([
   "Not allowed",
   "Booking not found",
   "Only a pending request can be approved or rejected",
+  "Only a confirmed booking can be cancelled",
   "Slot no longer available",
 ]);
 
 /**
- * Thin Server Action (Next 16 forms guide: <form action> + FormData).
- * Zod → use case (auth lives there). redirect() outside try/catch.
+ * Thin Server Action (Next 16 forms.md: <form action> + FormData).
+ * Zod → use case (auth lives there). redirect() outside try/catch (redirect.md).
  */
 async function submitDecision(
   formData: FormData,
   decide: (bookingId: string) => Promise<void>,
 ) {
   const tenant = field(formData, "tenant");
+  const bookOn = field(formData, "bookOn");
+  const extra: Record<string, string> = {};
+  if (bookOn) extra.bookOn = bookOn;
   let failed = false;
   try {
     const parsed = parseBookingDecision({
@@ -64,9 +69,9 @@ async function submitDecision(
     failed = true;
   }
   if (failed) {
-    redirect(`/owner${ownerQuery(tenant, { error: "1" })}`);
+    redirect(`/owner${ownerQuery(tenant, { ...extra, error: "1" })}`);
   }
-  redirect(`/owner${ownerQuery(tenant)}`);
+  redirect(`/owner${ownerQuery(tenant, extra)}`);
 }
 
 export async function submitApproveBooking(formData: FormData) {
@@ -75,6 +80,10 @@ export async function submitApproveBooking(formData: FormData) {
 
 export async function submitRejectBooking(formData: FormData) {
   await submitDecision(formData, rejectBooking);
+}
+
+export async function submitCancelBooking(formData: FormData) {
+  await submitDecision(formData, cancelBooking);
 }
 
 const CREATE_EXPECTED = new Set([

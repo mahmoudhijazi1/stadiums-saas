@@ -6,6 +6,7 @@ import { formatUsd, parseLbp } from "@/lib/money";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   BOOKINGS_APPROVE,
+  BOOKINGS_CANCEL,
   BOOKINGS_CREATE,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
@@ -14,6 +15,7 @@ import {
 } from "@/modules/access/domain/can";
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { listDueBookings } from "@/modules/booking/application/list-due-bookings";
+import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { listRecentExpenses } from "@/modules/expense/application/list-recent-expenses";
 import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
@@ -29,6 +31,7 @@ import type { CivilDate } from "@/modules/venue/domain/availability";
 import { submitLogout } from "@/app/login/actions";
 import {
   submitApproveBooking,
+  submitCancelBooking,
   submitCollectPayment,
   submitCreateOwnerBooking,
   submitRecordExpense,
@@ -84,7 +87,7 @@ function formatPeriodAmount(
 /**
  * Thin locked page. No Prisma and no tenantId.
  * Next 16: searchParams is a Promise (page.js docs). Period form is GET, not a Server Action.
- * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07) + ledger summary (SPEC-08) + owner Book (SPEC-09).
+ * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07) + ledger summary (SPEC-08) + owner Book (SPEC-09) + cancel (SPEC-10) + waitlist (SPEC-11).
  */
 export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const tenant = await getCurrentTenant();
@@ -102,11 +105,13 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   }
 
   const pending = await listPendingRequests();
-  const due = await listDueBookings();
+  const confirmed = await listDueBookings();
+  const waitlist = await listOpenWaitlist();
   const expenses = await listRecentExpenses();
   const rate = await getCurrentRate();
   const mayDecide = can(membership, BOOKINGS_APPROVE);
   const mayCollect = can(membership, PAYMENTS_COLLECT);
+  const mayCancel = can(membership, BOOKINGS_CANCEL);
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
   const mayViewReports = can(membership, REPORTS_VIEW);
   const mayCreateBooking = can(membership, BOOKINGS_CREATE);
@@ -334,19 +339,19 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
         </>
       ) : null}
 
-      <h2>Due bookings</h2>
-      {due.length === 0 ? (
-        <p>No money due.</p>
+      <h2>Confirmed bookings</h2>
+      {confirmed.length === 0 ? (
+        <p>No confirmed bookings.</p>
       ) : (
         <ul>
-          {due.map((row) => (
+          {confirmed.map((row) => (
             <li key={row.id}>
               <strong>{row.pitchName}</strong>{" "}
               {formatLocalRange(row.start, row.end)} — {row.requesterName}{" "}
               <code>{row.requesterPhone}</code>
               <br />
               Due ${formatUsd(row.priceUsd)} · remaining ${formatUsd(row.remaining)}
-              {mayCollect ? (
+              {mayCollect && row.remaining.gt(0) ? (
                 <>
                   <form action={submitCollectPayment}>
                     <input type="hidden" name="bookingId" value={row.id} />
@@ -380,6 +385,47 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                   </form>
                 </>
               ) : null}
+              {mayCancel ? (
+                <form action={submitCancelBooking}>
+                  <input type="hidden" name="bookingId" value={row.id} />
+                  <input type="hidden" name="tenant" value={tenantSlug} />
+                  <input type="hidden" name="bookOn" value={bookOn} />
+                  <button type="submit">Cancel</button>
+                </form>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2>Waitlist</h2>
+      {waitlist.length === 0 ? (
+        <p>No waitlist.</p>
+      ) : (
+        <ul>
+          {waitlist.map((group) => (
+            <li key={`${group.pitchId}-${group.start.toISOString()}`}>
+              <strong>{group.pitchName}</strong>{" "}
+              {formatLocalRange(group.start, group.end)}
+              <ul>
+                {group.people.map((person) => (
+                  <li key={person.personId}>
+                    {person.name} <code>{person.phone}</code>
+                    {person.whatsAppHref ? (
+                      <>
+                        {" "}
+                        <a
+                          href={person.whatsAppHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Notify
+                        </a>
+                      </>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

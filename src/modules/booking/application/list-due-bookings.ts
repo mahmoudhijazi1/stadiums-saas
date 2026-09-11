@@ -17,8 +17,8 @@ export type DueBooking = {
 };
 
 /**
- * APPROVED games that still have money due. Staff may look (no collect flag).
- * Remaining comes from Payment sums — Booking does not join payment tables.
+ * All APPROVED games (paid included) so Cancel is reachable (SPEC-10).
+ * Staff may look. Remaining from Payment sums — Booking does not join payment tables.
  */
 export async function listDueBookings(): Promise<DueBooking[]> {
   const membership = await getCurrentMembership();
@@ -33,24 +33,17 @@ export async function listDueBookings(): Promise<DueBooking[]> {
     rows.map((row) => row.id),
   );
 
-  const due: DueBooking[] = [];
-  for (const row of rows) {
-    const remaining = remainingDue(
+  return rows.map((row) => ({
+    id: row.id,
+    pitchName: row.pitchName,
+    start: row.start,
+    end: row.end,
+    priceUsd: row.priceUsd,
+    remaining: remainingDue(
       row.priceUsd,
       collected.get(row.id) ?? new Decimal(0),
-    );
-    if (remaining.lte(0)) continue;
-    due.push({
-      id: row.id,
-      pitchName: row.pitchName,
-      start: row.start,
-      end: row.end,
-      priceUsd: row.priceUsd,
-      remaining,
-      requesterName: row.requesterName,
-      requesterPhone: row.requesterPhone,
-    });
-  }
-
-  return due;
+    ),
+    requesterName: row.requesterName,
+    requesterPhone: row.requesterPhone,
+  }));
 }

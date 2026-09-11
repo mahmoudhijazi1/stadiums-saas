@@ -253,6 +253,23 @@ export async function setPendingStatus(
 }
 
 /**
+ * APPROVED → CANCELLED. 0 rows means gone or not confirmed (SPEC-10).
+ * Client updateMany on status exists (during is Unsupported; status is not).
+ */
+export async function setApprovedCancelled(
+  tx: TenantTx,
+  bookingId: string,
+): Promise<void> {
+  const result = await tx.booking.updateMany({
+    where: { id: bookingId, status: "APPROVED" },
+    data: { status: "CANCELLED" },
+  });
+  if (result.count !== 1) {
+    throw new Error("Booking not found");
+  }
+}
+
+/**
  * Requester person on this booking (for slot_interests). Guard scopes the participant.
  */
 export async function findRequesterPersonId(
@@ -284,6 +301,65 @@ export async function insertSlotInterest(
       ${input.personId}
     )
   `;
+}
+
+export type SlotInterestPersonRow = {
+  pitchId: string;
+  pitchName: string;
+  start: Date;
+  end: Date;
+  personId: string;
+  name: string;
+  phone: string;
+  createdAt: Date;
+};
+
+type SlotInterestSqlRow = {
+  pitchId: string;
+  pitchName: string;
+  start: Date | string;
+  end: Date | string;
+  personId: string;
+  name: string;
+  phone: string;
+  createdAt: Date | string;
+};
+
+/**
+ * Waitlist rows for this tenant (SPEC-11). Raw: during is Unsupported.
+ * tenantId in SQL (extension does not stamp $queryRaw). Open/closed is domain.
+ */
+export async function listSlotInterestsWithPeople(
+  tx: TenantTx,
+): Promise<SlotInterestPersonRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<SlotInterestSqlRow[]>`
+    SELECT
+      si."pitchId",
+      p.name AS "pitchName",
+      lower(si.during) AS start,
+      upper(si.during) AS end,
+      si."personId",
+      per.name,
+      per.phone,
+      si."createdAt"
+    FROM "SlotInterest" si
+    JOIN "Pitch" p ON p.id = si."pitchId"
+    JOIN "Person" per ON per.id = si."personId"
+    WHERE si."tenantId" = ${tenantId}
+    ORDER BY lower(si.during) ASC, si."createdAt" ASC
+  `;
+
+  return rows.map((row) => ({
+    pitchId: row.pitchId,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    personId: row.personId,
+    name: row.name,
+    phone: row.phone,
+    createdAt: asDate(row.createdAt),
+  }));
 }
 
 export type ApprovedCollectRow = {

@@ -26,17 +26,17 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ---
 
-## Where we are (2026-09-11)
+## Where we are (2026-09-12)
 
-**On `feature/spec-09-owner-create-booking`.** SPEC-01–09 click-proofed. Owner can Book a slot on `/owner` (APPROVED immediately).
+**On `main`.** SPEC-01–11 click-proofed. Owner can Cancel a confirmed booking and see waitlist + Notify on a freed slot.
 
-**What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, records expenses, and sees This period.
+**What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, Cancels, sees waitlist + Notify, records expenses, and sees This period.
 
-**What they cannot do yet:** cancel, no-show, per-player split, Arabic UI, games-played / pitch-busy (BR-57).
+**What they cannot do yet:** refunds, no-show, other WhatsApp templates, per-player split, Arabic UI, games-played / pitch-busy (BR-57).
 
-**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, or Book).
+**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, Book, or cancel).
 
-**Next:** cancel a confirmed booking (BR-26). Overpay warning parked.
+**Next:** Arabic / no-show / remaining BR-71 templates as product asks. Overpay warning parked.
 
 ---
 
@@ -1891,6 +1891,290 @@ The owner can now tap a free hour, type who called, and the hour is taken. Staff
 ### In plain language
 
 The owner booked a caller from the phone in the browser. The hour is taken. This slice is done.
+
+---
+
+## Chapter 78 — 2026-09-11 — SPEC-10 written (not started in code)
+
+**When:** 2026-09-11
+
+**What:** Fast-forward `main` `40e3ece` → `5d5c77b` (SPEC-09). Branched `feature/spec-10-cancel-booking`. Wrote numbered cancel slice: owner (or `"bookings.cancel"`) flips **APPROVED → CANCELLED**. No refund / ledger write. No hours-before-kickoff check (BR-26). Waitlist UI / WhatsApp / player cancel / no-show / `tenant.settings` out. Confirmed list shows **all** APPROVED (including paid) so Cancel is reachable after Collect.
+
+**Why:** [SPEC-10](./specs/SPEC-10-cancel-booking.md) implements BR-26 / RULE-1. Exclusion already ignores non-APPROVED (DR-002 §2.8). Ledger stays append-only — cash IN is not reversed this slice (DR-002 §2.21). `"bookings.cancel"` default deny, not reused from create/approve.
+
+**Files:** `docs/specs/SPEC-10-cancel-booking.md`; `docs/README.md`.
+
+**Relation:** Book / collect / This period stay as they are. Refunds and waitlist are later SPECs.
+
+**How to verify:** Read the spec. Confirm or correct the pins (APPROVED only, no refund, paid games still listed so they can be cancelled, no player cancel). Then OK step 1.
+
+### In plain language
+
+The next instruction sheet: the owner taps Cancel on a confirmed game and the hour is free again. Money already collected is left as-is until a later refund slice. We have not built that yet — only the sheet.
+
+---
+
+## Chapter 79 — 2026-09-11 — SPEC-10 step 1: bookings.cancel flag
+
+**When:** 2026-09-11
+
+**What:** `"bookings.cancel"` (`BOOKINGS_CANCEL`) on `can()`. OWNER always yes. STAFF default deny. `"bookings.approve": true` does **not** imply cancel.
+
+**Why:** SPEC-10 step 1 / DR-003. Cancelling a confirmed game is not the same permission as approving a public request or booking a caller.
+
+**Files:** `src/modules/access/domain/can.ts`; `test/modules/access/domain/can.test.ts`.
+
+**Relation:** No cancel domain/use case/UI yet (step 2 is `assertApprovedForCancel`). Create / approve / collect / expense / reports flags unchanged.
+
+**How to verify:** `npm test` — 20 suites / 122 tests.
+
+### In plain language
+
+Staff still cannot cancel a confirmed game unless we later tick a box. The owner page still has no Cancel button.
+
+---
+
+## Chapter 80 — 2026-09-12 — SPEC-10 step 2: assertApprovedForCancel
+
+**When:** 2026-09-12
+
+**What:** `assertApprovedForCancel` — only `APPROVED` may be cancelled. PENDING / REJECTED / CANCELLED / NO_SHOW → `"Only a confirmed booking can be cancelled"`. Pure domain, no Prisma.
+
+**Why:** SPEC-10 step 2 / BR-26. Same kitchen as `assertPendingForDecision`: status gate lives in `domain/`, not the query.
+
+**Files:** `src/modules/booking/domain/decision.ts`; `test/modules/booking/domain/decision.test.ts`.
+
+**Relation:** No DB update yet (step 3 is `setApprovedCancelled`). Access flag exists (step 1). `/owner` still has no Cancel.
+
+**How to verify:** `npm test` — 20 suites / 127 tests.
+
+### In plain language
+
+The kitchen now knows “you can only cancel a confirmed game.” Nothing is written to the database yet.
+
+---
+
+## Chapter 81 — 2026-09-12 — SPEC-10 step 3: setApprovedCancelled
+
+**When:** 2026-09-12
+
+**What:** `setApprovedCancelled` — `booking.updateMany` where `id` + `status = APPROVED` → `CANCELLED`. `count !== 1` → `"Booking not found"`. No `tenantId` argument (guard). Not raw SQL: generated Client still has `updateMany` on Booking; `during` is Unsupported, status is not (same as `setPendingStatus`).
+
+**Why:** SPEC-10 step 3 / DR-002 §2.8. CANCELLED drops out of exclusion without touching Payment or Ledger.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`.
+
+**Relation:** Use case (step 4) will call this inside `$transaction`. `/owner` still has no Cancel.
+
+**How to verify:** `npm test` — 20 / 127. Click-proof in step 5: Studio CANCELLED; a PENDING id fails.
+
+### In plain language
+
+We can now flip a confirmed row to cancelled in the database. The owner page still has no button that does that.
+
+---
+
+## Chapter 82 — 2026-09-12 — SPEC-10 step 4: cancelBooking
+
+**When:** 2026-09-12
+
+**What:** `cancelBooking` — `"bookings.cancel"` **before** `$transaction`; load via `findBookingForDecision`; `assertApprovedForCancel`; `setApprovedCancelled`. Log after commit. No Payment / Ledger / WhatsApp.
+
+**Why:** SPEC-10 step 4 / BR-26 / SPEC-03 transaction guide (auth before tx; session is `platformDb`).
+
+**Files:** `src/modules/booking/application/cancel-booking.ts`.
+
+**Relation:** `/owner` still has no Cancel (step 5). Collect stays a separate use case.
+
+**How to verify:** `npm test` — 20 / 127. Staff seed cannot cancel (`"Not allowed"`). Click-proof in step 5.
+
+### In plain language
+
+The kitchen can now cancel a confirmed game. The owner page still has no button that calls that kitchen.
+
+---
+
+## Chapter 83 — 2026-09-12 — SPEC-10 step 5: /owner Cancel
+
+**When:** 2026-09-12
+
+**What:** `/owner` **Confirmed bookings** = all APPROVED (paid included). Collect only if remaining > 0 and `payments.collect`. Cancel if `bookings.cancel`. Server Action: reuse `parseBookingDecision` → `cancelBooking` → `redirect` outside try/catch (Next redirect.md). Preserve `tenant` + `bookOn`. No Prisma / no `tenantId`. No waitlist / refund fields.
+
+Local Next docs: `forms.md` — `<form action>` receives FormData; `redirect.md` — `redirect` outside try/catch.
+
+**Why:** SPEC-10 step 5 / BR-26. Paid games must stay on the list so Cancel is reachable after Collect.
+
+**Files:** `src/app/owner/page.tsx`; `src/app/owner/actions.ts`; `src/modules/booking/application/list-due-bookings.ts`.
+
+**Relation:** Book / pending / expenses / This period unchanged. No cancel on PENDING.
+
+**How to verify:** `npm test` — 20 / 127. Log in `owner@ahmad` → Cancel a confirmed hour; Studio CANCELLED; public that hour requestable; `staff@ahmad` no Cancel. Could not click in a browser from this session (no browser tools); GET `/owner?tenant=ahmad` compiled (307 to login).
+
+### In plain language
+
+The owner page now lists confirmed games, including paid ones, with a Cancel button. Staff do not see that button. Please try it in the browser.
+
+---
+
+## Chapter 84 — 2026-09-12 — SPEC-10 click-proof
+
+**When:** 2026-09-12
+
+**What:** Owner cancelled the paid phone-call booking (`Booking cancelled 705347a0-4282-43ea-a19e-6a6a789c978b`, previously collected `cmtwz2de5000l14l268dj876t`) then the unpaid one (`Booking cancelled 6f408d92-77f1-4a76-9edb-5790b42d9eb6`). No Payment/Ledger write on cancel. Staff have no Cancel button.
+
+**Why:** SPEC-10 whole-slice acceptance / BR-26.
+
+**Files:** none this chapter (code was step 5). SPEC acceptance checkmarks in [SPEC-10](./specs/SPEC-10-cancel-booking.md).
+
+**Relation:** Closes cancel. Waitlist UI next (BR-29). Refunds / no-show / overpay warning parked.
+
+**How to verify:** Studio those booking ids: `CANCELLED`. Collect payment `cmtwz2de5000l14l268dj876t` still IN.
+
+### In plain language
+
+The owner cancelled a confirmed game in the browser. The hour is free again. Cash already collected was left as-is. This slice is done.
+
+---
+
+## Chapter 85 — 2026-09-12 — SPEC-11 written (not started in code)
+
+**When:** 2026-09-12
+
+**What:** Wrote numbered waitlist slice: `/owner` lists people with `slot_interests` on a **free, not-ended** window; **Notify** is `wa.me` + prefilled English “slot available” (BR-30 / BR-69). No Cloud API, no interest delete, no other BR-71 templates. Stayed on `feature/spec-10-cancel-booking` because SPEC-10 is still uncommitted (cannot FF-merge `main`).
+
+**Why:** [SPEC-11](./specs/SPEC-11-waitlist.md) implements BR-29 / BR-30 / DR-002 §2.13. Interests already written on auto-reject (SPEC-05). Notification module owns `wa.me` (DR-001); Booking never formats WhatsApp. No new `can()` flag — listing is not a mutation.
+
+**Files:** `docs/specs/SPEC-11-waitlist.md`; `docs/README.md`.
+
+**Relation:** Cancel stays as SPEC-10. Public page has no waitlist. Refunds / no-show / Arabic parked.
+
+**How to verify:** Read the spec. Confirm or correct the pins (show only free windows, `wa.me` not an API, staff may see the list, do not delete interests). Then OK step 1.
+
+### In plain language
+
+The next instruction sheet: after a game is cancelled, the owner sees who wanted that hour and can open WhatsApp with a ready-made message. We have not built that yet — only the sheet.
+
+---
+
+## Chapter 86 — 2026-09-12 — SPEC-11 step 1: WhatsApp link + message
+
+**When:** 2026-09-12
+
+**What:** `whatsAppHref` — Lebanon digits to `https://wa.me/<e164>?text=` (`03…` → `961…`; already-`961` unchanged). Empty/spaces/too-short → `"Phone cannot be used for WhatsApp"`. `slotAvailableMessage` English: stadium, pitch, local start–end. No send. Notification does not import Booking.
+
+**Why:** SPEC-11 step 1 / BR-30 / BR-69 / DR-001 (Notification owns WhatsApp links).
+
+**Files:** `src/modules/notification/domain/whatsapp-link.ts`; `test/modules/notification/domain/whatsapp-link.test.ts`.
+
+**Relation:** No waitlist query/UI yet (step 2 is the open-window helper). `/owner` unchanged.
+
+**How to verify:** `npm test` — 21 suites / 136 tests.
+
+### In plain language
+
+We can now turn a Lebanese phone and a sentence into a WhatsApp link. The owner page still has no Waitlist.
+
+---
+
+## Chapter 87 — 2026-09-12 — SPEC-11 step 2: isWaitlistWindowOpen
+
+**When:** 2026-09-12
+
+**What:** `isWaitlistWindowOpen` — window is open if `end > now` and no occupied range on that pitch overlaps (reuse `overlaps()`). Caller passes APPROVED only; CANCELLED is omitted so the hour is open.
+
+**Why:** SPEC-11 step 2 / BR-29 / DR-002 §2.13. Occupied is an argument — domain does not read Prisma.
+
+**Files:** `src/modules/booking/domain/waitlist.ts`; `test/modules/booking/domain/waitlist.test.ts`.
+
+**Relation:** No DB list yet (step 3). WhatsApp helpers exist (step 1). `/owner` still has no Waitlist.
+
+**How to verify:** `npm test` — 22 suites / 140 tests.
+
+### In plain language
+
+The kitchen now knows “this hour is free again and not in the past.” Nothing is loaded from the database yet.
+
+---
+
+## Chapter 88 — 2026-09-12 — SPEC-11 step 3: listSlotInterestsWithPeople
+
+**When:** 2026-09-12
+
+**What:** `listSlotInterestsWithPeople` — `$queryRaw` join Pitch + Person, `lower`/`upper(during)`, `tenantId` from ALS (extension does not stamp raw SQL). No `tenantId` argument. No `SlotInterest.create` (`during` still Unsupported). Open vs occupied stays domain.
+
+**Why:** SPEC-11 step 3 / DR-002 §2.13. Same raw pattern as Booking lists.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`.
+
+**Relation:** Use case (step 4) will filter open windows and attach `wa.me`. `/owner` still has no Waitlist.
+
+**How to verify:** `npm test` — 22 / 140. Click-proof in step 5: Ahmad rows only when ALS is Ahmad.
+
+### In plain language
+
+We can now load “who wanted which hour” for this stadium. The owner page still has no Waitlist.
+
+---
+
+## Chapter 89 — 2026-09-12 — SPEC-11 step 4: listOpenWaitlist
+
+**When:** 2026-09-12
+
+**What:** `listOpenWaitlist` — membership else `"Not allowed"` (no extra `can()`); interests + `listApprovedRanges`; `isWaitlistWindowOpen`; dedupe person per window; group soonest first. `wa.me` from Notification + tenant name (`getCurrentTenant`). Bad phone → no href, still listed. No `$transaction`. No Payment. Does not log phones.
+
+**Why:** SPEC-11 step 4 / BR-29 / BR-30 / DR-001 (Notification owns WhatsApp links).
+
+**Files:** `src/modules/booking/application/list-open-waitlist.ts`.
+
+**Relation:** `/owner` still has no Waitlist (step 5). Cancel unchanged.
+
+**How to verify:** `npm test` — 22 / 140. Click-proof in step 5: after cancel of an hour with a loser, groups appear; still-APPROVED hours do not.
+
+### In plain language
+
+The kitchen can now assemble “these people wanted this free hour, here is the WhatsApp link.” The owner page still has no Waitlist.
+
+---
+
+## Chapter 90 — 2026-09-12 — SPEC-11 step 5: /owner Waitlist
+
+**When:** 2026-09-12
+
+**What:** `/owner` **Waitlist** from `listOpenWaitlist`. Group: pitch + local range; people name + phone; **Notify** is `<a href={wa.me}>` (`target="_blank"` `rel="noopener noreferrer"`), not a Server Action. Empty: “No waitlist.” No Prisma / no `tenantId`. Public page unchanged.
+
+Local Next docs: `page.md` — Server Component, `searchParams` Promise. GET render; no `redirect` for Notify.
+
+**Why:** SPEC-11 step 5 / BR-29 / BR-30 / BR-69.
+
+**Files:** `src/app/owner/page.tsx`.
+
+**Relation:** Book / cancel / collect / expenses / This period unchanged.
+
+**How to verify:** `npm test` — 22 / 140. Two public requests same hour → approve one → cancel → Waitlist shows the loser; Notify is `wa.me`. Could not click from this session (no browser tools); GET `/owner?tenant=ahmad` compiled (307 to login).
+
+### In plain language
+
+The owner page now lists who wanted a freed hour, with a Notify link to WhatsApp. Please try it in the browser.
+
+---
+
+## Chapter 91 — 2026-09-12 — SPEC-11 click-proof
+
+**When:** 2026-09-12
+
+**What:** Three public requests same hour (`feda75a4-…`, `66c81d4a-…`, `7a491948-…`). Approve the first; the other two became REJECTED + SlotInterest (`p2` / `71234234`, `p3` / `71345345`). Waitlist empty while APPROVED. Cancel `feda75a4-07ed-46fc-a1c0-893dc05beb8e` → Waitlist showed those people. Notify is `wa.me` (no new DB row).
+
+**Why:** SPEC-11 whole-slice acceptance / BR-29 / BR-30 / BR-69.
+
+**Files:** none this chapter (code was step 5). SPEC acceptance checkmarks in [SPEC-11](./specs/SPEC-11-waitlist.md).
+
+**Relation:** Closes waitlist UI. Arabic / no-show / other BR-71 templates next as product asks. Refunds / overpay warning parked.
+
+**How to verify:** Studio those interest ids on pitch `cmtw9vxs80001cwl2ufvexnjy`, window 13:00–14:00Z; booking `feda75a4-…` is `CANCELLED`.
+
+### In plain language
+
+After a confirmed game was cancelled, the owner saw who had wanted that hour and could open WhatsApp with a ready-made message. This slice is done.
 
 
 
