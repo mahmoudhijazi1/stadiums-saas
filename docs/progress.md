@@ -28,15 +28,15 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-11)
 
-**On `feature/spec-06-collect-payment`.** SPEC-01–06 click-proofed. Cash on an APPROVED hour writes payment + tender + ledger IN; the due row becomes Collected / drops off remaining.
+**On `feature/spec-07-expenses`.** SPEC-01–07 click-proofed. Expense + payment `EXPENSE` + ledger OUT in one `$transaction`.
 
-**What a visitor can do:** public PENDING request. Owner approves on `/owner`, then Collect remaining USD or mixed USD/LBP. Rate shows 90000 (seed). Staff see due list, no Collect.
+**What a visitor can do:** public PENDING request. Owner approves on `/owner`, then Collect remaining USD or mixed USD/LBP. Owner can record an expense (category, date, USD/LBP). Staff see the expense list, no Record. Rate shows 90000 (seed).
 
-**What they cannot do yet:** per-player split, expenses, Arabic UI, dashboard board, owner-created bookings.
+**What they cannot do yet:** per-player split, Arabic UI, dashboard board, owner-created bookings.
 
-**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve or collect).
+**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, or record expenses).
 
-**Next:** Expenses (reuse `recordPayment` with OUT). Wait for OK before writing SPEC-07. Overpay warning parked (SPEC-06 out of scope).
+**Next:** Dashboard (SUM ledger IN / OUT). Wait for OK before writing SPEC-08. Overpay warning parked.
 
 ---
 
@@ -1351,4 +1351,250 @@ The owner took cash in the browser. The hour is paid. This slice is done.
 **How it connects:** Ledger still records cash in. Remaining may be negative. Second collect after `<= 0` still `"Nothing due"`.
 
 **How to verify:** Read the SPEC pin. Do not build a warning until a numbered SPEC says so.
+
+---
+
+## Chapter 53 — 2026-09-11 — SPEC-07 written (not started in code)
+
+**When:** 2026-09-11
+
+**What:** Branched `feature/spec-07-expenses` from SPEC-06 HEAD. Wrote numbered record-expense slice: Expense row (no amount) + reuse `recordPayment` with `EXPENSE` + ledger OUT in the same `$transaction`. One submit = create and pay. No dashboard totals.
+
+**Why:** [SPEC-07](./specs/SPEC-07-record-expense.md) implements [DR-002](./decisions/DR-002-core-data-model.md) §2.22–2.23. Expense asks Payment; Payment writes Ledger; Payment never imports Expense.
+
+**Files:** `docs/specs/SPEC-07-record-expense.md`; `docs/README.md`.
+
+**Relation:** Collect stays on `/owner`. Overpay warning stays parked.
+
+**How to verify:** Read the spec. Confirm or correct the pins (no amount on expense, one submit pays it, `"expenses.record"` default deny, ledger `occurredAt` = expense date). Then OK step 1.
+
+### In plain language
+
+The next instruction sheet: the owner writes “electricity, this much cash, today” and the notebook records money going *out* the same way it recorded money coming *in*. We have not built that yet — only the sheet.
+
+---
+
+## Chapter 54 — 2026-09-11 — SPEC-07 step 1: Expense schema
+
+**When:** 2026-09-11
+
+**What:** `Expense` table: `tenantId`, `category` enum (ELECTRICITY / WATER / MAINTENANCE / SALARY / EQUIPMENT / OTHER), `description`, `occurredAt`, `createdAt`. **No amount columns.** `PaymentSourceType` gained `EXPENSE`. No FK from Payment to Expense. Guard not updated (step 2). No `expense/` module yet.
+
+**Why:** SPEC-07 step 1 / DR-002 §2.22–2.23 / DR-001 (`tenant_id` on the table). Prisma 7: `DateTime` → `TIMESTAMP(3)`, `String` → `TEXT`, enums via `CREATE TYPE` / `ALTER TYPE ... ADD VALUE` (CLI `migrate diff --from-config-datasource --to-schema`). No `Unsupported` — Client `create` should exist (unlike Booking). Local DB is `template1` → handwritten SQL + `migrate deploy`.
+
+**Files:** `src/prisma/schema.prisma`; `src/prisma/migrations/20260911050000_record_expense/migration.sql`.
+
+**Relation:** Tenant gains `expenses`. Payment still has no expense relation. `TENANT_SCOPED_MODELS` still omits Expense (step 2). Collect code unchanged (`recordPayment` still types `sourceType: "BOOKING"` until later steps).
+
+**How to verify:** Prisma Studio — `Expense` empty; Payment has `sourceId` text, no expense FK; `npx prisma migrate status --config prisma7.config.ts` → up to date.
+
+```
+npx prisma studio --config prisma7.config.ts
+```
+
+### In plain language
+
+We added a drawer labelled “what I spent” (electricity, water, …) with a date and a note. There is no money column on that drawer — cash still goes through the payment drawer, with a new stamp that says “this was an expense.” The app cannot write expenses yet; the bouncer does not know this drawer.
+
+---
+
+## Chapter 55 — 2026-09-11 — SPEC-07 step 2: Expense on the tenant guard
+
+**When:** 2026-09-11
+
+**What:** `Expense` added to `TENANT_SCOPED_MODELS`. Prisma `findMany`/`create` on Expense get `tenantId` injected. Callers still omit `tenantId`. No `expense/` folders yet (step 3 is domain).
+
+**Why:** SPEC-07 step 2 / DR-001 §1. Expense rows are Ahmad’s or Sami’s, never mixed. Expense has a normal Prisma `create` (no `Unsupported`), so the extension can stamp `data.tenantId` — same as Payment, unlike Booking inserts.
+
+**Files:** `src/lib/db.ts`.
+
+**Relation:** No app query against Expense yet. Proof that callers omit `tenantId` waits for step 5/6 repositories. Payment still does not import Expense.
+
+**How to verify:** Read the set in `src/lib/db.ts`. No Studio change (table already empty). Prisma 7 extension is still `$allModels` + `$allOperations` (same comment in `db.ts`).
+
+### In plain language
+
+The bouncer now knows the “what I spent” drawer. When we later list expenses, we only get this stadium’s rows, without writing `tenantId` in the kitchen.
+
+---
+
+## Chapter 56 — 2026-09-11 — SPEC-07 step 3: record flag + expense date
+
+**When:** 2026-09-11
+
+**What:** `"expenses.record"` on Access `can` (`EXPENSES_RECORD`). Expense `domain/`: category const (no Prisma import), `occurredAtFromCivilDate` → 12:00 in the given zone via Intl offsets (not `Date#getHours`). No tender math here — Payment still owns freeze. No Zod yet (step 4).
+
+**Why:** SPEC-07 step 3 / DR-003 §5 (jsonb flags, BR-98), DR-002 §2.22–2.23, SPEC-02 timezone idea without Expense importing Venue.
+
+**Files:** `src/modules/access/domain/can.ts`; `src/modules/expense/domain/categories.ts`, `occurred-at.ts`; `test/modules/access/domain/can.test.ts`; `test/modules/expense/domain/occurred-at.test.ts`.
+
+**Relation:** Access does not import Expense. Expense does not import Payment, Booking, or Venue. Pages unchanged.
+
+**How to verify:** `npm test` — 15 suites / 84 passed. OWNER can record with `{}`; STAFF default cannot; Beirut July and January both noon on that civil day.
+
+```
+npm test
+```
+
+### In plain language
+
+Staff cannot write an expense unless the owner later ticks a flag. The kitchen now knows how to turn “15 July” into a real clock time in Beirut (noon, including summer time) without asking the venue module.
+
+---
+
+## Chapter 57 — 2026-09-11 — SPEC-07 step 4: Zod record expense
+
+**When:** 2026-09-11
+
+**What:** `parseRecordExpense`: category enum, description 1–200, `occurredOn` `YYYY-MM-DD`, optional USD/LBP like collect (`"30"` → `"30.00"`). Hidden `tenant` rejected. Refine checks `isUsdString` / `isLbpString` before `parseUsd` / `parseLbp`. No use case yet (step 6).
+
+**Why:** SPEC-07 step 4. Same two-gate idea as collect: Zod = form shape; domain still decides date instant / tenders / rate.
+
+**Files:** `src/modules/expense/schemas/record-expense.ts`; `test/modules/expense/schemas/record-expense.test.ts`.
+
+**Relation:** Schema lives in Expense, not Payment. Reuses `src/lib/money.ts`. Payment still does not import Expense. Pages unchanged.
+
+**How to verify:** `npm test` — 16 suites / 90 passed.
+
+```
+npm test
+```
+
+### In plain language
+
+The waiter for expenses now knows the ticket: what kind, a short note, a date, and at least some dollars or pounds. The kitchen still has not cooked it.
+
+---
+
+## Chapter 58 — 2026-09-11 — SPEC-07 step 5: Expense / Payment / Ledger infrastructure
+
+**When:** 2026-09-11
+
+**What:** Expense repositories: insert (no amount) + last 20 by `occurredAt` then `createdAt`. `recordPayment` accepts `sourceType` BOOKING | EXPENSE and optional `occurredAt`. `insertLedgerEntry` writes `occurredAt` when given; collect still omits it (DB `now()`). Reuse `sumCollectedUsdBySourceIds` for expense ids. No Server Actions yet (step 6).
+
+**Why:** SPEC-07 step 5 / DR-002 §2.14, §2.22 / Chapter 39 (Prisma 7 create XOR — omit `tenantId`, assert as create `data`). Local Prisma 7 Client: `create` / `findMany` + `orderBy` / `take` ([model queries](https://www.prisma.io/docs/orm/v7/prisma-client/queries/crud)).
+
+**Files:** `src/modules/expense/infrastructure/expenses.ts`; `src/modules/payment/application/record-payment.ts`; `src/modules/payment/infrastructure/payments.ts`; `src/modules/ledger/infrastructure/entries.ts`.
+
+**Relation:** Expense infra does not import Payment. Payment / Ledger do not import Expense. Pages unchanged.
+
+**How to verify:** Code review now. Studio can still insert Expense by hand. Click-proof: step 7–8. `npm test` — 90 passed (no new unit tests this step).
+
+### In plain language
+
+The drawers can store an expense note and list the last twenty. Cash-out can now be stamped “this was an expense” and dated the day the owner typed, not only “right now.” There is still no Record button on the page.
+
+---
+
+## Chapter 59 — 2026-09-11 — SPEC-07 step 6: record / list expense use cases
+
+**When:** 2026-09-11
+
+**What:** `recordExpense` authorizes `"expenses.record"` **before** `$transaction`, then date → insert Expense → freeze tenders → `recordPayment(OUT, EXPENSE, occurredAt)` in the **same** `tx`. `listRecentExpenses` requires membership only; attaches USD via Payment sums (no payment join). No Server Actions yet (step 7).
+
+**Why:** SPEC-07 step 6 / DR-001 §5 (starting use case owns tx) / DR-002 §2.21–2.22 / [guard guide](./guides/prisma-transaction-tenant-guard.md) (no `platformDb` inside tx). Prisma 7 interactive `$transaction` ([Client `$transaction`](https://www.prisma.io/docs/orm/v7/prisma-client/queries/transactions)).
+
+**Files:** `src/modules/expense/application/record-expense.ts`, `list-recent-expenses.ts`.
+
+**Relation:** Expense asks Payment; Payment asks Ledger. Payment still does not import Expense. Pages unchanged.
+
+**How to verify:** Code review now. Click-proof: step 7–8. `npm test` — 90 passed (no new unit tests this step).
+
+### In plain language
+
+The kitchen can now write “electricity, this cash, that day”: check the owner is allowed, freeze pounds to dollars, write the note and the notebook out-row in one meeting. There is still no Record button on the page.
+
+---
+
+## Chapter 60 — 2026-09-11 — SPEC-07 step 7: /owner expense form
+
+**When:** 2026-09-11
+
+**What:** `/owner` Expenses: OWNER (and staff with the flag) get category, description, date (default today Beirut), USD + LBP, Record. Recent 20 listed for any logged-in member. Staff seed: list, no form. Pending / rate / collect unchanged. Action: Zod → use case; `redirect` outside try/catch; `?error=1` on failure.
+
+**Why:** SPEC-07 step 7 / BR-50–52. Next 16 local docs: [`forms.md`](../../node_modules/next/dist/docs/01-app/02-guides/forms.md) — FormData on `action`. [`redirect`](../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/redirect.md) outside try/catch (same as SPEC-05/06).
+
+**Files:** `src/app/owner/page.tsx`, `src/app/owner/actions.ts`.
+
+**Relation:** No Prisma / no `tenantId` on the page. Payment still does not import Expense. Seed wipe of Expense is step 8.
+
+**How to verify:** `owner@ahmad` / `dev-owner` → Record electricity + `1800000` LBP → list shows ~$20.00. Studio: expense + payment EXPENSE + LBP tender + ledger OUT. `staff@ahmad` sees list, no Record. No browser tools in this session — click-proof is yours.
+
+```
+npm test
+```
+
+### In plain language
+
+The owner’s page now has a spend form. Electricity + pounds today, tap Record, it should show on the list. Staff can look; they cannot tap Record.
+
+---
+
+## Chapter 61 — 2026-09-11 — SPEC-07 step 8: seed wipe Expense
+
+**When:** 2026-09-11
+
+**What:** Re-seed deletes Expense rows (after payments, before rates). Does **not** insert sample expenses. Rate 90000 unchanged.
+
+**Why:** SPEC-07 step 8. Click-proof records a real expense; seed must not leave orphan money rows when tenants are wiped.
+
+**Files:** `src/prisma/seed.ts`.
+
+**Relation:** Seed still uses unscoped `platformDb`. Does not import Expense module.
+
+**How to verify:** `/owner?tenant=ahmad` after login shows 90000 and “No expenses yet.” Seed wipes bookings — request + approve again before Collect.
+
+```
+npm run db:seed
+```
+
+### In plain language
+
+A fresh seed still puts 90,000 on the shelf and leaves the spend list empty, so you can type the first electricity bill yourself.
+
+---
+
+## Correction — `/owner` `tx.expense` undefined (2026-09-11)
+
+**When:** Click-proof SPEC-07, load `/owner`.
+
+**What:** `listRecentExpenses` threw `Cannot read properties of undefined (reading 'findMany')` on `tx.expense`. The findMany call was fine.
+
+**Why:** Same gotcha as Chapter 2 / 867. `prisma-base.ts` keeps one PrismaClient on `globalThis`. `next dev` started before `prisma generate` for Expense, so the cached client had no `expense` delegate. TypeScript used the new types; runtime was the old instance.
+
+**Files:** `src/lib/prisma-base.ts` — if the cached client has no `expense.findMany`, disconnect and create a new one.
+
+**How it connects:** Expense infra is unchanged. Restart `npm run dev` if HMR still holds an old `$extends` wrapper.
+
+**How to verify:** Reload `/owner?tenant=ahmad` — “No expenses yet.”, not a TypeError.
+
+---
+
+## Chapter 62 — 2026-09-11 — SPEC-07 click-proof
+
+**When:** 2026-09-11
+
+**What:** After restarting `next dev`, Record on `/owner` succeeded (`Expense recorded cmtwa1lml000014l2y0jzpenh`, then `cmtwa2a30000414l2q36bgadm`). Kitchen ran: expense + payment `EXPENSE` + tender(s) + ledger OUT in one `$transaction`.
+
+**Why:** SPEC-07 whole-slice acceptance.
+
+**Files:** none this chapter (code was the Correction above).
+
+**Relation:** Closes record-expense. Payment still does not import Expense. Dashboard next (SUM ledger).
+
+**How to verify:** Studio: those expense ids, matching payments, tenders with frozen `rateAtTime`, ledger OUT equal to USD equivalent.
+
+### In plain language
+
+The owner typed a spend in the browser. Money left the notebook. This slice is done.
+
+
+
+
+
+
+
+
+
+
 

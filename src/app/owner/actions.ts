@@ -12,6 +12,8 @@ import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { setExchangeRate } from "@/modules/payment/application/set-exchange-rate";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
 import { parseExchangeRate } from "@/modules/payment/schemas/exchange-rate";
+import { recordExpense } from "@/modules/expense/application/record-expense";
+import { parseRecordExpense } from "@/modules/expense/schemas/record-expense";
 
 function field(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -136,6 +138,58 @@ export async function submitSetExchangeRate(formData: FormData) {
       (error instanceof Error && error.message === "Not allowed");
     if (!expected) {
       logger.error("Set exchange rate failed", error);
+    }
+    failed = true;
+  }
+  if (failed) {
+    redirect(`/owner${ownerQuery(tenant, { error: "1" })}`);
+  }
+  redirect(`/owner${ownerQuery(tenant)}`);
+}
+
+const EXPENSE_EXPECTED = new Set([
+  "Not allowed",
+  "Set exchange rate first",
+  "Amount required",
+  "Amount must be positive",
+]);
+
+/**
+ * Thin record-expense action. Zod → drafts → recordExpense.
+ * redirect() outside try/catch (Next redirect docs).
+ */
+export async function submitRecordExpense(formData: FormData) {
+  const tenant = field(formData, "tenant");
+  let failed = false;
+  try {
+    const parsed = parseRecordExpense({
+      category: field(formData, "category"),
+      description: field(formData, "description"),
+      occurredOn: field(formData, "occurredOn"),
+      usdAmount: field(formData, "usdAmount"),
+      lbpAmount: field(formData, "lbpAmount"),
+    });
+    const tenders: TenderDraft[] = [];
+    if (parsed.usdAmount) {
+      tenders.push({ currency: "USD", amount: parseUsd(parsed.usdAmount) });
+    }
+    if (parsed.lbpAmount) {
+      tenders.push({ currency: "LBP", amount: parseLbp(parsed.lbpAmount) });
+    }
+    await recordExpense({
+      category: parsed.category,
+      description: parsed.description,
+      occurredOn: parsed.occurredOn,
+      tenders,
+    });
+  } catch (error) {
+    const expected =
+      error instanceof ZodError ||
+      (error instanceof Error &&
+        (EXPENSE_EXPECTED.has(error.message) ||
+          error.message.startsWith("Invalid expense date")));
+    if (!expected) {
+      logger.error("Record expense failed", error);
     }
     failed = true;
   }

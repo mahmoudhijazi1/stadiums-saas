@@ -17,6 +17,7 @@ export async function insertLedgerEntry(
     amountUsd: Decimal;
     sourceType: PaymentSourceType;
     sourceId: string;
+    occurredAt?: Date;
   },
 ) {
   return tx.ledgerEntry.create({
@@ -25,6 +26,7 @@ export async function insertLedgerEntry(
       amountUsd: formatUsd(input.amountUsd),
       sourceType: input.sourceType,
       sourceId: input.sourceId,
+      ...(input.occurredAt ? { occurredAt: input.occurredAt } : {}),
     } as Parameters<typeof tx.ledgerEntry.create>[0]["data"],
   });
 }

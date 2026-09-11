@@ -6,16 +6,18 @@ import { insertPaymentWithTenders } from "@/modules/payment/infrastructure/payme
 
 /**
  * Write payment + tenders + ledger in the *given* tx (DR-002 §2.21).
- * Does not open a transaction. Does not load a Booking.
+ * Does not open a transaction. Does not load a Booking or Expense.
+ * Optional occurredAt: expense business date. Omit → ledger DB default (now).
  */
 export async function recordPayment(
   tx: TenantTx,
   input: {
     direction: "IN" | "OUT";
-    sourceType: "BOOKING";
+    sourceType: "BOOKING" | "EXPENSE";
     sourceId: string;
     amountDueUsd: Decimal;
     tenders: FrozenTender[];
+    occurredAt?: Date;
   },
 ): Promise<string> {
   const paymentId = await insertPaymentWithTenders(tx, {
@@ -35,6 +37,7 @@ export async function recordPayment(
     amountUsd: moved,
     sourceType: input.sourceType,
     sourceId: input.sourceId,
+    occurredAt: input.occurredAt,
   });
 
   return paymentId;

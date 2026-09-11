@@ -24,14 +24,32 @@ function createPrismaBase() {
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
+/** Cached client from before the last `prisma generate` has no new delegates (e.g. expense). */
+function isCurrentGeneratedClient(client: PrismaClient): boolean {
+  return typeof (client as { expense?: { findMany?: unknown } }).expense?.findMany ===
+    "function";
+}
+
+function getPrismaBase(): PrismaClient {
+  const existing = globalForPrisma.prismaBaseSingle;
+  if (existing && isCurrentGeneratedClient(existing)) {
+    return existing;
+  }
+  if (existing) {
+    void existing.$disconnect().catch(() => undefined);
+    globalForPrisma.prismaBaseSingle = undefined;
+  }
+  const created = createPrismaBase();
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prismaBaseSingle = created;
+  }
+  return created;
+}
+
 // Drop the Chapter 19 dual-client pool if this process still has it (HMR).
 if (globalForPrisma.stadiumPg && !globalForPrisma.prismaBaseSingle) {
   void globalForPrisma.stadiumPg.pool.end().catch(() => undefined);
   globalForPrisma.stadiumPg = undefined;
 }
 
-export const prismaBase = globalForPrisma.prismaBaseSingle ?? createPrismaBase();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prismaBaseSingle = prismaBase;
-}
+export const prismaBase = getPrismaBase();

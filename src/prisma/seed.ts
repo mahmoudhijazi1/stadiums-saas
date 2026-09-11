@@ -106,6 +106,7 @@ async function main() {
   await platformDb.ledgerEntry.deleteMany();
   await platformDb.paymentTender.deleteMany();
   await platformDb.payment.deleteMany();
+  await platformDb.expense.deleteMany();
   await platformDb.exchangeRate.deleteMany();
   await platformDb.slotInterest.deleteMany();
   await platformDb.bookingParticipant.deleteMany();
@@ -185,7 +186,7 @@ async function main() {
   });
 
   logger.info(
-    "Seeded tenants ahmad/sami, owners, staff@ahmad, exchange rate 90000",
+    "Seeded tenants ahmad/sami, owners, staff@ahmad, exchange rate 90000; no expenses",
   );
 }
 

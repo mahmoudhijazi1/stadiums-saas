@@ -73,7 +73,8 @@ export async function sumCollectedUsd(
 }
 
 /**
- * Collected USD per source id (for the due list). Missing ids → 0.
+ * Collected USD per source id (bookings or expenses). Missing ids → 0.
+ * Payment still does not know what the source row is.
  */
 export async function sumCollectedUsdBySourceIds(
   tx: TenantTx,
