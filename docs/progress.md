@@ -28,7 +28,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-11)
 
-**On `feature/spec-06-collect-payment`.** SPEC-01–05 implemented. SPEC-06 step **1** done (schema).
+**On `feature/spec-06-collect-payment`.** SPEC-01–05 implemented. SPEC-06 steps **1–2** done.
 
 **What a visitor can do:** public PENDING request (no login). After an hour is **APPROVED**, that row still lists but has no Request form. Owner logs in and Approves/Rejects on `/owner`. Staff see the list with no buttons.
 
@@ -36,7 +36,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve or collect).
 
-**Next:** SPEC-06 step 2 (guard). Wait for OK.
+**Next:** SPEC-06 step 3 (Access flag + money domain). Wait for OK.
 
 ---
 
@@ -1151,4 +1151,24 @@ npx prisma studio --config prisma7.config.ts
 ### In plain language
 
 We added empty cash drawers: one for the exchange rate, one for “a payment happened,” one for the dollar/pound bits of that payment, and one for the notebook of money in/out. Nothing is collected yet. The payment row does not point at a booking column — it stores “this is for a booking” plus that booking’s id, so later a shop sale can use the same drawer without changing it.
+
+---
+
+## Chapter 45 — 2026-09-11 — SPEC-06 step 2: payment tables on the tenant guard
+
+**When:** 2026-09-11
+
+**What:** `ExchangeRate`, `Payment`, `PaymentTender`, `LedgerEntry` added to `TENANT_SCOPED_MODELS`. Prisma `findMany`/`create` on those models get `tenantId` injected. Callers still omit `tenantId`. No Payment/Ledger folders yet (step 3 is domain).
+
+**Why:** SPEC-06 step 2 / DR-001 §1. Cash rows are Ahmad’s or Sami’s, never mixed. These models have normal `create` (no `Unsupported`), so the extension can stamp `data.tenantId` on Client create — unlike Booking inserts.
+
+**Files:** `src/lib/db.ts`.
+
+**Relation:** No app query against Payment yet. Proof that callers omit `tenantId` waits for step 5/6 repositories.
+
+**How to verify:** Read the set in `src/lib/db.ts`. No Studio change (tables already empty).
+
+### In plain language
+
+The bouncer now knows the cash drawers. When we later list payments, we only get this stadium’s money, without writing `tenantId` in the kitchen.
 
