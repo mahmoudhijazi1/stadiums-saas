@@ -3,7 +3,7 @@ import type { BookingStatus } from "@/app/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/money";
-import type Decimal from "decimal.js";
+import Decimal from "decimal.js";
 
 function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
@@ -255,4 +255,95 @@ export async function insertSlotInterest(
       ${input.personId}
     )
   `;
+}
+
+export type ApprovedCollectRow = {
+  id: string;
+  pitchName: string;
+  start: Date;
+  end: Date;
+  priceUsd: Decimal;
+  requesterName: string;
+  requesterPhone: string;
+};
+
+type ApprovedCollectSqlRow = {
+  id: string;
+  pitchName: string;
+  start: Date | string;
+  end: Date | string;
+  priceUsd: Decimal | string;
+  requesterName: string;
+  requesterPhone: string;
+};
+
+/**
+ * APPROVED games for the collect inbox. Soonest start first. Remaining is
+ * computed in Booking application via Payment sums — no payment join here.
+ */
+export async function listApprovedBookingsForCollect(
+  tx: TenantTx,
+): Promise<ApprovedCollectRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<ApprovedCollectSqlRow[]>`
+    SELECT
+      b.id,
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."priceUsd",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status = 'APPROVED'::"BookingStatus"
+    ORDER BY lower(b.during) ASC
+  `;
+
+  return rows.map((row) => ({
+    id: row.id,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    priceUsd: new Decimal(row.priceUsd.toString()),
+    requesterName: row.requesterName,
+    requesterPhone: row.requesterPhone,
+  }));
+}
+
+export type BookingForCollect = {
+  id: string;
+  status: BookingStatus;
+  priceUsd: Decimal;
+};
+
+type BookingCollectSqlRow = {
+  id: string;
+  status: BookingStatus;
+  priceUsd: Decimal | string;
+};
+
+/**
+ * One booking for collect: status + price. Missing → null.
+ */
+export async function findBookingForCollect(
+  tx: TenantTx,
+  bookingId: string,
+): Promise<BookingForCollect | null> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<BookingCollectSqlRow[]>`
+    SELECT id, status, "priceUsd"
+    FROM "Booking"
+    WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
+  `;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    status: row.status,
+    priceUsd: new Decimal(row.priceUsd.toString()),
+  };
 }

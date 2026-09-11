@@ -100,7 +100,8 @@ collection).
 
 **Overpay on a form that still has remaining:** **allow** (RULE-9 / RULE-10). Do not throw.
 Ledger IN = sum of **this** payment’s tender equivalents (what actually came in), not “due.”
-No warning UI this slice (warning is later).
+No warning UI this slice. Click-proof (2026-09-11): overpay accepted as designed; owner asked to
+**park** warn / credit / “cannot take more than remaining” — do not build until a later SPEC.
 
 **What we collect against:** the **booking** (`source_type = BOOKING`, `source_id = booking.id`),
 not a participant. `payments.amount_due_usd` = `booking.priceUsd` (the game snapshot), not
@@ -401,6 +402,7 @@ set-rate. Do not seed payments.
 - Owner-created bookings, cancel, no-show, waitlist UI
 - `pitch_blocks`, WhatsApp, i18n/RTL, RLS
 - Client-side live remaining widget
+- Overpay warning, player credit for the extra, or a hard cap at remaining (RULE-9 stays: take the cash; polish later)
 - `collected_by` / which staff (Q-7)
 - Filling `user_person_links`
 

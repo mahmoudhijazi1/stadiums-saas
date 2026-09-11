@@ -103,6 +103,10 @@ async function main() {
   await platformDb.session.deleteMany();
   await platformDb.membership.deleteMany();
   await platformDb.userPersonLink.deleteMany();
+  await platformDb.ledgerEntry.deleteMany();
+  await platformDb.paymentTender.deleteMany();
+  await platformDb.payment.deleteMany();
+  await platformDb.exchangeRate.deleteMany();
   await platformDb.slotInterest.deleteMany();
   await platformDb.bookingParticipant.deleteMany();
   await platformDb.booking.deleteMany();
@@ -173,8 +177,15 @@ async function main() {
     ],
   });
 
+  await platformDb.exchangeRate.createMany({
+    data: [
+      { tenantId: ahmad.id, lbpPerUsd: "90000" },
+      { tenantId: sami.id, lbpPerUsd: "90000" },
+    ],
+  });
+
   logger.info(
-    "Seeded tenants ahmad/sami, owners owner@ahmad and owner@sami, staff@ahmad (STAFF)",
+    "Seeded tenants ahmad/sami, owners, staff@ahmad, exchange rate 90000",
   );
 }
 

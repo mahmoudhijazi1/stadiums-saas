@@ -1,6 +1,9 @@
 export const BOOKINGS_APPROVE = "bookings.approve";
+export const PAYMENTS_COLLECT = "payments.collect";
 
-export type Permission = typeof BOOKINGS_APPROVE;
+export type Permission =
+  | typeof BOOKINGS_APPROVE
+  | typeof PAYMENTS_COLLECT;
 
 export type MembershipLike = {
   role: "OWNER" | "STAFF";

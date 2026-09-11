@@ -44,7 +44,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md) (implemented)
 - [SPEC-04 — Access: login, session, `can(...)`](./specs/SPEC-04-access-login.md) (implemented)
 - [SPEC-05 — Owner approve (exclusion fires)](./specs/SPEC-05-owner-approve.md) (implemented)
-- [SPEC-06 — Collect payment on a booking](./specs/SPEC-06-collect-payment.md) (written — not started in code)
+- [SPEC-06 — Collect payment on a booking](./specs/SPEC-06-collect-payment.md) (implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -59,8 +59,9 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- **Implement SPEC-06** — spec written; OK step 1 next (schema). One numbered step at a time.
-- Then expenses, dashboard, public polish (MVP order)
+- Expenses (reuse `recordPayment` with OUT). Then dashboard.
+- Parked (not next): overpay warning / credit / cap — see SPEC-06 out of scope.
+- One numbered step at a time.
 
 ## Framework note
 

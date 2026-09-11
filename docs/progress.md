@@ -28,15 +28,15 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-11)
 
-**On `feature/spec-06-collect-payment`.** SPEC-01–05 implemented. SPEC-06 steps **1–2** done.
+**On `feature/spec-06-collect-payment`.** SPEC-01–06 click-proofed. Cash on an APPROVED hour writes payment + tender + ledger IN; the due row becomes Collected / drops off remaining.
 
-**What a visitor can do:** public PENDING request (no login). After an hour is **APPROVED**, that row still lists but has no Request form. Owner logs in and Approves/Rejects on `/owner`. Staff see the list with no buttons.
+**What a visitor can do:** public PENDING request. Owner approves on `/owner`, then Collect remaining USD or mixed USD/LBP. Rate shows 90000 (seed). Staff see due list, no Collect.
 
-**What they cannot do yet:** pay, Arabic UI, dashboard board, owner-created bookings.
+**What they cannot do yet:** per-player split, expenses, Arabic UI, dashboard board, owner-created bookings.
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve or collect).
 
-**Next:** SPEC-06 step 3 (Access flag + money domain). Wait for OK.
+**Next:** Expenses (reuse `recordPayment` with OUT). Wait for OK before writing SPEC-07. Overpay warning parked (SPEC-06 out of scope).
 
 ---
 
@@ -1171,4 +1171,184 @@ We added empty cash drawers: one for the exchange rate, one for “a payment hap
 ### In plain language
 
 The bouncer now knows the cash drawers. When we later list payments, we only get this stadium’s money, without writing `tenantId` in the kitchen.
+
+---
+
+## Chapter 46 — 2026-09-11 — SPEC-06 step 3: collect permission + money domain
+
+**When:** 2026-09-11
+
+**What:** `"payments.collect"` on Access `can`. LBP parse in `lib/money` (integer pounds). Payment `domain/collect.ts`: freeze tenders to USD (ROUND_HALF_UP), remaining, APPROVED-only, nothing-due. No Prisma, no `await`. Payment does not import Booking.
+
+**Why:** SPEC-06 step 3 / DR-003 §5 (jsonb flags, BR-98), DR-002 §2.18, RULE-4/5. Q-2 default deny for staff.
+
+**Files:** `src/modules/access/domain/can.ts`, `src/lib/money.ts`, `src/modules/payment/domain/collect.ts`, tests under `test/modules/access/domain/`, `test/lib/`, `test/modules/payment/domain/`.
+
+**Relation:** No infrastructure yet (step 5). Zod is step 4. Access still does not import Payment.
+
+**How to verify:** `npm test` — 69 passed (Access collect flags, 900000 LBP at 90000 → $10, 1 LBP → $0.00, PENDING cannot collect).
+
+### In plain language
+
+The owner is always allowed to take cash. Staff are not, unless we later tick a box. The kitchen can now turn “900,000 pounds at 90,000” into ten dollars without using a JavaScript number, and it refuses to collect on a request that is still waiting for yes.
+
+---
+
+## Chapter 47 — 2026-09-11 — SPEC-06 step 4: Zod collect + rate
+
+**When:** 2026-09-11
+
+**What:** Collect form: `bookingId` + optional USD (`30.00`) + optional LBP (integer). Empty fields omitted. At least one positive amount. Rate form: positive integer `lbpPerUsd`. Extra keys rejected. Hidden `tenant` is not in either schema.
+
+**Why:** SPEC-06 step 4. Same two-gate idea as public request / login: Zod = form shape; domain (step 3) still decides remaining / rate / APPROVED.
+
+**Files:** `src/modules/payment/schemas/collect-payment.ts`, `exchange-rate.ts`, `test/modules/payment/schemas/collect-payment.test.ts`.
+
+**Relation:** Does not import domain `freezeTenders` (different question). Use cases (step 6) will parse first, then domain.
+
+**How to verify:** `npm test` — 78 passed. `30` USD fails; `30.00` + `900000` passes; extra `tenant` fails.
+
+### In plain language
+
+The form is untrusted. We check the shape before the kitchen: a booking id, dollars that look like money, pounds as a whole number, or a rate the owner typed. A fake extra field is thrown away.
+
+---
+
+## Chapter 48 — 2026-09-11 — SPEC-06 step 5: Payment / Ledger infrastructure
+
+**When:** 2026-09-11
+
+**What:** Repositories: latest/insert exchange rate; insert payment + tenders; sum collected USD by source; insert ledger IN/OUT. Booking lists APPROVED (soonest first) and loads one booking’s status + price — no payment join. Callers omit `tenantId`; Prisma 7 create XOR asserted like participants (Chapter 39).
+
+**Why:** SPEC-06 step 5 / DR-002 §2.14 (no booking_id), §2.21 (ledger in the same tx — use case will call both, step 6). Payment never lists bookings.
+
+**Files:** `src/modules/payment/infrastructure/rates.ts`, `payments.ts`; `src/modules/ledger/infrastructure/entries.ts`; `src/modules/booking/infrastructure/bookings.ts`.
+
+**Relation:** No `recordPayment` use case yet (step 6). Payment infra does not import Ledger or Booking. Access unchanged.
+
+**How to verify:** Code review now. Click-proof waits for step 6–8. Studio: tables still empty until collect.
+
+### In plain language
+
+The cash drawers have clerks now: they can put a rate on the shelf, write a payment and its dollar/pound bits, add up what was already taken for a game, and write a notebook line. They still wait for the owner’s Collect tap before any of that runs.
+
+---
+
+## Chapter 49 — 2026-09-11 — SPEC-06 step 6: collect / rate use cases
+
+**When:** 2026-09-11
+
+**What:** `recordPayment` writes payment + tenders + ledger IN in the **given** `tx` (does not open its own). `collectBookingPayment` authorizes `payments.collect` **before** `$transaction`, then status/remaining/freeze, then `recordPayment`. `listDueBookings` attaches remaining via Payment sums (omit paid-off). `getCurrentRate` / `setExchangeRate` (OWNER only). No Server Actions yet (step 7).
+
+**Why:** SPEC-06 step 6 / DR-001 §5 (starting use case owns tx) / DR-002 §2.21 (ledger same tx) / [guard guide](./guides/prisma-transaction-tenant-guard.md) (no `platformDb` inside tx).
+
+**Files:** `src/modules/payment/application/record-payment.ts`, `get-current-rate.ts`, `set-exchange-rate.ts`; `src/modules/booking/application/collect-booking-payment.ts`, `list-due-bookings.ts`.
+
+**Relation:** Booking asks Payment; Payment asks Ledger. Payment still does not import Booking. Pages unchanged.
+
+**How to verify:** Code review now. Click-proof: step 7–8. `npm test` — 78 passed (no new unit tests this step).
+
+### In plain language
+
+The kitchen can now take cash: check the owner is allowed, lock the hour as approved, freeze pounds to dollars, write the payment and the notebook in one meeting so they cannot disagree. There is still no Collect button on the page.
+
+---
+
+## Chapter 50 — 2026-09-11 — SPEC-06 step 7: /owner collect + rate
+
+**When:** 2026-09-11
+
+**What:** `/owner` shows current rate (OWNER can set a new one). APPROVED-with-remaining list: two-tap Collect remaining USD, plus mixed USD/LBP fields. Staff see the list, no Collect, no Set rate. Actions: Zod → use case; `redirect` outside try/catch; `?error=1` on failure. Pending inbox unchanged.
+
+**Why:** SPEC-06 step 7 / BR-36, BR-38/39. Next 16: FormData on `action`; `redirect` outside try/catch (same as SPEC-05).
+
+**Files:** `src/app/owner/page.tsx`, `src/app/owner/actions.ts`.
+
+**Relation:** No Prisma / no `tenantId` on the page. Payment still does not import Booking. Seed rate is step 8 — until then “No rate set”; USD collect still works.
+
+**How to verify:** After step 8 (or Set rate 90000): approve a game → Collect remaining USD → Studio payment + tender + ledger IN. `staff@ahmad` sees due row, no buttons. `?tenant=sami` does not list Ahmad’s due booking.
+
+### In plain language
+
+The owner’s page now has a rate and a cash list. One button takes the rest in dollars. The mixed line is for $20 plus pounds. Staff can look; they cannot tap Collect.
+
+---
+
+## Chapter 51 — 2026-09-11 — SPEC-06 step 8: seed exchange rate
+
+**When:** 2026-09-11
+
+**What:** Seed Ahmad and Sami with `lbpPerUsd = 90000`. No seeded payments. Re-seed now also deletes ledger/tender/payment/rate rows before tenants.
+
+**Why:** SPEC-06 step 8. LBP click-test needs a rate without a prior Set rate tap.
+
+**Files:** `src/prisma/seed.ts`.
+
+**Relation:** Does not import Payment module (seed uses unscoped `platformDb`, same as owners).
+
+**How to verify:** `/owner?tenant=ahmad` after login shows 90000. Seed wipes bookings — request + approve again before Collect.
+
+```
+npm run db:seed
+```
+
+### In plain language
+
+Both demo stadiums start with “90,000 pounds to the dollar” on the shelf, so the owner can take mixed cash on the first evening without typing a rate first.
+
+---
+
+## Correction — collect form threw on `"30"` (2026-09-11)
+
+**When:** After SPEC-06 step 8, first click-proof Collect.
+
+**What:** Mixed USD `30` redirected to `/owner?error=1`. Log: `Invalid USD amount "30"`. Kitchen never ran.
+
+**Why:** `parseUsd` / `parseLbp` throw `Error`, not `ZodError`. The object `.refine` called `parseUsd("30")` before checking `isUsdString`. That crash became `?error=1`. SPEC-06 G-1 already said `"30"` is `"30.00"`.
+
+**Files:** `src/lib/money.ts` (`normalizeUsdForm`), `src/modules/payment/schemas/collect-payment.ts` (normalize then `isUsdString` before parse), `src/app/owner/page.tsx` (placeholder), tests.
+
+**How it connects:** Form still stores cents as strings. Domain still freezes tenders. Payment still does not import Booking.
+
+**How to verify:** Collect `30` or `30.00` or two-tap remaining USD on an APPROVED booking. `"30.0"` still invalid.
+
+```
+npm test
+```
+
+---
+
+## Chapter 52 — 2026-09-11 — SPEC-06 click-proof
+
+**When:** 2026-09-11
+
+**What:** After the `"30"` form correction, Collect on `/owner` succeeded. The due row turned Collected (remaining ≤ 0, omitted from the unpaid list). Kitchen ran: payment + tender(s) + ledger IN in one `$transaction`.
+
+**Why:** SPEC-06 whole-slice acceptance.
+
+**Files:** none this chapter (code was the Correction above).
+
+**Relation:** Closes collect. Payment still does not import Booking. Expenses next (ledger OUT).
+
+**How to verify:** Studio: that booking’s payments, tenders with frozen `rateAtTime`, ledger IN matching USD equivalent. Second Collect on the same hour → `"Nothing due"`.
+
+### In plain language
+
+The owner took cash in the browser. The hour is paid. This slice is done.
+
+---
+
+## Note — overpay parked (2026-09-11)
+
+**When:** After SPEC-06 click-proof, a second Collect with more than remaining.
+
+**What:** Overpay is allowed (SPEC-06 / RULE-9 / RULE-10). Owner confirmed: skip warn / credit / cap for now.
+
+**Why:** Do not invent a new money rule in chat. Park it; a later SPEC (or BRD change) if we ever cap or warn.
+
+**Files:** `docs/specs/SPEC-06-collect-payment.md` (out of scope + pin). No code.
+
+**How it connects:** Ledger still records cash in. Remaining may be negative. Second collect after `<= 0` still `"Nothing due"`.
+
+**How to verify:** Read the SPEC pin. Do not build a warning until a numbered SPEC says so.
 

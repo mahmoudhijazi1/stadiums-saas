@@ -22,3 +22,29 @@ export function parseUsd(value: string): Decimal {
 export function formatUsd(amount: Decimal): string {
   return amount.toFixed(2);
 }
+
+/**
+ * Form convenience (G-1): "30" means "30.00". "30.0" stays invalid.
+ */
+export function normalizeUsdForm(value: string): string {
+  if (/^(?:0|[1-9]\d*)$/.test(value)) {
+    return `${value}.00`;
+  }
+  return value;
+}
+
+/** LBP as a whole-pound string, no fractional pounds (DR-002 §2.18). */
+const LBP_PATTERN = /^(?:0|[1-9]\d*)$/;
+
+export function isLbpString(value: string): boolean {
+  return LBP_PATTERN.test(value);
+}
+
+export function parseLbp(value: string): Decimal {
+  if (!isLbpString(value)) {
+    throw new Error(
+      `Invalid LBP amount "${value}" (need a non-negative integer string, e.g. "900000")`,
+    );
+  }
+  return new Decimal(value);
+}
