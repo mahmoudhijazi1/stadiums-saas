@@ -26,17 +26,17 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ---
 
-## Where we are (2026-09-10)
+## Where we are (2026-09-11)
 
-**On `feature/spec-05-owner-approve`.** SPEC-01–04 implemented. SPEC-05 steps **1–8** done.
+**On `feature/spec-06-collect-payment`.** SPEC-01–05 implemented. SPEC-06 written, not started in code.
 
-**What a visitor can do:** public PENDING request (no login). After an hour is **APPROVED**, that row still lists but has no Request form; a forged POST fails `"Slot is taken"`. Owner logs in and Approves/Rejects on `/owner`. Staff see the same list with no buttons.
+**What a visitor can do:** public PENDING request (no login). After an hour is **APPROVED**, that row still lists but has no Request form. Owner logs in and Approves/Rejects on `/owner`. Staff see the list with no buttons.
 
 **What they cannot do yet:** pay, Arabic UI, dashboard board, owner-created bookings.
 
-**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve).
+**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve or collect).
 
-**Next:** Payment slice (collect on a booking). Wait for OK.
+**Next:** SPEC-06 step 1 (schema). Wait for OK.
 
 ---
 
@@ -1107,4 +1107,24 @@ Ahmad’s owner tapped Approve in the browser and the kitchen ran. The slice is 
 ### In plain language
 
 Click in the left margin, press F5, use the app as usual. When that line runs, Cursor stops so you can see variables. The old debug button was starting the wrong file, which is why it never stopped.
+
+---
+
+## Chapter 43 — 2026-09-11 — SPEC-06 written (not started in code)
+
+**When:** 2026-09-11
+
+**What:** Merged `feature/spec-05-owner-approve` into `main` (fast-forward). Branched `feature/spec-06-collect-payment`. Wrote numbered collect-on-booking slice: Payment + tenders + append-only rate + ledger IN in the same `$transaction`. No per-player split, no expenses, no dashboard UI.
+
+**Why:** [SPEC-06](./specs/SPEC-06-collect-payment.md) implements [DR-002](./decisions/DR-002-core-data-model.md) §2.14–2.21. Booking asks Payment; Payment writes Ledger; Payment never imports Booking. Q-2 pinned: `"payments.collect"` default deny for staff.
+
+**Files:** `docs/specs/SPEC-06-collect-payment.md`; `docs/README.md`.
+
+**Relation:** No Payment/Ledger folders yet (step 1 is schema). Access still only has `"bookings.approve"` until step 3.
+
+**How to verify:** Read the spec. Confirm or correct the pins (partial, overpay, OWNER-only rate, no `booking_id`). Then OK step 1.
+
+### In plain language
+
+The owner can already lock an hour. Next we let him take cash for that hour: dollars, pounds, or both, at a rate he types. The notebook of “what the business took” is written in the same moment as the payment, so the two can never disagree. We have not built that yet — only the instruction sheet.
 
