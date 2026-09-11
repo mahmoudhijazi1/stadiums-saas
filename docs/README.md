@@ -46,6 +46,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-05 — Owner approve (exclusion fires)](./specs/SPEC-05-owner-approve.md) (implemented)
 - [SPEC-06 — Collect payment on a booking](./specs/SPEC-06-collect-payment.md) (implemented)
 - [SPEC-07 — Record an expense](./specs/SPEC-07-record-expense.md) (implemented)
+- [SPEC-08 — Financial dashboard (ledger period summary)](./specs/SPEC-08-financial-dashboard.md) (implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -60,7 +61,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- Dashboard (SUM ledger). Then owner-created bookings / cancel.
+- Owner-created bookings / cancel. Then waitlist UI / Arabic as product asks.
 - Parked (not next): overpay warning / credit / cap — see SPEC-06 out of scope.
 - One numbered step at a time.
 

@@ -30,3 +30,32 @@ export async function insertLedgerEntry(
     } as Parameters<typeof tx.ledgerEntry.create>[0]["data"],
   });
 }
+
+/**
+ * Period totals for the URL tenant (SPEC-08). SUM amount_usd GROUP BY direction.
+ * No sourceType filter — shop later must appear without editing this WHERE.
+ * Guard stamps tenantId; never pass it. Prisma 7 groupBy: by + _sum (generated LedgerEntry).
+ */
+export async function sumAmountUsdByDirection(
+  tx: TenantTx,
+  startInclusive: Date,
+  endExclusive: Date,
+): Promise<{ IN: Decimal; OUT: Decimal }> {
+  const groups = await tx.ledgerEntry.groupBy({
+    by: ["direction"],
+    where: {
+      occurredAt: {
+        gte: startInclusive,
+        lt: endExclusive,
+      },
+    },
+    _sum: { amountUsd: true },
+  });
+
+  const totals = { IN: new Decimal("0.00"), OUT: new Decimal("0.00") };
+  for (const group of groups) {
+    const sum = group._sum.amountUsd;
+    totals[group.direction] = new Decimal(sum ? sum.toString() : "0");
+  }
+  return totals;
+}

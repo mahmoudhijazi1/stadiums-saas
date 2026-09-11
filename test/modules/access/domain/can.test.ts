@@ -3,6 +3,7 @@ import {
   BOOKINGS_APPROVE,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
+  REPORTS_VIEW,
   can,
 } from "@/modules/access/domain/can";
 
@@ -55,6 +56,23 @@ describe("can", () => {
   it("lets STAFF record an expense only when the flag is strictly true", () => {
     expect(
       can({ role: "STAFF", permissions: { "expenses.record": true } }, EXPENSES_RECORD),
+    ).toBe(true);
+  });
+
+  it("lets OWNER view reports without a json shopping list", () => {
+    expect(can({ role: "OWNER", permissions: {} }, REPORTS_VIEW)).toBe(true);
+  });
+
+  it("does not let STAFF view reports by default", () => {
+    expect(can({ role: "STAFF", permissions: {} }, REPORTS_VIEW)).toBe(false);
+    expect(
+      can({ role: "STAFF", permissions: { "reports.view": false } }, REPORTS_VIEW),
+    ).toBe(false);
+  });
+
+  it("lets STAFF view reports only when the flag is strictly true", () => {
+    expect(
+      can({ role: "STAFF", permissions: { "reports.view": true } }, REPORTS_VIEW),
     ).toBe(true);
   });
 });

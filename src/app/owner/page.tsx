@@ -1,17 +1,26 @@
 import { redirect } from "next/navigation";
+import { ZodError } from "zod";
+import Decimal from "decimal.js";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { formatUsd } from "@/lib/money";
+import { formatUsd, parseLbp } from "@/lib/money";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   BOOKINGS_APPROVE,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
+  REPORTS_VIEW,
   can,
 } from "@/modules/access/domain/can";
 import { listDueBookings } from "@/modules/booking/application/list-due-bookings";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { listRecentExpenses } from "@/modules/expense/application/list-recent-expenses";
 import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
+import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
+import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
+import {
+  parseLedgerPeriodQuery,
+  type LedgerPeriodQuery,
+} from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { submitLogout } from "@/app/login/actions";
 import {
@@ -24,9 +33,53 @@ import {
 
 const TIME_ZONE = "Asia/Beirut";
 
+function queryString(
+  value: string | string[] | undefined,
+): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function readPeriodQuery(params: {
+  from?: string | string[];
+  to?: string | string[];
+  view?: string | string[];
+  displayRate?: string | string[];
+}): LedgerPeriodQuery {
+  try {
+    return parseLedgerPeriodQuery({
+      from: queryString(params.from),
+      to: queryString(params.to),
+      view: queryString(params.view),
+      displayRate: queryString(params.displayRate),
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        from: undefined,
+        to: undefined,
+        view: "usd",
+        displayRate: undefined,
+      };
+    }
+    throw error;
+  }
+}
+
+function formatPeriodAmount(
+  amountUsd: Decimal,
+  showLbp: boolean,
+  lbpPerUsd: Decimal | null,
+): string {
+  if (showLbp && lbpPerUsd) {
+    return `${usdToDisplayLbp(amountUsd, lbpPerUsd).toFixed(0)} LBP`;
+  }
+  return `$${formatUsd(amountUsd)}`;
+}
+
 /**
  * Thin locked page. No Prisma and no tenantId.
- * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07).
+ * Next 16: searchParams is a Promise (page.js docs). Period form is GET, not a Server Action.
+ * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07) + ledger summary (SPEC-08).
  */
 export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const tenant = await getCurrentTenant();
@@ -50,9 +103,31 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const mayDecide = can(membership, BOOKINGS_APPROVE);
   const mayCollect = can(membership, PAYMENTS_COLLECT);
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
+  const mayViewReports = can(membership, REPORTS_VIEW);
   const isOwner = membership.role === "OWNER";
   const failed = params.error === "1";
   const today = todayInTimeZone(TIME_ZONE);
+  const periodQuery = readPeriodQuery({
+    from: params.from,
+    to: params.to,
+    view: params.view,
+    displayRate: params.displayRate,
+  });
+  const summary = mayViewReports
+    ? await summarizeLedgerPeriod({
+        from: periodQuery.from,
+        to: periodQuery.to,
+      })
+    : null;
+  const typedDisplayRate = periodQuery.displayRate
+    ? parseLbp(periodQuery.displayRate)
+    : null;
+  const displayRate = typedDisplayRate ?? rate;
+  const showLbp = periodQuery.view === "lbp" && displayRate !== null;
+  const lbpNote =
+    periodQuery.view === "lbp" && displayRate === null
+      ? "Set a display rate (or set exchange rate first)"
+      : null;
 
   return (
     <main style={{ fontFamily: "system-ui", padding: "1.5rem", lineHeight: 1.6 }}>
@@ -65,6 +140,60 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
         <button type="submit">Log out</button>
       </form>
       {failed ? <p>Could not save</p> : null}
+
+      {summary ? (
+        <>
+          <h2>This period</h2>
+          <p>
+            {summary.from} → {summary.to}
+          </p>
+          <p>In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}</p>
+          <p>Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}</p>
+          <p>
+            Difference {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+          </p>
+          {lbpNote ? <p>{lbpNote}</p> : null}
+          <form method="get" action="/owner">
+            <input type="hidden" name="tenant" value={tenantSlug} />
+            <label>
+              From{" "}
+              <input
+                type="date"
+                name="from"
+                required
+                defaultValue={summary.from}
+              />
+            </label>{" "}
+            <label>
+              To{" "}
+              <input
+                type="date"
+                name="to"
+                required
+                defaultValue={summary.to}
+              />
+            </label>{" "}
+            <label>
+              View{" "}
+              <select name="view" defaultValue={periodQuery.view}>
+                <option value="usd">USD</option>
+                <option value="lbp">LBP</option>
+              </select>
+            </label>{" "}
+            <label>
+              Display rate{" "}
+              <input
+                type="text"
+                name="displayRate"
+                inputMode="numeric"
+                placeholder="90000"
+                defaultValue={periodQuery.displayRate ?? ""}
+              />
+            </label>{" "}
+            <button type="submit">Show</button>
+          </form>
+        </>
+      ) : null}
 
       <h2>Exchange rate</h2>
       <p>

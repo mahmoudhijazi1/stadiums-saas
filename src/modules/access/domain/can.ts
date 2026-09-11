@@ -1,11 +1,13 @@
 export const BOOKINGS_APPROVE = "bookings.approve";
 export const PAYMENTS_COLLECT = "payments.collect";
 export const EXPENSES_RECORD = "expenses.record";
+export const REPORTS_VIEW = "reports.view";
 
 export type Permission =
   | typeof BOOKINGS_APPROVE
   | typeof PAYMENTS_COLLECT
-  | typeof EXPENSES_RECORD;
+  | typeof EXPENSES_RECORD
+  | typeof REPORTS_VIEW;
 
 export type MembershipLike = {
   role: "OWNER" | "STAFF";

@@ -28,15 +28,15 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-11)
 
-**On `feature/spec-07-expenses`.** SPEC-01–07 click-proofed. Expense + payment `EXPENSE` + ledger OUT in one `$transaction`.
+**On `feature/spec-08-financial-dashboard`.** Local `main` has SPEC-06/07 (`7af1854`). SPEC-01–08 click-proofed. `/owner` shows This period: ledger IN / OUT / net.
 
-**What a visitor can do:** public PENDING request. Owner approves on `/owner`, then Collect remaining USD or mixed USD/LBP. Owner can record an expense (category, date, USD/LBP). Staff see the expense list, no Record. Rate shows 90000 (seed).
+**What a visitor can do:** public PENDING request. Owner approves, Collects, records expenses, and sees money in / out / difference for a date range (USD, optional LBP view). Staff see pending / due / expenses; they cannot approve, collect, record, or see the summary.
 
-**What they cannot do yet:** per-player split, Arabic UI, dashboard board, owner-created bookings.
+**What they cannot do yet:** per-player split, Arabic UI, owner-created bookings, cancel, games-played / pitch-busy (BR-57).
 
-**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, or record expenses).
+**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, or view reports).
 
-**Next:** Dashboard (SUM ledger IN / OUT). Wait for OK before writing SPEC-08. Overpay warning parked.
+**Next:** owner-created bookings / cancel. Overpay warning parked.
 
 ---
 
@@ -1587,6 +1587,170 @@ A fresh seed still puts 90,000 on the shelf and leaves the spend list empty, so 
 ### In plain language
 
 The owner typed a spend in the browser. Money left the notebook. This slice is done.
+
+---
+
+## Chapter 63 — 2026-09-11 — SPEC-08 written (not started in code)
+
+**When:** 2026-09-11
+
+**What:** Fast-forward merged `feature/spec-07-expenses` into local `main` (`6b59c8c` → `7af1854`). Branched `feature/spec-08-financial-dashboard`. Wrote numbered ledger-summary slice: IN / OUT / net for a civil-date period from `ledger_entries` only. Optional LBP display is a view transform. No Payment/Expense/Booking joins. No `/dashboard` route.
+
+**Why:** [SPEC-08](./specs/SPEC-08-financial-dashboard.md) implements [DR-002](./decisions/DR-002-core-data-model.md) §2.20–2.21 / BR-54–56, BR-59. BR-57 (games/pitch) and BR-58 (outstanding as a fourth number) stay out — due list already exists.
+
+**Files:** `docs/specs/SPEC-08-financial-dashboard.md`; `docs/README.md`.
+
+**Relation:** Collect and expenses stay on `/owner`. Overpay warning stays parked. Did not push.
+
+**How to verify:** Read the spec. Confirm or correct the pins (`"reports.view"` default deny, GET period, LBP never stored, hide the block for staff). Then OK step 1.
+
+### In plain language
+
+The next instruction sheet: three numbers at the top of the owner page — cash in, money out, what’s left — for this month or any dates he picks. The notebook is already being written; this sheet is only how to add those numbers up. We had not built that yet when this chapter was written.
+
+---
+
+## Chapter 64 — 2026-09-11 — SPEC-08 step 1: ledger period index
+
+**When:** 2026-09-11
+
+**What:** Additive `@@index([tenantId, occurredAt])` on `LedgerEntry`. No new columns, FKs, or tables. Existing `tenantId` index kept. Handwritten SQL + `migrate deploy` (`template1`).
+
+**Why:** SPEC-08 step 1 / BR-59 / DR-002 §2.20. Period SUM filters `occurredAt`; a composite index keeps that query cheap on the droplet. Prisma 7 `migrate diff --from-config-datasource --to-schema` produced `CREATE INDEX "LedgerEntry_tenantId_occurredAt_idx"`.
+
+**Files:** `src/prisma/schema.prisma`; `src/prisma/migrations/20260911060000_ledger_period_index/migration.sql`.
+
+**Relation:** Guard still has `LedgerEntry` (SPEC-06). No `ledger/domain` yet (step 2). No SUM UI.
+
+**How to verify:** `npx prisma migrate status --config prisma7.config.ts` → up to date. Prisma Studio — `LedgerEntry` columns unchanged.
+
+```
+npx prisma migrate status --config prisma7.config.ts
+```
+
+### In plain language
+
+We told the database: when you add up money for a date range at one stadium, look at tenant plus when it happened. Nothing new is stored. The owner still cannot see the three numbers on the page.
+
+---
+
+## Chapter 65 — 2026-09-11 — SPEC-08 step 2: reports.view + period domain
+
+**When:** 2026-09-11
+
+**What:** `"reports.view"` (`REPORTS_VIEW`) on `can()`. Ledger domain: civil From/To → `[start, end)` at Beirut midnight; current calendar month; `netUsd`; LBP display multiply ROUND_HALF_UP to integer pounds. No Prisma. No Expense/Venue/Payment imports.
+
+**Why:** SPEC-08 step 2 / DR-003 (OWNER always; STAFF default deny) / DR-002 §2.20–2.21 (period on `occurredAt`; LBP never stored). Inclusive start / exclusive next-day midnight so a July month does not pick up 1 Aug 00:00 Beirut.
+
+**Files:** `src/modules/access/domain/can.ts`; `src/modules/ledger/domain/period.ts`; `src/modules/ledger/domain/totals.ts`; `test/modules/access/domain/can.test.ts`; `test/modules/ledger/domain/period.test.ts`; `test/modules/ledger/domain/totals.test.ts`.
+
+**Relation:** Index exists (step 1). No Zod query yet (step 3). `/owner` still has no summary block.
+
+**How to verify:** `npm test` — 18 suites / 103 tests. Summer July 2026 midnight Beirut; winter one-day range; `20.00 × 90000` → `1800000`; STAFF without the flag cannot view reports.
+
+### In plain language
+
+Staff still cannot see the money page unless we later tick a box. The rules for “this month in Beirut” and “in minus out” now exist as plain functions. The screen still does not add anything up.
+
+---
+
+## Chapter 66 — 2026-09-11 — SPEC-08 step 3: Zod period query
+
+**When:** 2026-09-11
+
+**What:** GET query schema: optional `from`/`to` (`YYYY-MM-DD`, real calendar days, `from <= to`, both together or both omitted), `view` `usd`|`lbp` (default usd), `displayRate` empty→omit else positive LBP integer. `strictObject` — `tenant` is not in this schema. `parseLbp` only after `isLbpString`.
+
+**Why:** SPEC-08 step 3. Page will fall back to the default month on Zod failure (`?error=1` stays a write-failure flag).
+
+**Files:** `src/modules/ledger/schemas/period-query.ts`; `test/modules/ledger/schemas/period-query.test.ts`.
+
+**Relation:** Domain already owns midnight bounds. Infra SUM is step 4. Page still does not read these params.
+
+**How to verify:** `npm test` — 19 suites / 110 tests. Happy July 2026; `from` after `to` throws; `2026-02-31` throws; `view=lbp` + `displayRate=90000`; empty rate omitted; extra `tenant` rejected.
+
+### In plain language
+
+The date form on the owner page now has a checklist for “this is a real from/to, and LBP view has a whole-pound rate.” Nothing is summed yet.
+
+---
+
+## Chapter 67 — 2026-09-11 — SPEC-08 step 4: SUM ledger by direction
+
+**When:** 2026-09-11
+
+**What:** `sumAmountUsdByDirection(tx, start, end)` — Prisma 7 `groupBy` `by: ["direction"]`, `_sum.amountUsd`, `occurredAt` in `[start, end)`. Missing direction → `0.00`. Convert Prisma Decimal via `.toString()` into decimal.js. No `tenantId` argument. No `sourceType` filter.
+
+**Why:** SPEC-08 step 4 / DR-002 §2.20. Guard already injects `tenantId` on `groupBy` (`src/lib/db.ts`). Local generated client: `LedgerEntry.groupBy` + `_sum` (`src/app/generated/prisma/models/LedgerEntry.ts`).
+
+**Files:** `src/modules/ledger/infrastructure/entries.ts`.
+
+**Relation:** Insert path unchanged. Use case (step 5) will call this. Page still has no summary.
+
+**How to verify:** Prisma Studio — pick two `LedgerEntry` rows (IN and OUT) in a known range; the function should return those sums for that tenant only. `npm test` still 19 / 110.
+
+### In plain language
+
+The notebook can now be asked: “how much came in and how much went out between these two instants?” The owner page still does not ask that question.
+
+---
+
+## Chapter 68 — 2026-09-11 — SPEC-08 step 5: summarizeLedgerPeriod
+
+**When:** 2026-09-11
+
+**What:** `summarizeLedgerPeriod({ from?, to? })` — membership + `"reports.view"` before any query; missing dates → current Beirut month; domain bounds; infra SUM; `netUsd`. Returns `{ inUsd, outUsd, netUsd, from, to }`. No `$transaction`. No Payment import (rate stays on the page).
+
+**Why:** SPEC-08 step 5 / DR-003 (`can` before work) / DR-002 §2.20 (ledger is the read). Staff seed cannot (flag omitted).
+
+**Files:** `src/modules/ledger/application/summarize-ledger-period.ts`.
+
+**Relation:** `/owner` still has no summary block (step 6). Collect/expense unchanged.
+
+**How to verify:** `npm test` — 19 / 110. Owner path is click-proof in step 6; staff without the flag get `"Not allowed"` if the use case is called.
+
+### In plain language
+
+The kitchen can now add up the notebook for a month. The owner page still does not show those three numbers.
+
+---
+
+## Chapter 69 — 2026-09-11 — SPEC-08 step 6: /owner This period
+
+**When:** 2026-09-11
+
+**What:** `/owner` shows In / Out / Difference for the resolved period (default current Beirut month). GET form: From, To, View USD/LBP, optional display rate, hidden `tenant`. Zod failure → default month + USD (not `?error=1`). LBP is `usdToDisplayLbp` using typed rate else current stored rate. Staff without `"reports.view"`: block omitted. No Prisma / no `tenantId` on the page. No Server Action.
+
+**Why:** SPEC-08 step 6 / BR-54–56. Next 16 `searchParams` is a Promise (`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md`). Native `<form method="get" action="/owner">`.
+
+**Files:** `src/app/owner/page.tsx`.
+
+**Relation:** Collect / expenses / pending unchanged. Ledger still does not import Payment (page already loads rate).
+
+**How to verify:** Log in `owner@ahmad` → `/owner?tenant=ahmad`. Top of page: This period with In/Out/Difference. Change dates; empty day → `$0.00`. View LBP at 90000. `staff@ahmad`: no This period. `npm test` — 19 / 110.
+
+### In plain language
+
+The owner page now shows three numbers: money in, money out, and the difference, for this month or any dates he picks. Staff do not see that block.
+
+---
+
+## Chapter 70 — 2026-09-11 — SPEC-08 click-proof
+
+**When:** 2026-09-11
+
+**What:** Owner confirmed This period on `/owner`: IN after collect (`Payment collected cmtwar7f2000f14l2gmks690g`), OUT after expense (`Expense recorded cmtwaqfcp000814l2afdyd4ej`), empty range zeros, LBP view, staff hide the block, collect/record still work.
+
+**Why:** SPEC-08 whole-slice acceptance / DR-002 §2.20 (dashboard reads ledger only).
+
+**Files:** none this chapter (code was step 6). SPEC acceptance checkmarks in [SPEC-08](./specs/SPEC-08-financial-dashboard.md).
+
+**Relation:** Closes the financial summary. Ledger still does not import Payment/Expense/Booking. Next is owner-created bookings / cancel. Overpay warning stays parked. BR-57 games/pitch and BR-58 outstanding-as-a-fourth-number stay out.
+
+**How to verify:** `/owner?tenant=ahmad` as owner — three numbers; `staff@ahmad` — no This period.
+
+### In plain language
+
+The owner can see this month’s cash in, money out, and the difference without opening Studio. This slice is done.
 
 
 

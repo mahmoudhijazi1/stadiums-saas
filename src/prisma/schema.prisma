@@ -247,6 +247,7 @@ model LedgerEntry {
   tenant     Tenant            @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, occurredAt])
 }
 
 /// What was spent. No amount — money is a Payment with sourceType EXPENSE (DR-002 §2.22).
