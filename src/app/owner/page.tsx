@@ -6,11 +6,13 @@ import { formatUsd, parseLbp } from "@/lib/money";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   BOOKINGS_APPROVE,
+  BOOKINGS_CREATE,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
   REPORTS_VIEW,
   can,
 } from "@/modules/access/domain/can";
+import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { listDueBookings } from "@/modules/booking/application/list-due-bookings";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { listRecentExpenses } from "@/modules/expense/application/list-recent-expenses";
@@ -22,10 +24,13 @@ import {
   type LedgerPeriodQuery,
 } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
+import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
+import type { CivilDate } from "@/modules/venue/domain/availability";
 import { submitLogout } from "@/app/login/actions";
 import {
   submitApproveBooking,
   submitCollectPayment,
+  submitCreateOwnerBooking,
   submitRecordExpense,
   submitRejectBooking,
   submitSetExchangeRate,
@@ -79,7 +84,7 @@ function formatPeriodAmount(
 /**
  * Thin locked page. No Prisma and no tenantId.
  * Next 16: searchParams is a Promise (page.js docs). Period form is GET, not a Server Action.
- * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07) + ledger summary (SPEC-08).
+ * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07) + ledger summary (SPEC-08) + owner Book (SPEC-09).
  */
 export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const tenant = await getCurrentTenant();
@@ -104,9 +109,19 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const mayCollect = can(membership, PAYMENTS_COLLECT);
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
   const mayViewReports = can(membership, REPORTS_VIEW);
+  const mayCreateBooking = can(membership, BOOKINGS_CREATE);
   const isOwner = membership.role === "OWNER";
   const failed = params.error === "1";
   const today = todayInTimeZone(TIME_ZONE);
+  const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
+  const bookLocalDate = civilFromYyyyMmDd(bookOn);
+  const bookPitches = mayCreateBooking
+    ? await getDayAvailability({
+        localDate: bookLocalDate,
+        timeZone: TIME_ZONE,
+        occupied: await listApprovedOccupied(),
+      })
+    : [];
   const periodQuery = readPeriodQuery({
     from: params.from,
     to: params.to,
@@ -246,6 +261,78 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
           ))}
         </ul>
       )}
+
+      {mayCreateBooking ? (
+        <>
+          <h2>Book a slot</h2>
+          <form method="get" action="/owner">
+            <input type="hidden" name="tenant" value={tenantSlug} />
+            <label>
+              Day{" "}
+              <input type="date" name="bookOn" required defaultValue={bookOn} />
+            </label>{" "}
+            <button type="submit">Show slots</button>
+          </form>
+          {bookPitches.length === 0 ? (
+            <p>No pitches yet.</p>
+          ) : (
+            <ul>
+              {bookPitches.map((pitch) => (
+                <li key={pitch.id}>
+                  <strong>{pitch.name}</strong>
+                  {pitch.slots.length === 0 ? (
+                    <p>Closed / No slots.</p>
+                  ) : (
+                    <ul>
+                      {pitch.slots.map((slot) => (
+                        <li key={slot.startIso}>
+                          {slot.startLocal}–{slot.endLocal} · ${slot.priceUsd}
+                          {slot.available ? (
+                            <form action={submitCreateOwnerBooking}>
+                              <input
+                                type="hidden"
+                                name="pitchId"
+                                value={pitch.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="start"
+                                value={slot.startIso}
+                              />
+                              <input type="hidden" name="end" value={slot.endIso} />
+                              <input type="hidden" name="tenant" value={tenantSlug} />
+                              <input type="hidden" name="bookOn" value={bookOn} />
+                              <label>
+                                Name{" "}
+                                <input
+                                  type="text"
+                                  name="name"
+                                  required
+                                  autoComplete="name"
+                                />
+                              </label>{" "}
+                              <label>
+                                Phone{" "}
+                                <input
+                                  type="tel"
+                                  name="phone"
+                                  required
+                                  autoComplete="tel"
+                                />
+                              </label>{" "}
+                              <button type="submit">Book</button>
+                            </form>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      ) : null}
 
       <h2>Due bookings</h2>
       {due.length === 0 ? (
@@ -392,6 +479,35 @@ function todayInTimeZone(timeZone: string): string {
     if (part.type !== "literal") map[part.type] = part.value;
   }
   return `${map.year}-${map.month}-${map.day}`;
+}
+
+function parseOwnerBookOn(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    civilFromYyyyMmDd(value);
+    return value;
+  } catch {
+    return undefined;
+  }
+}
+
+function civilFromYyyyMmDd(value: string): CivilDate {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    throw new Error(`Invalid bookOn "${value}"`);
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  if (
+    utc.getUTCFullYear() !== year ||
+    utc.getUTCMonth() !== month - 1 ||
+    utc.getUTCDate() !== day
+  ) {
+    throw new Error(`Invalid bookOn "${value}"`);
+  }
+  return { year, month, day };
 }
 
 function categoryLabel(category: (typeof EXPENSE_CATEGORIES)[number]): string {

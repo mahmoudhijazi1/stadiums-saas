@@ -5,9 +5,11 @@ import { ZodError } from "zod";
 import { logger } from "@/lib/logger";
 import { parseLbp, parseUsd } from "@/lib/money";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
+import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { rejectBooking } from "@/modules/booking/application/reject-booking";
 import { parseBookingDecision } from "@/modules/booking/schemas/booking-decision";
+import { parseOwnerCreateBooking } from "@/modules/booking/schemas/owner-create-booking";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { setExchangeRate } from "@/modules/payment/application/set-exchange-rate";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
@@ -73,6 +75,52 @@ export async function submitApproveBooking(formData: FormData) {
 
 export async function submitRejectBooking(formData: FormData) {
   await submitDecision(formData, rejectBooking);
+}
+
+const CREATE_EXPECTED = new Set([
+  "Not allowed",
+  "Pitch not found",
+  "Slot is not offered",
+  "Slot is taken",
+  "Slot has already ended",
+  "Slot no longer available",
+  "Requester not found",
+]);
+
+/**
+ * Thin owner Book action. Zod → createOwnerBooking.
+ * redirect() outside try/catch (Next redirect docs). Keep bookOn on the query.
+ */
+export async function submitCreateOwnerBooking(formData: FormData) {
+  const tenant = field(formData, "tenant");
+  const bookOn = field(formData, "bookOn");
+  const extra: Record<string, string> = {};
+  if (bookOn) extra.bookOn = bookOn;
+  let failed = false;
+  try {
+    const parsed = parseOwnerCreateBooking({
+      name: field(formData, "name"),
+      phone: field(formData, "phone"),
+      pitchId: field(formData, "pitchId"),
+      start: field(formData, "start"),
+      end: field(formData, "end"),
+    });
+    await createOwnerBooking(parsed);
+  } catch (error) {
+    const expected =
+      error instanceof ZodError ||
+      (error instanceof Error && CREATE_EXPECTED.has(error.message));
+    if (!expected) {
+      logger.error("Owner booking failed", error);
+    }
+    failed = true;
+  }
+  if (failed) {
+    redirect(
+      `/owner${ownerQuery(tenant, { ...extra, error: "1" })}`,
+    );
+  }
+  redirect(`/owner${ownerQuery(tenant, extra)}`);
 }
 
 const COLLECT_EXPECTED = new Set([

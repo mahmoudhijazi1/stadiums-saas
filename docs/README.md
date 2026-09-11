@@ -47,6 +47,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-06 — Collect payment on a booking](./specs/SPEC-06-collect-payment.md) (implemented)
 - [SPEC-07 — Record an expense](./specs/SPEC-07-record-expense.md) (implemented)
 - [SPEC-08 — Financial dashboard (ledger period summary)](./specs/SPEC-08-financial-dashboard.md) (implemented)
+- [SPEC-09 — Owner-created booking (phone-call, confirmed immediately)](./specs/SPEC-09-owner-create-booking.md) (implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -61,7 +62,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- Owner-created bookings / cancel. Then waitlist UI / Arabic as product asks.
+- Cancel a confirmed booking (BR-26). Then waitlist UI / Arabic as product asks.
 - Parked (not next): overpay warning / credit / cap — see SPEC-06 out of scope.
 - One numbered step at a time.
 

@@ -39,6 +39,35 @@ export async function insertPendingPublicBooking(
 }
 
 /**
+ * Insert APPROVED/OWNER with during as tstzrange (SPEC-09).
+ * Same raw insert as public PENDING — Client has no booking.create.
+ * tenantId in SQL (extension does not stamp $executeRaw). Hits exclusion.
+ */
+export async function insertApprovedOwnerBooking(
+  tx: TenantTx,
+  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+): Promise<string> {
+  const id = randomUUID();
+  const tenantId = await getCurrentTenantId();
+  const price = formatUsd(input.priceUsd);
+
+  await tx.$executeRaw`
+    INSERT INTO "Booking" ("id", "tenantId", "pitchId", "during", "status", "source", "priceUsd")
+    VALUES (
+      ${id},
+      ${tenantId},
+      ${input.pitchId},
+      tstzrange(${input.start}, ${input.end}, '[)'),
+      'APPROVED'::"BookingStatus",
+      'OWNER'::"BookingSource",
+      ${price}::decimal
+    )
+  `;
+
+  return id;
+}
+
+/**
  * Requester row: whole game due on this person until split exists (SPEC-03).
  * Do not pass tenantId — the db extension stamps it (DR-001). Prisma 7’s
  * create XOR still requires tenantId (unchecked) or tenant (checked);

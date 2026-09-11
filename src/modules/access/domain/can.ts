@@ -1,10 +1,12 @@
 export const BOOKINGS_APPROVE = "bookings.approve";
+export const BOOKINGS_CREATE = "bookings.create";
 export const PAYMENTS_COLLECT = "payments.collect";
 export const EXPENSES_RECORD = "expenses.record";
 export const REPORTS_VIEW = "reports.view";
 
 export type Permission =
   | typeof BOOKINGS_APPROVE
+  | typeof BOOKINGS_CREATE
   | typeof PAYMENTS_COLLECT
   | typeof EXPENSES_RECORD
   | typeof REPORTS_VIEW;

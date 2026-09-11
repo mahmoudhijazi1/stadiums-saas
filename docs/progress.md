@@ -28,15 +28,15 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-11)
 
-**On `feature/spec-08-financial-dashboard`.** Local `main` has SPEC-06/07 (`7af1854`). SPEC-01–08 click-proofed. `/owner` shows This period: ledger IN / OUT / net.
+**On `feature/spec-09-owner-create-booking`.** SPEC-01–09 click-proofed. Owner can Book a slot on `/owner` (APPROVED immediately).
 
-**What a visitor can do:** public PENDING request. Owner approves, Collects, records expenses, and sees money in / out / difference for a date range (USD, optional LBP view). Staff see pending / due / expenses; they cannot approve, collect, record, or see the summary.
+**What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, records expenses, and sees This period.
 
-**What they cannot do yet:** per-player split, Arabic UI, owner-created bookings, cancel, games-played / pitch-busy (BR-57).
+**What they cannot do yet:** cancel, no-show, per-player split, Arabic UI, games-played / pitch-busy (BR-57).
 
-**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, or view reports).
+**Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, or Book).
 
-**Next:** owner-created bookings / cancel. Overpay warning parked.
+**Next:** cancel a confirmed booking (BR-26). Overpay warning parked.
 
 ---
 
@@ -1751,6 +1751,146 @@ The owner page now shows three numbers: money in, money out, and the difference,
 ### In plain language
 
 The owner can see this month’s cash in, money out, and the difference without opening Studio. This slice is done.
+
+---
+
+## Chapter 71 — 2026-09-11 — SPEC-09 written (not started in code)
+
+**When:** 2026-09-11
+
+**What:** Fast-forward `main` already had SPEC-08 (`40e3ece`). Branched `feature/spec-09-owner-create-booking`. Wrote numbered phone-call slice: owner picks a free computed slot, name + phone, insert **APPROVED** `source = OWNER` immediately. Overlapping public PENDING rejected + interests (same as Approve). No cancel this slice.
+
+**Why:** [SPEC-09](./specs/SPEC-09-owner-create-booking.md) implements BR-13 / BR-14 / RULE-3. Collect stays a second tap (due list). `"bookings.create"` default deny, not reused from `"bookings.approve"`.
+
+**Files:** `docs/specs/SPEC-09-owner-create-booking.md`; `docs/README.md`.
+
+**Relation:** Dashboard stays on `/owner`. Cancel / no-show / BR-11 edit stay out. Overpay warning parked.
+
+**How to verify:** Read the spec. Confirm or correct the pins (name+phone required, APPROVED immediately, separate create flag, no collect in the same submit, cancel next). Then OK step 1.
+
+### In plain language
+
+The next instruction sheet: the owner is on the phone, taps a free hour, types who called, and the hour is taken — he does not approve himself. We have not built that yet — only the sheet.
+
+---
+
+## Chapter 72 — 2026-09-11 — SPEC-09 step 1: bookings.create flag
+
+**When:** 2026-09-11
+
+**What:** `"bookings.create"` (`BOOKINGS_CREATE`) on `can()`. OWNER always yes. STAFF default deny. `"bookings.approve": true` does **not** imply create.
+
+**Why:** SPEC-09 step 1 / DR-003. Taking a phone-call booking is not the same permission as deciding a public request.
+
+**Files:** `src/modules/access/domain/can.ts`; `test/modules/access/domain/can.test.ts`.
+
+**Relation:** No Booking schema/UI yet (step 2 is Zod). Approve / collect / expense / reports flags unchanged.
+
+**How to verify:** `npm test` — 19 suites / 114 tests.
+
+### In plain language
+
+Staff still cannot book a caller’s hour unless we later tick a box. The owner page still has no Book button.
+
+---
+
+## Chapter 73 — 2026-09-11 — SPEC-09 step 2: Zod owner Book form
+
+**When:** 2026-09-11
+
+**What:** `parseOwnerCreateBooking`: name, phone (8–15 digits after normalize), pitchId, UTC `start`/`end`. `strictObject` — no price, no `tenant`. Same phone helper as public request.
+
+**Why:** SPEC-09 step 2. Price stays a Venue snapshot at insert time (DR-002 §2.18). Hidden tenant is not isolation.
+
+**Files:** `src/modules/booking/schemas/owner-create-booking.ts`; `test/modules/booking/schemas/owner-create-booking.test.ts`.
+
+**Relation:** Access flag exists (step 1). No APPROVED OWNER insert yet (step 3).
+
+**How to verify:** `npm test` — 20 suites / 118 tests. Happy `03 123 456` → `03123456`; `priceUsd` extra key throws.
+
+### In plain language
+
+The Book form now has a checklist for “who called and which hour.” Nothing is written to the database yet.
+
+---
+
+## Chapter 74 — 2026-09-11 — SPEC-09 step 3: insert APPROVED OWNER
+
+**When:** 2026-09-11
+
+**What:** `insertApprovedOwnerBooking` — `$executeRaw` `tstzrange` `[)`, `status = APPROVED`, `source = OWNER`. `tenantId` from ALS (extension does not stamp raw SQL). Reuse `insertRequesterParticipant` (no new participant helper). No Payment import.
+
+**Why:** SPEC-09 step 3 / DR-002 §2.8. Client has no `booking.create` (Unsupported `during`). Exclusion applies immediately because the row is APPROVED.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`.
+
+**Relation:** Public PENDING insert unchanged. Use case (step 4) will call this inside `$transaction`. `/owner` still has no Book form.
+
+**How to verify:** `npm test` still 20 / 118. Click-proof in step 5: Studio OWNER + APPROVED; second overlapping APPROVED → exclusion.
+
+### In plain language
+
+We can now write “this hour is taken, the owner booked it” into the database the same way we write a public request — except it is already confirmed. The owner page still cannot do that.
+
+---
+
+## Chapter 75 — 2026-09-11 — SPEC-09 step 4: createOwnerBooking
+
+**When:** 2026-09-11
+
+**What:** `createOwnerBooking` — `"bookings.create"` before `$transaction`; `resolveOfferedSlot` + find-or-create person; insert APPROVED OWNER + requester; reject overlapping PENDING + interests. Exclusion → `"Slot no longer available"`. No Payment. Extracted `rejectOverlappingPending` and `isExclusionViolation` so Approve uses the same kitchen.
+
+**Why:** SPEC-09 step 4 / BR-14 / DR-002 §2.8 / SPEC-03 transaction guide (auth before tx).
+
+**Files:** `src/modules/booking/application/create-owner-booking.ts`; `src/modules/booking/application/reject-overlapping-pending.ts`; `src/modules/booking/domain/exclusion.ts`; `src/modules/booking/application/approve-booking.ts`.
+
+**Relation:** `/owner` still has no Book form (step 5). Collect stays a separate use case.
+
+**How to verify:** `npm test` — 20 / 118. Staff seed cannot create (`"Not allowed"`). Click-proof in step 5.
+
+### In plain language
+
+The kitchen can now take a name, a phone, and a free hour and lock it as a confirmed game. The owner page still has no button that calls that kitchen.
+
+---
+
+## Chapter 76 — 2026-09-11 — SPEC-09 step 5: /owner Book a slot
+
+**When:** 2026-09-11
+
+**What:** `/owner` Book a slot if `"bookings.create"`: GET `bookOn` (default today Beirut) lists computed slots via `getDayAvailability` + `listApprovedOccupied`. Available hours: name + phone → `submitCreateOwnerBooking`. Taken hours: time only. Staff: no section. No Prisma / no `tenantId`. No cancel buttons.
+
+**Why:** SPEC-09 step 5 / BR-13–14. Next 16: `searchParams` Promise (`page.js`); `<form action={Server Action}>` + `redirect` outside try/catch. Occupied is an argument — Venue does not import Booking.
+
+**Files:** `src/app/owner/page.tsx`; `src/app/owner/actions.ts`.
+
+**Relation:** Collect stays a second tap on Due bookings. This period / pending / expenses unchanged.
+
+**How to verify:** `npm test` — 20 / 118. Log in `owner@ahmad` → Book a free hour; Studio APPROVED OWNER; public that hour occupied; `staff@ahmad` no Book form.
+
+### In plain language
+
+The owner can now tap a free hour, type who called, and the hour is taken. Staff do not see that form. Please try it in the browser.
+
+---
+
+## Chapter 77 — 2026-09-11 — SPEC-09 click-proof
+
+**When:** 2026-09-11
+
+**What:** Owner confirmed Book on `/owner` (`Owner booking created 6f408d92-77f1-4a76-9edb-5790b42d9eb6`, then `705347a0-4282-43ea-a19e-6a6a789c978b`). Collect on the second (`Payment collected cmtwz2de5000l14l268dj876t`). Hour occupied; staff have no Book form.
+
+**Why:** SPEC-09 whole-slice acceptance / BR-13–14.
+
+**Files:** none this chapter (code was step 5). SPEC acceptance checkmarks in [SPEC-09](./specs/SPEC-09-owner-create-booking.md).
+
+**Relation:** Closes owner-create. Cancel next (BR-26). Overpay warning parked.
+
+**How to verify:** Studio those booking ids: `APPROVED`, `OWNER`, requester participant.
+
+### In plain language
+
+The owner booked a caller from the phone in the browser. The hour is taken. This slice is done.
 
 
 
