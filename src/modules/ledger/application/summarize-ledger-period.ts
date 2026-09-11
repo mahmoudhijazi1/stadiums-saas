@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
@@ -29,7 +30,7 @@ export async function summarizeLedgerPeriod(input: {
 }): Promise<LedgerPeriodSummary> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, REPORTS_VIEW)) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   const range =

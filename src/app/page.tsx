@@ -1,4 +1,5 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { errorMessage } from "@/lib/error-messages";
 import { submitPublicSlotRequest } from "@/app/request-slot";
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
@@ -23,6 +24,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     occupied,
   });
   const received = params.received === "1";
+  const errorKey = typeof params.error === "string" ? params.error : undefined;
   const dateValue = formatCivilDate(localDate);
 
   return (
@@ -35,6 +37,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         Schedule for <strong>{dateValue}</strong> ({TIME_ZONE})
       </p>
       {received ? <p>Request received</p> : null}
+      {errorKey ? <p>{errorMessage(errorKey)}</p> : null}
       <h2>Pitches</h2>
       {pitches.length === 0 ? (
         <p>No pitches yet.</p>

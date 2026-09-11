@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 
 export type TenderCurrency = "USD" | "LBP";
 
@@ -24,7 +25,7 @@ export function usdEquivalent(input: {
   rate: Decimal | null;
 }): Decimal {
   if (input.amount.lte(0)) {
-    throw new Error("Amount must be positive");
+    throw new DomainError("payment.amount_positive");
   }
 
   if (input.currency === "USD") {
@@ -32,7 +33,7 @@ export function usdEquivalent(input: {
   }
 
   if (!input.rate || input.rate.lte(0)) {
-    throw new Error("Set exchange rate first");
+    throw new DomainError("payment.rate_required");
   }
 
   return input.amount.div(input.rate).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
@@ -51,7 +52,7 @@ export function remainingDue(priceUsd: Decimal, collectedUsd: Decimal): Decimal 
  */
 export function assertCanCollect(status: string): void {
   if (status !== "APPROVED") {
-    throw new Error("Only an approved booking can be collected");
+    throw new DomainError("payment.collect_unapproved");
   }
 }
 
@@ -60,7 +61,7 @@ export function assertCanCollect(status: string): void {
  */
 export function assertHasDue(remaining: Decimal): void {
   if (remaining.lte(0)) {
-    throw new Error("Nothing due");
+    throw new DomainError("payment.nothing_due");
   }
 }
 
@@ -79,7 +80,7 @@ export function freezeTenders(
       continue;
     }
     if (draft.amount.lt(0)) {
-      throw new Error("Amount must be positive");
+      throw new DomainError("payment.amount_positive");
     }
 
     const equivalent = usdEquivalent({
@@ -97,7 +98,7 @@ export function freezeTenders(
   }
 
   if (frozen.length === 0) {
-    throw new Error("Amount required");
+    throw new DomainError("payment.amount_required");
   }
 
   return frozen;

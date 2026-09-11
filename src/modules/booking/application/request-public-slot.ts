@@ -1,5 +1,7 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
@@ -17,7 +19,7 @@ const TIME_ZONE = "Asia/Beirut";
 /**
  * Public name+phone request → PENDING booking + requester participant.
  * Opens the transaction (DR-001). Does not notify. Price from Venue, not the form.
- * APPROVED ranges (same tx) are occupied — a taken hour fails "Slot is taken".
+ * APPROVED ranges (same tx) are occupied — a taken hour fails booking.slot_taken.
  */
 export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
   bookingId: string;
@@ -26,7 +28,7 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
     const bookingId = await db.$transaction(async (tx) => {
       const pitch = await findPitchById(tx, input.pitchId);
       if (!pitch) {
-        throw new Error("Pitch not found");
+        throw new DomainError("booking.pitch_not_found");
       }
 
       const config = parseScheduleConfig(pitch.scheduleConfig);
@@ -67,7 +69,10 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
     logger.info(`Public booking request received ${bookingId}`);
     return { bookingId };
   } catch (error) {
-    logger.error("Public booking request failed", error);
-    throw error;
+    await rethrowUnexpected(
+      error,
+      "Public booking request failed",
+      "requestPublicSlot",
+    );
   }
 }

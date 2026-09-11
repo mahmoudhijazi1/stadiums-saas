@@ -28,7 +28,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-12)
 
-**On `main`.** SPEC-01–11 click-proofed. Owner can Cancel a confirmed booking and see waitlist + Notify on a freed slot.
+**On `feature/spec-12-error-handling`.** SPEC-01–12 click-proofed. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
 
 **What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, Cancels, sees waitlist + Notify, records expenses, and sees This period.
 
@@ -36,7 +36,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, Book, or cancel).
 
-**Next:** Arabic / no-show / remaining BR-71 templates as product asks. Overpay warning parked.
+**Next:** Commit SPEC-12 when asked. Overpay warning parked.
 
 ---
 
@@ -2176,7 +2176,145 @@ The owner page now lists who wanted a freed hour, with a Notify link to WhatsApp
 
 After a confirmed game was cancelled, the owner saw who had wanted that hour and could open WhatsApp with a ready-made message. This slice is done.
 
+---
 
+## Chapter 92 — 2026-09-12 — SPEC-12 written (not started in code)
+
+**When:** 2026-09-12
+
+**What:** Branched `feature/spec-12-error-handling` from `main`. Wrote DR-004 + numbered error-handling slice: `DomainError` / `UnexpectedError`, English dictionary by key, logger context, actions never throw uncaught (except `redirect`), `?error=<key>` banners, Next `error.tsx` (`retry`, not `reset`). Public request currently has no try/catch — that is the crash. No next-intl, no `useActionState` rewrite, no wrap-every-Prisma.
+
+**Why:** [DR-004](./decisions/DR-004-error-handling.md), [SPEC-12](./specs/SPEC-12-error-handling.md), RULE-9 / RULE-10. Dev sees stacks in `logs/`; owner sees a short line or a retry screen.
+
+**Files:** `docs/decisions/DR-004-error-handling.md`; `docs/specs/SPEC-12-error-handling.md`; `docs/README.md`.
+
+**Relation:** Does not change cancel/waitlist/collect rules. Arabic later consumes the same keys.
+
+**How to verify:** Read the spec. Confirm or correct the pins (keys not UI strings at throw sites; redirect + key instead of client forms this slice; `retry` from local Next docs). Then OK step 1.
+
+### In plain language
+
+The next instruction sheet: you still get everything in the log file; the owner gets “that hour has already ended,” not a broken screen. We have not built that yet — only the sheet.
+
+---
+
+## Chapter 93 — 2026-09-12 — SPEC-12 step 1: DomainError + dictionary
+
+**When:** 2026-09-12
+
+**What:** `DomainError` carries a message key. `UnexpectedError` wraps `unknown` as `cause`. English catalog + `errorMessage(key)` (unknown / legacy `1` → generic). No UI, no action changes.
+
+**Why:** SPEC-12 step 1 / DR-004. Copy is not at the throw site so Arabic can reuse keys later.
+
+**Files:** `src/lib/errors.ts`; `src/lib/error-messages.ts`; `test/lib/errors.test.ts`.
+
+**Relation:** Existing `throw new Error("…")` still in place (step 4). Logger unchanged (step 2).
+
+**How to verify:** `npm test` — 23 suites / 144 tests.
+
+### In plain language
+
+We now have two kinds of error in code: “this can happen” (a key) and “this is a bug” (keep the original). Nothing on the owner’s screen has changed yet.
+
+---
+
+## Chapter 94 — 2026-09-12 — SPEC-12 step 2: logger context
+
+**When:** 2026-09-12
+
+**What:** `logger.error` / `info` accept optional `{ useCase, tenantId }` appended on the line (`formatLogContext`). Existing two-argument calls unchanged. No secrets on the type.
+
+**Why:** SPEC-12 step 2 / DR-004. A stack in `logs/` should name the use case and stadium.
+
+**Files:** `src/lib/logger.ts`; `test/lib/logger.test.ts`.
+
+**Relation:** Call sites still omit context (step 5). No error.tsx yet (step 3).
+
+**How to verify:** `npm test` — 24 suites / 146 tests.
+
+### In plain language
+
+The log line can now say which kitchen and which stadium, next to the stack. Screens are still unchanged.
+
+---
+
+## Chapter 95 — 2026-09-12 — SPEC-12 step 3: error.tsx + global-error.tsx
+
+**When:** 2026-09-12
+
+**What:** `error.tsx` and `global-error.tsx` — Client Components. Local Next error.md: **`retry`**, not `reset`. `global-error` includes `<html>` + `<body>`. English + Arabic retry. Digest in `<code>` if present. No `error.message`, no logger, no Prisma.
+
+**Why:** SPEC-12 step 3 / DR-004. Unexpected render must not be a blank Next crash page.
+
+**Files:** `src/app/error.tsx`; `src/app/global-error.tsx`.
+
+**Relation:** Domain still throws English strings (step 4). Public Request still has no try/catch (step 6).
+
+**How to verify:** `npm test` — 24 / 146. JSX has no `error.message`.
+
+### In plain language
+
+If the page blows up, the owner now sees “try again” in English and Arabic, not a stack. Forms can still crash until later steps.
+
+---
+
+## Chapter 96 — 2026-09-12 — SPEC-12 step 4: DomainError at throw sites
+
+**When:** 2026-09-12
+
+**What:** Domain + known infra product throws now use `DomainError("…key")`. `.message` is the key, not English. `lib/money.ts` and `lib/db.ts` tenant-scope throws left as-is. Application use cases still match English `EXPECTED` sets (step 5).
+
+**Why:** SPEC-12 step 4 / DR-004. Copy lives in `error-messages.ts` so throw sites stay keys.
+
+**Files:** `src/modules/booking/domain/decision.ts`; `src/modules/booking/domain/offered-slot.ts`; `src/modules/payment/domain/collect.ts`; `src/modules/notification/domain/whatsapp-link.ts`; `src/modules/expense/domain/occurred-at.ts`; `src/modules/ledger/domain/period.ts`; `src/modules/booking/infrastructure/bookings.ts`; matching Jest under `test/modules/`.
+
+**Relation:** Use cases still treat keys as unexpected until step 5. Public Request still has no try/catch (step 6). Payment still does not import Booking.
+
+**How to verify:** `npm test` — 24 suites / 146 tests. Grep `src/modules/**/domain` and `infrastructure` for `throw new Error` — none.
+
+### In plain language
+
+The kitchen now throws a code like “that hour ended,” not a sentence. The owner still sees the old banners until we teach the front desk (use cases and forms) those codes.
+
+---
+
+## Chapter 97 — 2026-09-12 — SPEC-12 step 5: use cases wrap unexpected
+
+**When:** 2026-09-12
+
+**What:** Mutating use cases rethrow `DomainError` (no error log). Exclusion → `booking.slot_unavailable` (error-level collision log). Else `logger.error` with `useCase` + `safeTenantId()` (outside `$transaction`) and `UnexpectedError`. List/read `Not allowed` → `access.not_allowed`. Login invalid → `access.invalid_login`. Actions still match English (step 6).
+
+**Why:** SPEC-12 step 5 / DR-004. Use-case catch-all is the boundary; do not wrap every Prisma call. Domain is not a bug.
+
+**Files:** `src/lib/use-case-error.ts`; `src/lib/tenant-context.ts` (`safeTenantId`); approve/reject/create/cancel/collect/public-request/expense/login/set-rate; list/read `Not allowed`; `reject-overlapping-pending`; `get-day-availability`.
+
+**Relation:** Does not import Booking from Payment. `error.tsx` still unused for form domain failures until step 6 wraps public Request. Actions still `?error=1`.
+
+**How to verify:** `npm test` — 24 / 146. Grep `src/modules/**/application` for `throw error` / `throw new Error` — none. Catch-alls call `rethrowUnexpected`.
+
+### In plain language
+
+The kitchen now says “this is a normal no” vs “this is a bug — write it in the log with the stadium name.” The forms still show a generic “error=1” until the next step.
+
+---
+
+## Chapter 98 — 2026-09-12 — SPEC-12 step 6: action banners (`?error=<key>`)
+
+**When:** 2026-09-12
+
+**What:** Owner, login, and public Server Actions catch (except `redirect` — local redirect.md: redirect throws) → `?error=<key>`. `DomainError` → its key; Zod → `form.invalid`; unexpected → `error.generic` (already logged in the use case). Pages print `errorMessage(key)`. Public Request now has try/catch. Legacy `error=1` still maps to generic.
+
+**Why:** SPEC-12 step 6 / DR-004 / RULE-9. Stay on the page with a dictionary line, not a Next crash. Keys stay for later Arabic / `useActionState`.
+
+**Files:** `src/lib/use-case-error.ts` (`actionErrorKey`); `src/app/owner/actions.ts`; `src/app/login/actions.ts`; `src/app/request-slot.ts`; `src/app/owner/page.tsx`; `src/app/login/page.tsx`; `src/app/page.tsx`; `test/lib/use-case-error.test.ts`.
+
+**Relation:** Pages still have no Prisma / no `tenantId`. Payment still does not import Booking. `error.tsx` is only for unexpected render.
+
+**How to verify:** `npm test` — 25 / 149. Public Request on 2026-09-11 16:00 Ahmad Pitch A1 → 303 `/?tenant=ahmad&date=2026-09-11&error=booking.slot_ended` and the page shows “That hour has already ended.” Bad login → `error=access.invalid_login`. No crash overlay.
+
+### In plain language
+
+If the hour already ended, the public page stays up and says so in English. The log file is quiet for that. A real bug still goes to the retry screen and the log.
 
 
 

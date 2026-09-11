@@ -1,6 +1,8 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   EXPENSES_RECORD,
   can,
@@ -18,13 +20,6 @@ import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 
 const TIME_ZONE = "Asia/Beirut";
 
-const EXPECTED = new Set([
-  "Not allowed",
-  "Set exchange rate first",
-  "Amount required",
-  "Amount must be positive",
-]);
-
 /**
  * Create an expense and pay it in the same tx (DR-002 §2.21 / §2.22).
  * Auth before $transaction. No platformDb inside tx.
@@ -37,7 +32,7 @@ export async function recordExpense(input: {
 }): Promise<void> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, EXPENSES_RECORD)) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   try {
@@ -71,17 +66,6 @@ export async function recordExpense(input: {
 
     logger.info(`Expense recorded ${expenseId}`);
   } catch (error) {
-    if (error instanceof Error && isExpected(error)) {
-      throw error;
-    }
-    logger.error("Record expense failed", error);
-    throw error;
+    await rethrowUnexpected(error, "Record expense failed", "recordExpense");
   }
-}
-
-function isExpected(error: Error): boolean {
-  return (
-    EXPECTED.has(error.message) ||
-    error.message.startsWith("Invalid expense date")
-  );
 }

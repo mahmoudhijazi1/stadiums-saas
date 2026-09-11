@@ -1,5 +1,7 @@
+import { UnexpectedError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { formatUsd } from "@/lib/money";
+import { safeTenantId } from "@/lib/tenant-context";
 import {
   generateSlotsForDay,
   type CivilDate,
@@ -40,14 +42,18 @@ export async function getDayAvailability(input: {
 }): Promise<PitchDayAvailability[]> {
   const pitches = await listPitches();
   const occupied = input.occupied ?? [];
+  const tenantId = await safeTenantId();
 
   return pitches.map((pitch) => {
     let config;
     try {
       config = parseScheduleConfig(pitch.scheduleConfig);
     } catch (error) {
-      logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error);
-      throw error;
+      logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error, {
+        useCase: "getDayAvailability",
+        tenantId,
+      });
+      throw new UnexpectedError(error);
     }
     const slots = generateSlotsForDay({
       config,

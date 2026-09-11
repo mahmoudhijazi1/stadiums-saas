@@ -1,3 +1,5 @@
+import { DomainError } from "@/lib/errors";
+
 /**
  * Ledger period in the owner's zone (SPEC-08). Civil YYYY-MM-DD → UTC
  * bounds at midnight there. Inclusive start, exclusive end (day after `to`).
@@ -14,9 +16,7 @@ export function periodBoundsFromCivilRange(
   const startDay = parseCivilDate(from);
   const endDay = parseCivilDate(to);
   if (civilCompare(startDay, endDay) > 0) {
-    throw new Error(
-      `Invalid ledger period "${from}" > "${to}"`,
-    );
+    throw new DomainError("ledger.invalid_period");
   }
 
   return {
@@ -52,9 +52,7 @@ type CivilDate = { year: number; month: number; day: number };
 function parseCivilDate(yyyyMmDd: string): CivilDate {
   const match = CIVIL_DATE.exec(yyyyMmDd);
   if (!match) {
-    throw new Error(
-      `Invalid ledger date "${yyyyMmDd}" (need YYYY-MM-DD)`,
-    );
+    throw new DomainError("ledger.invalid_period");
   }
 
   const year = Number(match[1]);
@@ -66,9 +64,7 @@ function parseCivilDate(yyyyMmDd: string): CivilDate {
     probe.getUTCMonth() + 1 !== month ||
     probe.getUTCDate() !== day
   ) {
-    throw new Error(
-      `Invalid ledger date "${yyyyMmDd}" (need a real calendar day)`,
-    );
+    throw new DomainError("ledger.invalid_period");
   }
 
   return { year, month, day };

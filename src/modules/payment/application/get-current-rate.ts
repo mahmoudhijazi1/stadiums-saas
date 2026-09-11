@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
@@ -9,7 +10,7 @@ import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 export async function getCurrentRate() {
   const membership = await getCurrentMembership();
   if (!membership) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   return findLatestExchangeRate(db);

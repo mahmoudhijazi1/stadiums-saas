@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import Decimal from "decimal.js";
+import { errorMessage } from "@/lib/error-messages";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { formatUsd, parseLbp } from "@/lib/money";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
@@ -116,7 +117,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const mayViewReports = can(membership, REPORTS_VIEW);
   const mayCreateBooking = can(membership, BOOKINGS_CREATE);
   const isOwner = membership.role === "OWNER";
-  const failed = params.error === "1";
+  const errorKey = queryString(params.error);
   const today = todayInTimeZone(TIME_ZONE);
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
   const bookLocalDate = civilFromYyyyMmDd(bookOn);
@@ -159,7 +160,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
         <input type="hidden" name="tenant" value={tenantSlug} />
         <button type="submit">Log out</button>
       </form>
-      {failed ? <p>Could not save</p> : null}
+      {errorKey ? <p>{errorMessage(errorKey)}</p> : null}
 
       {summary ? (
         <>
@@ -227,7 +228,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       </p>
       {isOwner ? (
         <form action={submitSetExchangeRate}>
-          <input type="hidden" name="tenant" value={tenantSlug} />
+          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
           <label>
             New rate{" "}
             <input type="text" name="lbpPerUsd" required inputMode="numeric" />
@@ -252,12 +253,12 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                 <>
                   <form action={submitApproveBooking}>
                     <input type="hidden" name="bookingId" value={row.id} />
-                    <input type="hidden" name="tenant" value={tenantSlug} />
+                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                     <button type="submit">Approve</button>
                   </form>
                   <form action={submitRejectBooking}>
                     <input type="hidden" name="bookingId" value={row.id} />
-                    <input type="hidden" name="tenant" value={tenantSlug} />
+                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                     <button type="submit">Reject</button>
                   </form>
                 </>
@@ -305,8 +306,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                                 value={slot.startIso}
                               />
                               <input type="hidden" name="end" value={slot.endIso} />
-                              <input type="hidden" name="tenant" value={tenantSlug} />
-                              <input type="hidden" name="bookOn" value={bookOn} />
+                              {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                               <label>
                                 Name{" "}
                                 <input
@@ -355,7 +355,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                 <>
                   <form action={submitCollectPayment}>
                     <input type="hidden" name="bookingId" value={row.id} />
-                    <input type="hidden" name="tenant" value={tenantSlug} />
+                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                     <input
                       type="hidden"
                       name="usdAmount"
@@ -367,7 +367,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                   </form>
                   <form action={submitCollectPayment}>
                     <input type="hidden" name="bookingId" value={row.id} />
-                    <input type="hidden" name="tenant" value={tenantSlug} />
+                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                     <label>
                       USD{" "}
                       <input
@@ -388,8 +388,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
               {mayCancel ? (
                 <form action={submitCancelBooking}>
                   <input type="hidden" name="bookingId" value={row.id} />
-                  <input type="hidden" name="tenant" value={tenantSlug} />
-                  <input type="hidden" name="bookOn" value={bookOn} />
+                  {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                   <button type="submit">Cancel</button>
                 </form>
               ) : null}
@@ -434,7 +433,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       <h2>Expenses</h2>
       {mayRecordExpense ? (
         <form action={submitRecordExpense}>
-          <input type="hidden" name="tenant" value={tenantSlug} />
+          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
           <label>
             Category{" "}
             <select name="category" required defaultValue="ELECTRICITY">
@@ -482,6 +481,27 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
         </ul>
       )}
     </main>
+  );
+}
+
+function keepOwnerQuery(
+  tenantSlug: string,
+  bookOn: string,
+  period: LedgerPeriodQuery,
+) {
+  return (
+    <>
+      <input type="hidden" name="tenant" value={tenantSlug} />
+      <input type="hidden" name="bookOn" value={bookOn} />
+      {period.from ? <input type="hidden" name="from" value={period.from} /> : null}
+      {period.to ? <input type="hidden" name="to" value={period.to} /> : null}
+      {period.view !== "usd" ? (
+        <input type="hidden" name="view" value={period.view} />
+      ) : null}
+      {period.displayRate ? (
+        <input type="hidden" name="displayRate" value={period.displayRate} />
+      ) : null}
+    </>
   );
 }
 

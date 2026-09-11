@@ -26,7 +26,7 @@ describe("whatsAppHref", () => {
     "refuses %s",
     (phone) => {
       expect(() => whatsAppHref(phone, "hello")).toThrow(
-        "Phone cannot be used for WhatsApp",
+        "notification.bad_phone",
       );
     },
   );

@@ -1,3 +1,5 @@
+import { DomainError } from "@/lib/errors";
+
 /**
  * Build a WhatsApp click-to-chat URL (BR-30 / BR-69). Domain only — no send, no Booking.
  * Lebanon: 03… → 961…; already-961 stays. Owner taps send in WhatsApp.
@@ -21,7 +23,7 @@ export function slotAvailableMessage(input: {
 
 function toLebanonWhatsAppNumber(phoneDigits: string): string {
   if (!/^\d+$/.test(phoneDigits)) {
-    throw new Error("Phone cannot be used for WhatsApp");
+    throw new DomainError("notification.bad_phone");
   }
 
   let e164: string;
@@ -34,7 +36,7 @@ function toLebanonWhatsAppNumber(phoneDigits: string): string {
   }
 
   if (!/^961\d{7,}$/.test(e164)) {
-    throw new Error("Phone cannot be used for WhatsApp");
+    throw new DomainError("notification.bad_phone");
   }
   return e164;
 }

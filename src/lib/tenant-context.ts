@@ -58,6 +58,21 @@ export async function getCurrentTenantId(): Promise<string> {
   return tenant.id;
 }
 
+/**
+ * Tenant id for unexpected logs (DR-004 / SPEC-12). ALS first; else a lookup.
+ * Do not call from inside an open `$transaction` when ALS is empty (deadlock).
+ * Catch sites are outside `$transaction`. Missing tenant → omit, do not throw.
+ */
+export async function safeTenantId(): Promise<string | undefined> {
+  const fromAls = tenantAls.getStore();
+  if (fromAls) return fromAls.id;
+  try {
+    return (await getCurrentTenant()).id;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Load tenant (if needed), then run `fn` with ALS set — no nested Prisma lookup. */
 export async function withCurrentTenant<T>(fn: () => Promise<T>): Promise<T> {
   const existing = tenantAls.getStore();

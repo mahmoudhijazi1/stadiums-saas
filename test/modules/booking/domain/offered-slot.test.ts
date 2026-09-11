@@ -45,7 +45,7 @@ describe("resolveOfferedSlot", () => {
         end,
         now: new Date("2026-09-09T10:00:00.000Z"),
       }),
-    ).toThrow("Slot is not offered");
+    ).toThrow("booking.slot_not_offered");
   });
 
   it("fails when the window is not a generated slot", () => {
@@ -59,7 +59,7 @@ describe("resolveOfferedSlot", () => {
         end: new Date(slot.end.getTime() + 60_000),
         now: new Date(slot.start.getTime() - 60_000),
       }),
-    ).toThrow("Slot is not offered");
+    ).toThrow("booking.slot_not_offered");
   });
 
   it("returns the engine price for a real generated slot still in the future", () => {
@@ -88,7 +88,7 @@ describe("resolveOfferedSlot", () => {
         end: slot.end,
         now: slot.end,
       }),
-    ).toThrow("Slot has already ended");
+    ).toThrow("booking.slot_ended");
   });
 });
 
@@ -157,6 +157,6 @@ describe("resolveOfferedSlot occupied", () => {
         now: new Date(slot.start.getTime() - 60_000),
         occupied: [{ start: slot.start, end: slot.end }],
       }),
-    ).toThrow("Slot is taken");
+    ).toThrow("booking.slot_taken");
   });
 });

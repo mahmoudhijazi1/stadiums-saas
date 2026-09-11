@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { overlappingPendingIds } from "@/modules/booking/domain/offered-slot";
 import {
@@ -32,7 +33,7 @@ export async function rejectOverlappingPending(
     await setPendingStatus(tx, loserId, "REJECTED");
     const personId = await findRequesterPersonId(tx, loserId);
     if (!personId) {
-      throw new Error("Requester not found");
+      throw new DomainError("booking.requester_not_found");
     }
     await insertSlotInterest(tx, {
       pitchId: claimed.pitchId,

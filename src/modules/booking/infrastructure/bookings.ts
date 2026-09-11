@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { BookingStatus } from "@/app/generated/prisma/enums";
+import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/money";
@@ -248,7 +249,7 @@ export async function setPendingStatus(
     data: { status },
   });
   if (result.count !== 1) {
-    throw new Error("Booking not found");
+    throw new DomainError("booking.not_found");
   }
 }
 
@@ -265,7 +266,7 @@ export async function setApprovedCancelled(
     data: { status: "CANCELLED" },
   });
   if (result.count !== 1) {
-    throw new Error("Booking not found");
+    throw new DomainError("booking.not_found");
   }
 }
 

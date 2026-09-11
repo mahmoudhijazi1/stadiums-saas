@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { ExpenseCategory } from "@/modules/expense/domain/categories";
@@ -20,7 +21,7 @@ export type RecentExpense = {
 export async function listRecentExpenses(): Promise<RecentExpense[]> {
   const membership = await getCurrentMembership();
   if (!membership) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   const rows = await loadRecentExpenseRows(db);

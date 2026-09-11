@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { listPendingBookings } from "@/modules/booking/infrastructure/bookings";
@@ -9,7 +10,7 @@ import { listPendingBookings } from "@/modules/booking/infrastructure/bookings";
 export async function listPendingRequests() {
   const membership = await getCurrentMembership();
   if (!membership) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   return listPendingBookings(db);

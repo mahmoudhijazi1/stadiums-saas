@@ -1,4 +1,5 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { errorMessage } from "@/lib/error-messages";
 import { submitLogin } from "@/app/login/actions";
 
 /**
@@ -8,7 +9,7 @@ import { submitLogin } from "@/app/login/actions";
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const tenant = await getCurrentTenant();
   const params = await searchParams;
-  const failed = params.error === "1";
+  const errorKey = typeof params.error === "string" ? params.error : undefined;
 
   return (
     <main style={{ fontFamily: "system-ui", padding: "1.5rem", lineHeight: 1.6 }}>
@@ -16,7 +17,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <p>
         Tenant: <code>{tenant.slug}</code>
       </p>
-      {failed ? <p>Invalid login</p> : null}
+      {errorKey ? <p>{errorMessage(errorKey)}</p> : null}
       <form action={submitLogin}>
         <input type="hidden" name="tenant" value={tenant.slug} />
         <p>

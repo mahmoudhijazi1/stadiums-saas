@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 import {
   generateSlotsForDay,
   type CivilDate,
@@ -35,15 +36,15 @@ export function resolveOfferedSlot(input: {
   );
 
   if (!offered) {
-    throw new Error("Slot is not offered");
+    throw new DomainError("booking.slot_not_offered");
   }
 
   if (!offered.available) {
-    throw new Error("Slot is taken");
+    throw new DomainError("booking.slot_taken");
   }
 
   if (offered.end.getTime() <= input.now.getTime()) {
-    throw new Error("Slot has already ended");
+    throw new DomainError("booking.slot_ended");
   }
 
   return {

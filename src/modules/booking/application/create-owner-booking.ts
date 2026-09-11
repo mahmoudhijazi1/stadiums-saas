@@ -1,5 +1,8 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { rejectOverlappingPending } from "@/modules/booking/application/reject-overlapping-pending";
@@ -18,16 +21,6 @@ import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
 
 const TIME_ZONE = "Asia/Beirut";
 
-const EXPECTED = new Set([
-  "Not allowed",
-  "Pitch not found",
-  "Slot is not offered",
-  "Slot is taken",
-  "Slot has already ended",
-  "Slot no longer available",
-  "Requester not found",
-]);
-
 /**
  * Phone-call booking: APPROVED immediately (BR-14). Auth before $transaction.
  * Price from Venue. Overlapping PUBLIC PENDING rejected like approve.
@@ -38,14 +31,14 @@ export async function createOwnerBooking(
 ): Promise<{ bookingId: string }> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, BOOKINGS_CREATE)) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   try {
     const bookingId = await db.$transaction(async (tx) => {
       const pitch = await findPitchById(tx, input.pitchId);
       if (!pitch) {
-        throw new Error("Pitch not found");
+        throw new DomainError("booking.pitch_not_found");
       }
 
       const config = parseScheduleConfig(pitch.scheduleConfig);
@@ -93,14 +86,13 @@ export async function createOwnerBooking(
     logger.info(`Owner booking created ${bookingId}`);
     return { bookingId };
   } catch (error) {
-    if (error instanceof Error && EXPECTED.has(error.message)) {
-      throw error;
-    }
     if (isExclusionViolation(error)) {
-      logger.error("Owner-create collision", error);
-      throw new Error("Slot no longer available");
+      logger.error("Owner-create collision", error, {
+        useCase: "createOwnerBooking",
+        tenantId: await safeTenantId(),
+      });
+      throw new DomainError("booking.slot_unavailable");
     }
-    logger.error("Owner booking failed", error);
-    throw error;
+    await rethrowUnexpected(error, "Owner booking failed", "createOwnerBooking");
   }
 }

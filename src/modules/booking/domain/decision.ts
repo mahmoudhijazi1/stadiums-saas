@@ -1,3 +1,5 @@
+import { DomainError } from "@/lib/errors";
+
 /**
  * Only PENDING may be approved or rejected (BR-18). Domain, not Prisma.
  */
@@ -10,7 +12,7 @@ export type BookingStatusLike =
 
 export function assertPendingForDecision(status: BookingStatusLike): void {
   if (status !== "PENDING") {
-    throw new Error("Only a pending request can be approved or rejected");
+    throw new DomainError("booking.pending_only");
   }
 }
 
@@ -19,6 +21,6 @@ export function assertPendingForDecision(status: BookingStatusLike): void {
  */
 export function assertApprovedForCancel(status: BookingStatusLike): void {
   if (status !== "APPROVED") {
-    throw new Error("Only a confirmed booking can be cancelled");
+    throw new DomainError("booking.confirmed_only");
   }
 }

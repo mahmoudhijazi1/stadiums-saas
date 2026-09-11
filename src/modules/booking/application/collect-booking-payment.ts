@@ -1,5 +1,7 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   PAYMENTS_COLLECT,
   can,
@@ -17,16 +19,6 @@ import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { findBookingForCollect } from "@/modules/booking/infrastructure/bookings";
 
-const EXPECTED = new Set([
-  "Not allowed",
-  "Booking not found",
-  "Only an approved booking can be collected",
-  "Nothing due",
-  "Set exchange rate first",
-  "Amount required",
-  "Amount must be positive",
-]);
-
 /**
  * Collect cash on an APPROVED booking. Auth before $transaction.
  * recordPayment writes payment + tenders + ledger IN inside this tx (DR-002 §2.21).
@@ -37,14 +29,14 @@ export async function collectBookingPayment(input: {
 }): Promise<void> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, PAYMENTS_COLLECT)) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   try {
     const paymentId = await db.$transaction(async (tx) => {
       const booking = await findBookingForCollect(tx, input.bookingId);
       if (!booking) {
-        throw new Error("Booking not found");
+        throw new DomainError("booking.not_found");
       }
       assertCanCollect(booking.status);
 
@@ -66,10 +58,6 @@ export async function collectBookingPayment(input: {
 
     logger.info(`Payment collected ${paymentId} booking ${input.bookingId}`);
   } catch (error) {
-    if (error instanceof Error && EXPECTED.has(error.message)) {
-      throw error;
-    }
-    logger.error("Collect payment failed", error);
-    throw error;
+    await rethrowUnexpected(error, "Collect payment failed", "collectBookingPayment");
   }
 }

@@ -43,7 +43,7 @@ describe("usdEquivalent", () => {
         amount: new Decimal("900000"),
         rate: null,
       }),
-    ).toThrow("Set exchange rate first");
+    ).toThrow("payment.rate_required");
   });
 });
 
@@ -57,14 +57,14 @@ describe("remainingDue / collect gates", () => {
   });
 
   it("refuses when nothing is due", () => {
-    expect(() => assertHasDue(new Decimal("0"))).toThrow("Nothing due");
-    expect(() => assertHasDue(new Decimal("-1"))).toThrow("Nothing due");
+    expect(() => assertHasDue(new Decimal("0"))).toThrow("payment.nothing_due");
+    expect(() => assertHasDue(new Decimal("-1"))).toThrow("payment.nothing_due");
   });
 
   it("only APPROVED may be collected", () => {
     expect(() => assertCanCollect("APPROVED")).not.toThrow();
     expect(() => assertCanCollect("PENDING")).toThrow(
-      "Only an approved booking can be collected",
+      "payment.collect_unapproved",
     );
   });
 });
@@ -86,6 +86,6 @@ describe("freezeTenders", () => {
   it("refuses an all-zero list", () => {
     expect(() =>
       freezeTenders([{ currency: "USD", amount: new Decimal("0") }], null),
-    ).toThrow("Amount required");
+    ).toThrow("payment.amount_required");
   });
 });

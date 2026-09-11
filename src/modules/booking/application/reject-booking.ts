@@ -1,5 +1,7 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   BOOKINGS_APPROVE,
   can,
@@ -18,14 +20,14 @@ import {
 export async function rejectBooking(bookingId: string): Promise<void> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, BOOKINGS_APPROVE)) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   try {
     await db.$transaction(async (tx) => {
       const booking = await findBookingForDecision(tx, bookingId);
       if (!booking) {
-        throw new Error("Booking not found");
+        throw new DomainError("booking.not_found");
       }
       assertPendingForDecision(booking.status);
       await setPendingStatus(tx, booking.id, "REJECTED");
@@ -33,15 +35,6 @@ export async function rejectBooking(bookingId: string): Promise<void> {
 
     logger.info(`Booking rejected ${bookingId}`);
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message === "Not allowed" ||
-        error.message === "Booking not found" ||
-        error.message === "Only a pending request can be approved or rejected")
-    ) {
-      throw error;
-    }
-    logger.error("Reject booking failed", error);
-    throw error;
+    await rethrowUnexpected(error, "Reject booking failed", "rejectBooking");
   }
 }

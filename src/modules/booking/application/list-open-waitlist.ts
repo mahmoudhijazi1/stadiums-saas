@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
@@ -36,7 +37,7 @@ export type WaitlistGroup = {
 export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
   const membership = await getCurrentMembership();
   if (!membership) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   const tenant = await getCurrentTenant();

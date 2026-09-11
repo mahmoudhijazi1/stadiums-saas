@@ -1,5 +1,7 @@
+import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import type { LoginInput } from "@/modules/access/schemas/login";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
 import { verifyPassword } from "@/modules/access/infrastructure/password";
@@ -10,8 +12,6 @@ import {
 import { createSession } from "@/modules/access/infrastructure/sessions";
 import { findUserByIdentifier } from "@/modules/access/infrastructure/users";
 
-const INVALID = "Invalid login";
-
 /**
  * URL tenant first, then password, then membership on *this* stadium (DR-003 §3).
  * Same error for unknown user, bad password, or no membership here.
@@ -21,22 +21,26 @@ const INVALID = "Invalid login";
 export async function login(input: LoginInput): Promise<void> {
   await getCurrentTenant();
 
-  const user = await findUserByIdentifier(input.identifier);
-  const okHash = user
-    ? await verifyPassword(input.password, user.passwordHash)
-    : false;
+  try {
+    const user = await findUserByIdentifier(input.identifier);
+    const okHash = user
+      ? await verifyPassword(input.password, user.passwordHash)
+      : false;
 
-  if (!user || !okHash) {
-    throw new Error(INVALID);
+    if (!user || !okHash) {
+      throw new DomainError("access.invalid_login");
+    }
+
+    const membership = await findMembershipForUser(user.id);
+    if (!membership) {
+      throw new DomainError("access.invalid_login");
+    }
+
+    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+    const session = await createSession(user.id, expiresAt);
+    await writeSessionCookie(session.id, expiresAt);
+    logger.info(`Login ${user.id}`);
+  } catch (error) {
+    await rethrowUnexpected(error, "Login failed", "login");
   }
-
-  const membership = await findMembershipForUser(user.id);
-  if (!membership) {
-    throw new Error(INVALID);
-  }
-
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
-  const session = await createSession(user.id, expiresAt);
-  await writeSessionCookie(session.id, expiresAt);
-  logger.info(`Login ${user.id}`);
 }

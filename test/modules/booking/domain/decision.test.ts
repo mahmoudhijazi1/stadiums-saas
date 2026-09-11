@@ -13,7 +13,7 @@ describe("assertPendingForDecision", () => {
     "refuses %s",
     (status) => {
       expect(() => assertPendingForDecision(status)).toThrow(
-        "Only a pending request can be approved or rejected",
+        "booking.pending_only",
       );
     },
   );
@@ -28,7 +28,7 @@ describe("assertApprovedForCancel", () => {
     "refuses %s",
     (status) => {
       expect(() => assertApprovedForCancel(status)).toThrow(
-        "Only a confirmed booking can be cancelled",
+        "booking.confirmed_only",
       );
     },
   );

@@ -1,3 +1,5 @@
+import { DomainError } from "@/lib/errors";
+
 /**
  * Expense “when” (SPEC-07). Civil date in the owner’s zone → UTC instant
  * at 12:00 there. Intl offsets, not Date#getHours (server local time).
@@ -12,9 +14,7 @@ export function occurredAtFromCivilDate(
 ): Date {
   const match = CIVIL_DATE.exec(yyyyMmDd);
   if (!match) {
-    throw new Error(
-      `Invalid expense date "${yyyyMmDd}" (need YYYY-MM-DD)`,
-    );
+    throw new DomainError("expense.invalid_date");
   }
 
   const year = Number(match[1]);
@@ -26,9 +26,7 @@ export function occurredAtFromCivilDate(
     probe.getUTCMonth() + 1 !== month ||
     probe.getUTCDate() !== day
   ) {
-    throw new Error(
-      `Invalid expense date "${yyyyMmDd}" (need a real calendar day)`,
-    );
+    throw new DomainError("expense.invalid_date");
   }
 
   return zonedLocalToUtc({ year, month, day }, 12, 0, timeZone);

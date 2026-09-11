@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { remainingDue } from "@/modules/payment/domain/collect";
@@ -23,7 +24,7 @@ export type DueBooking = {
 export async function listDueBookings(): Promise<DueBooking[]> {
   const membership = await getCurrentMembership();
   if (!membership) {
-    throw new Error("Not allowed");
+    throw new DomainError("access.not_allowed");
   }
 
   const rows = await listApprovedBookingsForCollect(db);
