@@ -25,6 +25,10 @@ model Tenant {
   slotInterests       SlotInterest[]
   memberships         Membership[]
   userPersonLinks     UserPersonLink[]
+  exchangeRates       ExchangeRate[]
+  payments            Payment[]
+  paymentTenders      PaymentTender[]
+  ledgerEntries       LedgerEntry[]
 }
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
@@ -184,4 +188,78 @@ enum MembershipRole {
 enum PersonLinkRelation {
   SELF
   GUARDIAN
+}
+
+/// Current and past LBP-per-USD rates. Append-only (DR-002 §2.17). tenantId required.
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  lbpPerUsd Decimal  @db.Decimal(18, 0)
+  createdAt DateTime  @default(now())
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+/// One collection event. Links to a booking by sourceType+sourceId — no booking_id (DR-002 §2.14).
+model Payment {
+  id           String            @id @default(cuid())
+  tenantId     String
+  sourceType   PaymentSourceType
+  sourceId     String
+  /// Game price snapshot, not remaining (SPEC-06).
+  amountDueUsd Decimal           @db.Decimal(12, 2)
+  createdAt    DateTime          @default(now())
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
+  tenders      PaymentTender[]
+
+  @@index([tenantId])
+  @@index([sourceType, sourceId])
+}
+
+/// One cash part of a payment. amount is Decimal(18,2); domain enforces USD cents vs integer LBP (SPEC-06).
+model PaymentTender {
+  id            String   @id @default(cuid())
+  tenantId      String
+  paymentId     String
+  currency      Currency
+  amount        Decimal   @db.Decimal(18, 2)
+  /// Frozen rate. Null on USD when no rate existed (SPEC-06).
+  rateAtTime    Decimal?  @db.Decimal(18, 0)
+  usdEquivalent Decimal   @db.Decimal(12, 2)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  payment       Payment   @relation(fields: [paymentId], references: [id])
+
+  @@index([tenantId])
+}
+
+/// USD movement, append-only. Same source as the payment; written in the same tx (DR-002 §2.21).
+model LedgerEntry {
+  id         String            @id @default(cuid())
+  tenantId   String
+  direction  LedgerDirection
+  amountUsd  Decimal            @db.Decimal(12, 2)
+  occurredAt DateTime          @default(now())
+  sourceType PaymentSourceType
+  sourceId   String
+  createdAt  DateTime          @default(now())
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+/// Polymorphic source. BOOKING only this slice (DR-002 §2.14). EXPENSE later is additive.
+enum PaymentSourceType {
+  BOOKING
+}
+
+enum Currency {
+  USD
+  LBP
+}
+
+/// OUT unused this slice; created so expense does not redesign Ledger (SPEC-06).
+enum LedgerDirection {
+  IN
+  OUT
 }

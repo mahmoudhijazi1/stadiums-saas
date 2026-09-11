@@ -28,7 +28,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-11)
 
-**On `feature/spec-06-collect-payment`.** SPEC-01–05 implemented. SPEC-06 written, not started in code.
+**On `feature/spec-06-collect-payment`.** SPEC-01–05 implemented. SPEC-06 step **1** done (schema).
 
 **What a visitor can do:** public PENDING request (no login). After an hour is **APPROVED**, that row still lists but has no Request form. Owner logs in and Approves/Rejects on `/owner`. Staff see the list with no buttons.
 
@@ -36,7 +36,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve or collect).
 
-**Next:** SPEC-06 step 1 (schema). Wait for OK.
+**Next:** SPEC-06 step 2 (guard). Wait for OK.
 
 ---
 
@@ -1127,4 +1127,28 @@ Click in the left margin, press F5, use the app as usual. When that line runs, C
 ### In plain language
 
 The owner can already lock an hour. Next we let him take cash for that hour: dollars, pounds, or both, at a rate he types. The notebook of “what the business took” is written in the same moment as the payment, so the two can never disagree. We have not built that yet — only the instruction sheet.
+
+---
+
+## Chapter 44 — 2026-09-11 — SPEC-06 step 1: Payment + ledger schema
+
+**When:** 2026-09-11
+
+**What:** Four tenant-owned tables: `ExchangeRate`, `Payment`, `PaymentTender`, `LedgerEntry`. Enums `PaymentSourceType` (`BOOKING` only), `Currency`, `LedgerDirection` (`IN | OUT`). No `booking_id` on Payment. Tender `amount` is `DECIMAL(18,2)` (domain will enforce USD cents vs integer LBP). Guard not updated (step 2). No Payment/Ledger modules.
+
+**Why:** SPEC-06 step 1 / DR-002 §2.14–2.21. Polymorphic `sourceType + sourceId` keeps Payment closed when Expense/Shop arrive. `tenant_id` on the child tender table (DR-001). Prisma 7: `Decimal` + `@db.Decimal(p, s)` ([same as booking `priceUsd`](https://www.prisma.io/docs/orm/v7/prisma-schema/data-model/models)). No `Unsupported` — Client `create` should exist for these models.
+
+**Files:** `src/prisma/schema.prisma`; `src/prisma/migrations/20260911040000_collect_payment/migration.sql`.
+
+**Relation:** Tenant gains reverse lists. Payment has tenders. Ledger has **no** FK to Payment or Booking. Booking model unchanged (no payment relation). `TENANT_SCOPED_MODELS` still omits these (step 2).
+
+**How to verify:** Prisma Studio — four empty tables; Payment has `sourceId` text, no booking FK; `npx prisma migrate status --config prisma7.config.ts` → up to date.
+
+```
+npx prisma studio --config prisma7.config.ts
+```
+
+### In plain language
+
+We added empty cash drawers: one for the exchange rate, one for “a payment happened,” one for the dollar/pound bits of that payment, and one for the notebook of money in/out. Nothing is collected yet. The payment row does not point at a booking column — it stores “this is for a booking” plus that booking’s id, so later a shop sale can use the same drawer without changing it.
 
