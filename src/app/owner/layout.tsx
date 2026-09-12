@@ -29,7 +29,7 @@ export default async function OwnerLayout({
   return (
     <div className="mx-auto flex min-h-svh w-full max-w-lg flex-col">
       <Suspense fallback={null}>
-        <FlashToast />
+        <FlashToast locale={locale} />
       </Suspense>
       <header className="flex items-center justify-between gap-3 px-6 pt-5">
         <div className="min-w-0">

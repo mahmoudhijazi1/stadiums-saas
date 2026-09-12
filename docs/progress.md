@@ -3036,6 +3036,20 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. Home — expand a due/overdue row after kickoff: Collect, no Cancel. Future unpaid: Cancel still there. Paid past: Cancel still there. Stale POST → toast `booking.cancel_past_unpaid`.
 
+---
+
+## Chapter 137 — 2026-09-13 — Toast follows locale; dismiss X
+
+**When:** 2026-09-13
+
+**What:** Flash toasts use the cookie locale (`errorMessage` / `successMessage` take `UiLocale`). English catalog for every existing key. Sonner `closeButton` with lucide X; aria-label from `dialog.close`. Toaster `dir` matches `html`.
+
+**Why:** Banner stayed Arabic after EN. No way to dismiss besides waiting/swiping.
+
+**Files:** `src/lib/error-messages.ts`; `success-messages.ts`; `src/components/ui/flash-toast.tsx`; `sonner.tsx`; `src/app/layout.tsx`; owner + public FlashToast callers; tests.
+
+**How to verify:** `npm test`. Switch to English, approve/collect — toast is English. X dismisses it. Arabic still Arabic.
+
 
 
 

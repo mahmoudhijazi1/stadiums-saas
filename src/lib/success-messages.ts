@@ -1,5 +1,7 @@
+import type { UiLocale } from "@/lib/locale";
+
 /**
- * Arabic copy for success flash keys (ok= on redirect). DR-005; keys stay.
+ * Success flash keys (ok= on redirect). DR-005; keys stay.
  * Unknown keys → generic done line.
  */
 const ARABIC: Record<string, string> = {
@@ -13,9 +15,22 @@ const ARABIC: Record<string, string> = {
   requested: "وصل الطلب.",
 };
 
-const GENERIC = "تم.";
+const ENGLISH: Record<string, string> = {
+  approved: "Approved.",
+  rejected: "Rejected.",
+  collected: "Collected.",
+  booked: "Booked.",
+  cancelled: "Cancelled.",
+  rate_set: "Rate set.",
+  expense_recorded: "Expense recorded.",
+  requested: "Request received.",
+};
 
-/** Owner/public toast Arabic for a success key. Never a stack. */
-export function successMessage(key: string): string {
-  return ARABIC[key] ?? GENERIC;
+const GENERIC_AR = "تم.";
+const GENERIC_EN = "Done.";
+
+/** Owner/public toast for a success key. Never a stack. */
+export function successMessage(key: string, locale: UiLocale = "ar"): string {
+  if (locale === "en") return ENGLISH[key] ?? GENERIC_EN;
+  return ARABIC[key] ?? GENERIC_AR;
 }

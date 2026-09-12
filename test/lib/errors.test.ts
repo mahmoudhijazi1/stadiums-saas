@@ -29,8 +29,22 @@ describe("errorMessage", () => {
     );
   });
 
+  it("returns catalog English when locale is en", () => {
+    expect(errorMessage("booking.slot_ended", "en")).toBe("That hour has ended.");
+    expect(errorMessage("booking.cancel_past_unpaid", "en")).toBe(
+      "Cannot cancel a game that has started while money is still owed.",
+    );
+  });
+
   it("returns generic Arabic for an unknown key or legacy 1", () => {
     expect(errorMessage("not.a.real.key")).toBe("حدث خطأ. حاول مرة أخرى.");
     expect(errorMessage("1")).toBe("حدث خطأ. حاول مرة أخرى.");
+  });
+
+  it("returns generic English for an unknown key or legacy 1", () => {
+    expect(errorMessage("not.a.real.key", "en")).toBe(
+      "Something went wrong. Try again.",
+    );
+    expect(errorMessage("1", "en")).toBe("Something went wrong. Try again.");
   });
 });

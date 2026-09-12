@@ -58,7 +58,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-svh flex flex-col">
         {children}
-        <Toaster />
+        <Toaster
+          dir={htmlDir(locale)}
+          toastOptions={{ closeButtonAriaLabel: ui("dialog.close", locale) }}
+        />
       </body>
     </html>
   );

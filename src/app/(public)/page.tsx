@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-8">
       <Suspense fallback={null}>
-        <FlashToast />
+        <FlashToast locale={locale} />
       </Suspense>
       <header className="flex items-center justify-between gap-3">
         <h1 className="min-w-0 font-heading text-2xl">{tenant.name}</h1>
