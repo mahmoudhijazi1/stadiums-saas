@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   CalendarPlus,
-  ClipboardList,
+  House,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -19,7 +19,7 @@ const TAB_META: {
   Icon: LucideIcon;
   bookOnly?: boolean;
 }[] = [
-  { href: "/owner/today", labelKey: "owner.today", Icon: ClipboardList },
+  { href: "/owner/today", labelKey: "owner.home", Icon: House },
   { href: "/owner/book", labelKey: "owner.book", Icon: CalendarPlus, bookOnly: true },
   { href: "/owner/waitlist", labelKey: "owner.waitlist", Icon: Bell },
   { href: "/owner/money", labelKey: "owner.money", Icon: Wallet },

@@ -10,10 +10,10 @@ Four real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (
 
 | Tab | URL | Contains | Does **not** contain |
 |---|---|---|---|
-| Today | `/owner/today` | Pending requests + confirmed-today (approve / reject / collect / cancel) | Book date picker, waitlist, rate, period, expenses |
-| Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Today lists, waitlist, money. Past `bookOn` is an empty state (create, not history) |
+| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED (BR-49); today’s confirmed (compact status tags, tap-in collect/cancel); inline next 7 civil days | Book date picker, waitlist, rate, period, expenses |
+| Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Home lists, waitlist, money. Past `bookOn` is an empty state (create, not history) |
 | Waitlist | `/owner/waitlist` | Open slot-interest groups + WhatsApp notify | Rate, period, expenses, Book |
-| Money | `/owner/money` | Period report GET form, exchange rate, record expense + recent list | Waitlist, Book, Today |
+| Money | `/owner/money` | Period report GET form, exchange rate, record expense + recent list | Waitlist, Book, Home |
 
 `/owner` itself has no UI: it redirects to `/owner/today?tenant=`. Login lands on `/owner/today` (not `/owner`) so Server Action `redirect()` does not stack a second hop (`redirect.md`: actions **push** history).
 
@@ -73,7 +73,7 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 | Auth gate + header + logout + lang toggle | `src/app/owner/layout.tsx` |
 | Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
-| `OwnerToday` (`today/lists.tsx`) + `today/actions.ts` | `/owner/today` |
+| `OwnerHome` (`today/lists.tsx` + `today/upcoming-panel.tsx`) + `today/actions.ts` | `/owner/today` |
 | Date chips + `OwnerBookSlots` (`book/slots.tsx`) + `OwnerSlotPicker` (`book/picker.tsx`) + `book/actions.ts` | `/owner/book` |
 | Shared slot grid | `src/components/slot-picker.tsx` (public + owner Book; name/phone in a Dialog; no booking/access/venue types) |
 | Shared day chips | `src/components/day-chips.tsx` (public `?date=` + owner `?bookOn=`) |
@@ -92,17 +92,17 @@ If a helper is used by exactly one tab, it lives in that tab folder (or is folde
 
 ## Which tab does X belong in?
 
-Add a row here when a module grows a screen. Do not invent a fifth scrolling section on Today.
+Add a row here when a module grows a screen. Do not invent a fifth scrolling section on Home.
 
 | Concern | Tab / note |
 |---|---|
-| Pending + today’s confirmed ops | Today |
+| Pending + today’s confirmed + overdue unpaid | Home (`/owner/today`) |
 | Phone-call / walk-in create | Book |
 | Waitlist after cancel | Waitlist |
 | Rate, period P&L, expenses | Money |
-| **Shop (Phase 2)** | **Own tab** (do not hang products off Money or Today) |
+| **Shop (Phase 2)** | **Own tab** (do not hang products off Money or Home) |
 | **Academy (Phase 3)** | **Own tab or group** — decide when that SPEC is written; not a Money subsection |
-| No-show (parked SPEC-14) | Likely Today (ops on a confirmed booking) — confirm in the SPEC |
+| No-show (parked SPEC-14) | Likely Home (ops on a confirmed booking) — confirm in the SPEC |
 | Public booking request | Not owner — public `/` |
 
 ---

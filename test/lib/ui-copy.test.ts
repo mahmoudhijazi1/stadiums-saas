@@ -5,7 +5,9 @@ import {
   dueRemainingLine,
   hoursEmptyState,
   lbpPerUsdLine,
+  overdueCount,
   pendingCount,
+  requestsCount,
   ui,
 } from "@/lib/ui-copy";
 
@@ -18,6 +20,14 @@ describe("ui", () => {
     expect(ui("public.hours", "en")).toBe("Hours");
     expect(ui("public.today", "en")).toBe("Today");
     expect(ui("owner.today", "en")).toBe("Today");
+    expect(ui("owner.home", "en")).toBe("Home");
+    expect(ui("owner.home")).toBe("رئيسية");
+    expect(ui("owner.homeHeading")).toBe("الرئيسية");
+    expect(ui("owner.requests")).toBe("طلبات");
+    expect(ui("owner.upcoming")).toBe("القادم");
+    expect(ui("owner.upcomingTag")).toBe("قادم");
+    expect(ui("owner.overdue")).toBe("متأخر");
+    expect(ui("owner.collectMixed")).toBe("دفع بعملتين");
     expect(ui("owner.book", "en")).toBe("Book");
   });
 
@@ -29,6 +39,8 @@ describe("ui", () => {
 describe("interpolated chrome", () => {
   it("uses Western digits and a Latin money amount", () => {
     expect(pendingCount(3)).toBe("قيد الانتظار · 3");
+    expect(requestsCount(2)).toBe("طلبات · 2");
+    expect(overdueCount(1)).toBe("متأخر · 1");
     expect(confirmedCount(0)).toBe("مؤكد · 0");
     expect(collectUsdLabel("30.00")).toBe("تحصيل $30.00");
     expect(dueRemainingLine("30.00", "10.00")).toBe(

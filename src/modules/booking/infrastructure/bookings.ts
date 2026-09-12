@@ -111,7 +111,8 @@ type PendingSqlRow = {
 };
 
 /**
- * PENDING inbox for this tenant (guard / ALS). Oldest request first (BR-17).
+ * PENDING inbox for this tenant (guard / ALS). Soonest slot first, then
+ * oldest requestedAt (BR-17) inside an identical window.
  * during is raw — Prisma Client omits Unsupported on Booking.
  */
 export async function listPendingBookings(
@@ -134,7 +135,7 @@ export async function listPendingBookings(
     JOIN "Person" per ON per.id = bp."personId"
     WHERE b."tenantId" = ${tenantId}
       AND b.status = 'PENDING'::"BookingStatus"
-    ORDER BY b."requestedAt" ASC
+    ORDER BY lower(b.during) ASC, b."requestedAt" ASC
   `;
 
   return rows.map((row) => ({
@@ -384,11 +385,28 @@ type ApprovedCollectSqlRow = {
 };
 
 /**
- * APPROVED games for the collect inbox. Soonest start first. Remaining is
- * computed in Booking application via Payment sums — no payment join here.
+ * APPROVED games for Home. Soonest start first. Remaining is computed in
+ * Booking application via Payment sums — no payment join here.
  */
-export async function listApprovedBookingsForCollect(
+function mapApprovedCollect(
+  rows: ApprovedCollectSqlRow[],
+): ApprovedCollectRow[] {
+  return rows.map((row) => ({
+    id: row.id,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    priceUsd: new Decimal(row.priceUsd.toString()),
+    requesterName: row.requesterName,
+    requesterPhone: row.requesterPhone,
+  }));
+}
+
+/** APPROVED whose slot starts in `[from, to)` (UTC). */
+export async function listApprovedBookingsInRange(
   tx: TenantTx,
+  from: Date,
+  to: Date,
 ): Promise<ApprovedCollectRow[]> {
   const tenantId = await getCurrentTenantId();
   const rows = await tx.$queryRaw<ApprovedCollectSqlRow[]>`
@@ -406,18 +424,38 @@ export async function listApprovedBookingsForCollect(
     JOIN "Person" per ON per.id = bp."personId"
     WHERE b."tenantId" = ${tenantId}
       AND b.status = 'APPROVED'::"BookingStatus"
+      AND lower(b.during) >= ${from}
+      AND lower(b.during) < ${to}
     ORDER BY lower(b.during) ASC
   `;
+  return mapApprovedCollect(rows);
+}
 
-  return rows.map((row) => ({
-    id: row.id,
-    pitchName: row.pitchName,
-    start: asDate(row.start),
-    end: asDate(row.end),
-    priceUsd: new Decimal(row.priceUsd.toString()),
-    requesterName: row.requesterName,
-    requesterPhone: row.requesterPhone,
-  }));
+/** APPROVED whose slot started before `before` (UTC). Includes paid. */
+export async function listApprovedBookingsStartingBefore(
+  tx: TenantTx,
+  before: Date,
+): Promise<ApprovedCollectRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<ApprovedCollectSqlRow[]>`
+    SELECT
+      b.id,
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."priceUsd",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status = 'APPROVED'::"BookingStatus"
+      AND lower(b.during) < ${before}
+    ORDER BY lower(b.during) ASC
+  `;
+  return mapApprovedCollect(rows);
 }
 
 export type BookingForCollect = {

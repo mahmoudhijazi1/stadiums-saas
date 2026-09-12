@@ -1,0 +1,289 @@
+"use client";
+
+import { useState } from "react";
+import type { UiLocale } from "@/lib/locale";
+import {
+  collectUsdLabel,
+  dueRemainingLine,
+  overdueCount,
+  ui,
+} from "@/lib/ui-copy";
+import {
+  submitCancelBooking,
+  submitCollectPayment,
+} from "./actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { cn } from "cn";
+import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
+
+export type UpcomingRowView = {
+  id: string;
+  pitchName: string;
+  timeRange: string;
+  dateLabel: string;
+  requesterName: string;
+  requesterPhone: string;
+  remainingUsd: string;
+  priceUsd: string;
+  status: UpcomingStatus;
+};
+
+function keepTenantQuery(tenantSlug: string) {
+  return <input type="hidden" name="tenant" value={tenantSlug} />;
+}
+
+function StatusBadge({
+  status,
+  locale,
+}: {
+  status: UpcomingStatus;
+  locale: UiLocale;
+}) {
+  if (status === "due") {
+    return <Badge variant="outline">{ui("owner.due", locale)}</Badge>;
+  }
+  if (status === "paid") {
+    return (
+      <Badge variant="ghost" className="font-normal text-muted-foreground">
+        {ui("owner.paid", locale)}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="ghost" className="font-normal text-muted-foreground">
+      {ui("owner.upcomingTag", locale)}
+    </Badge>
+  );
+}
+
+export function UpcomingPanel({
+  overdue,
+  today,
+  later,
+  tenantSlug,
+  locale,
+  mayCollect,
+  mayCancel,
+}: {
+  overdue: UpcomingRowView[];
+  today: UpcomingRowView[];
+  later: UpcomingRowView[];
+  tenantSlug: string;
+  locale: UiLocale;
+  mayCollect: boolean;
+  mayCancel: boolean;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [showComing, setShowComing] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <h3 className="text-sm font-medium text-muted-foreground">
+        {ui("owner.upcoming", locale)}
+      </h3>
+
+      {overdue.length > 0 ? (
+        <>
+          <h4 className="text-sm font-medium text-muted-foreground">
+            {overdueCount(overdue.length, locale)}
+          </h4>
+          <UpcomingRows
+            rows={overdue}
+            showDate
+            openId={openId}
+            onToggle={setOpenId}
+            tenantSlug={tenantSlug}
+            locale={locale}
+            mayCollect={mayCollect}
+            mayCancel={mayCancel}
+          />
+        </>
+      ) : null}
+
+      {today.length > 0 ? (
+        <UpcomingRows
+          rows={today}
+          showDate={false}
+          openId={openId}
+          onToggle={setOpenId}
+          tenantSlug={tenantSlug}
+          locale={locale}
+          mayCollect={mayCollect}
+          mayCancel={mayCancel}
+        />
+      ) : overdue.length === 0 ? (
+        <EmptyState
+          title={ui("empty.confirmed", locale)}
+          next={ui("empty.confirmedNext", locale)}
+        />
+      ) : null}
+
+      {later.length > 0 ? (
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            className="self-start"
+            onClick={() => setShowComing((open) => !open)}
+          >
+            {showComing
+              ? ui("owner.hideComingDays", locale)
+              : ui("owner.showComingDays", locale)}
+          </Button>
+          {showComing ? (
+            <UpcomingRows
+              rows={later}
+              showDate
+              openId={openId}
+              onToggle={setOpenId}
+              tenantSlug={tenantSlug}
+              locale={locale}
+              mayCollect={mayCollect}
+              mayCancel={mayCancel}
+            />
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function UpcomingRows({
+  rows,
+  showDate,
+  openId,
+  onToggle,
+  tenantSlug,
+  locale,
+  mayCollect,
+  mayCancel,
+}: {
+  rows: UpcomingRowView[];
+  showDate: boolean;
+  openId: string | null;
+  onToggle: (id: string | null) => void;
+  tenantSlug: string;
+  locale: UiLocale;
+  mayCollect: boolean;
+  mayCancel: boolean;
+}) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {rows.map((row) => {
+        const open = openId === row.id;
+        return (
+          <li key={row.id}>
+            <Card className={cn("gap-0 py-0", open && "ring-2 ring-inset ring-primary")}>
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => onToggle(open ? null : row.id)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    {showDate ? (
+                      <span className="text-sm text-muted-foreground">
+                        {row.dateLabel}
+                      </span>
+                    ) : null}
+                    <LtrIsolate className="text-sm font-medium">
+                      {row.timeRange}
+                    </LtrIsolate>
+                    <span className="text-sm font-medium">{row.pitchName}</span>
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm text-muted-foreground">
+                    {row.requesterName}
+                  </span>
+                </span>
+                <StatusBadge status={row.status} locale={locale} />
+              </button>
+              {open ? (
+                <CardContent className="flex flex-col gap-4 border-t px-4 py-4">
+                  <p className="text-sm text-muted-foreground">
+                    <LtrIsolate>{row.requesterPhone}</LtrIsolate>
+                  </p>
+                  <p className="text-sm">
+                    <LtrIsolate>
+                      {dueRemainingLine(row.priceUsd, row.remainingUsd, locale)}
+                    </LtrIsolate>
+                  </p>
+                  {mayCollect && row.status !== "paid" ? (
+                    <>
+                      <form action={submitCollectPayment}>
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepTenantQuery(tenantSlug)}
+                        <input
+                          type="hidden"
+                          name="usdAmount"
+                          value={row.remainingUsd}
+                        />
+                        <SubmitButton className="w-full">
+                          {collectUsdLabel(row.remainingUsd, locale)}
+                        </SubmitButton>
+                      </form>
+                      <form
+                        action={submitCollectPayment}
+                        className="flex flex-col gap-4"
+                      >
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepTenantQuery(tenantSlug)}
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor={`usd-${row.id}`}>
+                            {ui("owner.usd", locale)}
+                          </Label>
+                          <Input
+                            id={`usd-${row.id}`}
+                            type="text"
+                            name="usdAmount"
+                            inputMode="decimal"
+                            placeholder="30.00"
+                            className="font-mono"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Label htmlFor={`lbp-${row.id}`}>
+                            {ui("owner.lbp", locale)}
+                          </Label>
+                          <Input
+                            id={`lbp-${row.id}`}
+                            type="text"
+                            name="lbpAmount"
+                            inputMode="numeric"
+                            className="font-mono"
+                          />
+                        </div>
+                        <SubmitButton variant="secondary" className="w-full">
+                          {ui("owner.collectMixed", locale)}
+                        </SubmitButton>
+                      </form>
+                    </>
+                  ) : null}
+                  {mayCancel ? (
+                    <form action={submitCancelBooking}>
+                      <input type="hidden" name="bookingId" value={row.id} />
+                      {keepTenantQuery(tenantSlug)}
+                      <SubmitButton variant="outline" className="w-full">
+                        {ui("owner.cancel", locale)}
+                      </SubmitButton>
+                    </form>
+                  ) : null}
+                </CardContent>
+              ) : null}
+            </Card>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}

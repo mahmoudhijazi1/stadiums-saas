@@ -151,12 +151,24 @@ function clockLiesInWindow(slotMinutes: number, startClock: string, endClock: st
   return slotMinutes >= start || slotMinutes < end;
 }
 
-function addCalendarDays(date: CivilDate, days: number): CivilDate {
+export function addCalendarDays(date: CivilDate, days: number): CivilDate {
   const utc = new Date(Date.UTC(date.year, date.month - 1, date.day + days));
   return {
     year: utc.getUTCFullYear(),
     month: utc.getUTCMonth() + 1,
     day: utc.getUTCDate(),
+  };
+}
+
+/** Half-open UTC range for one civil day in `timeZone` (DST-aware). */
+export function civilDayUtcRange(
+  date: CivilDate,
+  timeZone: string,
+): { start: Date; end: Date } {
+  const next = addCalendarDays(date, 1);
+  return {
+    start: zonedLocalToUtc(date, 0, 0, timeZone),
+    end: zonedLocalToUtc(next, 0, 0, timeZone),
   };
 }
 

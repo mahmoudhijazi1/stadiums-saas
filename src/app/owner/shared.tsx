@@ -32,10 +32,15 @@ export async function requireOwnerMembership(
 }
 
 export function formatLocalRange(start: Date, end: Date): string {
-  return `${formatLocalTime(start)}–${formatLocalTime(end)} (${OWNER_TIME_ZONE})`;
+  return `${formatLocalClock(start)}–${formatLocalClock(end)} (${OWNER_TIME_ZONE})`;
 }
 
-function formatLocalTime(value: Date): string {
+/** Time range without the zone name (Home compact rows). */
+export function formatLocalClockRange(start: Date, end: Date): string {
+  return `${formatLocalClock(start)}–${formatLocalClock(end)}`;
+}
+
+export function formatLocalClock(value: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: OWNER_TIME_ZONE,
     hour: "2-digit",

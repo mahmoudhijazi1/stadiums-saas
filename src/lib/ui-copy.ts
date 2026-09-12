@@ -38,7 +38,15 @@ const ARABIC: Record<string, string> = {
   "login.submit": "دخول",
   "owner.logout": "خروج",
   "owner.tabs": "الأقسام",
+  "owner.home": "رئيسية",
+  "owner.homeHeading": "الرئيسية",
   "owner.today": "اليوم",
+  "owner.requests": "طلبات",
+  "owner.upcoming": "القادم",
+  "owner.upcomingTag": "قادم",
+  "owner.overdue": "متأخر",
+  "owner.showComingDays": "عرض الأيام القادمة",
+  "owner.hideComingDays": "إخفاء الأيام القادمة",
   "owner.money": "المال",
   "owner.pending": "قيد الانتظار",
   "owner.confirmed": "مؤكد",
@@ -47,7 +55,7 @@ const ARABIC: Record<string, string> = {
   "owner.paid": "مدفوع",
   "owner.approve": "موافقة",
   "owner.reject": "رفض",
-  "owner.collectMixed": "تحصيل مختلط",
+  "owner.collectMixed": "دفع بعملتين",
   "owner.usd": "دولار",
   "owner.lbp": "ليرة",
   "owner.cancel": "إلغاء",
@@ -78,7 +86,7 @@ const ARABIC: Record<string, string> = {
   "empty.pending": "لا طلبات معلّقة.",
   "empty.pendingNext": "عندما يطلب أحدهم ساعة، تظهر هنا.",
   "empty.confirmed": "لا مباريات مؤكدة اليوم.",
-  "empty.confirmedNext": "الساعات الموافق عليها تظهر هنا للتحصيل.",
+  "empty.confirmedNext": "الساعات الموافق عليها تظهر هنا.",
   "empty.pitches": "لا ملاعب بعد.",
   "empty.pitchesNext": "تظهر الملاعب هنا عندما يُدرجها هذا الملعب.",
   "empty.noCreate": "لا صلاحية للحجز.",
@@ -132,7 +140,15 @@ const ENGLISH: Record<string, string> = {
   "login.submit": "Log in",
   "owner.logout": "Log out",
   "owner.tabs": "Sections",
+  "owner.home": "Home",
+  "owner.homeHeading": "Home",
   "owner.today": "Today",
+  "owner.requests": "Requests",
+  "owner.upcoming": "Upcoming",
+  "owner.upcomingTag": "Upcoming",
+  "owner.overdue": "Overdue",
+  "owner.showComingDays": "Show coming days",
+  "owner.hideComingDays": "Hide coming days",
   "owner.money": "Money",
   "owner.pending": "Pending",
   "owner.confirmed": "Confirmed",
@@ -141,7 +157,7 @@ const ENGLISH: Record<string, string> = {
   "owner.paid": "Paid",
   "owner.approve": "Approve",
   "owner.reject": "Reject",
-  "owner.collectMixed": "Collect mixed",
+  "owner.collectMixed": "Pay in two currencies",
   "owner.usd": "USD",
   "owner.lbp": "LBP",
   "owner.cancel": "Cancel",
@@ -172,7 +188,7 @@ const ENGLISH: Record<string, string> = {
   "empty.pending": "No pending requests.",
   "empty.pendingNext": "When someone requests an hour, it shows here.",
   "empty.confirmed": "No confirmed matches today.",
-  "empty.confirmedNext": "Approved hours show here for collection.",
+  "empty.confirmedNext": "Approved hours show here.",
   "empty.pitches": "No pitches yet.",
   "empty.pitchesNext": "Pitches show here when this stadium lists them.",
   "empty.noCreate": "No permission to book.",
@@ -227,9 +243,19 @@ export function pendingCount(n: number, locale: UiLocale = "ar"): string {
   return `${ui("owner.pending", locale)} · ${n}`;
 }
 
+/** Home Requests heading with a Western count. */
+export function requestsCount(n: number, locale: UiLocale = "ar"): string {
+  return `${ui("owner.requests", locale)} · ${n}`;
+}
+
 /** Confirmed heading with a Western count. */
 export function confirmedCount(n: number, locale: UiLocale = "ar"): string {
   return `${ui("owner.confirmed", locale)} · ${n}`;
+}
+
+/** Overdue heading with a Western count. */
+export function overdueCount(n: number, locale: UiLocale = "ar"): string {
+  return `${ui("owner.overdue", locale)} · ${n}`;
 }
 
 /** Collect remaining USD — amount is already formatUsd (Latin). */

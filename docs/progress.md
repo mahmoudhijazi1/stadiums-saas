@@ -2962,6 +2962,22 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. `/owner/today` — EN in the header; tabs and Today copy go English + LTR. ع returns Arabic + RTL. Public `/` still shares the cookie.
 
+---
+
+## Chapter 132 — 2026-09-13 — Home tab (replace Today inbox)
+
+**When:** 2026-09-13
+
+**What:** `/owner/today` is the Home tab (رئيسية / الرئيسية). Two sections, not a merged timeline. **طلبات:** all PENDING any date, soonest slot then BR-17 `requestedAt` inside a slot; competing requesters grouped on one card with approve/reject always visible. **القادم:** compact confirmed rows (time, pitch, name, قادم/مستحق/مدفوع); tap-in Collect / دفع بعملتين / Cancel. Today by default; **عرض الأيام القادمة** appends the next 7 Beirut civil days. **متأخر** prepends unpaid APPROVED before today (BR-49). URL stays `/owner/today`. Server Actions unchanged.
+
+**Why:** Owner IA — ops inbox vs compact upcoming. BR-49 forbids dropping past unpaid with no collect path.
+
+**Files:** `src/modules/booking/domain/home-inbox.ts`; `infrastructure/bookings.ts` (pending ORDER BY; approved in-range + starting-before); `application/list-due-bookings.ts`; `src/modules/venue/domain/availability.ts` (`civilDayUtcRange`); `src/app/owner/today/lists.tsx`, `upcoming-panel.tsx`, `date-label.ts`; `tab-bar.tsx`; `src/lib/ui-copy.ts`; `docs/owner-ia.md`.
+
+**Relation:** Booking application still attaches remaining via Payment sums (no payment join in Booking SQL). `rejectOverlappingPending` still uses `listPendingBookings` (order unused). Home display sort is soonest slot; SPEC-05 approve semantics unchanged.
+
+**How to verify:** `npm test`. `/owner/today` — tab House + رئيسية; pending any date with inline date; competing slot shows all requesters + buttons; today compact tags; tap row for collect/cancel; overdue unpaid above today; coming-days toggle. Staff without approve/collect: lists without those forms.
+
 
 
 

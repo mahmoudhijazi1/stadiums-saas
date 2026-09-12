@@ -4,7 +4,21 @@ import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { remainingDue } from "@/modules/payment/domain/collect";
 import { sumCollectedUsdBySourceIds } from "@/modules/payment/infrastructure/payments";
-import { listApprovedBookingsForCollect } from "@/modules/booking/infrastructure/bookings";
+import {
+  listApprovedBookingsInRange,
+  listApprovedBookingsStartingBefore,
+  type ApprovedCollectRow,
+} from "@/modules/booking/infrastructure/bookings";
+import { partitionHomeConfirmed } from "@/modules/booking/domain/home-inbox";
+import {
+  addCalendarDays,
+  civilDateInTimeZone,
+  civilDayUtcRange,
+} from "@/modules/venue/domain/availability";
+
+const TIME_ZONE = "Asia/Beirut";
+/** Next civil days after today (Home “عرض الأيام القادمة”). */
+const COMING_DAYS = 7;
 
 export type DueBooking = {
   id: string;
@@ -17,34 +31,62 @@ export type DueBooking = {
   requesterPhone: string;
 };
 
+export type HomeConfirmedLists = {
+  overdue: DueBooking[];
+  today: DueBooking[];
+  later: DueBooking[];
+};
+
 /**
- * All APPROVED games (paid included) so Cancel is reachable (SPEC-10).
- * Staff may look. Remaining from Payment sums — Booking does not join payment tables.
+ * Home confirmed lists (BR-49 overdue + today + next 7 days).
+ * Staff may look. Remaining from Payment sums — Booking does not join
+ * payment tables. Paid today/later stay so Cancel is reachable (SPEC-10).
+ * Paid-before-today is omitted; unpaid-before-today is overdue.
  */
-export async function listDueBookings(): Promise<DueBooking[]> {
+export async function listDueBookings(): Promise<HomeConfirmedLists> {
   const membership = await getCurrentMembership();
   if (!membership) {
     throw new DomainError("access.not_allowed");
   }
 
-  const rows = await listApprovedBookingsForCollect(db);
+  const now = new Date();
+  const today = civilDateInTimeZone(now, TIME_ZONE);
+  const todayStart = civilDayUtcRange(today, TIME_ZONE).start;
+  const horizonEnd = civilDayUtcRange(
+    addCalendarDays(today, COMING_DAYS + 1),
+    TIME_ZONE,
+  ).start;
+
+  const [windowRows, pastRows] = await Promise.all([
+    listApprovedBookingsInRange(db, todayStart, horizonEnd),
+    listApprovedBookingsStartingBefore(db, todayStart),
+  ]);
+
   const collected = await sumCollectedUsdBySourceIds(
     db,
     "BOOKING",
-    rows.map((row) => row.id),
+    [...windowRows, ...pastRows].map((row) => row.id),
   );
 
-  return rows.map((row) => ({
+  const withRemaining = [...pastRows, ...windowRows].map((row) =>
+    toDueBooking(row, collected.get(row.id) ?? new Decimal(0)),
+  );
+
+  return partitionHomeConfirmed(withRemaining, now, TIME_ZONE);
+}
+
+function toDueBooking(
+  row: ApprovedCollectRow,
+  collectedUsd: Decimal,
+): DueBooking {
+  return {
     id: row.id,
     pitchName: row.pitchName,
     start: row.start,
     end: row.end,
     priceUsd: row.priceUsd,
-    remaining: remainingDue(
-      row.priceUsd,
-      collected.get(row.id) ?? new Decimal(0),
-    ),
+    remaining: remainingDue(row.priceUsd, collectedUsd),
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
-  }));
+  };
 }

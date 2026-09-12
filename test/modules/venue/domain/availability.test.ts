@@ -7,6 +7,8 @@ import {
   dropEndedSlots,
   formatCivilDate,
   generateSlotsForDay,
+  addCalendarDays,
+  civilDayUtcRange,
   type Slot,
 } from "@/modules/venue/domain/availability";
 import {
@@ -246,6 +248,15 @@ describe("civilDateInTimeZone", () => {
       month: 9,
       day: 13,
     });
+  });
+});
+
+describe("civilDayUtcRange", () => {
+  it("is a half-open Beirut civil day (UTC+3 in September)", () => {
+    const range = civilDayUtcRange(SAT, BEIRUT);
+    expect(range.start.toISOString()).toBe("2026-09-11T21:00:00.000Z");
+    expect(range.end.toISOString()).toBe("2026-09-12T21:00:00.000Z");
+    expect(addCalendarDays(SAT, 1)).toEqual({ year: 2026, month: 9, day: 13 });
   });
 });
 
