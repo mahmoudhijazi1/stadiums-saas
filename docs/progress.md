@@ -2664,6 +2664,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `/?tenant=ahmad` — all seven chips visible, no scrollbar under the row; selected اليوم still has a full green outline.
 
+---
+
+## Correction — 2026-09-12 — Page scrollbar no longer shifts the layout
+
+**When:** 2026-09-12
+
+**What:** `html { scrollbar-gutter: stable; }` so the vertical gutter is always reserved. Switching days (or any page whose height crosses the viewport) no longer shows/hides the browser scrollbar and nudges `max-w-lg` content.
+
+**Why:** Classic Windows scrollbars take width. Overlay/auto hide was shifting the whole site.
+
+**Files:** `src/app/globals.css`
+
+**How to verify:** Toggle a long day vs a short one (or resize until the page scrollbar appears). Chips and hours stay horizontally still.
+
+
 
 
 
