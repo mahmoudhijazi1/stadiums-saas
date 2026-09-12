@@ -62,6 +62,39 @@ export function generateSlotsForDay(input: {
   return slots;
 }
 
+/** Keep slots whose end is still after `now` (same cutoff as booking.slot_ended). */
+export function dropEndedSlots(slots: Slot[], now: Date): Slot[] {
+  const cutoff = now.getTime();
+  return slots.filter((slot) => slot.end.getTime() > cutoff);
+}
+
+export function compareCivilDate(a: CivilDate, b: CivilDate): number {
+  if (a.year !== b.year) return a.year - b.year;
+  if (a.month !== b.month) return a.month - b.month;
+  return a.day - b.day;
+}
+
+export function formatCivilDate(date: CivilDate): string {
+  const month = String(date.month).padStart(2, "0");
+  const day = String(date.day).padStart(2, "0");
+  return `${date.year}-${month}-${day}`;
+}
+
+export type HoursEmptyKind = "closed" | "past" | "hoursEnded";
+
+/** Why this pitch-day has no remaining slots. Null if some remain. */
+export function dayHoursEmptyKind(input: {
+  generatedCount: number;
+  remainingCount: number;
+  localDate: CivilDate;
+  today: CivilDate;
+}): HoursEmptyKind | null {
+  if (input.remainingCount > 0) return null;
+  if (input.generatedCount === 0) return "closed";
+  if (compareCivilDate(input.localDate, input.today) < 0) return "past";
+  return "hoursEnded";
+}
+
 function weekdayOfCivilDate(date: CivilDate): Weekday {
   const utcDay = new Date(Date.UTC(date.year, date.month - 1, date.day)).getUTCDay();
   return WEEKDAY_BY_UTC_DAY[utcDay]!;

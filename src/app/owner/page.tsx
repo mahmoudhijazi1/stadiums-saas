@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ZodError } from "zod";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import {
+  civilDateInTimeZone,
+  formatCivilDate,
+} from "@/modules/venue/domain/availability";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import {
@@ -98,7 +102,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const mayCreateBooking = can(membership, BOOKINGS_CREATE);
   const errorKey = queryString(params.error);
   const ok = queryString(params.ok);
-  const today = todayInTimeZone(TIME_ZONE);
+  const today = formatCivilDate(civilDateInTimeZone(new Date(), TIME_ZONE));
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
   const periodQuery = readPeriodQuery({
     from: params.from,
@@ -180,19 +184,6 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       </Suspense>
     </main>
   );
-}
-
-function todayInTimeZone(timeZone: string): string {
-  const map: Record<string, string> = {};
-  for (const part of new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date())) {
-    if (part.type !== "literal") map[part.type] = part.value;
-  }
-  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function parseOwnerBookOn(value: string | undefined): string | undefined {

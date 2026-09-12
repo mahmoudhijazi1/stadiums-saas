@@ -1,5 +1,14 @@
 import { describe, expect, it } from "@jest/globals";
-import { generateSlotsForDay } from "@/modules/venue/domain/availability";
+import Decimal from "decimal.js";
+import {
+  civilDateInTimeZone,
+  compareCivilDate,
+  dayHoursEmptyKind,
+  dropEndedSlots,
+  formatCivilDate,
+  generateSlotsForDay,
+  type Slot,
+} from "@/modules/venue/domain/availability";
 import {
   CLOSED_WEEK_SCHEDULE,
   parseScheduleConfig,
@@ -165,5 +174,123 @@ describe("generateSlotsForDay", () => {
     ]);
     expect(adjacent.map((s) => s.available)).toEqual([false, true, true]);
     expect(free[0]!.end.getTime()).toBe(free[1]!.start.getTime());
+  });
+});
+
+function slotEnding(end: Date): Slot {
+  return {
+    start: new Date(end.getTime() - 60 * 60_000),
+    end,
+    priceUsd: new Decimal("30.00"),
+    available: true,
+  };
+}
+
+describe("dropEndedSlots", () => {
+  const now = new Date("2026-09-12T17:00:00.000Z");
+
+  it("keeps a slot whose end is still after now", () => {
+    const later = slotEnding(new Date("2026-09-12T17:00:00.001Z"));
+    expect(dropEndedSlots([later], now)).toEqual([later]);
+  });
+
+  it("drops a slot that ends at now (same cutoff as booking.slot_ended)", () => {
+    const ending = slotEnding(now);
+    expect(dropEndedSlots([ending], now)).toEqual([]);
+  });
+
+  it("drops a slot that already ended", () => {
+    const ended = slotEnding(new Date("2026-09-12T16:59:59.999Z"));
+    expect(dropEndedSlots([ended], now)).toEqual([]);
+  });
+
+  it("filters generated today slots without changing generateSlotsForDay", () => {
+    const generated = generate(
+      configOn("sat", { start: "16:00", end: "19:00" }),
+      SAT,
+    );
+    expect(generated).toHaveLength(3);
+    // Beirut UTC+3: 17:00 local = 14:00Z. Freeze 17:30 local → first slot gone.
+    const evening = new Date("2026-09-12T14:30:00.000Z");
+    expect(
+      dropEndedSlots(generated, evening).map((s) => beirutStamp(s.start).hm),
+    ).toEqual(["17:00", "18:00"]);
+  });
+});
+
+describe("compareCivilDate / formatCivilDate", () => {
+  it("orders year then month then day", () => {
+    expect(compareCivilDate(WED, WED)).toBe(0);
+    expect(compareCivilDate(WED, FRI)).toBeLessThan(0);
+    expect(compareCivilDate(FRI, WED)).toBeGreaterThan(0);
+    expect(
+      compareCivilDate({ year: 2025, month: 12, day: 31 }, WED),
+    ).toBeLessThan(0);
+  });
+
+  it("pads month and day", () => {
+    expect(formatCivilDate(SAT)).toBe("2026-09-12");
+    expect(formatCivilDate({ year: 2026, month: 1, day: 5 })).toBe(
+      "2026-01-05",
+    );
+  });
+});
+
+describe("civilDateInTimeZone", () => {
+  it("uses the given instant (Beirut UTC+3), not Date.now", () => {
+    const beforeMidnight = new Date("2026-09-12T20:59:59.000Z");
+    const atMidnight = new Date("2026-09-12T21:00:00.000Z");
+    expect(civilDateInTimeZone(beforeMidnight, BEIRUT)).toEqual(SAT);
+    expect(civilDateInTimeZone(atMidnight, BEIRUT)).toEqual({
+      year: 2026,
+      month: 9,
+      day: 13,
+    });
+  });
+});
+
+describe("dayHoursEmptyKind", () => {
+  it("is null when remaining slots exist", () => {
+    expect(
+      dayHoursEmptyKind({
+        generatedCount: 6,
+        remainingCount: 2,
+        localDate: SAT,
+        today: SAT,
+      }),
+    ).toBeNull();
+  });
+
+  it("is closed when the schedule produced no slots", () => {
+    expect(
+      dayHoursEmptyKind({
+        generatedCount: 0,
+        remainingCount: 0,
+        localDate: WED,
+        today: SAT,
+      }),
+    ).toBe("closed");
+  });
+
+  it("is past when every generated slot ended on a prior civil day", () => {
+    expect(
+      dayHoursEmptyKind({
+        generatedCount: 6,
+        remainingCount: 0,
+        localDate: FRI,
+        today: SAT,
+      }),
+    ).toBe("past");
+  });
+
+  it("is hoursEnded when today still generated slots but all have ended", () => {
+    expect(
+      dayHoursEmptyKind({
+        generatedCount: 6,
+        remainingCount: 0,
+        localDate: SAT,
+        today: SAT,
+      }),
+    ).toBe("hoursEnded");
   });
 });

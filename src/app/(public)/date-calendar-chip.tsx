@@ -36,26 +36,35 @@ function formatYyyyMmDd(date: Date): string {
 }
 
 /**
- * Calendar overflow for dates past the six Link chips.
+ * Calendar overflow for dates past the five Link chips.
  * Client only because Popover/Calendar cannot be RSC; router.push is a
  * client transition (same as Link — Next use-router.md).
+ * Past days are disabled. A past ?date= does not select this chip.
  */
 export function PublicDateCalendarChip({
   tenantSlug,
   selectedDate,
+  todayYmd,
   isSelected,
   className,
   otherDateLabel,
 }: {
   tenantSlug: string;
   selectedDate: string;
+  todayYmd: string;
   isSelected: boolean;
   className?: string;
   otherDateLabel: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const selected = parseYyyyMmDd(selectedDate);
+  const todayDate = parseYyyyMmDd(todayYmd);
+  const parsedSelected = parseYyyyMmDd(selectedDate);
+  const selectedIsPast =
+    parsedSelected !== undefined &&
+    todayDate !== undefined &&
+    formatYyyyMmDd(parsedSelected) < todayYmd;
+  const selected = selectedIsPast ? undefined : parsedSelected;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,10 +83,12 @@ export function PublicDateCalendarChip({
           mode="single"
           required
           selected={selected}
-          defaultMonth={selected}
+          defaultMonth={selected ?? todayDate}
+          disabled={todayDate ? { before: todayDate } : undefined}
           onSelect={(date) => {
             setOpen(false);
             const next = formatYyyyMmDd(date);
+            if (todayYmd && next < todayYmd) return;
             if (next === selectedDate) return;
             const query = new URLSearchParams();
             query.set("tenant", tenantSlug);

@@ -3,6 +3,7 @@ import {
   collectUsdLabel,
   confirmedCount,
   dueRemainingLine,
+  hoursEmptyState,
   lbpPerUsdLine,
   pendingCount,
   ui,
@@ -32,5 +33,22 @@ describe("interpolated chrome", () => {
       "المستحق $30.00 · المتبقي $10.00",
     );
     expect(lbpPerUsdLine("90000")).toBe("90000 ليرة لكل دولار");
+  });
+});
+
+describe("hoursEmptyState", () => {
+  it("maps closed / past / hoursEnded in Arabic and English", () => {
+    expect(hoursEmptyState("closed")).toEqual({
+      title: "مغلق هذا اليوم.",
+      next: "اختر يوماً آخر لرؤية الساعات.",
+    });
+    expect(hoursEmptyState("past", "en")).toEqual({
+      title: "This date has passed.",
+      next: "Pick today or a coming day.",
+    });
+    expect(hoursEmptyState("hoursEnded", "en")).toEqual({
+      title: "No hours left today.",
+      next: "Pick a coming day.",
+    });
   });
 });

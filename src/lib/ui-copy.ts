@@ -21,6 +21,10 @@ const ARABIC: Record<string, string> = {
   "public.emptyPitchesNext": "هذا الملعب لم يُدرج ملاعب.",
   "public.closed": "مغلق هذا اليوم.",
   "public.closedNext": "اختر يوماً آخر لرؤية الساعات.",
+  "public.pastDate": "هذا التاريخ مضى.",
+  "public.pastDateNext": "اختر اليوم أو يوماً قادماً.",
+  "public.hoursEnded": "لم تبق ساعات اليوم.",
+  "public.hoursEndedNext": "اختر يوماً قادماً.",
   "public.langToEn": "EN",
   "public.langToAr": "ع",
   "public.langEnglish": "English",
@@ -106,6 +110,10 @@ const ENGLISH: Record<string, string> = {
   "public.emptyPitchesNext": "This stadium has not listed pitches.",
   "public.closed": "Closed this day.",
   "public.closedNext": "Pick another day to see hours.",
+  "public.pastDate": "This date has passed.",
+  "public.pastDateNext": "Pick today or a coming day.",
+  "public.hoursEnded": "No hours left today.",
+  "public.hoursEndedNext": "Pick a coming day.",
   "public.langToEn": "EN",
   "public.langToAr": "ع",
   "public.langEnglish": "English",
@@ -118,6 +126,29 @@ const ENGLISH: Record<string, string> = {
 export function ui(key: string, locale: UiLocale = "ar"): string {
   if (locale === "en") return ENGLISH[key] ?? ARABIC[key] ?? key;
   return ARABIC[key] ?? key;
+}
+
+/** Empty hours: closed / past date / today exhausted. */
+export function hoursEmptyState(
+  kind: "closed" | "past" | "hoursEnded",
+  locale: UiLocale = "ar",
+): { title: string; next: string } {
+  if (kind === "past") {
+    return {
+      title: ui("public.pastDate", locale),
+      next: ui("public.pastDateNext", locale),
+    };
+  }
+  if (kind === "hoursEnded") {
+    return {
+      title: ui("public.hoursEnded", locale),
+      next: ui("public.hoursEndedNext", locale),
+    };
+  }
+  return {
+    title: ui("public.closed", locale),
+    next: ui("public.closedNext", locale),
+  };
 }
 
 /** Pending heading with a Western count. */

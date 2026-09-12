@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { ui } from "@/lib/ui-copy";
+import { hoursEmptyState, ui } from "@/lib/ui-copy";
 
 export async function OwnerBookSlots({
   tenantSlug,
@@ -34,6 +34,7 @@ export async function OwnerBookSlots({
   const bookPitches = await getDayAvailability({
     localDate: civilFromYyyyMmDd(bookOn),
     timeZone: OWNER_TIME_ZONE,
+    now: new Date(),
     occupied: await listApprovedOccupied(),
   });
 
@@ -53,8 +54,7 @@ export async function OwnerBookSlots({
           <h3 className="font-medium">{pitch.name}</h3>
           {pitch.slots.length === 0 ? (
             <EmptyState
-              title={ui("public.closed")}
-              next={ui("public.closedNext")}
+              {...hoursEmptyState(pitch.emptyKind ?? "closed")}
             />
           ) : (
             <ul className="flex flex-col gap-3">

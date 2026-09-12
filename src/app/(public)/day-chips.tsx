@@ -1,5 +1,9 @@
 import Link from "next/link";
-import type { CivilDate } from "@/modules/venue/domain/availability";
+import {
+  compareCivilDate,
+  formatCivilDate,
+  type CivilDate,
+} from "@/modules/venue/domain/availability";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { PublicDateCalendarChip } from "./date-calendar-chip";
 import type { UiLocale } from "@/lib/locale";
@@ -27,6 +31,10 @@ export function PublicDayChips({
     addCivilDays(today, offset),
   );
   const inWindow = days.some((day) => formatCivilDate(day) === selectedDate);
+  const selectedCivil = parseCivilYmd(selectedDate);
+  const isPast =
+    selectedCivil !== null && compareCivilDate(selectedCivil, today) < 0;
+  const calendarSelected = !inWindow && !isPast;
 
   return (
     <nav aria-label={ui("public.day", locale)}>
@@ -64,8 +72,9 @@ export function PublicDayChips({
           <PublicDateCalendarChip
             tenantSlug={tenantSlug}
             selectedDate={selectedDate}
-            isSelected={!inWindow}
-            className={dayChipClass(!inWindow)}
+            todayYmd={formatCivilDate(today)}
+            isSelected={calendarSelected}
+            className={dayChipClass(calendarSelected)}
             otherDateLabel={ui("public.otherDate", locale)}
           />
         </li>
@@ -92,10 +101,21 @@ function addCivilDays(date: CivilDate, days: number): CivilDate {
   };
 }
 
-function formatCivilDate(date: CivilDate): string {
-  const month = String(date.month).padStart(2, "0");
-  const day = String(date.day).padStart(2, "0");
-  return `${date.year}-${month}-${day}`;
+function parseCivilYmd(value: string): CivilDate | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  if (
+    utc.getUTCFullYear() !== year ||
+    utc.getUTCMonth() !== month - 1 ||
+    utc.getUTCDate() !== day
+  ) {
+    return null;
+  }
+  return { year, month, day };
 }
 
 function weekdayName(date: CivilDate, locale: UiLocale): string {

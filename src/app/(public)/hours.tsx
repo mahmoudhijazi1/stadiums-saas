@@ -17,16 +17,19 @@ export async function PublicHours({
   dateValue,
   tenantSlug,
   locale,
+  now,
 }: {
   localDate: CivilDate;
   dateValue: string;
   tenantSlug: string;
   locale: UiLocale;
+  now: Date;
 }) {
   const occupied = await listApprovedOccupied();
   const pitches = await getDayAvailability({
     localDate,
     timeZone: TIME_ZONE,
+    now,
     occupied,
   });
 

@@ -2726,6 +2726,22 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test` (158). Open a slot, tap اطلب empty — red line under name and phone, no OS tooltip. Valid name + `03 123 456` still `ok=requested`.
 
+---
+
+## Chapter 118 — 2026-09-12 — Hide ended hours; three empty states
+
+**When:** 2026-09-12
+
+**What:** Public hours and Owner Book drop slots whose end is not after injected `now` (same cutoff as `booking.slot_ended`). `generateSlotsForDay` is unchanged. Empty list is `closed` (no windows), `past` (civil date before today), or `hoursEnded` (today, all games over). Public chip row stays today→today+4; a past `?date=` selects nothing (not Today, not the calendar). Calendar disables days before today. Owner Today lists are unchanged. A typed past Owner `bookOn` shows `past` — Book creates, it does not review history.
+
+**Why:** Requesting or booking a game that already ended is noise. `now` is injected at the page/use-case so venue domain/application never call `Date.now()`.
+
+**Files:** `src/modules/venue/domain/availability.ts`; `src/modules/venue/application/get-day-availability.ts`; `src/app/(public)/page.tsx`; `hours.tsx`; `slot-picker.tsx`; `day-chips.tsx`; `date-calendar-chip.tsx`; `src/app/owner/page.tsx`; `book-slots.tsx`; `src/lib/ui-copy.ts`; `test/modules/venue/domain/availability.test.ts`; `test/lib/ui-copy.test.ts`.
+
+**Relation:** Pages construct `now` and `civilDateInTimeZone`. Venue still takes occupied UTC ranges from Booking. `components/ui` does not import `src/modules/*`. Owner Today / waitlist / `resolveOfferedSlot` unchanged.
+
+**How to verify:** `npm test` (170). Public `/?tenant=ahmad&date=` yesterday — «هذا التاريخ مضى», no chip ringed. Open calendar — days before today disabled. After last slot tonight — «لم تبق ساعات اليوم». Closed weekday still «مغلق هذا اليوم.». Owner Book past `bookOn` — same past empty state; Owner Today still lists today's pending/confirmed.
+
 
 
 

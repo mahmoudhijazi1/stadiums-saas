@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { hoursEmptyState, ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 
 function slotKey(pitchId: string, startIso: string): string {
@@ -48,8 +48,7 @@ export function PublicSlotPicker({
           <h3 className="font-medium">{pitch.name}</h3>
           {pitch.slots.length === 0 ? (
             <EmptyState
-              title={ui("public.closed", locale)}
-              next={ui("public.closedNext", locale)}
+              {...hoursEmptyState(pitch.emptyKind ?? "closed", locale)}
             />
           ) : (
             <div className="grid grid-cols-2 gap-2">

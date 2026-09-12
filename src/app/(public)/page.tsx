@@ -1,5 +1,9 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
-import type { CivilDate } from "@/modules/venue/domain/availability";
+import {
+  civilDateInTimeZone,
+  formatCivilDate,
+  type CivilDate,
+} from "@/modules/venue/domain/availability";
 import { PublicDayChips } from "./day-chips";
 import { PublicHoursSkeleton } from "./skeletons";
 import { PublicHours } from "./hours";
@@ -20,7 +24,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const locale = await getUiLocale();
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
-  const today = todayInTimeZone("Asia/Beirut");
+  const now = new Date();
+  const today = civilDateInTimeZone(now, "Asia/Beirut");
   const localDate = parseCivilDate(dateParam) ?? today;
   const ok =
     typeof params.ok === "string"
@@ -57,6 +62,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             dateValue={dateValue}
             tenantSlug={tenant.slug}
             locale={locale}
+            now={now}
           />
         </Suspense>
       </section>
@@ -80,28 +86,4 @@ function parseCivilDate(value: string | undefined): CivilDate | null {
     return null;
   }
   return { year, month, day };
-}
-
-function todayInTimeZone(timeZone: string): CivilDate {
-  const dtf = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const map: Record<string, string> = {};
-  for (const part of dtf.formatToParts(new Date())) {
-    if (part.type !== "literal") map[part.type] = part.value;
-  }
-  return {
-    year: Number(map.year),
-    month: Number(map.month),
-    day: Number(map.day),
-  };
-}
-
-function formatCivilDate(date: CivilDate): string {
-  const month = String(date.month).padStart(2, "0");
-  const day = String(date.day).padStart(2, "0");
-  return `${date.year}-${month}-${day}`;
 }
