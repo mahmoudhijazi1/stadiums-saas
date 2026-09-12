@@ -1,11 +1,10 @@
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
-import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import { submitCreateOwnerBooking } from "@/app/owner/actions";
 import {
   OWNER_TIME_ZONE,
   civilFromYyyyMmDd,
-  keepOwnerQuery,
+  keepBookQuery,
 } from "@/app/owner/shared";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -25,11 +24,9 @@ import { hoursEmptyState, ui } from "@/lib/ui-copy";
 export async function OwnerBookSlots({
   tenantSlug,
   bookOn,
-  periodQuery,
 }: {
   tenantSlug: string;
   bookOn: string;
-  periodQuery: LedgerPeriodQuery;
 }) {
   const bookPitches = await getDayAvailability({
     localDate: civilFromYyyyMmDd(bookOn),
@@ -85,7 +82,7 @@ export async function OwnerBookSlots({
                           <input type="hidden" name="pitchId" value={pitch.id} />
                           <input type="hidden" name="start" value={slot.startIso} />
                           <input type="hidden" name="end" value={slot.endIso} />
-                          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                          {keepBookQuery(tenantSlug, bookOn)}
                           <div className="flex flex-col gap-2">
                             <Label htmlFor={`name-${slot.startIso}`}>
                               {ui("public.name")}

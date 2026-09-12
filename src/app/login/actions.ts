@@ -41,7 +41,7 @@ export async function submitLogin(formData: FormData) {
   if (errorKey) {
     redirect(`/login${tenantQuery(tenant, { error: errorKey })}`);
   }
-  redirect(`/owner${tenantQuery(tenant)}`);
+  redirect(`/owner/today${tenantQuery(tenant)}`);
 }
 
 export async function submitLogout(formData: FormData) {

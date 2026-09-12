@@ -1,7 +1,6 @@
 import Decimal from "decimal.js";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import { EXPENSES_RECORD, REPORTS_VIEW, can } from "@/modules/access/domain/can";
-import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listRecentExpenses } from "@/modules/expense/application/list-recent-expenses";
 import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
 import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
@@ -14,8 +13,7 @@ import { submitRecordExpense, submitSetExchangeRate } from "@/app/owner/actions"
 import {
   categoryLabel,
   formatLocalDay,
-  formatLocalRange,
-  keepOwnerQuery,
+  keepPeriodQuery,
 } from "@/app/owner/shared";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,20 +42,17 @@ function formatPeriodAmount(
   return `$${formatUsd(amountUsd)}`;
 }
 
-export async function OwnerRest({
+export async function OwnerMoney({
   membership,
   tenantSlug,
-  bookOn,
   periodQuery,
   today,
 }: {
   membership: CurrentMembership;
   tenantSlug: string;
-  bookOn: string;
   periodQuery: LedgerPeriodQuery;
   today: string;
 }) {
-  const waitlist = await listOpenWaitlist();
   const expenses = await listRecentExpenses();
   const rate = await getCurrentRate();
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
@@ -80,62 +75,7 @@ export async function OwnerRest({
       : null;
 
   return (
-    <>
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">{ui("owner.waitlist")}</h2>
-        {waitlist.length === 0 ? (
-          <EmptyState
-            title={ui("empty.waitlist")}
-            next={ui("empty.waitlistNext")}
-          />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {waitlist.map((group) => (
-              <li key={`${group.pitchId}-${group.start.toISOString()}`}>
-                <Card>
-                  <CardHeader className="gap-1">
-                    <CardTitle className="text-base">{group.pitchName}</CardTitle>
-                    <CardDescription>
-                      <LtrIsolate>
-                        {formatLocalRange(group.start, group.end)}
-                      </LtrIsolate>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="flex flex-col gap-3">
-                      {group.people.map((person) => (
-                        <li
-                          key={person.personId}
-                          className="flex items-center justify-between gap-3"
-                        >
-                          <div className="min-w-0">
-                            <p>{person.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              <LtrIsolate>{person.phone}</LtrIsolate>
-                            </p>
-                          </div>
-                          {person.whatsAppHref ? (
-                            <Button variant="outline" asChild>
-                              <a
-                                href={person.whatsAppHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {ui("owner.notify")}
-                              </a>
-                            </Button>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
+    <div className="flex flex-col gap-8">
       {summary ? (
         <section className="flex flex-col gap-4">
           <h2 className="font-heading text-lg">{ui("owner.period")}</h2>
@@ -169,7 +109,11 @@ export async function OwnerRest({
               ) : null}
             </CardHeader>
             <CardContent>
-              <form method="get" action="/owner" className="flex flex-col gap-4">
+              <form
+                method="get"
+                action="/owner/money"
+                className="flex flex-col gap-4"
+              >
                 <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="from">{ui("owner.from")}</Label>
@@ -238,8 +182,11 @@ export async function OwnerRest({
           </CardHeader>
           {isOwner ? (
             <CardContent>
-              <form action={submitSetExchangeRate} className="flex flex-col gap-4">
-                {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+              <form
+                action={submitSetExchangeRate}
+                className="flex flex-col gap-4"
+              >
+                {keepPeriodQuery(tenantSlug, periodQuery)}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="lbpPerUsd">{ui("owner.newRate")}</Label>
                   <Input
@@ -265,11 +212,16 @@ export async function OwnerRest({
         {mayRecordExpense ? (
           <Card>
             <CardHeader className="gap-1">
-              <CardTitle className="text-base">{ui("owner.recordExpense")}</CardTitle>
+              <CardTitle className="text-base">
+                {ui("owner.recordExpense")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <form action={submitRecordExpense} className="flex flex-col gap-4">
-                {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+              <form
+                action={submitRecordExpense}
+                className="flex flex-col gap-4"
+              >
+                {keepPeriodQuery(tenantSlug, periodQuery)}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="category">{ui("owner.category")}</Label>
                   <SelectField
@@ -351,6 +303,6 @@ export async function OwnerRest({
           </ul>
         )}
       </section>
-    </>
+    </div>
   );
 }

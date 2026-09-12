@@ -1,19 +1,100 @@
+import { redirect } from "next/navigation";
+import { ZodError } from "zod";
 import { ui } from "@/lib/ui-copy";
+import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { ExpenseCategory } from "@/modules/expense/domain/categories";
-import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
+import {
+  parseLedgerPeriodQuery,
+  type LedgerPeriodQuery,
+} from "@/modules/ledger/schemas/period-query";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 
 export const OWNER_TIME_ZONE = "Asia/Beirut";
 
-export function keepOwnerQuery(
+export function queryString(
+  value: string | string[] | undefined,
+): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+export function tenantSlugFrom(
+  params: { tenant?: string | string[] },
+  fallback: string,
+): string {
+  return typeof params.tenant === "string" && params.tenant.length > 0
+    ? params.tenant
+    : fallback;
+}
+
+export async function requireOwnerMembership(
   tenantSlug: string,
-  bookOn: string,
+): Promise<CurrentMembership> {
+  const membership = await getCurrentMembership();
+  if (!membership) {
+    const next = new URLSearchParams();
+    next.set("tenant", tenantSlug);
+    redirect(`/login?${next.toString()}`);
+  }
+  return membership;
+}
+
+export function readPeriodQuery(params: {
+  from?: string | string[];
+  to?: string | string[];
+  view?: string | string[];
+  displayRate?: string | string[];
+}): LedgerPeriodQuery {
+  try {
+    return parseLedgerPeriodQuery({
+      from: queryString(params.from),
+      to: queryString(params.to),
+      view: queryString(params.view),
+      displayRate: queryString(params.displayRate),
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return {
+        from: undefined,
+        to: undefined,
+        view: "usd",
+        displayRate: undefined,
+      };
+    }
+    throw error;
+  }
+}
+
+export function parseOwnerBookOn(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    civilFromYyyyMmDd(value);
+    return value;
+  } catch {
+    return undefined;
+  }
+}
+
+export function keepTenantQuery(tenantSlug: string) {
+  return <input type="hidden" name="tenant" value={tenantSlug} />;
+}
+
+export function keepBookQuery(tenantSlug: string, bookOn: string) {
+  return (
+    <>
+      <input type="hidden" name="tenant" value={tenantSlug} />
+      <input type="hidden" name="bookOn" value={bookOn} />
+    </>
+  );
+}
+
+export function keepPeriodQuery(
+  tenantSlug: string,
   period: LedgerPeriodQuery,
 ) {
   return (
     <>
       <input type="hidden" name="tenant" value={tenantSlug} />
-      <input type="hidden" name="bookOn" value={bookOn} />
       {period.from ? (
         <input type="hidden" name="from" value={period.from} />
       ) : null}

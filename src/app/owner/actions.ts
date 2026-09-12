@@ -22,21 +22,20 @@ function field(formData: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
-const KEEP_QUERY = [
-  "tenant",
-  "bookOn",
-  "from",
-  "to",
-  "view",
-  "displayRate",
-] as const;
+const TODAY_KEEP = ["tenant"] as const;
+const BOOK_KEEP = ["tenant", "bookOn"] as const;
+const MONEY_KEEP = ["tenant", "from", "to", "view", "displayRate"] as const;
 
 /**
- * Keep local query after POST (tenant, bookOn, period). Hidden tenant is not isolation.
+ * Keep the tab's local query after POST. Hidden tenant is not isolation.
  */
-function ownerQuery(formData: FormData, extra?: Record<string, string>): string {
+function ownerQuery(
+  formData: FormData,
+  keys: readonly string[],
+  extra?: Record<string, string>,
+): string {
   const next = new URLSearchParams();
-  for (const key of KEEP_QUERY) {
+  for (const key of keys) {
     const value = field(formData, key);
     if (value) next.set(key, value);
   }
@@ -47,6 +46,15 @@ function ownerQuery(formData: FormData, extra?: Record<string, string>): string 
   }
   const qs = next.toString();
   return qs ? `?${qs}` : "";
+}
+
+function redirectTab(
+  path: string,
+  formData: FormData,
+  keys: readonly string[],
+  extra?: Record<string, string>,
+): never {
+  redirect(`${path}${ownerQuery(formData, keys, extra)}`);
 }
 
 /**
@@ -69,9 +77,9 @@ async function submitDecision(
     errorKey = await actionErrorKey(error, useCase);
   }
   if (errorKey) {
-    redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
+    redirectTab("/owner/today", formData, TODAY_KEEP, { error: errorKey });
   }
-  redirect(`/owner${ownerQuery(formData, { ok })}`);
+  redirectTab("/owner/today", formData, TODAY_KEEP, { ok });
 }
 
 export async function submitApproveBooking(formData: FormData) {
@@ -105,9 +113,9 @@ export async function submitCreateOwnerBooking(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitCreateOwnerBooking");
   }
   if (errorKey) {
-    redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
+    redirectTab("/owner/book", formData, BOOK_KEEP, { error: errorKey });
   }
-  redirect(`/owner${ownerQuery(formData, { ok: "booked" })}`);
+  redirectTab("/owner/book", formData, BOOK_KEEP, { ok: "booked" });
 }
 
 /**
@@ -134,9 +142,9 @@ export async function submitCollectPayment(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitCollectPayment");
   }
   if (errorKey) {
-    redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
+    redirectTab("/owner/today", formData, TODAY_KEEP, { error: errorKey });
   }
-  redirect(`/owner${ownerQuery(formData, { ok: "collected" })}`);
+  redirectTab("/owner/today", formData, TODAY_KEEP, { ok: "collected" });
 }
 
 /**
@@ -153,9 +161,9 @@ export async function submitSetExchangeRate(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitSetExchangeRate");
   }
   if (errorKey) {
-    redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
+    redirectTab("/owner/money", formData, MONEY_KEEP, { error: errorKey });
   }
-  redirect(`/owner${ownerQuery(formData, { ok: "rate_set" })}`);
+  redirectTab("/owner/money", formData, MONEY_KEEP, { ok: "rate_set" });
 }
 
 /**
@@ -189,7 +197,7 @@ export async function submitRecordExpense(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitRecordExpense");
   }
   if (errorKey) {
-    redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
+    redirectTab("/owner/money", formData, MONEY_KEEP, { error: errorKey });
   }
-  redirect(`/owner${ownerQuery(formData, { ok: "expense_recorded" })}`);
+  redirectTab("/owner/money", formData, MONEY_KEEP, { ok: "expense_recorded" });
 }

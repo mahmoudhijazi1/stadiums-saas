@@ -2,7 +2,6 @@ import type { CurrentMembership } from "@/modules/access/application/get-current
 import { BOOKINGS_APPROVE, BOOKINGS_CANCEL, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import { listDueBookings } from "@/modules/booking/application/list-due-bookings";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
-import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { formatUsd } from "@/lib/money";
 import { confirmedCount, pendingCount, ui } from "@/lib/ui-copy";
 import {
@@ -14,7 +13,7 @@ import {
 import {
   formatLocalDateTime,
   formatLocalRange,
-  keepOwnerQuery,
+  keepTenantQuery,
 } from "@/app/owner/shared";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,13 +32,9 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 export async function OwnerToday({
   membership,
   tenantSlug,
-  bookOn,
-  periodQuery,
 }: {
   membership: CurrentMembership;
   tenantSlug: string;
-  bookOn: string;
-  periodQuery: LedgerPeriodQuery;
 }) {
   const pending = await listPendingRequests();
   const confirmed = await listDueBookings();
@@ -85,12 +80,12 @@ export async function OwnerToday({
                   <CardContent className="flex gap-2">
                     <form action={submitApproveBooking} className="min-w-0 flex-1">
                       <input type="hidden" name="bookingId" value={row.id} />
-                      {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                      {keepTenantQuery(tenantSlug)}
                       <SubmitButton className="w-full">{ui("owner.approve")}</SubmitButton>
                     </form>
                     <form action={submitRejectBooking} className="min-w-0 flex-1">
                       <input type="hidden" name="bookingId" value={row.id} />
-                      {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                      {keepTenantQuery(tenantSlug)}
                       <SubmitButton variant="outline" className="w-full">
                         {ui("owner.reject")}
                       </SubmitButton>
@@ -145,7 +140,7 @@ export async function OwnerToday({
                     <>
                       <form action={submitCollectPayment}>
                         <input type="hidden" name="bookingId" value={row.id} />
-                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                        {keepTenantQuery(tenantSlug)}
                         <input
                           type="hidden"
                           name="usdAmount"
@@ -163,7 +158,7 @@ export async function OwnerToday({
                         className="flex flex-col gap-4"
                       >
                         <input type="hidden" name="bookingId" value={row.id} />
-                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                        {keepTenantQuery(tenantSlug)}
                         <div className="flex flex-col gap-2">
                           <Label htmlFor={`usd-${row.id}`}>{ui("owner.usd")}</Label>
                           <Input
@@ -194,7 +189,7 @@ export async function OwnerToday({
                   {mayCancel ? (
                     <form action={submitCancelBooking}>
                       <input type="hidden" name="bookingId" value={row.id} />
-                      {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                      {keepTenantQuery(tenantSlug)}
                       <SubmitButton variant="outline" className="w-full">
                         {ui("owner.cancel")}
                       </SubmitButton>

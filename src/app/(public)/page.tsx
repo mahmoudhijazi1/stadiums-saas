@@ -27,21 +27,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const now = new Date();
   const today = civilDateInTimeZone(now, "Asia/Beirut");
   const localDate = parseCivilDate(dateParam) ?? today;
-  const ok =
-    typeof params.ok === "string"
-      ? params.ok
-      : params.received === "1"
-        ? "requested"
-        : undefined;
-  const errorKey = typeof params.error === "string" ? params.error : undefined;
   const dateValue = formatCivilDate(localDate);
-  const keep = new URLSearchParams();
-  keep.set("tenant", tenant.slug);
-  keep.set("date", dateValue);
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-8">
-      <FlashToast ok={ok} error={errorKey} keepQuery={keep.toString()} />
+      <Suspense fallback={null}>
+        <FlashToast />
+      </Suspense>
       <header className="flex items-center justify-between gap-3">
         <h1 className="min-w-0 font-heading text-2xl">{tenant.name}</h1>
         <PublicLangToggle locale={locale} />

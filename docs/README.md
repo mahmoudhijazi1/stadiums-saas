@@ -57,6 +57,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
+- [Owner dashboard IA](./owner-ia.md) — living tab/route map for `/owner` (update when tabs change)
 - [Cursor workflow](./guides/cursor-workflow.md) — slices, tokens, staying on rules
 - [Folder structure](./guides/folder-structure.md) — modular monolith layout
 - [Cursor rules](./guides/cursor-rules.md) — why `.mdc` and how scoping works

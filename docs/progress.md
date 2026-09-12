@@ -2742,6 +2742,52 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test` (170). Public `/?tenant=ahmad&date=` yesterday — «هذا التاريخ مضى», no chip ringed. Open calendar — days before today disabled. After last slot tonight — «لم تبق ساعات اليوم». Closed weekday still «مغلق هذا اليوم.». Owner Book past `bookOn` — same past empty state; Owner Today still lists today's pending/confirmed.
 
+---
+
+## Chapter 119 — 2026-09-12 — Owner tabs: real routes + shared layout
+
+**When:** 2026-09-12
+
+**What:** `/owner` is no longer one scrolling page. Nested `layout.tsx` holds header + bottom tab bar; `/owner` redirects to `/owner/today`. Tabs are `/owner/today`, `/owner/book`, `/owner/waitlist`, `/owner/money`. Actions redirect to the owning tab. `FlashToast` lives in the layout and reads `ok`/`error` via `useSearchParams`. No `loading.tsx`. Login lands on `/owner/today`. Living map: `docs/owner-ia.md`.
+
+**Why:** Shop/Academy cannot pile onto one page. Real routes give back-button and bookmarks (same pattern as public day chips). Layouts cannot take `searchParams` (local layout.md).
+
+**Files:** `src/app/owner/layout.tsx`; `tab-bar.tsx`; `page.tsx`; `today/page.tsx`; `book/page.tsx`; `waitlist/page.tsx`; `money/page.tsx`; `today-lists.tsx`; `waitlist-list.tsx`; `money-panel.tsx`; `actions.ts`; `shared.tsx`; `skeletons.tsx`; `src/app/login/actions.ts`; `src/components/ui/flash-toast.tsx`; `src/modules/access/application/get-current-membership.ts` (`cache()`); `src/lib/ui-copy.ts`; `docs/owner-ia.md`; `docs/README.md`. Deleted `owner/rest.tsx`.
+
+**Relation:** Use cases unchanged. `app/` still has no Prisma / no `tenantId`. Tab bar is the only new owner Client Component besides FlashToast. **No `loading.tsx`** on owner tabs (GET date fields must stay mounted). Proxy vs `middleware.ts` flagged in `docs/owner-ia.md`, not migrated here.
+
+**How to verify:** `npm test`. Login → `/owner/today`. Header stays while tapping احجز / قائمة الانتظار / المال. Book GET stays on `/owner/book`. Approve toast on Today; create booking toast on Book; rate/expense on Money.
+
+---
+
+## Correction — 2026-09-12 — Today lists live under today/lists.tsx
+
+**When:** 2026-09-12
+
+**What:** `OwnerToday` is `src/app/owner/today/lists.tsx` (imported by `today/page.tsx` as `./lists`). Same for waitlist/`list.tsx` and money/`panel.tsx`. The old `owner/today.tsx` is gone; it still called `keepOwnerQuery` after that helper was removed, and Turbopack kept serving it.
+
+**Why:** A sibling `today.tsx` next to `today/page.tsx` is a bad split (and the stale module threw `keepOwnerQuery is not defined`).
+
+**Files:** `src/app/owner/today/lists.tsx`; `waitlist/list.tsx`; `money/panel.tsx`; `docs/owner-ia.md`. Deleted `today-lists.tsx`, `waitlist-list.tsx`, `money-panel.tsx`.
+
+**How to verify:** Refresh `/owner/today` — pending/confirmed render; cancel form has no `keepOwnerQuery` error.
+
+---
+
+## Chapter 120 — 2026-09-12 — Owner tab bar icons + dock
+
+**When:** 2026-09-12
+
+**What:** Owner bottom nav is a floating rounded dock: Lucide icons (list / calendar-plus / bell / wallet) over the existing Arabic labels, Volt tint + slight scale on the active tab, CSS `transition` only. Still `<Link>` + `usePathname` — not a client tab switcher.
+
+**Why:** Text-only chips were hard to scan on a phone; four Arabic labels needed a simple visual.
+
+**Files:** `src/app/owner/tab-bar.tsx`; `src/app/owner/layout.tsx`.
+
+**Relation:** Routes and IA in `docs/owner-ia.md` unchanged. Logical CSS; no `pl`/`pr`.
+
+**How to verify:** Open `/owner/today` — dock at the bottom. Tap احجز — icon tints Volt, header stays. Waitlist label may truncate; icon still readable.
+
 
 
 
