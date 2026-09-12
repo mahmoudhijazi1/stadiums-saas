@@ -2416,6 +2416,27 @@ The owner phone screen now starts with “who is waiting” and “who is on the
 
 The owner forms no longer pop up the phone’s own calendar and menu. They use our green-ring picker and list instead, but they still send the same dates and category codes to the kitchen.
 
+---
+
+## Chapter 104 — 2026-09-12 — public booking restyle
+
+**When:** 2026-09-12
+
+**What:** Public `/` uses the same Carbon/Volt kit as login/owner. Day is **DateField** (GET `name="date"`, `yyyy-mm-dd`), not a native date control. Slot cards are the same tokens, slightly tighter padding than owner. Name/tel stay Input; Request is Volt. Hidden fields for the Server Action are unchanged (`pitchId`, `start`, `end`, `date`, `tenant`).
+
+**Why:** Visual system — public was still `system-ui`. Calendar plan said reuse DateField for `?date=`. Not a SPEC.
+
+**Files:** `src/app/page.tsx`. `src/app/request-slot.ts` untouched.
+
+**Relation:** Page still has no Prisma / no `tenantId`. Payment still does not import Booking. `src/components/ui` still does not import `src/modules/*`.
+
+**How to verify:** `/?tenant=ahmad` — heading, calendar Day, Show slots, Request on a free hour. `?date=2026-09-13` still lists that civil day. Success still “Request received”; `?error=` still the dictionary line.
+
+### In plain language
+
+Walk-up booking now wears the same clothes as the owner phone: a green-ring day picker and stacked hour cards. Asking for an hour still sends the same name, phone, and times to the kitchen.
+
+
 
 
 
