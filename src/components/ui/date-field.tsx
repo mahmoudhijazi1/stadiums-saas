@@ -6,6 +6,7 @@ import { enGB } from "react-day-picker/locale"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { LtrIsolate } from "@/components/ui/ltr-isolate"
 import {
   Popover,
   PopoverContent,
@@ -63,7 +64,9 @@ function DateField({
             className="h-11 w-full justify-between px-3 font-mono font-normal"
             aria-required={required}
           >
-            <span>{value || "Pick a date"}</span>
+            <span>
+              {value ? <LtrIsolate>{value}</LtrIsolate> : "Pick a date"}
+            </span>
             <CalendarIcon className="size-4 text-muted-foreground" />
           </Button>
         </PopoverTrigger>

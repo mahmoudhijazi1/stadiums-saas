@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 
 /**
  * Thin login route. No Prisma and no tenantId.
@@ -31,7 +32,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           </CardTitle>
           <CardDescription>
             {tenant.name}
-            <span className="mt-1 block font-mono text-xs">{tenant.slug}</span>
+            <LtrIsolate className="mt-1 block text-xs">{tenant.slug}</LtrIsolate>
           </CardDescription>
         </CardHeader>
         <CardContent>

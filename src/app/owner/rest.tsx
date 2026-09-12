@@ -9,10 +9,7 @@ import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { formatUsd, parseLbp } from "@/lib/money";
-import {
-  lbpPerUsdLine,
-  ui,
-} from "@/lib/ui-copy";
+import { ui } from "@/lib/ui-copy";
 import { submitRecordExpense, submitSetExchangeRate } from "@/app/owner/actions";
 import {
   categoryLabel,
@@ -31,6 +28,7 @@ import {
 import { DateField } from "@/components/ui/date-field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -97,8 +95,10 @@ export async function OwnerRest({
                 <Card>
                   <CardHeader className="gap-1">
                     <CardTitle className="text-base">{group.pitchName}</CardTitle>
-                    <CardDescription className="font-mono">
-                      {formatLocalRange(group.start, group.end)}
+                    <CardDescription>
+                      <LtrIsolate>
+                        {formatLocalRange(group.start, group.end)}
+                      </LtrIsolate>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -110,8 +110,8 @@ export async function OwnerRest({
                         >
                           <div className="min-w-0">
                             <p>{person.name}</p>
-                            <p className="font-mono text-sm text-muted-foreground">
-                              {person.phone}
+                            <p className="text-sm text-muted-foreground">
+                              <LtrIsolate>{person.phone}</LtrIsolate>
                             </p>
                           </div>
                           {person.whatsAppHref ? (
@@ -141,18 +141,28 @@ export async function OwnerRest({
           <h2 className="font-heading text-lg">{ui("owner.period")}</h2>
           <Card>
             <CardHeader className="gap-1">
-              <CardDescription className="font-mono">
-                {summary.from} → {summary.to}
+              <CardDescription>
+                <LtrIsolate>
+                  {summary.from} → {summary.to}
+                </LtrIsolate>
               </CardDescription>
-              <p className="font-mono text-base font-medium">
+              <p className="text-base font-medium">
                 {ui("owner.difference")}{" "}
-                {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+                <LtrIsolate>
+                  {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+                </LtrIsolate>
               </p>
-              <p className="font-mono text-sm text-muted-foreground">
-                {ui("owner.in")} {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
+              <p className="text-sm text-muted-foreground">
+                {ui("owner.in")}{" "}
+                <LtrIsolate>
+                  {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
+                </LtrIsolate>
               </p>
-              <p className="font-mono text-sm text-muted-foreground">
-                {ui("owner.out")} {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
+              <p className="text-sm text-muted-foreground">
+                {ui("owner.out")}{" "}
+                <LtrIsolate>
+                  {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
+                </LtrIsolate>
               </p>
               {lbpNote ? (
                 <p className="text-sm text-muted-foreground">{lbpNote}</p>
@@ -216,8 +226,14 @@ export async function OwnerRest({
         <h2 className="font-heading text-lg">{ui("owner.rate")}</h2>
         <Card>
           <CardHeader>
-            <CardDescription className="font-mono">
-              {rate ? lbpPerUsdLine(rate.toFixed(0)) : ui("owner.noRate")}
+            <CardDescription>
+              {rate ? (
+                <>
+                  <LtrIsolate>{rate.toFixed(0)}</LtrIsolate> ليرة لكل دولار
+                </>
+              ) : (
+                ui("owner.noRate")
+              )}
             </CardDescription>
           </CardHeader>
           {isOwner ? (
@@ -328,8 +344,8 @@ export async function OwnerRest({
             {expenses.map((row) => (
               <li key={row.id} className="text-sm">
                 {categoryLabel(row.category)} — {row.description} —{" "}
-                <span className="font-mono">{formatLocalDay(row.occurredAt)}</span>{" "}
-                — <span className="font-mono">${formatUsd(row.amountUsd)}</span>
+                <LtrIsolate>{formatLocalDay(row.occurredAt)}</LtrIsolate> —{" "}
+                <LtrIsolate>${formatUsd(row.amountUsd)}</LtrIsolate>
               </li>
             ))}
           </ul>

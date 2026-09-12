@@ -1,26 +1,24 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import type { CivilDate } from "@/modules/venue/domain/availability";
+import { PublicDayChips } from "@/app/public-day-chips";
 import { HoursListSkeleton } from "@/app/list-skeletons";
 import { PublicHours } from "@/app/public-hours";
-import { Button } from "@/components/ui/button";
-import { DateField } from "@/components/ui/date-field";
 import { FlashToast } from "@/components/ui/flash-toast";
-import { Label } from "@/components/ui/label";
 import { ui } from "@/lib/ui-copy";
 import { Suspense } from "react";
 
 /**
  * Thin route. No Prisma and no tenantId.
  * Occupied comes from Booking; Venue only receives UTC ranges (SPEC-05).
- * Next 16: searchParams is a Promise; <form action={Server Action}> (forms guide).
- * Date GET uses DateField hidden name="date" (same yyyy-mm-dd as before).
- * Hours list is a child RSC so Show hours keeps the date field mounted.
+ * Date is ?date= yyyy-mm-dd via Link chips (client transition, not a GET form).
+ * Hours list is a child RSC so the chip row stays mounted while slots suspend.
  */
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
-  const localDate = parseCivilDate(dateParam) ?? todayInTimeZone("Asia/Beirut");
+  const today = todayInTimeZone("Asia/Beirut");
+  const localDate = parseCivilDate(dateParam) ?? today;
   const ok =
     typeof params.ok === "string"
       ? params.ok
@@ -40,16 +38,11 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <h1 className="font-heading text-2xl">{tenant.name}</h1>
       </header>
 
-      <form method="get" action="/" className="flex flex-col gap-3">
-        <input type="hidden" name="tenant" value={tenant.slug} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="date">{ui("public.day")}</Label>
-          <DateField id="date" name="date" required defaultValue={dateValue} />
-        </div>
-        <Button type="submit" variant="secondary" className="w-full">
-          {ui("public.showHours")}
-        </Button>
-      </form>
+      <PublicDayChips
+        tenantSlug={tenant.slug}
+        today={today}
+        selectedDate={dateValue}
+      />
 
       <section className="flex flex-col gap-4">
         <h2 className="font-heading text-xl">{ui("public.hours")}</h2>

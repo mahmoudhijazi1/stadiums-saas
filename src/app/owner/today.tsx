@@ -4,13 +4,7 @@ import { listDueBookings } from "@/modules/booking/application/list-due-bookings
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { formatUsd } from "@/lib/money";
-import {
-  collectUsdLabel,
-  confirmedCount,
-  dueRemainingLine,
-  pendingCount,
-  ui,
-} from "@/lib/ui-copy";
+import { confirmedCount, pendingCount, ui } from "@/lib/ui-copy";
 import {
   submitApproveBooking,
   submitCancelBooking,
@@ -34,6 +28,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 
 export async function OwnerToday({
   membership,
@@ -73,15 +68,16 @@ export async function OwnerToday({
                     <Badge variant="outline">{ui("owner.pending")}</Badge>
                   </div>
                   <CardDescription>
-                    <span className="font-mono">
+                    <LtrIsolate className="block">
                       {formatLocalRange(row.start, row.end)}
-                    </span>
+                    </LtrIsolate>
                     <span className="mt-1 block">
                       {row.requesterName}{" "}
-                      <span className="font-mono">{row.requesterPhone}</span>
+                      <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                     </span>
                     <span className="mt-1 block">
-                      {ui("owner.requested")} {formatLocalDateTime(row.requestedAt)}
+                      {ui("owner.requested")}{" "}
+                      <LtrIsolate>{formatLocalDateTime(row.requestedAt)}</LtrIsolate>
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -128,18 +124,19 @@ export async function OwnerToday({
                     </Badge>
                   </div>
                   <CardDescription>
-                    <span className="font-mono">
+                    <LtrIsolate className="block">
                       {formatLocalRange(row.start, row.end)}
-                    </span>
+                    </LtrIsolate>
                     <span className="mt-1 block">
                       {row.requesterName}{" "}
-                      <span className="font-mono">{row.requesterPhone}</span>
+                      <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                     </span>
-                    <span className="mt-1 block font-mono">
-                      {dueRemainingLine(
-                        formatUsd(row.priceUsd),
-                        formatUsd(row.remaining),
-                      )}
+                    <span className="mt-1 block">
+                      المستحق{" "}
+                      <LtrIsolate>${formatUsd(row.priceUsd)}</LtrIsolate>
+                      {" · "}
+                      المتبقي{" "}
+                      <LtrIsolate>${formatUsd(row.remaining)}</LtrIsolate>
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -155,7 +152,10 @@ export async function OwnerToday({
                           value={formatUsd(row.remaining)}
                         />
                         <SubmitButton className="w-full">
-                          {collectUsdLabel(formatUsd(row.remaining))}
+                          تحصيل{" "}
+                          <LtrIsolate>
+                            ${formatUsd(row.remaining)}
+                          </LtrIsolate>
                         </SubmitButton>
                       </form>
                       <form

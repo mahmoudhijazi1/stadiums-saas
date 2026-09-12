@@ -5,6 +5,9 @@
 const ARABIC: Record<string, string> = {
   "doc.title": "ملاعب",
   "public.day": "اليوم",
+  "public.today": "اليوم",
+  "public.tomorrow": "غداً",
+  "public.otherDate": "تاريخ آخر",
   "public.showHours": "عرض الساعات",
   "public.hours": "الساعات",
   "public.taken": "محجوز",

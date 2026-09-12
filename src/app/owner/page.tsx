@@ -21,6 +21,7 @@ import { submitLogout } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
 import { FlashToast } from "@/components/ui/flash-toast";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ui } from "@/lib/ui-copy";
@@ -117,7 +118,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
         <div className="min-w-0">
           <h1 className="font-heading text-2xl">{tenant.name}</h1>
           <p className="text-sm text-muted-foreground">
-            <span className="font-mono">{membership.identifier}</span>
+            <LtrIsolate>{membership.identifier}</LtrIsolate>
             {" · "}
             {ui(`role.${membership.role}`)}
           </p>

@@ -12,6 +12,8 @@ describe("ui", () => {
   it("returns catalog Arabic for a known key", () => {
     expect(ui("login.submit")).toBe("دخول");
     expect(ui("public.request")).toBe("اطلب");
+    expect(ui("public.today")).toBe("اليوم");
+    expect(ui("public.tomorrow")).toBe("غداً");
   });
 
   it("returns the key itself when unknown", () => {

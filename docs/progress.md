@@ -28,7 +28,7 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-12)
 
-**On `main`.** SPEC-01–13 click-proofed. UI is Arabic + RTL. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
+**On `feature/public-slot-picker`.** SPEC-01–13 click-proofed. UI is Arabic + RTL. Public date is a 7-chip row (اليوم / غداً / four weekdays + calendar); hours are a 2-col tap grid with one inline request form. Latin times/phones/money/day numbers are `<bdi dir="ltr">`. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
 
 **What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, Cancels, sees waitlist + Notify, records expenses, and sees This period.
 
@@ -2595,6 +2595,75 @@ The owner’s list on the wall is Arabic now. The WhatsApp note he sends is stil
 ### In plain language
 
 The note the owner pastes into WhatsApp is Arabic now, with the same stadium name and Latin times. This Arabic slice is finished.
+
+---
+
+## Chapter 113 — 2026-09-12 — Public slot picker + RTL bidi isolate
+
+**When:** 2026-09-12
+
+**What:** Two UX fixes, same Server Action. (1) Latin runs inside `dir="rtl"` were painting backwards (`17:00–16:00`). Display of times, phones, money, and `yyyy-mm-dd` now goes through `LtrIsolate` (`<bdi dir="ltr">` + `font-mono`). (2) Public hours no longer stack a name+phone form on every free slot. `PublicHours` still fetches; `PublicSlotPicker` (one Client Component) is a 2-col grid of time+price blocks. Taken hours stay visible, muted, not tappable. Tapping an open slot expands **one** form under that pitch’s chips (same hidden fields + `submitPublicSlotRequest`). Tap again to collapse; picking another slot (including another pitch) closes the previous form.
+
+**Why:** RTL bidi bug (RULE-11 / DR-005). Public request UX — no new SPEC; action contract unchanged.
+
+**Files:** `src/components/ui/ltr-isolate.tsx` (new); `src/app/public-slot-picker.tsx` (new); `src/app/public-hours.tsx`; `src/components/ui/date-field.tsx`; `src/app/owner/today.tsx`; `src/app/owner/book-slots.tsx`; `src/app/owner/rest.tsx`; `src/app/owner/page.tsx`; `src/app/login/page.tsx`.
+
+**Relation:** `app/` still has no Prisma / no `tenantId`. Picker holds selection only — it must not import domain or Prisma. `submitPublicSlotRequest` and hidden fields (`pitchId`, `start`, `end`, `date`, `tenant`) unchanged. Owner Book still has one form per available slot (bidi wrap only). Do not wrap Arabic chrome. Do not change `slotAvailableMessage` (WhatsApp URL, not RTL HTML).
+
+**How to verify:** `npm test` (154). `/?tenant=ahmad` — HTML has `<bdi dir="ltr">16:00–17:00</bdi>` (start before end), 2-col grid, `محجوز` on muted taken cells, **no** name/phone form until a chip is selected; Request still lands `ok=requested`. `/owner` Today/Book/waitlist ranges and phones no longer reverse. `/login?tenant=ahmad` slug is isolated.
+
+### In plain language
+
+Times stopped flipping backwards in Arabic layout. Visitors now tap an hour to open one request form instead of scrolling past a stack of identical forms.
+
+---
+
+## Chapter 114 — 2026-09-12 — Public day chips (Link, not a date form)
+
+**When:** 2026-09-12
+
+**What:** Public `/` no longer uses DateField + **عرض الساعات**. Same-week dates are a horizontal row of seven chips: اليوم, غداً, the next four weekdays with a Western day number, then a calendar icon. The six day chips are Next.js `<Link href={{ pathname: "/", query: { tenant, date } }}>` (App Router client transition — not `<form method="get">`, not a raw `<a>`). The existing `<Suspense key={dateValue}>` around `PublicHours` is what should skeleton **only** the slot list. Window is always venue-today…today+5. A date outside that window rings the calendar chip (Popover + same `en-GB` Calendar); `router.push` with `tenant` + `date` only. `?date=` / `parseCivilDate` / `todayInTimeZone` unchanged.
+
+**Why:** Same-day/this-week is the common path; a calendar-first field was two actions. No SPEC — UX, query contract unchanged.
+
+**Files:** `src/app/public-day-chips.tsx` (new RSC); `src/app/public-date-calendar-chip.tsx` (new client, calendar overflow only); `src/app/page.tsx`; `src/lib/ui-copy.ts`; `test/lib/ui-copy.test.ts`.
+
+**Relation:** `PublicHours` / slot picker / request action untouched. Owner DateField (`bookOn`, `from`, `to`, `occurredOn`) unchanged. Day numbers in `LtrIsolate`; do not wrap the Arabic weekday. No `loading.tsx` on `/` (that would white-flash the whole page).
+
+**How to verify:** `npm test`. `/?tenant=ahmad` — six `/ ?tenant=ahmad&date=yyyy-mm-dd` Links, no DateField, no **عرض الساعات**; Today ringed; times still `16:00–17:00`. Tap غداً — `?date=` tomorrow, that chip rings; stadium name + chips stay, **only** the hours area shows the skeleton. `/?tenant=ahmad&date=2026-10-01` — calendar chip `aria-pressed="true"`. `/owner` DateField still there.
+
+### In plain language
+
+Picking a day this week is one tap on a chip. The hours list refreshes underneath; the rest of the page does not go white.
+
+---
+
+## Correction — 2026-09-12 — Day-chip selected ring was clipped
+
+**When:** 2026-09-12
+
+**What:** `overflow-x-auto` on the chip row clipped the Volt ring (CSS treats the other axis as `auto` too). Padding on the row is now `p-2.5` so the ring+offset has room, including on اليوم at the RTL start edge.
+
+**Why:** Same selected treatment as the slot picker; the scroll row has to leave space for it.
+
+**Files:** `src/app/public-day-chips.tsx`
+
+**How to verify:** Select اليوم / غداً — the full green ring is visible on all four sides, not cut by the row.
+
+---
+
+## Correction — 2026-09-12 — Day chips: no horizontal scrollbar
+
+**When:** 2026-09-12
+
+**What:** Dropped `overflow-x-auto`. The seven chips share the row (`flex-1`, compact `text-xs`). Selected uses an **inset** Volt ring so it does not need extra padding and does not clip.
+
+**Why:** A scrollbar under the chips is worse than slightly tighter labels.
+
+**Files:** `src/app/public-day-chips.tsx`; `src/app/public-date-calendar-chip.tsx`
+
+**How to verify:** `/?tenant=ahmad` — all seven chips visible, no scrollbar under the row; selected اليوم still has a full green outline.
+
 
 
 

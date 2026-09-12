@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { ui } from "@/lib/ui-copy";
 
 export async function OwnerBookSlots({
@@ -62,15 +63,17 @@ export async function OwnerBookSlots({
                   <Card>
                     <CardHeader className="gap-1">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="font-mono text-base">
-                          {slot.startLocal}–{slot.endLocal}
+                        <CardTitle className="text-base">
+                          <LtrIsolate>
+                            {`${slot.startLocal}–${slot.endLocal}`}
+                          </LtrIsolate>
                         </CardTitle>
                         {slot.available ? null : (
                           <Badge variant="outline">{ui("public.taken")}</Badge>
                         )}
                       </div>
-                      <CardDescription className="font-mono">
-                        ${slot.priceUsd}
+                      <CardDescription>
+                        <LtrIsolate>{`$${slot.priceUsd}`}</LtrIsolate>
                       </CardDescription>
                     </CardHeader>
                     {slot.available ? (
