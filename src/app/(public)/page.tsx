@@ -1,9 +1,9 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import type { CivilDate } from "@/modules/venue/domain/availability";
-import { PublicDayChips } from "@/app/public-day-chips";
-import { PublicHoursSkeleton } from "@/app/public-skeletons";
-import { PublicHours } from "@/app/public-hours";
-import { PublicLangToggle } from "@/app/public-lang-toggle";
+import { PublicDayChips } from "./day-chips";
+import { PublicHoursSkeleton } from "./skeletons";
+import { PublicHours } from "./hours";
+import { PublicLangToggle } from "./lang-toggle";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";

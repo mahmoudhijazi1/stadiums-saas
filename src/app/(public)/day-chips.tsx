@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { PublicDateCalendarChip } from "@/app/public-date-calendar-chip";
+import { PublicDateCalendarChip } from "./date-calendar-chip";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";

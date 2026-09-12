@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { setUiLocale } from "@/app/locale-actions";
+import { setUiLocale } from "./locale-actions";
 import { Button } from "@/components/ui/button";
 import {
   htmlDir,

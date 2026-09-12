@@ -12,7 +12,7 @@ import {
   BookSlotsSkeleton,
   OwnerRestSkeleton,
   TodayListsSkeleton,
-} from "@/app/list-skeletons";
+} from "./skeletons";
 import { OwnerBookSlots } from "@/app/owner/book-slots";
 import { OwnerRest } from "@/app/owner/rest";
 import { civilFromYyyyMmDd } from "@/app/owner/shared";

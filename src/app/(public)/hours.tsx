@@ -1,7 +1,7 @@
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import type { CivilDate } from "@/modules/venue/domain/availability";
-import { PublicSlotPicker } from "@/app/public-slot-picker";
+import { PublicSlotPicker } from "./slot-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";

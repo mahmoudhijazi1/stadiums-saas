@@ -2710,6 +2710,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `/?tenant=ahmad` — EN at inline-end of the header. Tap — page goes LTR, Today/Hours/Request in English, chips at the left. Tap ع — back to RTL Arabic. `npm test` (157).
 
+---
+
+## Chapter 117 — 2026-09-12 — Colocate route UI; public form field errors
+
+**When:** 2026-09-12
+
+**What:** Public UI lives under `src/app/(public)/` (URL still `/`). Owner skeletons moved next to `/owner`. Shared primitives stay in `src/components/ui` (`LtrIsolate`, `FlashToast`). Public name/phone no longer use HTML `required` (browser bubble). `noValidate` + inline `role="alert"` under the field; same 8–15 digit phone rule as Zod. Server Action still parses with Zod.
+
+**Why:** Scattered `public-*.tsx` at `app/` root were not routes. Native validation is ugly and ignores our Arabic/English copy.
+
+**Files:** `src/app/(public)/*`; `src/app/owner/skeletons.tsx`; `src/lib/ui-copy.ts`; `test/app/public/request-fields.test.ts`.
+
+**Relation:** `app/` still has no Prisma / no `tenantId`. `request-fields.ts` imports `normalizePhone` only (people domain).
+
+**How to verify:** `npm test` (158). Open a slot, tap اطلب empty — red line under name and phone, no OS tooltip. Valid name + `03 123 456` still `ok=requested`.
+
+
 
 
 

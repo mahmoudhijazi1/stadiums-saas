@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { submitPublicSlotRequest } from "@/app/request-slot";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { submitPublicSlotRequest } from "./request-slot";
+import {
+  hasPublicRequestFieldErrors,
+  publicRequestFieldErrors,
+  type PublicRequestFieldErrors,
+} from "./request-fields";
 import type {
   DaySlotView,
   PitchDayAvailability,
@@ -131,49 +136,122 @@ function SlotBlock({
         {price}
       </button>
       {isSelected ? (
-        <form
-          action={submitPublicSlotRequest}
-          className="col-span-2 flex flex-col gap-4 rounded-xl border bg-card px-4 py-4 shadow-sm"
-        >
-          <p className="flex items-baseline justify-between gap-2">
-            {time}
-            {price}
-          </p>
-          <input type="hidden" name="pitchId" value={pitchId} />
-          <input type="hidden" name="start" value={slot.startIso} />
-          <input type="hidden" name="end" value={slot.endIso} />
-          <input type="hidden" name="date" value={dateValue} />
-          <input type="hidden" name="tenant" value={tenantSlug} />
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`name-${slot.startIso}`}>
-              {ui("public.name", locale)}
-            </Label>
-            <Input
-              id={`name-${slot.startIso}`}
-              type="text"
-              name="name"
-              required
-              autoComplete="name"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`phone-${slot.startIso}`}>
-              {ui("public.phone", locale)}
-            </Label>
-            <Input
-              id={`phone-${slot.startIso}`}
-              type="tel"
-              name="phone"
-              required
-              autoComplete="tel"
-              className="font-mono"
-            />
-          </div>
-          <SubmitButton className="w-full">
-            {ui("public.request", locale)}
-          </SubmitButton>
-        </form>
+        <RequestForm
+          pitchId={pitchId}
+          slot={slot}
+          dateValue={dateValue}
+          tenantSlug={tenantSlug}
+          locale={locale}
+          time={time}
+          price={price}
+        />
       ) : null}
     </>
+  );
+}
+
+function RequestForm({
+  pitchId,
+  slot,
+  dateValue,
+  tenantSlug,
+  locale,
+  time,
+  price,
+}: {
+  pitchId: string;
+  slot: DaySlotView;
+  dateValue: string;
+  tenantSlug: string;
+  locale: UiLocale;
+  time: ReactNode;
+  price: ReactNode;
+}) {
+  const [fieldErrors, setFieldErrors] = useState<PublicRequestFieldErrors>({});
+  const nameErrorId = `name-err-${slot.startIso}`;
+  const phoneErrorId = `phone-err-${slot.startIso}`;
+
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    const data = new FormData(event.currentTarget);
+    const next = publicRequestFieldErrors(
+      String(data.get("name") ?? ""),
+      String(data.get("phone") ?? ""),
+    );
+    if (hasPublicRequestFieldErrors(next)) {
+      event.preventDefault();
+      setFieldErrors(next);
+      return;
+    }
+    setFieldErrors({});
+  }
+
+  return (
+    <form
+      action={submitPublicSlotRequest}
+      noValidate
+      onSubmit={onSubmit}
+      className="col-span-2 flex flex-col gap-4 rounded-xl border bg-card px-4 py-4 shadow-sm"
+    >
+      <p className="flex items-baseline justify-between gap-2">
+        {time}
+        {price}
+      </p>
+      <input type="hidden" name="pitchId" value={pitchId} />
+      <input type="hidden" name="start" value={slot.startIso} />
+      <input type="hidden" name="end" value={slot.endIso} />
+      <input type="hidden" name="date" value={dateValue} />
+      <input type="hidden" name="tenant" value={tenantSlug} />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`name-${slot.startIso}`}>
+          {ui("public.name", locale)}
+        </Label>
+        <Input
+          id={`name-${slot.startIso}`}
+          type="text"
+          name="name"
+          autoComplete="name"
+          aria-invalid={Boolean(fieldErrors.name)}
+          aria-describedby={fieldErrors.name ? nameErrorId : undefined}
+          onInput={() =>
+            setFieldErrors((current) => ({ ...current, name: undefined }))
+          }
+        />
+        {fieldErrors.name ? (
+          <p id={nameErrorId} role="alert" className="text-sm text-destructive">
+            {ui(fieldErrors.name, locale)}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`phone-${slot.startIso}`}>
+          {ui("public.phone", locale)}
+        </Label>
+        <Input
+          id={`phone-${slot.startIso}`}
+          type="tel"
+          name="phone"
+          autoComplete="tel"
+          inputMode="tel"
+          className="font-mono"
+          aria-invalid={Boolean(fieldErrors.phone)}
+          aria-describedby={fieldErrors.phone ? phoneErrorId : undefined}
+          onInput={() =>
+            setFieldErrors((current) => ({ ...current, phone: undefined }))
+          }
+        />
+        {fieldErrors.phone ? (
+          <p
+            id={phoneErrorId}
+            role="alert"
+            className="text-sm text-destructive"
+          >
+            {ui(fieldErrors.phone, locale)}
+          </p>
+        ) : null}
+      </div>
+      <SubmitButton className="w-full">
+        {ui("public.request", locale)}
+      </SubmitButton>
+    </form>
   );
 }
