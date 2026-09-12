@@ -3050,6 +3050,38 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. Switch to English, approve/collect — toast is English. X dismisses it. Arabic still Arabic.
 
+---
+
+## Chapter 138 — 2026-09-13 — Reports tab + More / Settings
+
+**When:** 2026-09-13
+
+**What:** Bottom bar is five tabs: Home / Book / Waitlist / Reports / More. `/owner/money` stays (heading + tab = تقارير / Reports); period + expenses stay; exchange-rate **set** form moved to `/owner/more/settings`. More is a hub (Settings only for now). Waitlist tab label shortens to انتظار; page heading stays قائمة الانتظار.
+
+**Why:** Rate is stadium config, not a report. More is the reserved home for Settings extras, Tournaments, Shop, Academy — the bar does not grow again.
+
+**Files:** `src/app/owner/tab-bar.tsx`; `money/page.tsx`, `panel.tsx`, `actions.ts`; `more/page.tsx`; `more/settings/{page,panel,actions,skeleton}.tsx`; `src/lib/ui-copy.ts`; `docs/owner-ia.md`; tests.
+
+**Relation:** `setExchangeRate` / `recordExpense` use cases unchanged. Reports still **reads** `getCurrentRate()` for LBP display. No pitch UI (known gap). No `loading.tsx` under `/owner`.
+
+**How to verify:** `npm test`. Owner bar shows 5 labels including تقارير and المزيد. Reports has period + expenses, no rate form. More → Settings: OWNER can set rate; toast lands on Settings. Waitlist tab says انتظار; heading is still قائمة الانتظار.
+
+---
+
+## Chapter 139 — 2026-09-13 — Reports Pass 1: hero, disclosure, expense rows
+
+**When:** 2026-09-13
+
+**What:** Reports summary: difference is `text-2xl`; In tile Volt, Out tile due-muted; CSS In/Out bars from the two totals (no library). Period GET form behind “Change period”; record-expense form behind “Add expense”. Expense history is compact cards (lucide category icon, description, LTR date, mono amount). Default period remains this Beirut calendar month.
+
+**Why:** Home-style priority disclosure. The form and raw em-dash list buried the number. SPEC-08 said no JS chart — this is two CSS bars, not a series.
+
+**Files:** `src/app/owner/money/panel.tsx`, `reveal.tsx`, `bars.ts`; `src/lib/ui-copy.ts`; `docs/owner-ia.md`; `test/app/owner/money/bars.test.ts`.
+
+**Relation:** `summarizeLedgerPeriod` / `recordExpense` / `listRecentExpenses` unchanged. No new query. Out color may still read as “needs action” (Home due) — revisit after live use, not a new token now.
+
+**How to verify:** `npm test`. `/owner/money` — net is the largest figure; In/Out tiles; bars; “تغيير الفترة” / “إضافة مصروف” collapsed. Expense rows are cards, not an em-dash sentence.
+
 
 
 

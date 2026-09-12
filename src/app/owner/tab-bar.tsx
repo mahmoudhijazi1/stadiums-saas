@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   CalendarPlus,
+  ChartColumn,
+  Ellipsis,
   House,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { ui } from "@/lib/ui-copy";
@@ -21,13 +22,19 @@ const TAB_META: {
 }[] = [
   { href: "/owner/today", labelKey: "owner.home", Icon: House },
   { href: "/owner/book", labelKey: "owner.book", Icon: CalendarPlus, bookOnly: true },
-  { href: "/owner/waitlist", labelKey: "owner.waitlist", Icon: Bell },
-  { href: "/owner/money", labelKey: "owner.money", Icon: Wallet },
+  { href: "/owner/waitlist", labelKey: "owner.waitlistTab", Icon: Bell },
+  { href: "/owner/money", labelKey: "owner.reports", Icon: ChartColumn },
+  { href: "/owner/more", labelKey: "owner.more", Icon: Ellipsis },
 ];
+
+function tabSelected(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 /**
  * Active tab from usePathname (layout.md: layouts cannot read pathname).
  * Links are real routes; tenant query is local-dev only.
+ * Nested More routes (`/owner/more/settings`) keep More selected.
  */
 export function OwnerTabBar({
   tenantSlug,
@@ -48,7 +55,7 @@ export function OwnerTabBar({
     >
       <ul className="flex gap-1 rounded-2xl border bg-card/95 p-1 shadow-lg backdrop-blur-md">
         {tabs.map((tab) => {
-          const selected = pathname === tab.href;
+          const selected = tabSelected(pathname, tab.href);
           const Icon = tab.Icon;
           const label = ui(tab.labelKey, locale);
           return (

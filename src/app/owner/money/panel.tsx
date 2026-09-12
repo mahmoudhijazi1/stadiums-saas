@@ -12,9 +12,11 @@ import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { formatUsd, parseLbp } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
-import { lbpPerUsdLine, ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/ui-copy";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
-import { submitRecordExpense, submitSetExchangeRate } from "./actions";
+import { inOutBarPercents } from "./bars";
+import { Reveal } from "./reveal";
+import { submitRecordExpense } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +32,24 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
+import {
+  Banknote,
+  Drill,
+  Droplets,
+  Ellipsis,
+  Wrench,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+
+const CATEGORY_ICONS: Record<ExpenseCategory, LucideIcon> = {
+  ELECTRICITY: Zap,
+  WATER: Droplets,
+  MAINTENANCE: Wrench,
+  SALARY: Banknote,
+  EQUIPMENT: Drill,
+  OTHER: Ellipsis,
+};
 
 function keepPeriodQuery(
   tenantSlug: string,
@@ -91,7 +111,6 @@ export async function OwnerMoney({
   const rate = await getCurrentRate();
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
   const mayViewReports = can(membership, REPORTS_VIEW);
-  const isOwner = membership.role === "OWNER";
   const summary = mayViewReports
     ? await summarizeLedgerPeriod({
         from: periodQuery.from,
@@ -116,87 +135,111 @@ export async function OwnerMoney({
             {ui("owner.period", locale)}
           </h3>
           <Card>
-            <CardHeader className="gap-1">
+            <CardHeader className="gap-3">
               <CardDescription>
                 <LtrIsolate>
                   {summary.from} → {summary.to}
                 </LtrIsolate>
               </CardDescription>
-              <p className="text-base font-medium">
-                {ui("owner.difference", locale)}{" "}
-                <LtrIsolate>
-                  {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
-                </LtrIsolate>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {ui("owner.in", locale)}{" "}
-                <LtrIsolate>
-                  {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
-                </LtrIsolate>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {ui("owner.out", locale)}{" "}
-                <LtrIsolate>
-                  {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
-                </LtrIsolate>
-              </p>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {ui("owner.difference", locale)}
+                </p>
+                <p className="mt-0.5 text-2xl font-semibold">
+                  <LtrIsolate>
+                    {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+                  </LtrIsolate>
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-primary/15 px-3 py-2">
+                  <p className="text-xs text-primary">{ui("owner.in", locale)}</p>
+                  <p className="mt-0.5 text-base font-semibold text-primary">
+                    <LtrIsolate>
+                      {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
+                    </LtrIsolate>
+                  </p>
+                </div>
+                <div className="rounded-lg bg-muted px-3 py-2">
+                  <p className="text-xs text-muted-foreground">
+                    {ui("owner.out", locale)}
+                  </p>
+                  <p className="mt-0.5 text-base font-semibold text-foreground">
+                    <LtrIsolate>
+                      {formatPeriodAmount(
+                        summary.outUsd,
+                        showLbp,
+                        displayRate,
+                      )}
+                    </LtrIsolate>
+                  </p>
+                </div>
+              </div>
+              <InOutBars inUsd={summary.inUsd} outUsd={summary.outUsd} />
               {lbpNote ? (
                 <p className="text-sm text-muted-foreground">{lbpNote}</p>
               ) : null}
             </CardHeader>
             <CardContent>
-              <form
-                method="get"
-                action="/owner/money"
-                className="flex flex-col gap-4"
+              <Reveal
+                closedLabel={ui("owner.changePeriod", locale)}
+                openLabel={ui("owner.hidePeriod", locale)}
               >
-                <input type="hidden" name="tenant" value={tenantSlug} />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="from">{ui("owner.from", locale)}</Label>
-                  <DateField
-                    id="from"
-                    name="from"
-                    required
-                    defaultValue={summary.from}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="to">{ui("owner.to", locale)}</Label>
-                  <DateField
-                    id="to"
-                    name="to"
-                    required
-                    defaultValue={summary.to}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="view">{ui("owner.view", locale)}</Label>
-                  <SelectField
-                    id="view"
-                    name="view"
-                    defaultValue={periodQuery.view}
-                    options={[
-                      { value: "usd", label: ui("owner.usd", locale) },
-                      { value: "lbp", label: ui("owner.lbp", locale) },
-                    ]}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="displayRate">{ui("owner.displayRate", locale)}</Label>
-                  <Input
-                    id="displayRate"
-                    type="text"
-                    name="displayRate"
-                    inputMode="numeric"
-                    placeholder="90000"
-                    defaultValue={periodQuery.displayRate ?? ""}
-                    className="font-mono"
-                  />
-                </div>
-                <Button type="submit" variant="secondary" className="w-full">
-                  {ui("owner.show", locale)}
-                </Button>
-              </form>
+                <form
+                  method="get"
+                  action="/owner/money"
+                  className="flex flex-col gap-4"
+                >
+                  <input type="hidden" name="tenant" value={tenantSlug} />
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="from">{ui("owner.from", locale)}</Label>
+                    <DateField
+                      id="from"
+                      name="from"
+                      required
+                      defaultValue={summary.from}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="to">{ui("owner.to", locale)}</Label>
+                    <DateField
+                      id="to"
+                      name="to"
+                      required
+                      defaultValue={summary.to}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="view">{ui("owner.view", locale)}</Label>
+                    <SelectField
+                      id="view"
+                      name="view"
+                      defaultValue={periodQuery.view}
+                      options={[
+                        { value: "usd", label: ui("owner.usd", locale) },
+                        { value: "lbp", label: ui("owner.lbp", locale) },
+                      ]}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="displayRate">
+                      {ui("owner.displayRate", locale)}
+                    </Label>
+                    <Input
+                      id="displayRate"
+                      type="text"
+                      name="displayRate"
+                      inputMode="numeric"
+                      placeholder="90000"
+                      defaultValue={periodQuery.displayRate ?? ""}
+                      className="font-mono"
+                    />
+                  </div>
+                  <Button type="submit" variant="secondary" className="w-full">
+                    {ui("owner.show", locale)}
+                  </Button>
+                </form>
+              </Reveal>
             </CardContent>
           </Card>
         </section>
@@ -204,121 +247,85 @@ export async function OwnerMoney({
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-medium text-muted-foreground">
-          {ui("owner.rate", locale)}
-        </h3>
-        <Card>
-          <CardHeader>
-            <CardDescription>
-              {rate ? (
-                lbpPerUsdLine(rate.toFixed(0), locale)
-              ) : (
-                ui("owner.noRate", locale)
-              )}
-            </CardDescription>
-          </CardHeader>
-          {isOwner ? (
-            <CardContent>
-              <form
-                action={submitSetExchangeRate}
-                className="flex flex-col gap-4"
-              >
-                {keepPeriodQuery(tenantSlug, periodQuery)}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="lbpPerUsd">{ui("owner.newRate", locale)}</Label>
-                  <Input
-                    id="lbpPerUsd"
-                    type="text"
-                    name="lbpPerUsd"
-                    required
-                    inputMode="numeric"
-                    className="font-mono"
-                  />
-                </div>
-                <SubmitButton variant="secondary" className="w-full">
-                  {ui("owner.setRate", locale)}
-                </SubmitButton>
-              </form>
-            </CardContent>
-          ) : null}
-        </Card>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h3 className="text-sm font-medium text-muted-foreground">
           {ui("owner.expenses", locale)}
         </h3>
         {mayRecordExpense ? (
-          <Card>
-            <CardHeader className="gap-1">
-              <CardTitle className="text-base">
-                {ui("owner.recordExpense", locale)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form
-                action={submitRecordExpense}
-                className="flex flex-col gap-4"
-              >
-                {keepPeriodQuery(tenantSlug, periodQuery)}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="category">{ui("owner.category", locale)}</Label>
-                  <SelectField
-                    id="category"
-                    name="category"
-                    required
-                    defaultValue="ELECTRICITY"
-                    options={EXPENSE_CATEGORIES.map((category) => ({
-                      value: category,
-                      label: categoryLabel(category, locale),
-                    }))}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="description">{ui("owner.what", locale)}</Label>
-                  <Input
-                    id="description"
-                    type="text"
-                    name="description"
-                    required
-                    maxLength={200}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="occurredOn">{ui("owner.when", locale)}</Label>
-                  <DateField
-                    id="occurredOn"
-                    name="occurredOn"
-                    required
-                    defaultValue={today}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseUsd">{ui("owner.usd", locale)}</Label>
-                  <Input
-                    id="expenseUsd"
-                    type="text"
-                    name="usdAmount"
-                    inputMode="decimal"
-                    placeholder="30.00"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseLbp">{ui("owner.lbp", locale)}</Label>
-                  <Input
-                    id="expenseLbp"
-                    type="text"
-                    name="lbpAmount"
-                    inputMode="numeric"
-                    className="font-mono"
-                  />
-                </div>
-                <SubmitButton className="w-full">
-                  {ui("owner.recordExpenseSubmit", locale)}
-                </SubmitButton>
-              </form>
-            </CardContent>
-          </Card>
+          <Reveal
+            closedLabel={ui("owner.addExpense", locale)}
+            openLabel={ui("owner.hideExpenseForm", locale)}
+          >
+            <Card>
+              <CardHeader className="gap-1">
+                <CardTitle className="text-base">
+                  {ui("owner.recordExpense", locale)}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form
+                  action={submitRecordExpense}
+                  className="flex flex-col gap-4"
+                >
+                  {keepPeriodQuery(tenantSlug, periodQuery)}
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="category">{ui("owner.category", locale)}</Label>
+                    <SelectField
+                      id="category"
+                      name="category"
+                      required
+                      defaultValue="ELECTRICITY"
+                      options={EXPENSE_CATEGORIES.map((category) => ({
+                        value: category,
+                        label: categoryLabel(category, locale),
+                      }))}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="description">{ui("owner.what", locale)}</Label>
+                    <Input
+                      id="description"
+                      type="text"
+                      name="description"
+                      required
+                      maxLength={200}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="occurredOn">{ui("owner.when", locale)}</Label>
+                    <DateField
+                      id="occurredOn"
+                      name="occurredOn"
+                      required
+                      defaultValue={today}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="expenseUsd">{ui("owner.usd", locale)}</Label>
+                    <Input
+                      id="expenseUsd"
+                      type="text"
+                      name="usdAmount"
+                      inputMode="decimal"
+                      placeholder="30.00"
+                      className="font-mono"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="expenseLbp">{ui("owner.lbp", locale)}</Label>
+                    <Input
+                      id="expenseLbp"
+                      type="text"
+                      name="lbpAmount"
+                      inputMode="numeric"
+                      className="font-mono"
+                    />
+                  </div>
+                  <SubmitButton className="w-full">
+                    {ui("owner.recordExpenseSubmit", locale)}
+                  </SubmitButton>
+                </form>
+              </CardContent>
+            </Card>
+          </Reveal>
         ) : null}
         {expenses.length === 0 ? (
           <EmptyState
@@ -331,16 +338,62 @@ export async function OwnerMoney({
           />
         ) : (
           <ul className="flex flex-col gap-2">
-            {expenses.map((row) => (
-              <li key={row.id} className="text-sm">
-                {categoryLabel(row.category, locale)} — {row.description} —{" "}
-                <LtrIsolate>{formatLocalDay(row.occurredAt)}</LtrIsolate> —{" "}
-                <LtrIsolate>${formatUsd(row.amountUsd)}</LtrIsolate>
-              </li>
-            ))}
+            {expenses.map((row) => {
+              const Icon = CATEGORY_ICONS[row.category];
+              return (
+                <li key={row.id}>
+                  <Card className="gap-0 py-0">
+                    <div className="flex items-start gap-3 px-4 py-3">
+                      <Icon
+                        aria-hidden
+                        className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                        strokeWidth={1.75}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{row.description}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {categoryLabel(row.category, locale)}
+                          {" · "}
+                          <LtrIsolate>{formatLocalDay(row.occurredAt)}</LtrIsolate>
+                        </p>
+                      </div>
+                      <p className="shrink-0 font-mono text-sm font-medium">
+                        <LtrIsolate>${formatUsd(row.amountUsd)}</LtrIsolate>
+                      </p>
+                    </div>
+                  </Card>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function InOutBars({
+  inUsd,
+  outUsd,
+}: {
+  inUsd: Decimal;
+  outUsd: Decimal;
+}) {
+  const { inPct, outPct } = inOutBarPercents(inUsd, outUsd);
+  return (
+    <div className="flex flex-col gap-2" aria-hidden>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-2 rounded-full bg-primary"
+          style={{ width: `${inPct}%` }}
+        />
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-2 rounded-full bg-muted-foreground/40"
+          style={{ width: `${outPct}%` }}
+        />
+      </div>
     </div>
   );
 }

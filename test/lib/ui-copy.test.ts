@@ -31,6 +31,19 @@ describe("ui", () => {
     expect(ui("owner.remaining")).toBe("المتبقي");
     expect(ui("owner.remaining", "en")).toBe("Remaining");
     expect(ui("owner.book", "en")).toBe("Book");
+    expect(ui("owner.reports")).toBe("تقارير");
+    expect(ui("owner.reports", "en")).toBe("Reports");
+    expect(ui("owner.more")).toBe("المزيد");
+    expect(ui("owner.more", "en")).toBe("More");
+    expect(ui("owner.settings")).toBe("إعدادات");
+    expect(ui("owner.settings", "en")).toBe("Settings");
+    expect(ui("owner.waitlist")).toBe("قائمة الانتظار");
+    expect(ui("owner.waitlistTab")).toBe("انتظار");
+    expect(ui("owner.waitlistTab", "en")).toBe("Waitlist");
+    expect(ui("owner.changePeriod")).toBe("تغيير الفترة");
+    expect(ui("owner.changePeriod", "en")).toBe("Change period");
+    expect(ui("owner.addExpense")).toBe("إضافة مصروف");
+    expect(ui("owner.addExpense", "en")).toBe("Add expense");
   });
 
   it("returns the key itself when unknown", () => {
