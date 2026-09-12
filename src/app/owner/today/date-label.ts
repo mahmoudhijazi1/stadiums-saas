@@ -12,7 +12,7 @@ export function formatSlotDateLabel(
   if (kind === "today") return ui("public.today", locale);
   if (kind === "weekday") {
     return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar", {
-      weekday: locale === "en" ? "short" : "long",
+      weekday: "short",
       timeZone: OWNER_TIME_ZONE,
     }).format(start);
   }

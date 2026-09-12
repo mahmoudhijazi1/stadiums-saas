@@ -24,6 +24,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
+import { CircleCheck, Clock, MapPin, Phone } from "lucide-react";
 
 export type UpcomingRowView = {
   id: string;
@@ -53,13 +54,14 @@ function StatusBadge({
   }
   if (status === "paid") {
     return (
-      <Badge variant="ghost" className="font-normal text-muted-foreground">
+      <Badge variant="outline" className="font-normal text-muted-foreground">
+        <CircleCheck aria-hidden className="size-3 text-primary" />
         {ui("owner.paid", locale)}
       </Badge>
     );
   }
   return (
-    <Badge variant="ghost" className="font-normal text-muted-foreground">
+    <Badge variant="outline" className="font-normal text-muted-foreground">
       {ui("owner.upcomingTag", locale)}
     </Badge>
   );
@@ -233,21 +235,26 @@ function UpcomingRows({
                 type="button"
                 aria-expanded={open}
                 onClick={() => onToggle(open ? null : row.id)}
-                className="flex w-full items-center gap-3 px-4 py-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
+                className="flex w-full items-start gap-3 px-4 py-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    {showDate ? (
-                      <span className="text-sm text-muted-foreground">
-                        {row.dateLabel}
-                      </span>
-                    ) : null}
-                    <LtrIsolate className="text-sm font-medium">
+                  <span className="flex items-center gap-2">
+                    <Clock
+                      aria-hidden
+                      className="size-4 shrink-0 text-muted-foreground"
+                    />
+                    <LtrIsolate className="text-lg font-semibold leading-none">
                       {row.timeRange}
                     </LtrIsolate>
-                    <span className="text-sm font-medium">{row.pitchName}</span>
                   </span>
-                  <span className="mt-0.5 block truncate text-sm text-muted-foreground">
+                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin aria-hidden className="size-4 shrink-0" />
+                      {row.pitchName}
+                    </span>
+                    {showDate ? <span>{row.dateLabel}</span> : null}
+                  </span>
+                  <span className="mt-1 block truncate text-sm text-muted-foreground">
                     {row.requesterName}
                   </span>
                 </span>
@@ -255,7 +262,8 @@ function UpcomingRows({
               </button>
               {open ? (
                 <CardContent className="flex flex-col gap-4 border-t px-4 py-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Phone aria-hidden className="size-4 shrink-0" />
                     <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                   </p>
                   <DueRemainingFigures

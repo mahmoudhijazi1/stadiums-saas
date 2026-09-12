@@ -12,13 +12,10 @@ import {
 import { formatSlotDateLabel } from "./date-label";
 import { UpcomingPanel, type UpcomingRowView } from "./upcoming-panel";
 import { formatLocalClockRange } from "@/app/owner/shared";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -27,6 +24,7 @@ import {
   groupPendingBySlot,
   upcomingStatus,
 } from "@/modules/booking/domain/home-inbox";
+import { Clock, MapPin, Phone } from "lucide-react";
 
 function keepTenantQuery(tenantSlug: string) {
   return <input type="hidden" name="tenant" value={tenantSlug} />;
@@ -66,15 +64,22 @@ export async function OwnerToday({
               key={`${group.pitchId}-${group.start.toISOString()}-${group.end.toISOString()}`}
             >
               <Card className="gap-3 py-4">
-                <CardHeader className="gap-1">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span className="text-sm text-muted-foreground">
-                      {formatSlotDateLabel(group.start, now, locale)}
-                    </span>
-                    <LtrIsolate className="text-sm font-medium">
+                <CardHeader className="gap-2">
+                  <div className="flex items-center gap-2">
+                    <Clock
+                      aria-hidden
+                      className="size-4 shrink-0 text-muted-foreground"
+                    />
+                    <LtrIsolate className="text-lg font-semibold leading-none">
                       {formatLocalClockRange(group.start, group.end)}
                     </LtrIsolate>
-                    <CardTitle className="text-base">{group.pitchName}</CardTitle>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin aria-hidden className="size-4 shrink-0" />
+                      {group.pitchName}
+                    </span>
+                    <span>{formatSlotDateLabel(group.start, now, locale)}</span>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
@@ -83,14 +88,13 @@ export async function OwnerToday({
                       key={row.id}
                       className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
                     >
-                      <CardDescription className="flex flex-wrap items-center gap-2">
-                        <span>{row.requesterName}</span>
-                        {group.requesters.length > 1 ? (
-                          <Badge variant="outline">
-                            {ui("owner.pending", locale)}
-                          </Badge>
-                        ) : null}
-                      </CardDescription>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium">{row.requesterName}</p>
+                        <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Phone aria-hidden className="size-4 shrink-0" />
+                          <LtrIsolate>{row.requesterPhone}</LtrIsolate>
+                        </p>
+                      </div>
                       {mayDecide ? (
                         <div className="flex gap-2">
                           <form action={submitApproveBooking} className="min-w-0 flex-1">

@@ -2992,6 +2992,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `/owner/today` — expand a confirmed row. Due is Slate tile; remaining is Volt if unpaid. Paid row: remaining muted.
 
+---
+
+## Chapter 134 — 2026-09-13 — Home cards: time hero, icons, real status pills
+
+**When:** 2026-09-13
+
+**What:** Home request and upcoming cards: time is the scan target (`text-lg semibold` + Clock). Pitch is MapPin + muted; phone is Phone + LTR (requests + expanded detail). Status tags are `Badge outline` in both locales — قادم/مدفوع were `ghost` (no pill). Paid includes a Volt `CircleCheck`. Dropped the extra “pending” pill on competing requesters (section is already طلبات). Weekday labels are short in both locales.
+
+**Why:** Owner scans outdoors (G-1 / A-3). Ghost badges looked like plain text. Time was the same size as pitch and name.
+
+**Files:** `src/app/owner/today/lists.tsx`; `upcoming-panel.tsx`; `date-label.ts`.
+
+**How to verify:** `/owner/today` AR and EN. Time is the largest line. Upcoming/Due/Paid are pills. Expand a row: phone has a Phone icon, not a bare number.
+
+
 
 
 
