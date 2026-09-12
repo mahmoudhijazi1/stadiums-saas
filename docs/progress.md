@@ -2456,6 +2456,26 @@ Walk-up booking now wears the same clothes as the owner phone: a green-ring day 
 
 The screens now tell you when something worked (a small toast), when a list is empty on purpose, and which button matters. The kitchen still does the same jobs; the waiter just stopped going silent after you tap.
 
+---
+
+## Chapter 106 — 2026-09-12 — Scoped Suspense (keep GET, no full-page skeleton)
+
+**When:** 2026-09-12
+
+**What:** Route `loading.tsx` files on `/`, `/owner`, and `/login` are gone. Next `loading.md`: that file wraps the whole `page.js`, so header + date picker unmounted on every GET and Server Action. Pages now await only tenant / searchParams / membership, then return the shell (title, GET date form). Hours, Today, Book slots, and later owner lists are child RSCs inside `<Suspense>` with list skeletons. GET forms still submit `date` / `bookOn` as `yyyy-mm-dd`. Actions unchanged (`ok=` / `error=` only). No `router.push`, no client list state.
+
+**Why:** Show hours / Show slots / Approve felt like a full reload. Keep Server Components and query params; stream lists. Local Next 16 `loading.md`: nested `<Suspense>` is the supported alternative to `loading.js`.
+
+**Files:** deleted `src/app/loading.tsx`, `src/app/owner/loading.tsx`, `src/app/login/loading.tsx`; `src/app/page.tsx`; `src/app/public-hours.tsx`; `src/app/list-skeletons.tsx`; `src/app/owner/page.tsx`; `src/app/owner/today.tsx`; `src/app/owner/book-slots.tsx`; `src/app/owner/rest.tsx`; `src/app/owner/shared.tsx`.
+
+**Relation:** Children live under `src/app/`. `src/components/ui` still must not import `src/modules/*`. No Prisma / use-case / module-boundary changes.
+
+**How to verify:** `/?tenant=ahmad` — Day + Show hours stay; Hours list skeletons then slots. `/login?tenant=ahmad` — login card only (no hours skeleton). `/owner` after login — header + Book day stay; Today / slots skeleton then fill; Approve keeps the header.
+
+### In plain language
+
+Picking a day used to blank the whole screen because the waiter was waiting in the lobby. Now the date field stays on the counter while only the hours list walks to the kitchen.
+
 
 
 

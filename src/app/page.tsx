@@ -1,43 +1,25 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { submitPublicSlotRequest } from "@/app/request-slot";
-import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
-import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import type { CivilDate } from "@/modules/venue/domain/availability";
-import { Badge } from "@/components/ui/badge";
+import { HoursListSkeleton } from "@/app/list-skeletons";
+import { PublicHours } from "@/app/public-hours";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
-import { EmptyState } from "@/components/ui/empty-state";
 import { FlashToast } from "@/components/ui/flash-toast";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SubmitButton } from "@/components/ui/submit-button";
+import { Suspense } from "react";
 
 /**
  * Thin route. No Prisma and no tenantId.
  * Occupied comes from Booking; Venue only receives UTC ranges (SPEC-05).
  * Next 16: searchParams is a Promise; <form action={Server Action}> (forms guide).
  * Date GET uses DateField hidden name="date" (same yyyy-mm-dd as before).
+ * Hours list is a child RSC so Show hours keeps the date field mounted.
  */
-const TIME_ZONE = "Asia/Beirut";
-
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
-  const localDate = parseCivilDate(dateParam) ?? todayInTimeZone(TIME_ZONE);
-  const occupied = await listApprovedOccupied();
-  const pitches = await getDayAvailability({
-    localDate,
-    timeZone: TIME_ZONE,
-    occupied,
-  });
+  const localDate = parseCivilDate(dateParam) ?? todayInTimeZone("Asia/Beirut");
   const ok =
     typeof params.ok === "string"
       ? params.ok
@@ -70,110 +52,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       <section className="flex flex-col gap-4">
         <h2 className="font-heading text-xl">Hours</h2>
-        {pitches.length === 0 ? (
-          <EmptyState
-            title="No pitches yet."
-            next="This stadium has not listed pitches."
+        <Suspense key={dateValue} fallback={<HoursListSkeleton />}>
+          <PublicHours
+            localDate={localDate}
+            dateValue={dateValue}
+            tenantSlug={tenant.slug}
           />
-        ) : (
-          <ul className="flex flex-col gap-4">
-            {pitches.map((pitch) => (
-              <li key={pitch.id} className="flex flex-col gap-2">
-                <h3 className="font-medium">{pitch.name}</h3>
-                {pitch.slots.length === 0 ? (
-                  <EmptyState
-                    title="Closed this day."
-                    next="Pick another day to see hours."
-                  />
-                ) : (
-                  <ul className="flex flex-col gap-2">
-                    {pitch.slots.map((slot) => (
-                      <li key={slot.startIso}>
-                        <Card className="gap-4 py-4">
-                          <CardHeader className="gap-1 px-4">
-                            <div className="flex items-center justify-between gap-2">
-                              <CardTitle className="font-mono text-base">
-                                {slot.startLocal}–{slot.endLocal}
-                              </CardTitle>
-                              {slot.available ? null : (
-                                <Badge variant="outline">Taken</Badge>
-                              )}
-                            </div>
-                            <CardDescription className="font-mono">
-                              ${slot.priceUsd}
-                            </CardDescription>
-                          </CardHeader>
-                          {slot.available ? (
-                            <CardContent className="px-4">
-                              <form
-                                action={submitPublicSlotRequest}
-                                className="flex flex-col gap-4"
-                              >
-                                <input
-                                  type="hidden"
-                                  name="pitchId"
-                                  value={pitch.id}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="start"
-                                  value={slot.startIso}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="end"
-                                  value={slot.endIso}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="date"
-                                  value={dateValue}
-                                />
-                                <input
-                                  type="hidden"
-                                  name="tenant"
-                                  value={tenant.slug}
-                                />
-                                <div className="flex flex-col gap-2">
-                                  <Label htmlFor={`name-${slot.startIso}`}>
-                                    Name
-                                  </Label>
-                                  <Input
-                                    id={`name-${slot.startIso}`}
-                                    type="text"
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                  <Label htmlFor={`phone-${slot.startIso}`}>
-                                    Phone
-                                  </Label>
-                                  <Input
-                                    id={`phone-${slot.startIso}`}
-                                    type="tel"
-                                    name="phone"
-                                    required
-                                    autoComplete="tel"
-                                    className="font-mono"
-                                  />
-                                </div>
-                                <SubmitButton className="w-full">
-                                  Request
-                                </SubmitButton>
-                              </form>
-                            </CardContent>
-                          ) : null}
-                        </Card>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        </Suspense>
       </section>
     </main>
   );

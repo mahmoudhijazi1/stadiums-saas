@@ -1,58 +1,27 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { ZodError } from "zod";
-import Decimal from "decimal.js";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { formatUsd, parseLbp } from "@/lib/money";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
-import {
-  BOOKINGS_APPROVE,
-  BOOKINGS_CANCEL,
-  BOOKINGS_CREATE,
-  EXPENSES_RECORD,
-  PAYMENTS_COLLECT,
-  REPORTS_VIEW,
-  can,
-} from "@/modules/access/domain/can";
-import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
-import { listDueBookings } from "@/modules/booking/application/list-due-bookings";
-import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
-import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
-import { listRecentExpenses } from "@/modules/expense/application/list-recent-expenses";
-import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
-import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
-import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
+import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import {
   parseLedgerPeriodQuery,
   type LedgerPeriodQuery,
 } from "@/modules/ledger/schemas/period-query";
-import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
-import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
-import type { CivilDate } from "@/modules/venue/domain/availability";
+import {
+  BookSlotsSkeleton,
+  OwnerRestSkeleton,
+  TodayListsSkeleton,
+} from "@/app/list-skeletons";
+import { OwnerBookSlots } from "@/app/owner/book-slots";
+import { OwnerRest } from "@/app/owner/rest";
+import { civilFromYyyyMmDd } from "@/app/owner/shared";
+import { OwnerToday } from "@/app/owner/today";
 import { submitLogout } from "@/app/login/actions";
-import {
-  submitApproveBooking,
-  submitCancelBooking,
-  submitCollectPayment,
-  submitCreateOwnerBooking,
-  submitRecordExpense,
-  submitRejectBooking,
-  submitSetExchangeRate,
-} from "@/app/owner/actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
-import { EmptyState } from "@/components/ui/empty-state";
 import { FlashToast } from "@/components/ui/flash-toast";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 const TIME_ZONE = "Asia/Beirut";
@@ -89,17 +58,6 @@ function readPeriodQuery(params: {
   }
 }
 
-function formatPeriodAmount(
-  amountUsd: Decimal,
-  showLbp: boolean,
-  lbpPerUsd: Decimal | null,
-): string {
-  if (showLbp && lbpPerUsd) {
-    return `${usdToDisplayLbp(amountUsd, lbpPerUsd).toFixed(0)} LBP`;
-  }
-  return `$${formatUsd(amountUsd)}`;
-}
-
 function ownerKeepSearch(
   tenantSlug: string,
   bookOn: string,
@@ -118,7 +76,7 @@ function ownerKeepSearch(
 /**
  * Thin locked page. No Prisma and no tenantId.
  * Next 16: searchParams is a Promise (page.js docs). Period form is GET, not a Server Action.
- * Pending inbox (SPEC-05) + rate + collect (SPEC-06) + expenses (SPEC-07) + ledger summary (SPEC-08) + owner Book (SPEC-09) + cancel (SPEC-10) + waitlist (SPEC-11).
+ * Lists stream in children so header + Book day stay mounted (no route loading.tsx).
  */
 export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const tenant = await getCurrentTenant();
@@ -135,51 +93,17 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
     redirect(`/login?${next.toString()}`);
   }
 
-  const pending = await listPendingRequests();
-  const confirmed = await listDueBookings();
-  const waitlist = await listOpenWaitlist();
-  const expenses = await listRecentExpenses();
-  const rate = await getCurrentRate();
-  const mayDecide = can(membership, BOOKINGS_APPROVE);
-  const mayCollect = can(membership, PAYMENTS_COLLECT);
-  const mayCancel = can(membership, BOOKINGS_CANCEL);
-  const mayRecordExpense = can(membership, EXPENSES_RECORD);
-  const mayViewReports = can(membership, REPORTS_VIEW);
   const mayCreateBooking = can(membership, BOOKINGS_CREATE);
-  const isOwner = membership.role === "OWNER";
   const errorKey = queryString(params.error);
   const ok = queryString(params.ok);
   const today = todayInTimeZone(TIME_ZONE);
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
-  const bookLocalDate = civilFromYyyyMmDd(bookOn);
-  const bookPitches = mayCreateBooking
-    ? await getDayAvailability({
-        localDate: bookLocalDate,
-        timeZone: TIME_ZONE,
-        occupied: await listApprovedOccupied(),
-      })
-    : [];
   const periodQuery = readPeriodQuery({
     from: params.from,
     to: params.to,
     view: params.view,
     displayRate: params.displayRate,
   });
-  const summary = mayViewReports
-    ? await summarizeLedgerPeriod({
-        from: periodQuery.from,
-        to: periodQuery.to,
-      })
-    : null;
-  const typedDisplayRate = periodQuery.displayRate
-    ? parseLbp(periodQuery.displayRate)
-    : null;
-  const displayRate = typedDisplayRate ?? rate;
-  const showLbp = periodQuery.view === "lbp" && displayRate !== null;
-  const lbpNote =
-    periodQuery.view === "lbp" && displayRate === null
-      ? "Set a display rate (or set exchange rate first)"
-      : null;
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-8">
@@ -205,153 +129,14 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
 
       <section className="flex flex-col gap-4">
         <h2 className="font-heading text-xl">Today</h2>
-
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Pending · {pending.length}
-        </h3>
-        {pending.length === 0 ? (
-          <EmptyState
-            title="No pending requests."
-            next="When someone asks for an hour, it shows up here."
+        <Suspense fallback={<TodayListsSkeleton />}>
+          <OwnerToday
+            membership={membership}
+            tenantSlug={tenantSlug}
+            bookOn={bookOn}
+            periodQuery={periodQuery}
           />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {pending.map((row) => (
-              <li key={row.id}>
-                <Card>
-                  <CardHeader className="gap-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-base">{row.pitchName}</CardTitle>
-                      <Badge variant="outline">Pending</Badge>
-                    </div>
-                    <CardDescription>
-                      <span className="font-mono">{formatLocalRange(row.start, row.end)}</span>
-                      <span className="mt-1 block">
-                        {row.requesterName}{" "}
-                        <span className="font-mono">{row.requesterPhone}</span>
-                      </span>
-                      <span className="mt-1 block">
-                        Requested {formatLocalDateTime(row.requestedAt)}
-                      </span>
-                    </CardDescription>
-                  </CardHeader>
-                  {mayDecide ? (
-                    <CardContent className="flex gap-2">
-                      <form action={submitApproveBooking} className="min-w-0 flex-1">
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                        <SubmitButton className="w-full">Approve</SubmitButton>
-                      </form>
-                      <form action={submitRejectBooking} className="min-w-0 flex-1">
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                        <SubmitButton variant="outline" className="w-full">
-                          Reject
-                        </SubmitButton>
-                      </form>
-                    </CardContent>
-                  ) : null}
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Confirmed · {confirmed.length}
-        </h3>
-        {confirmed.length === 0 ? (
-          <EmptyState
-            title="No confirmed games today."
-            next="Approved hours will list here to collect."
-          />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {confirmed.map((row) => (
-              <li key={row.id}>
-                <Card>
-                  <CardHeader className="gap-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-base">{row.pitchName}</CardTitle>
-                      <Badge variant={row.remaining.gt(0) ? "outline" : "default"}>
-                        {row.remaining.gt(0) ? "Due" : "Paid"}
-                      </Badge>
-                    </div>
-                    <CardDescription>
-                      <span className="font-mono">{formatLocalRange(row.start, row.end)}</span>
-                      <span className="mt-1 block">
-                        {row.requesterName}{" "}
-                        <span className="font-mono">{row.requesterPhone}</span>
-                      </span>
-                      <span className="mt-1 block font-mono">
-                        Due ${formatUsd(row.priceUsd)} · remaining $
-                        {formatUsd(row.remaining)}
-                      </span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-4">
-                    {mayCollect && row.remaining.gt(0) ? (
-                      <>
-                        <form action={submitCollectPayment}>
-                          <input type="hidden" name="bookingId" value={row.id} />
-                          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                          <input
-                            type="hidden"
-                            name="usdAmount"
-                            value={formatUsd(row.remaining)}
-                          />
-                          <SubmitButton className="w-full">
-                            Collect ${formatUsd(row.remaining)} USD
-                          </SubmitButton>
-                        </form>
-                        <form
-                          action={submitCollectPayment}
-                          className="flex flex-col gap-4"
-                        >
-                          <input type="hidden" name="bookingId" value={row.id} />
-                          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor={`usd-${row.id}`}>USD</Label>
-                            <Input
-                              id={`usd-${row.id}`}
-                              type="text"
-                              name="usdAmount"
-                              inputMode="decimal"
-                              placeholder="30.00"
-                              className="font-mono"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor={`lbp-${row.id}`}>LBP</Label>
-                            <Input
-                              id={`lbp-${row.id}`}
-                              type="text"
-                              name="lbpAmount"
-                              inputMode="numeric"
-                              className="font-mono"
-                            />
-                          </div>
-                          <SubmitButton variant="secondary" className="w-full">
-                            Collect mixed
-                          </SubmitButton>
-                        </form>
-                      </>
-                    ) : null}
-                    {mayCancel ? (
-                      <form action={submitCancelBooking}>
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                        <SubmitButton variant="outline" className="w-full">
-                          Cancel
-                        </SubmitButton>
-                      </form>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
+        </Suspense>
       </section>
 
       {mayCreateBooking ? (
@@ -372,405 +157,27 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
               Show slots
             </Button>
           </form>
-          {bookPitches.length === 0 ? (
-            <EmptyState
-              title="No pitches yet."
-              next="Pitches appear here when this stadium lists them."
+          <Suspense key={bookOn} fallback={<BookSlotsSkeleton />}>
+            <OwnerBookSlots
+              tenantSlug={tenantSlug}
+              bookOn={bookOn}
+              periodQuery={periodQuery}
             />
-          ) : (
-            <ul className="flex flex-col gap-4">
-              {bookPitches.map((pitch) => (
-                <li key={pitch.id} className="flex flex-col gap-3">
-                  <h3 className="font-medium">{pitch.name}</h3>
-                  {pitch.slots.length === 0 ? (
-                    <EmptyState
-                      title="Closed this day."
-                      next="Pick another day to see hours."
-                    />
-                  ) : (
-                    <ul className="flex flex-col gap-3">
-                      {pitch.slots.map((slot) => (
-                        <li key={slot.startIso}>
-                          <Card>
-                            <CardHeader className="gap-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <CardTitle className="font-mono text-base">
-                                  {slot.startLocal}–{slot.endLocal}
-                                </CardTitle>
-                                {slot.available ? null : (
-                                  <Badge variant="outline">Taken</Badge>
-                                )}
-                              </div>
-                              <CardDescription className="font-mono">
-                                ${slot.priceUsd}
-                              </CardDescription>
-                            </CardHeader>
-                            {slot.available ? (
-                              <CardContent>
-                                <form
-                                  action={submitCreateOwnerBooking}
-                                  className="flex flex-col gap-4"
-                                >
-                                  <input
-                                    type="hidden"
-                                    name="pitchId"
-                                    value={pitch.id}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="start"
-                                    value={slot.startIso}
-                                  />
-                                  <input
-                                    type="hidden"
-                                    name="end"
-                                    value={slot.endIso}
-                                  />
-                                  {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                                  <div className="flex flex-col gap-2">
-                                    <Label htmlFor={`name-${slot.startIso}`}>
-                                      Name
-                                    </Label>
-                                    <Input
-                                      id={`name-${slot.startIso}`}
-                                      type="text"
-                                      name="name"
-                                      required
-                                      autoComplete="name"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    <Label htmlFor={`phone-${slot.startIso}`}>
-                                      Phone
-                                    </Label>
-                                    <Input
-                                      id={`phone-${slot.startIso}`}
-                                      type="tel"
-                                      name="phone"
-                                      required
-                                      autoComplete="tel"
-                                      className="font-mono"
-                                    />
-                                  </div>
-                                  <SubmitButton className="w-full">Book</SubmitButton>
-                                </form>
-                              </CardContent>
-                            ) : null}
-                          </Card>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          </Suspense>
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">Waitlist</h2>
-        {waitlist.length === 0 ? (
-          <EmptyState
-            title="No waitlist."
-            next="People who asked for a taken hour show up here after you cancel."
-          />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {waitlist.map((group) => (
-              <li key={`${group.pitchId}-${group.start.toISOString()}`}>
-                <Card>
-                  <CardHeader className="gap-1">
-                    <CardTitle className="text-base">{group.pitchName}</CardTitle>
-                    <CardDescription className="font-mono">
-                      {formatLocalRange(group.start, group.end)}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="flex flex-col gap-3">
-                      {group.people.map((person) => (
-                        <li
-                          key={person.personId}
-                          className="flex items-center justify-between gap-3"
-                        >
-                          <div className="min-w-0">
-                            <p>{person.name}</p>
-                            <p className="font-mono text-sm text-muted-foreground">
-                              {person.phone}
-                            </p>
-                          </div>
-                          {person.whatsAppHref ? (
-                            <Button variant="outline" asChild>
-                              <a
-                                href={person.whatsAppHref}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Notify
-                              </a>
-                            </Button>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {summary ? (
-        <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg">This period</h2>
-          <Card>
-            <CardHeader className="gap-1">
-              <CardDescription className="font-mono">
-                {summary.from} → {summary.to}
-              </CardDescription>
-              <p className="font-mono text-base font-medium">
-                Difference{" "}
-                {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
-              </p>
-              <p className="font-mono text-sm text-muted-foreground">
-                In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
-              </p>
-              <p className="font-mono text-sm text-muted-foreground">
-                Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
-              </p>
-              {lbpNote ? (
-                <p className="text-sm text-muted-foreground">{lbpNote}</p>
-              ) : null}
-            </CardHeader>
-            <CardContent>
-              <form method="get" action="/owner" className="flex flex-col gap-4">
-                <input type="hidden" name="tenant" value={tenantSlug} />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="from">From</Label>
-                  <DateField
-                    id="from"
-                    name="from"
-                    required
-                    defaultValue={summary.from}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="to">To</Label>
-                  <DateField
-                    id="to"
-                    name="to"
-                    required
-                    defaultValue={summary.to}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="view">View</Label>
-                  <SelectField
-                    id="view"
-                    name="view"
-                    defaultValue={periodQuery.view}
-                    options={[
-                      { value: "usd", label: "USD" },
-                      { value: "lbp", label: "LBP" },
-                    ]}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="displayRate">Display rate</Label>
-                  <Input
-                    id="displayRate"
-                    type="text"
-                    name="displayRate"
-                    inputMode="numeric"
-                    placeholder="90000"
-                    defaultValue={periodQuery.displayRate ?? ""}
-                    className="font-mono"
-                  />
-                </div>
-                <Button type="submit" variant="secondary" className="w-full">
-                  Show
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </section>
-      ) : null}
-
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">Exchange rate</h2>
-        <Card>
-          <CardHeader>
-            <CardDescription className="font-mono">
-              {rate ? `${rate.toFixed(0)} LBP per USD` : "No rate set"}
-            </CardDescription>
-          </CardHeader>
-          {isOwner ? (
-            <CardContent>
-              <form action={submitSetExchangeRate} className="flex flex-col gap-4">
-                {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="lbpPerUsd">New rate</Label>
-                  <Input
-                    id="lbpPerUsd"
-                    type="text"
-                    name="lbpPerUsd"
-                    required
-                    inputMode="numeric"
-                    className="font-mono"
-                  />
-                </div>
-                <SubmitButton variant="secondary" className="w-full">
-                  Set rate
-                </SubmitButton>
-              </form>
-            </CardContent>
-          ) : null}
-        </Card>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">Expenses</h2>
-        {mayRecordExpense ? (
-          <Card>
-            <CardHeader className="gap-1">
-              <CardTitle className="text-base">Record expense</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form action={submitRecordExpense} className="flex flex-col gap-4">
-                {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <SelectField
-                    id="category"
-                    name="category"
-                    required
-                    defaultValue="ELECTRICITY"
-                    options={EXPENSE_CATEGORIES.map((category) => ({
-                      value: category,
-                      label: categoryLabel(category),
-                    }))}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="description">What</Label>
-                  <Input
-                    id="description"
-                    type="text"
-                    name="description"
-                    required
-                    maxLength={200}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="occurredOn">When</Label>
-                  <DateField
-                    id="occurredOn"
-                    name="occurredOn"
-                    required
-                    defaultValue={today}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseUsd">USD</Label>
-                  <Input
-                    id="expenseUsd"
-                    type="text"
-                    name="usdAmount"
-                    inputMode="decimal"
-                    placeholder="30.00"
-                    className="font-mono"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseLbp">LBP</Label>
-                  <Input
-                    id="expenseLbp"
-                    type="text"
-                    name="lbpAmount"
-                    inputMode="numeric"
-                    className="font-mono"
-                  />
-                </div>
-                <SubmitButton className="w-full">Record expense</SubmitButton>
-              </form>
-            </CardContent>
-          </Card>
-        ) : null}
-        {expenses.length === 0 ? (
-          <EmptyState
-            title="No expenses yet."
-            next={
-              mayRecordExpense
-                ? "Record one above."
-                : "None recorded in this list."
-            }
-          />
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {expenses.map((row) => (
-              <li key={row.id} className="text-sm">
-                {categoryLabel(row.category)} — {row.description} —{" "}
-                <span className="font-mono">{formatLocalDay(row.occurredAt)}</span>{" "}
-                —{" "}
-                <span className="font-mono">${formatUsd(row.amountUsd)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <Suspense fallback={<OwnerRestSkeleton />}>
+        <OwnerRest
+          membership={membership}
+          tenantSlug={tenantSlug}
+          bookOn={bookOn}
+          periodQuery={periodQuery}
+          today={today}
+        />
+      </Suspense>
     </main>
   );
-}
-
-function keepOwnerQuery(
-  tenantSlug: string,
-  bookOn: string,
-  period: LedgerPeriodQuery,
-) {
-  return (
-    <>
-      <input type="hidden" name="tenant" value={tenantSlug} />
-      <input type="hidden" name="bookOn" value={bookOn} />
-      {period.from ? <input type="hidden" name="from" value={period.from} /> : null}
-      {period.to ? <input type="hidden" name="to" value={period.to} /> : null}
-      {period.view !== "usd" ? (
-        <input type="hidden" name="view" value={period.view} />
-      ) : null}
-      {period.displayRate ? (
-        <input type="hidden" name="displayRate" value={period.displayRate} />
-      ) : null}
-    </>
-  );
-}
-
-function formatLocalRange(start: Date, end: Date): string {
-  return `${formatLocalTime(start)}–${formatLocalTime(end)} (${TIME_ZONE})`;
-}
-
-function formatLocalTime(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(value);
-}
-
-function formatLocalDateTime(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    dateStyle: "medium",
-    timeStyle: "short",
-    hour12: false,
-  }).format(value);
-}
-
-function formatLocalDay(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    dateStyle: "medium",
-  }).format(value);
 }
 
 function todayInTimeZone(timeZone: string): string {
@@ -793,41 +200,5 @@ function parseOwnerBookOn(value: string | undefined): string | undefined {
     return value;
   } catch {
     return undefined;
-  }
-}
-
-function civilFromYyyyMmDd(value: string): CivilDate {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) {
-    throw new Error(`Invalid bookOn "${value}"`);
-  }
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const utc = new Date(Date.UTC(year, month - 1, day));
-  if (
-    utc.getUTCFullYear() !== year ||
-    utc.getUTCMonth() !== month - 1 ||
-    utc.getUTCDate() !== day
-  ) {
-    throw new Error(`Invalid bookOn "${value}"`);
-  }
-  return { year, month, day };
-}
-
-function categoryLabel(category: (typeof EXPENSE_CATEGORIES)[number]): string {
-  switch (category) {
-    case "ELECTRICITY":
-      return "Electricity";
-    case "WATER":
-      return "Water";
-    case "MAINTENANCE":
-      return "Maintenance";
-    case "SALARY":
-      return "Salary";
-    case "EQUIPMENT":
-      return "Equipment";
-    case "OTHER":
-      return "Other";
   }
 }
