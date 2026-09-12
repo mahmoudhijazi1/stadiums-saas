@@ -2316,6 +2316,26 @@ The kitchen now says “this is a normal no” vs “this is a bug — write it 
 
 If the hour already ended, the public page stays up and says so in English. The log file is quiet for that. A real bug still goes to the retry screen and the log.
 
+---
+
+## Chapter 99 — 2026-09-12 — shadcn/ui + Tailwind v4 tooling layer
+
+**When:** 2026-09-12
+
+**What:** Added shadcn/ui on top of the existing Next.js 16 + Tailwind v4 app. Did **not** run `tailwindcss init -p` — v4 is already wired via `@tailwindcss/postcss` and `postcss.config.mjs` (no `tailwind.config.ts`). `npx shadcn@latest init` with New York / Neutral / CSS variables / TypeScript. `rtl: true` so later components use logical properties. Smoke-tested with `npx shadcn@latest add button`.
+
+**Why:** UI tooling layer only. No SPEC. Do not mix this with booking/payment/Prisma.
+
+**Files:** `components.json`; `src/app/globals.css`; `src/lib/utils.ts`; `src/components/ui/button.tsx`; `package.json` / `package-lock.json`. Layout, routes, and Prisma untouched.
+
+**Relation:** `src/components/ui` must not import `src/modules/*`. Pages still do not import Prisma. Payment still does not import Booking.
+
+**How to verify:** `components.json` has `"rsc": true` and `"cssVariables": true`. `src/components/ui/button.tsx` exists. `npm run build` compiles; typecheck still fails on pre-existing `create-owner-booking.ts` / `request-public-slot.ts` / `persons.ts` (not this slice).
+
+### In plain language
+
+The design kit is on the shelf. The kitchen (bookings, money, database) did not change. We can now drop in buttons and forms without rewriting Tailwind from scratch.
+
 
 
 
