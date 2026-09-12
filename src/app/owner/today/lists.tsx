@@ -9,12 +9,8 @@ import {
   submitCancelBooking,
   submitCollectPayment,
   submitRejectBooking,
-} from "@/app/owner/actions";
-import {
-  formatLocalDateTime,
-  formatLocalRange,
-  keepTenantQuery,
-} from "@/app/owner/shared";
+} from "./actions";
+import { formatLocalRange, OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -28,6 +24,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+
+function keepTenantQuery(tenantSlug: string) {
+  return <input type="hidden" name="tenant" value={tenantSlug} />;
+}
+
+function formatLocalDateTime(value: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: OWNER_TIME_ZONE,
+    dateStyle: "medium",
+    timeStyle: "short",
+    hour12: false,
+  }).format(value);
+}
 
 export async function OwnerToday({
   membership,

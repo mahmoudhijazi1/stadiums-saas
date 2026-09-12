@@ -5,15 +5,15 @@ import {
   formatCivilDate,
 } from "@/modules/venue/domain/availability";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
-import { OwnerBookSlots } from "@/app/owner/book-slots";
+import { OwnerBookSlots } from "./slots";
+import { parseOwnerBookOn } from "./date";
+import { BookSlotsSkeleton } from "./skeleton";
 import {
   OWNER_TIME_ZONE,
-  parseOwnerBookOn,
   queryString,
   requireOwnerMembership,
   tenantSlugFrom,
 } from "@/app/owner/shared";
-import { BookSlotsSkeleton } from "@/app/owner/skeletons";
 import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
 import { EmptyState } from "@/components/ui/empty-state";

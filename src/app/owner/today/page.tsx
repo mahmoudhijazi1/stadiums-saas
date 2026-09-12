@@ -5,7 +5,7 @@ import {
   tenantSlugFrom,
 } from "@/app/owner/shared";
 import { OwnerToday } from "./lists";
-import { TodayListsSkeleton } from "@/app/owner/skeletons";
+import { TodayListsSkeleton } from "./skeleton";
 import { ui } from "@/lib/ui-copy";
 
 export default async function OwnerTodayPage({

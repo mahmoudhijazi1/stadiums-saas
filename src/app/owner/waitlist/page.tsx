@@ -5,7 +5,7 @@ import {
   tenantSlugFrom,
 } from "@/app/owner/shared";
 import { OwnerWaitlist } from "./list";
-import { WaitlistSkeleton } from "@/app/owner/skeletons";
+import { WaitlistSkeleton } from "./skeleton";
 import { ui } from "@/lib/ui-copy";
 
 export default async function OwnerWaitlistPage({

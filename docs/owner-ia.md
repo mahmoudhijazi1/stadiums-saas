@@ -73,13 +73,16 @@ GET forms: Book day → `action="/owner/book"`; period → `action="/owner/money
 | Auth gate + header + logout | `src/app/owner/layout.tsx` |
 | Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
-| `OwnerToday` (`today/lists.tsx`) | `/owner/today` |
-| Date GET form + `OwnerBookSlots` | `/owner/book` |
-| `OwnerWaitlist` (`waitlist/list.tsx`) | `/owner/waitlist` |
-| `OwnerMoney` (`money/panel.tsx`) | `/owner/money` |
-| Shared formatters / keep-query / `civilFromYyyyMmDd` | `src/app/owner/shared.tsx` |
-| Actions | `src/app/owner/actions.ts` (thin; still validate → authorize in use case → redirect) |
+| `OwnerToday` (`today/lists.tsx`) + `today/actions.ts` | `/owner/today` |
+| Date GET form + `OwnerBookSlots` (`book/slots.tsx`) + `book/actions.ts` | `/owner/book` |
+| `OwnerWaitlist` (`waitlist/list.tsx`) | `/owner/waitlist` (no Server Action) |
+| `OwnerMoney` (`money/panel.tsx`) + `money/actions.ts` | `/owner/money` |
+| Shared membership / tenant slug / `queryString` / `formatLocalRange` | `src/app/owner/shared.tsx` |
+| Form field + POST keep-query / `redirectOwner` | `src/app/owner/form-query.ts` (today + book + money) |
+| Per-tab Suspense fallbacks | `today/skeleton.tsx`, `book/skeleton.tsx`, `waitlist/skeleton.tsx`, `money/skeleton.tsx` |
 | FlashToast | layout Client child; reads URL (`useSearchParams`) |
+
+If a helper is used by exactly one tab, it lives in that tab folder (or is folded into that tab’s TSX). There is no root `actions.ts` or `skeletons.tsx`.
 
 `getCurrentMembership` is React `cache()`’d so layout + page share one lookup per request. Layouts cannot pass membership to `children`.
 

@@ -1,11 +1,8 @@
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
-import { submitCreateOwnerBooking } from "@/app/owner/actions";
-import {
-  OWNER_TIME_ZONE,
-  civilFromYyyyMmDd,
-  keepBookQuery,
-} from "@/app/owner/shared";
+import { submitCreateOwnerBooking } from "./actions";
+import { civilFromYyyyMmDd } from "./date";
+import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -20,6 +17,15 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { hoursEmptyState, ui } from "@/lib/ui-copy";
+
+function keepBookQuery(tenantSlug: string, bookOn: string) {
+  return (
+    <>
+      <input type="hidden" name="tenant" value={tenantSlug} />
+      <input type="hidden" name="bookOn" value={bookOn} />
+    </>
+  );
+}
 
 export async function OwnerBookSlots({
   tenantSlug,

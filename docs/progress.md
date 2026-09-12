@@ -2788,6 +2788,22 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** Open `/owner/today` — dock at the bottom. Tap احجز — icon tints Volt, header stays. Waitlist label may truncate; icon still readable.
 
+---
+
+## Chapter 121 — 2026-09-12 — Colocate owner tab files; split actions
+
+**When:** 2026-09-12
+
+**What:** Each owner tab keeps its own page, UI, skeleton, and (when it has a form POST) `actions.ts`. Root `/owner` keeps only chrome that two or more tabs share: `layout.tsx`, `tab-bar.tsx`, `shared.tsx` (membership, tenant slug, `queryString`, `formatLocalRange`), and `form-query.ts` (`field` / `ownerQuery` / `redirectOwner` used by today+book+money). One-tab helpers are folded into that tab’s TSX (`keepTenantQuery` on Today, `keepBookQuery` on Book, period keep/format/labels on Money). `civilFromYyyyMmDd` / `parseOwnerBookOn` live in `book/date.ts`. Waitlist has no Server Action.
+
+**Why:** A root `actions.ts` and `skeletons.tsx` mixed four products. Next tab (Shop) would dump more into the same files. Rule: used by exactly one tab → lives in that folder.
+
+**Files:** `src/app/owner/form-query.ts`; `shared.tsx`; `today/{page,lists,actions,skeleton}.tsx`; `book/{page,slots,date,actions,skeleton}`; `waitlist/{page,list,skeleton}`; `money/{page,panel,actions,skeleton}`; `docs/owner-ia.md`. Deleted `owner/actions.ts`, `owner/skeletons.tsx`, `owner/book-slots.tsx`.
+
+**Relation:** Use cases unchanged. Pages still have no Prisma / no `tenantId`. `"use server"` only on the three tab `actions.ts` files (plus login/public). Redirect map unchanged (today / book / money). No `loading.tsx`.
+
+**How to verify:** `npm test`. Open `/owner/today` — approve still toasts on Today. Book a slot — stay on `/owner/book` with `bookOn`. Rate/expense still land on `/owner/money`. No import of `@/app/owner/actions`.
+
 
 
 

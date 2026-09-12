@@ -2,19 +2,18 @@ import Decimal from "decimal.js";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import { EXPENSES_RECORD, REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { listRecentExpenses } from "@/modules/expense/application/list-recent-expenses";
-import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
+import {
+  EXPENSE_CATEGORIES,
+  type ExpenseCategory,
+} from "@/modules/expense/domain/categories";
 import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { formatUsd, parseLbp } from "@/lib/money";
 import { ui } from "@/lib/ui-copy";
-import { submitRecordExpense, submitSetExchangeRate } from "@/app/owner/actions";
-import {
-  categoryLabel,
-  formatLocalDay,
-  keepPeriodQuery,
-} from "@/app/owner/shared";
+import { OWNER_TIME_ZONE } from "@/app/owner/shared";
+import { submitRecordExpense, submitSetExchangeRate } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +29,38 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
+
+function keepPeriodQuery(
+  tenantSlug: string,
+  period: LedgerPeriodQuery,
+) {
+  return (
+    <>
+      <input type="hidden" name="tenant" value={tenantSlug} />
+      {period.from ? (
+        <input type="hidden" name="from" value={period.from} />
+      ) : null}
+      {period.to ? <input type="hidden" name="to" value={period.to} /> : null}
+      {period.view !== "usd" ? (
+        <input type="hidden" name="view" value={period.view} />
+      ) : null}
+      {period.displayRate ? (
+        <input type="hidden" name="displayRate" value={period.displayRate} />
+      ) : null}
+    </>
+  );
+}
+
+function formatLocalDay(value: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: OWNER_TIME_ZONE,
+    dateStyle: "medium",
+  }).format(value);
+}
+
+function categoryLabel(category: ExpenseCategory): string {
+  return ui(`cat.${category}`);
+}
 
 function formatPeriodAmount(
   amountUsd: Decimal,
