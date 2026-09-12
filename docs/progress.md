@@ -2376,6 +2376,26 @@ The paint is mixed once in the CSS file: dark carbon text, off-white paper, a li
 
 The login box now sits in the middle of the page like a form, not a stripe glued to the ceiling.
 
+---
+
+## Chapter 102 — 2026-09-12 — owner Today + restyle `/owner`
+
+**When:** 2026-09-12
+
+**What:** Owner page uses the Carbon/Volt tokens. **Today** (pending + confirmed) is first and glanceable: cards, `font-mono` for times/money/phones, 44px Approve/Collect. Other sections (book, waitlist, period, rate, expenses) same kit, stacked fields. Actions and hidden query fields unchanged.
+
+**Why:** Visual system, owner outdoor density. Not a SPEC.
+
+**Files:** `src/app/owner/page.tsx`
+
+**Relation:** Page still has no Prisma / no `tenantId`. Payment still does not import Booking.
+
+**How to verify:** `/owner?tenant=ahmad` after login. Today is at the top. Approve is Volt; Reject/Cancel outline. Public booking page still unstyled.
+
+### In plain language
+
+The owner phone screen now starts with “who is waiting” and “who is on the pitch,” in the same colors as login. The kitchen still does the same jobs; it just stopped looking like a notepad.
+
 
 
 

@@ -39,8 +39,22 @@ import {
   submitRejectBooking,
   submitSetExchangeRate,
 } from "@/app/owner/actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const TIME_ZONE = "Asia/Beirut";
+
+const nativeField =
+  "h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 function queryString(
   value: string | string[] | undefined,
@@ -151,183 +165,267 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       : null;
 
   return (
-    <main style={{ fontFamily: "system-ui", padding: "1.5rem", lineHeight: 1.6 }}>
-      <h1>{tenant.name}</h1>
-      <p>
-        Signed in as <code>{membership.identifier}</code> ({membership.role})
-      </p>
-      <form action={submitLogout}>
-        <input type="hidden" name="tenant" value={tenantSlug} />
-        <button type="submit">Log out</button>
-      </form>
-      {errorKey ? <p>{errorMessage(errorKey)}</p> : null}
-
-      {summary ? (
-        <>
-          <h2>This period</h2>
-          <p>
-            {summary.from} → {summary.to}
+    <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-8">
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-heading text-2xl">{tenant.name}</h1>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-mono">{membership.identifier}</span>
+            {" · "}
+            {membership.role}
           </p>
-          <p>In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}</p>
-          <p>Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}</p>
-          <p>
-            Difference {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
-          </p>
-          {lbpNote ? <p>{lbpNote}</p> : null}
-          <form method="get" action="/owner">
-            <input type="hidden" name="tenant" value={tenantSlug} />
-            <label>
-              From{" "}
-              <input
-                type="date"
-                name="from"
-                required
-                defaultValue={summary.from}
-              />
-            </label>{" "}
-            <label>
-              To{" "}
-              <input
-                type="date"
-                name="to"
-                required
-                defaultValue={summary.to}
-              />
-            </label>{" "}
-            <label>
-              View{" "}
-              <select name="view" defaultValue={periodQuery.view}>
-                <option value="usd">USD</option>
-                <option value="lbp">LBP</option>
-              </select>
-            </label>{" "}
-            <label>
-              Display rate{" "}
-              <input
-                type="text"
-                name="displayRate"
-                inputMode="numeric"
-                placeholder="90000"
-                defaultValue={periodQuery.displayRate ?? ""}
-              />
-            </label>{" "}
-            <button type="submit">Show</button>
-          </form>
-        </>
-      ) : null}
-
-      <h2>Exchange rate</h2>
-      <p>
-        {rate ? (
-          <>
-            {rate.toFixed(0)} LBP per USD
-          </>
-        ) : (
-          "No rate set"
-        )}
-      </p>
-      {isOwner ? (
-        <form action={submitSetExchangeRate}>
-          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-          <label>
-            New rate{" "}
-            <input type="text" name="lbpPerUsd" required inputMode="numeric" />
-          </label>{" "}
-          <button type="submit">Set rate</button>
+        </div>
+        <form action={submitLogout}>
+          <input type="hidden" name="tenant" value={tenantSlug} />
+          <Button type="submit" variant="outline">
+            Log out
+          </Button>
         </form>
+      </header>
+
+      {errorKey ? (
+        <p className="text-sm text-destructive" role="alert">
+          {errorMessage(errorKey)}
+        </p>
       ) : null}
 
-      <h2>Pending requests</h2>
-      {pending.length === 0 ? (
-        <p>No pending requests.</p>
-      ) : (
-        <ul>
-          {pending.map((row) => (
-            <li key={row.id}>
-              <strong>{row.pitchName}</strong>{" "}
-              {formatLocalRange(row.start, row.end)} — {row.requesterName}{" "}
-              <code>{row.requesterPhone}</code>
-              <br />
-              Requested {formatLocalDateTime(row.requestedAt)}
-              {mayDecide ? (
-                <>
-                  <form action={submitApproveBooking}>
-                    <input type="hidden" name="bookingId" value={row.id} />
-                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                    <button type="submit">Approve</button>
-                  </form>
-                  <form action={submitRejectBooking}>
-                    <input type="hidden" name="bookingId" value={row.id} />
-                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                    <button type="submit">Reject</button>
-                  </form>
-                </>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className="flex flex-col gap-4">
+        <h2 className="font-heading text-xl">Today</h2>
+
+        <h3 className="text-sm font-medium text-muted-foreground">Pending</h3>
+        {pending.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No pending requests.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {pending.map((row) => (
+              <li key={row.id}>
+                <Card>
+                  <CardHeader className="gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-base">{row.pitchName}</CardTitle>
+                      <Badge variant="outline">Pending</Badge>
+                    </div>
+                    <CardDescription>
+                      <span className="font-mono">{formatLocalRange(row.start, row.end)}</span>
+                      <span className="mt-1 block">
+                        {row.requesterName}{" "}
+                        <span className="font-mono">{row.requesterPhone}</span>
+                      </span>
+                      <span className="mt-1 block">
+                        Requested {formatLocalDateTime(row.requestedAt)}
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  {mayDecide ? (
+                    <CardContent className="flex gap-2">
+                      <form action={submitApproveBooking} className="min-w-0 flex-1">
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                        <Button type="submit" className="w-full">
+                          Approve
+                        </Button>
+                      </form>
+                      <form action={submitRejectBooking} className="min-w-0 flex-1">
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                        <Button type="submit" variant="outline" className="w-full">
+                          Reject
+                        </Button>
+                      </form>
+                    </CardContent>
+                  ) : null}
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <h3 className="text-sm font-medium text-muted-foreground">Confirmed</h3>
+        {confirmed.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No confirmed bookings.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {confirmed.map((row) => (
+              <li key={row.id}>
+                <Card>
+                  <CardHeader className="gap-1">
+                    <CardTitle className="text-base">{row.pitchName}</CardTitle>
+                    <CardDescription>
+                      <span className="font-mono">{formatLocalRange(row.start, row.end)}</span>
+                      <span className="mt-1 block">
+                        {row.requesterName}{" "}
+                        <span className="font-mono">{row.requesterPhone}</span>
+                      </span>
+                      <span className="mt-1 block font-mono">
+                        Due ${formatUsd(row.priceUsd)} · remaining $
+                        {formatUsd(row.remaining)}
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    {mayCollect && row.remaining.gt(0) ? (
+                      <>
+                        <form action={submitCollectPayment}>
+                          <input type="hidden" name="bookingId" value={row.id} />
+                          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                          <input
+                            type="hidden"
+                            name="usdAmount"
+                            value={formatUsd(row.remaining)}
+                          />
+                          <Button type="submit" className="w-full">
+                            Collect ${formatUsd(row.remaining)} USD
+                          </Button>
+                        </form>
+                        <form
+                          action={submitCollectPayment}
+                          className="flex flex-col gap-3"
+                        >
+                          <input type="hidden" name="bookingId" value={row.id} />
+                          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                          <div className="flex flex-col gap-2">
+                            <Label htmlFor={`usd-${row.id}`}>USD</Label>
+                            <Input
+                              id={`usd-${row.id}`}
+                              type="text"
+                              name="usdAmount"
+                              inputMode="decimal"
+                              placeholder="30.00"
+                              className="font-mono"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label htmlFor={`lbp-${row.id}`}>LBP</Label>
+                            <Input
+                              id={`lbp-${row.id}`}
+                              type="text"
+                              name="lbpAmount"
+                              inputMode="numeric"
+                              className="font-mono"
+                            />
+                          </div>
+                          <Button type="submit" variant="secondary" className="w-full">
+                            Collect mixed
+                          </Button>
+                        </form>
+                      </>
+                    ) : null}
+                    {mayCancel ? (
+                      <form action={submitCancelBooking}>
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                        <Button type="submit" variant="outline" className="w-full">
+                          Cancel
+                        </Button>
+                      </form>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {mayCreateBooking ? (
-        <>
-          <h2>Book a slot</h2>
-          <form method="get" action="/owner">
+        <section className="flex flex-col gap-4">
+          <h2 className="font-heading text-xl">Book a slot</h2>
+          <form method="get" action="/owner" className="flex flex-col gap-3">
             <input type="hidden" name="tenant" value={tenantSlug} />
-            <label>
-              Day{" "}
-              <input type="date" name="bookOn" required defaultValue={bookOn} />
-            </label>{" "}
-            <button type="submit">Show slots</button>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="bookOn">Day</Label>
+              <Input
+                id="bookOn"
+                type="date"
+                name="bookOn"
+                required
+                defaultValue={bookOn}
+                className="font-mono"
+              />
+            </div>
+            <Button type="submit" variant="secondary" className="w-full">
+              Show slots
+            </Button>
           </form>
           {bookPitches.length === 0 ? (
-            <p>No pitches yet.</p>
+            <p className="text-sm text-muted-foreground">No pitches yet.</p>
           ) : (
-            <ul>
+            <ul className="flex flex-col gap-4">
               {bookPitches.map((pitch) => (
-                <li key={pitch.id}>
-                  <strong>{pitch.name}</strong>
+                <li key={pitch.id} className="flex flex-col gap-3">
+                  <h3 className="font-medium">{pitch.name}</h3>
                   {pitch.slots.length === 0 ? (
-                    <p>Closed / No slots.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Closed / No slots.
+                    </p>
                   ) : (
-                    <ul>
+                    <ul className="flex flex-col gap-3">
                       {pitch.slots.map((slot) => (
                         <li key={slot.startIso}>
-                          {slot.startLocal}–{slot.endLocal} · ${slot.priceUsd}
-                          {slot.available ? (
-                            <form action={submitCreateOwnerBooking}>
-                              <input
-                                type="hidden"
-                                name="pitchId"
-                                value={pitch.id}
-                              />
-                              <input
-                                type="hidden"
-                                name="start"
-                                value={slot.startIso}
-                              />
-                              <input type="hidden" name="end" value={slot.endIso} />
-                              {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                              <label>
-                                Name{" "}
-                                <input
-                                  type="text"
-                                  name="name"
-                                  required
-                                  autoComplete="name"
-                                />
-                              </label>{" "}
-                              <label>
-                                Phone{" "}
-                                <input
-                                  type="tel"
-                                  name="phone"
-                                  required
-                                  autoComplete="tel"
-                                />
-                              </label>{" "}
-                              <button type="submit">Book</button>
-                            </form>
-                          ) : null}
+                          <Card>
+                            <CardHeader className="gap-1">
+                              <CardTitle className="font-mono text-base">
+                                {slot.startLocal}–{slot.endLocal}
+                              </CardTitle>
+                              <CardDescription className="font-mono">
+                                ${slot.priceUsd}
+                                {slot.available ? null : " · taken"}
+                              </CardDescription>
+                            </CardHeader>
+                            {slot.available ? (
+                              <CardContent>
+                                <form
+                                  action={submitCreateOwnerBooking}
+                                  className="flex flex-col gap-3"
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="pitchId"
+                                    value={pitch.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="start"
+                                    value={slot.startIso}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="end"
+                                    value={slot.endIso}
+                                  />
+                                  {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                                  <div className="flex flex-col gap-2">
+                                    <Label htmlFor={`name-${slot.startIso}`}>
+                                      Name
+                                    </Label>
+                                    <Input
+                                      id={`name-${slot.startIso}`}
+                                      type="text"
+                                      name="name"
+                                      required
+                                      autoComplete="name"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <Label htmlFor={`phone-${slot.startIso}`}>
+                                      Phone
+                                    </Label>
+                                    <Input
+                                      id={`phone-${slot.startIso}`}
+                                      type="tel"
+                                      name="phone"
+                                      required
+                                      autoComplete="tel"
+                                      className="font-mono"
+                                    />
+                                  </div>
+                                  <Button type="submit" className="w-full">
+                                    Book
+                                  </Button>
+                                </form>
+                              </CardContent>
+                            ) : null}
+                          </Card>
                         </li>
                       ))}
                     </ul>
@@ -336,150 +434,258 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
               ))}
             </ul>
           )}
-        </>
+        </section>
       ) : null}
 
-      <h2>Confirmed bookings</h2>
-      {confirmed.length === 0 ? (
-        <p>No confirmed bookings.</p>
-      ) : (
-        <ul>
-          {confirmed.map((row) => (
-            <li key={row.id}>
-              <strong>{row.pitchName}</strong>{" "}
-              {formatLocalRange(row.start, row.end)} — {row.requesterName}{" "}
-              <code>{row.requesterPhone}</code>
-              <br />
-              Due ${formatUsd(row.priceUsd)} · remaining ${formatUsd(row.remaining)}
-              {mayCollect && row.remaining.gt(0) ? (
-                <>
-                  <form action={submitCollectPayment}>
-                    <input type="hidden" name="bookingId" value={row.id} />
-                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                    <input
-                      type="hidden"
-                      name="usdAmount"
-                      value={formatUsd(row.remaining)}
-                    />
-                    <button type="submit">
-                      Collect ${formatUsd(row.remaining)} USD
-                    </button>
-                  </form>
-                  <form action={submitCollectPayment}>
-                    <input type="hidden" name="bookingId" value={row.id} />
-                    {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                    <label>
-                      USD{" "}
-                      <input
-                        type="text"
-                        name="usdAmount"
-                        inputMode="decimal"
-                        placeholder="30.00"
-                      />
-                    </label>{" "}
-                    <label>
-                      LBP{" "}
-                      <input type="text" name="lbpAmount" inputMode="numeric" />
-                    </label>{" "}
-                    <button type="submit">Collect mixed</button>
-                  </form>
-                </>
-              ) : null}
-              {mayCancel ? (
-                <form action={submitCancelBooking}>
-                  <input type="hidden" name="bookingId" value={row.id} />
-                  {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                  <button type="submit">Cancel</button>
-                </form>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h2>Waitlist</h2>
-      {waitlist.length === 0 ? (
-        <p>No waitlist.</p>
-      ) : (
-        <ul>
-          {waitlist.map((group) => (
-            <li key={`${group.pitchId}-${group.start.toISOString()}`}>
-              <strong>{group.pitchName}</strong>{" "}
-              {formatLocalRange(group.start, group.end)}
-              <ul>
-                {group.people.map((person) => (
-                  <li key={person.personId}>
-                    {person.name} <code>{person.phone}</code>
-                    {person.whatsAppHref ? (
-                      <>
-                        {" "}
-                        <a
-                          href={person.whatsAppHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
+      <section className="flex flex-col gap-4">
+        <h2 className="font-heading text-xl">Waitlist</h2>
+        {waitlist.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No waitlist.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {waitlist.map((group) => (
+              <li key={`${group.pitchId}-${group.start.toISOString()}`}>
+                <Card>
+                  <CardHeader className="gap-1">
+                    <CardTitle className="text-base">{group.pitchName}</CardTitle>
+                    <CardDescription className="font-mono">
+                      {formatLocalRange(group.start, group.end)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="flex flex-col gap-3">
+                      {group.people.map((person) => (
+                        <li
+                          key={person.personId}
+                          className="flex items-center justify-between gap-3"
                         >
-                          Notify
-                        </a>
-                      </>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-      )}
+                          <div className="min-w-0">
+                            <p>{person.name}</p>
+                            <p className="font-mono text-sm text-muted-foreground">
+                              {person.phone}
+                            </p>
+                          </div>
+                          {person.whatsAppHref ? (
+                            <Button variant="outline" asChild>
+                              <a
+                                href={person.whatsAppHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Notify
+                              </a>
+                            </Button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
-      <h2>Expenses</h2>
-      {mayRecordExpense ? (
-        <form action={submitRecordExpense}>
-          {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-          <label>
-            Category{" "}
-            <select name="category" required defaultValue="ELECTRICITY">
-              {EXPENSE_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {categoryLabel(category)}
-                </option>
-              ))}
-            </select>
-          </label>{" "}
-          <label>
-            What{" "}
-            <input type="text" name="description" required maxLength={200} />
-          </label>{" "}
-          <label>
-            When{" "}
-            <input type="date" name="occurredOn" required defaultValue={today} />
-          </label>{" "}
-          <label>
-            USD{" "}
-            <input
-              type="text"
-              name="usdAmount"
-              inputMode="decimal"
-              placeholder="30.00"
-            />
-          </label>{" "}
-          <label>
-            LBP{" "}
-            <input type="text" name="lbpAmount" inputMode="numeric" />
-          </label>{" "}
-          <button type="submit">Record expense</button>
-        </form>
+      {summary ? (
+        <section className="flex flex-col gap-4">
+          <h2 className="font-heading text-xl">This period</h2>
+          <Card>
+            <CardHeader className="gap-1">
+              <CardDescription className="font-mono">
+                {summary.from} → {summary.to}
+              </CardDescription>
+              <p className="font-mono text-sm">
+                In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
+              </p>
+              <p className="font-mono text-sm">
+                Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
+              </p>
+              <p className="font-mono text-sm">
+                Difference{" "}
+                {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+              </p>
+              {lbpNote ? (
+                <p className="text-sm text-muted-foreground">{lbpNote}</p>
+              ) : null}
+            </CardHeader>
+            <CardContent>
+              <form method="get" action="/owner" className="flex flex-col gap-3">
+                <input type="hidden" name="tenant" value={tenantSlug} />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="from">From</Label>
+                  <Input
+                    id="from"
+                    type="date"
+                    name="from"
+                    required
+                    defaultValue={summary.from}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="to">To</Label>
+                  <Input
+                    id="to"
+                    type="date"
+                    name="to"
+                    required
+                    defaultValue={summary.to}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="view">View</Label>
+                  <select
+                    id="view"
+                    name="view"
+                    defaultValue={periodQuery.view}
+                    className={nativeField}
+                  >
+                    <option value="usd">USD</option>
+                    <option value="lbp">LBP</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="displayRate">Display rate</Label>
+                  <Input
+                    id="displayRate"
+                    type="text"
+                    name="displayRate"
+                    inputMode="numeric"
+                    placeholder="90000"
+                    defaultValue={periodQuery.displayRate ?? ""}
+                    className="font-mono"
+                  />
+                </div>
+                <Button type="submit" variant="secondary" className="w-full">
+                  Show
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </section>
       ) : null}
-      {expenses.length === 0 ? (
-        <p>No expenses yet.</p>
-      ) : (
-        <ul>
-          {expenses.map((row) => (
-            <li key={row.id}>
-              {categoryLabel(row.category)} — {row.description} —{" "}
-              {formatLocalDay(row.occurredAt)} — ${formatUsd(row.amountUsd)}
-            </li>
-          ))}
-        </ul>
-      )}
+
+      <section className="flex flex-col gap-4">
+        <h2 className="font-heading text-xl">Exchange rate</h2>
+        <Card>
+          <CardHeader>
+            <CardDescription className="font-mono">
+              {rate ? `${rate.toFixed(0)} LBP per USD` : "No rate set"}
+            </CardDescription>
+          </CardHeader>
+          {isOwner ? (
+            <CardContent>
+              <form action={submitSetExchangeRate} className="flex flex-col gap-3">
+                {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="lbpPerUsd">New rate</Label>
+                  <Input
+                    id="lbpPerUsd"
+                    type="text"
+                    name="lbpPerUsd"
+                    required
+                    inputMode="numeric"
+                    className="font-mono"
+                  />
+                </div>
+                <Button type="submit" variant="secondary" className="w-full">
+                  Set rate
+                </Button>
+              </form>
+            </CardContent>
+          ) : null}
+        </Card>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="font-heading text-xl">Expenses</h2>
+        {mayRecordExpense ? (
+          <Card>
+            <CardContent>
+              <form action={submitRecordExpense} className="flex flex-col gap-3">
+                {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="category">Category</Label>
+                  <select
+                    id="category"
+                    name="category"
+                    required
+                    defaultValue="ELECTRICITY"
+                    className={nativeField}
+                  >
+                    {EXPENSE_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {categoryLabel(category)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="description">What</Label>
+                  <Input
+                    id="description"
+                    type="text"
+                    name="description"
+                    required
+                    maxLength={200}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="occurredOn">When</Label>
+                  <Input
+                    id="occurredOn"
+                    type="date"
+                    name="occurredOn"
+                    required
+                    defaultValue={today}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="expenseUsd">USD</Label>
+                  <Input
+                    id="expenseUsd"
+                    type="text"
+                    name="usdAmount"
+                    inputMode="decimal"
+                    placeholder="30.00"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="expenseLbp">LBP</Label>
+                  <Input
+                    id="expenseLbp"
+                    type="text"
+                    name="lbpAmount"
+                    inputMode="numeric"
+                    className="font-mono"
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Record expense
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
+        {expenses.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No expenses yet.</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {expenses.map((row) => (
+              <li key={row.id} className="text-sm">
+                {categoryLabel(row.category)} — {row.description} —{" "}
+                <span className="font-mono">{formatLocalDay(row.occurredAt)}</span>{" "}
+                —{" "}
+                <span className="font-mono">${formatUsd(row.amountUsd)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
