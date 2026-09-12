@@ -1,7 +1,7 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { PublicDayChips } from "@/app/public-day-chips";
-import { HoursListSkeleton } from "@/app/list-skeletons";
+import { PublicHoursSkeleton } from "@/app/public-skeletons";
 import { PublicHours } from "@/app/public-hours";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { ui } from "@/lib/ui-copy";
@@ -46,7 +46,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       <section className="flex flex-col gap-4">
         <h2 className="font-heading text-xl">{ui("public.hours")}</h2>
-        <Suspense key={dateValue} fallback={<HoursListSkeleton />}>
+        <Suspense key={dateValue} fallback={<PublicHoursSkeleton />}>
           <PublicHours
             localDate={localDate}
             dateValue={dateValue}

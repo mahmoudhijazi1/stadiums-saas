@@ -2678,6 +2678,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** Toggle a long day vs a short one (or resize until the page scrollbar appears). Chips and hours stay horizontally still.
 
+---
+
+## Chapter 115 — 2026-09-12 — Public hours skeleton matches the slot grid
+
+**When:** 2026-09-12
+
+**What:** Replaced the two tall gray blocks. Hours Suspense now falls back to `PublicHoursSkeleton`: pitch heading bars at **inline-start** + a 2-col grid of time/price chip shapes (same `min-h-16` / `rounded-xl` as live slots). Pieces are exported separately (`StartLine`, `SlotChipSkeleton`, `SlotGridSkeleton`, `PitchHoursSkeleton`, `DayChipsSkeleton`) so later public UI can compose them. No `pl`/`pr`/`ml`/`mr` — `self-start` / `items-start` follow `dir`.
+
+**Why:** The old blocks did not look like the slot picker and would not survive a later English/LTR pass.
+
+**Files:** `src/app/public-skeletons.tsx` (new); `src/app/page.tsx`; `src/app/list-skeletons.tsx` (dropped `HoursListSkeleton`).
+
+**Relation:** Day chips stay mounted; only hours suspend. Owner skeletons unchanged.
+
+**How to verify:** Tap غداً — stadium name and chips stay; hours area shows two pitch headings (start-aligned) and a 2-col chip grid, then real slots. Flip `dir` on `<html>` — heading bars and chip text stubs stay at inline-start.
+
+
 
 
 

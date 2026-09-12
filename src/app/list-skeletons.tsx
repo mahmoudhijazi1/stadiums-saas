@@ -1,14 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
-function HoursListSkeleton() {
-  return (
-    <div className="flex flex-col gap-2">
-      <Skeleton className="h-40 w-full rounded-xl" />
-      <Skeleton className="h-40 w-full rounded-xl" />
-    </div>
-  )
-}
-
 function TodayListsSkeleton() {
   return (
     <div className="flex flex-col gap-3">
@@ -40,7 +31,6 @@ function OwnerRestSkeleton() {
 }
 
 export {
-  HoursListSkeleton,
   TodayListsSkeleton,
   BookSlotsSkeleton,
   OwnerRestSkeleton,
