@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { UiLocale } from "@/lib/locale";
 import {
   collectUsdLabel,
-  dueRemainingLine,
   overdueCount,
   ui,
 } from "@/lib/ui-copy";
@@ -63,6 +62,52 @@ function StatusBadge({
     <Badge variant="ghost" className="font-normal text-muted-foreground">
       {ui("owner.upcomingTag", locale)}
     </Badge>
+  );
+}
+
+function DueRemainingFigures({
+  dueUsd,
+  remainingUsd,
+  locale,
+}: {
+  dueUsd: string;
+  remainingUsd: string;
+  locale: UiLocale;
+}) {
+  const owed = remainingUsd !== "0.00";
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div className="rounded-lg bg-muted px-3 py-2">
+        <p className="text-xs text-muted-foreground">{ui("owner.due", locale)}</p>
+        <p className="mt-0.5 text-base font-semibold text-foreground">
+          <LtrIsolate>${dueUsd}</LtrIsolate>
+        </p>
+      </div>
+      <div
+        className={cn(
+          "rounded-lg px-3 py-2",
+          owed ? "bg-primary/15" : "bg-muted",
+        )}
+      >
+        <p
+          className={cn(
+            "text-xs",
+            owed ? "text-primary" : "text-muted-foreground",
+          )}
+        >
+          {ui("owner.remaining", locale)}
+        </p>
+        <p
+          className={cn(
+            "mt-0.5 text-base font-semibold",
+            owed ? "text-primary" : "text-muted-foreground",
+          )}
+        >
+          <LtrIsolate>${remainingUsd}</LtrIsolate>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -213,11 +258,11 @@ function UpcomingRows({
                   <p className="text-sm text-muted-foreground">
                     <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                   </p>
-                  <p className="text-sm">
-                    <LtrIsolate>
-                      {dueRemainingLine(row.priceUsd, row.remainingUsd, locale)}
-                    </LtrIsolate>
-                  </p>
+                  <DueRemainingFigures
+                    dueUsd={row.priceUsd}
+                    remainingUsd={row.remainingUsd}
+                    locale={locale}
+                  />
                   {mayCollect && row.status !== "paid" ? (
                     <>
                       <form action={submitCollectPayment}>

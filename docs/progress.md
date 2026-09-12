@@ -2978,6 +2978,20 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. `/owner/today` — tab House + رئيسية; pending any date with inline date; competing slot shows all requesters + buttons; today compact tags; tap row for collect/cancel; overdue unpaid above today; coming-days toggle. Staff without approve/collect: lists without those forms.
 
+---
+
+## Chapter 133 — 2026-09-13 — Home collect: due vs remaining figures
+
+**When:** 2026-09-13
+
+**What:** Tap-in collect detail shows due and remaining as two labeled tiles instead of one `Due $30 · remaining $30` sentence. Remaining uses Volt when still owed; both quiet when remaining is `$0.00`.
+
+**Why:** Same number twice in one muted line was hard to scan on the phone.
+
+**Files:** `src/app/owner/today/upcoming-panel.tsx`; `src/lib/ui-copy.ts` (`owner.remaining`).
+
+**How to verify:** `/owner/today` — expand a confirmed row. Due is Slate tile; remaining is Volt if unpaid. Paid row: remaining muted.
+
 
 
 

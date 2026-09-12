@@ -28,6 +28,8 @@ describe("ui", () => {
     expect(ui("owner.upcomingTag")).toBe("قادم");
     expect(ui("owner.overdue")).toBe("متأخر");
     expect(ui("owner.collectMixed")).toBe("دفع بعملتين");
+    expect(ui("owner.remaining")).toBe("المتبقي");
+    expect(ui("owner.remaining", "en")).toBe("Remaining");
     expect(ui("owner.book", "en")).toBe("Book");
   });
 
