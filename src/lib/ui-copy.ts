@@ -1,6 +1,9 @@
+import type { UiLocale } from "@/lib/locale";
+
 /**
  * Arabic chrome (DR-005). Keys, not sentences in JSX. Unknown key → the key
  * (missing copy stays visible). Interpolated money/counts are helpers below.
+ * Optional English is a second table for the public lang/dir toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
   "doc.title": "ملاعب",
@@ -18,6 +21,10 @@ const ARABIC: Record<string, string> = {
   "public.emptyPitchesNext": "هذا الملعب لم يُدرج ملاعب.",
   "public.closed": "مغلق هذا اليوم.",
   "public.closedNext": "اختر يوماً آخر لرؤية الساعات.",
+  "public.langToEn": "EN",
+  "public.langToAr": "ع",
+  "public.langEnglish": "English",
+  "public.langArabic": "العربية",
   "login.title": "تسجيل الدخول",
   "login.identifier": "المعرّف",
   "login.password": "كلمة السر",
@@ -81,8 +88,31 @@ const ARABIC: Record<string, string> = {
   lbpNote: "عيّن سعر عرض (أو عيّن سعر الصرف أولاً)",
 };
 
-/** Chrome Arabic for a key. Missing key returns itself. */
-export function ui(key: string): string {
+const ENGLISH: Record<string, string> = {
+  "doc.title": "Pitches",
+  "public.day": "Day",
+  "public.today": "Today",
+  "public.tomorrow": "Tomorrow",
+  "public.otherDate": "Other date",
+  "public.showHours": "Show hours",
+  "public.hours": "Hours",
+  "public.taken": "Taken",
+  "public.name": "Name",
+  "public.phone": "Phone",
+  "public.request": "Request",
+  "public.emptyPitches": "No pitches yet.",
+  "public.emptyPitchesNext": "This stadium has not listed pitches.",
+  "public.closed": "Closed this day.",
+  "public.closedNext": "Pick another day to see hours.",
+  "public.langToEn": "EN",
+  "public.langToAr": "ع",
+  "public.langEnglish": "English",
+  "public.langArabic": "العربية",
+};
+
+/** Chrome for a key. Default Arabic. Missing English key falls back to Arabic. */
+export function ui(key: string, locale: UiLocale = "ar"): string {
+  if (locale === "en") return ENGLISH[key] ?? ARABIC[key] ?? key;
   return ARABIC[key] ?? key;
 }
 

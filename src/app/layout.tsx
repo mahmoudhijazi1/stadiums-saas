@@ -5,6 +5,8 @@ import {
   Noto_Kufi_Arabic,
 } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { getUiLocale } from "@/lib/get-ui-locale";
+import { htmlDir, htmlLang } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import "./globals.css";
 
@@ -30,16 +32,20 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: ui("doc.title"),
-  description: "Book a pitch. Collect in cash.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getUiLocale();
+  return {
+    title: ui("doc.title", locale),
+    description: "Book a pitch. Collect in cash.",
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getUiLocale();
   return (
     <html
-      lang="ar"
-      dir="rtl"
+      lang={htmlLang(locale)}
+      dir={htmlDir(locale)}
       className={`${plexArabic.variable} ${kufi.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-svh flex flex-col">

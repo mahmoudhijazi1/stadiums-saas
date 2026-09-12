@@ -14,6 +14,8 @@ describe("ui", () => {
     expect(ui("public.request")).toBe("اطلب");
     expect(ui("public.today")).toBe("اليوم");
     expect(ui("public.tomorrow")).toBe("غداً");
+    expect(ui("public.hours", "en")).toBe("Hours");
+    expect(ui("public.today", "en")).toBe("Today");
   });
 
   it("returns the key itself when unknown", () => {

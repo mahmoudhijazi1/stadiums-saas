@@ -3,7 +3,9 @@ import type { CivilDate } from "@/modules/venue/domain/availability";
 import { PublicDayChips } from "@/app/public-day-chips";
 import { PublicHoursSkeleton } from "@/app/public-skeletons";
 import { PublicHours } from "@/app/public-hours";
+import { PublicLangToggle } from "@/app/public-lang-toggle";
 import { FlashToast } from "@/components/ui/flash-toast";
+import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 import { Suspense } from "react";
 
@@ -15,6 +17,7 @@ import { Suspense } from "react";
  */
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
+  const locale = await getUiLocale();
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const today = todayInTimeZone("Asia/Beirut");
@@ -34,23 +37,26 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-8">
       <FlashToast ok={ok} error={errorKey} keepQuery={keep.toString()} />
-      <header>
-        <h1 className="font-heading text-2xl">{tenant.name}</h1>
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="min-w-0 font-heading text-2xl">{tenant.name}</h1>
+        <PublicLangToggle locale={locale} />
       </header>
 
       <PublicDayChips
         tenantSlug={tenant.slug}
         today={today}
         selectedDate={dateValue}
+        locale={locale}
       />
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">{ui("public.hours")}</h2>
+        <h2 className="font-heading text-xl">{ui("public.hours", locale)}</h2>
         <Suspense key={dateValue} fallback={<PublicHoursSkeleton />}>
           <PublicHours
             localDate={localDate}
             dateValue={dateValue}
             tenantSlug={tenant.slug}
+            locale={locale}
           />
         </Suspense>
       </section>

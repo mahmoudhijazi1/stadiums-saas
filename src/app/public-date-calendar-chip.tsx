@@ -10,7 +10,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ui } from "@/lib/ui-copy";
 
 function parseYyyyMmDd(value: string): Date | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -46,11 +45,13 @@ export function PublicDateCalendarChip({
   selectedDate,
   isSelected,
   className,
+  otherDateLabel,
 }: {
   tenantSlug: string;
   selectedDate: string;
   isSelected: boolean;
   className?: string;
+  otherDateLabel: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -61,7 +62,7 @@ export function PublicDateCalendarChip({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={ui("public.otherDate")}
+          aria-label={otherDateLabel}
           aria-pressed={isSelected}
           className={className}
         >

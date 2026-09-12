@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { PublicDateCalendarChip } from "@/app/public-date-calendar-chip";
+import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 
-const WINDOW_DAYS = 6;
+const WINDOW_DAYS = 5;
 
 /**
  * Same-week public dates as Next.js Link (client transition, not a GET
@@ -15,10 +16,12 @@ export function PublicDayChips({
   tenantSlug,
   today,
   selectedDate,
+  locale,
 }: {
   tenantSlug: string;
   today: CivilDate;
   selectedDate: string;
+  locale: UiLocale;
 }) {
   const days = Array.from({ length: WINDOW_DAYS }, (_, offset) =>
     addCivilDays(today, offset),
@@ -26,7 +29,7 @@ export function PublicDayChips({
   const inWindow = days.some((day) => formatCivilDate(day) === selectedDate);
 
   return (
-    <nav aria-label={ui("public.day")}>
+    <nav aria-label={ui("public.day", locale)}>
       <ul className="flex gap-1.5">
         {days.map((day, offset) => {
           const date = formatCivilDate(day);
@@ -40,12 +43,14 @@ export function PublicDayChips({
                 className={dayChipClass(selected)}
               >
                 {offset === 0 ? (
-                  ui("public.today")
+                  ui("public.today", locale)
                 ) : offset === 1 ? (
-                  ui("public.tomorrow")
+                  ui("public.tomorrow", locale)
                 ) : (
                   <span className="flex flex-col items-center gap-0.5">
-                    <span className="leading-tight">{weekdayName(day)}</span>
+                    <span className="leading-tight">
+                      {weekdayName(day, locale)}
+                    </span>
                     <LtrIsolate className="text-sm font-semibold leading-none">
                       {String(day.day)}
                     </LtrIsolate>
@@ -61,6 +66,7 @@ export function PublicDayChips({
             selectedDate={selectedDate}
             isSelected={!inWindow}
             className={dayChipClass(!inWindow)}
+            otherDateLabel={ui("public.otherDate", locale)}
           />
         </li>
       </ul>
@@ -92,9 +98,9 @@ function formatCivilDate(date: CivilDate): string {
   return `${date.year}-${month}-${day}`;
 }
 
-function weekdayName(date: CivilDate): string {
-  return new Intl.DateTimeFormat("ar", {
-    weekday: "long",
+function weekdayName(date: CivilDate, locale: UiLocale): string {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar", {
+    weekday: locale === "en" ? "short" : "long",
     timeZone: "UTC",
   }).format(new Date(Date.UTC(date.year, date.month - 1, date.day, 12)));
 }

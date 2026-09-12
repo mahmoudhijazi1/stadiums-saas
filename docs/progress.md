@@ -28,11 +28,11 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-12)
 
-**On `feature/public-slot-picker`.** SPEC-01–13 click-proofed. UI is Arabic + RTL. Public date is a 7-chip row (اليوم / غداً / four weekdays + calendar); hours are a 2-col tap grid with one inline request form. Latin times/phones/money/day numbers are `<bdi dir="ltr">`. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
+**On `feature/public-slot-picker`.** SPEC-01–13 click-proofed. UI is Arabic + RTL by default. Public `/` has an EN/ع header button (cookie `stadium_locale`) that flips `html` `lang`/`dir` and public chrome. Hours are a 2-col tap grid with one inline request form. Latin times/phones/money/day numbers are `<bdi dir="ltr">`. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
 
 **What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, Cancels, sees waitlist + Notify, records expenses, and sees This period.
 
-**What they cannot do yet:** refunds, no-show, other WhatsApp templates, per-player split, English UI switch, games-played / pitch-busy (BR-57).
+**What they cannot do yet:** refunds, no-show, other WhatsApp templates, per-player split, next-intl / `[locale]` / owner English, games-played / pitch-busy (BR-57).
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, Book, or cancel).
 
@@ -2693,6 +2693,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Relation:** Day chips stay mounted; only hours suspend. Owner skeletons unchanged.
 
 **How to verify:** Tap غداً — stadium name and chips stay; hours area shows two pitch headings (start-aligned) and a 2-col chip grid, then real slots. Flip `dir` on `<html>` — heading bars and chip text stubs stay at inline-start.
+
+---
+
+## Chapter 116 — 2026-09-12 — Public EN/ع lang+dir toggle
+
+**When:** 2026-09-12
+
+**What:** Public header has a small outline button. Arabic → shows **EN**; English → shows **ع**. Click sets cookie `stadium_locale`, flips `<html lang>` / `dir` (`ar`+`rtl` / `en`+`ltr`), and `router.refresh()` so public chrome (Today/Hours/Taken/form) follows. Stadium and pitch names stay as stored. No next-intl, no `/en` routes. Owner/login still Arabic copy (fallback).
+
+**Why:** Product asked for a public direction switch to exercise LTR. DR-005 still parks next-intl; this is a cookie + dictionary, not `[locale]`.
+
+**Files:** `src/lib/locale.ts`; `src/lib/get-ui-locale.ts`; `src/app/locale-actions.ts`; `src/app/public-lang-toggle.tsx`; `src/app/layout.tsx`; `src/app/page.tsx`; `src/lib/ui-copy.ts`; public hours/chips/picker; `test/lib/locale.test.ts`.
+
+**Relation:** `ui(key, locale?)` defaults `ar`. Cookie write is a Server Function (cookies.md). `app/` still has no Prisma / no `tenantId`.
+
+**How to verify:** `/?tenant=ahmad` — EN at inline-end of the header. Tap — page goes LTR, Today/Hours/Request in English, chips at the left. Tap ع — back to RTL Arabic. `npm test` (157).
+
 
 
 

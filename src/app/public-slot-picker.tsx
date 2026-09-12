@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
+import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 
@@ -26,10 +27,12 @@ export function PublicSlotPicker({
   pitches,
   dateValue,
   tenantSlug,
+  locale,
 }: {
   pitches: PitchDayAvailability[];
   dateValue: string;
   tenantSlug: string;
+  locale: UiLocale;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -40,8 +43,8 @@ export function PublicSlotPicker({
           <h3 className="font-medium">{pitch.name}</h3>
           {pitch.slots.length === 0 ? (
             <EmptyState
-              title={ui("public.closed")}
-              next={ui("public.closedNext")}
+              title={ui("public.closed", locale)}
+              next={ui("public.closedNext", locale)}
             />
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -56,6 +59,7 @@ export function PublicSlotPicker({
                     isSelected={isSelected}
                     dateValue={dateValue}
                     tenantSlug={tenantSlug}
+                    locale={locale}
                     onToggle={() =>
                       setSelected((current) => (current === key ? null : key))
                     }
@@ -76,6 +80,7 @@ function SlotBlock({
   isSelected,
   dateValue,
   tenantSlug,
+  locale,
   onToggle,
 }: {
   pitchId: string;
@@ -83,6 +88,7 @@ function SlotBlock({
   isSelected: boolean;
   dateValue: string;
   tenantSlug: string;
+  locale: UiLocale;
   onToggle: () => void;
 }) {
   const time = (
@@ -102,7 +108,7 @@ function SlotBlock({
         {time}
         <div className="flex w-full items-center justify-between gap-2">
           {price}
-          <Badge variant="outline">{ui("public.taken")}</Badge>
+          <Badge variant="outline">{ui("public.taken", locale)}</Badge>
         </div>
       </div>
     );
@@ -139,7 +145,9 @@ function SlotBlock({
           <input type="hidden" name="date" value={dateValue} />
           <input type="hidden" name="tenant" value={tenantSlug} />
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`name-${slot.startIso}`}>{ui("public.name")}</Label>
+            <Label htmlFor={`name-${slot.startIso}`}>
+              {ui("public.name", locale)}
+            </Label>
             <Input
               id={`name-${slot.startIso}`}
               type="text"
@@ -149,7 +157,9 @@ function SlotBlock({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`phone-${slot.startIso}`}>{ui("public.phone")}</Label>
+            <Label htmlFor={`phone-${slot.startIso}`}>
+              {ui("public.phone", locale)}
+            </Label>
             <Input
               id={`phone-${slot.startIso}`}
               type="tel"
@@ -159,7 +169,9 @@ function SlotBlock({
               className="font-mono"
             />
           </div>
-          <SubmitButton className="w-full">{ui("public.request")}</SubmitButton>
+          <SubmitButton className="w-full">
+            {ui("public.request", locale)}
+          </SubmitButton>
         </form>
       ) : null}
     </>

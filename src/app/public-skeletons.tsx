@@ -52,7 +52,7 @@ function PitchHoursSkeleton({ slots = 6 }: { slots?: number }) {
 function DayChipsSkeleton() {
   return (
     <ul className="flex gap-1.5">
-      {Array.from({ length: 7 }, (_, index) => (
+      {Array.from({ length: 6 }, (_, index) => (
         <li key={index} className="min-w-0 flex-1">
           <Skeleton className="h-14 w-full rounded-xl" />
         </li>

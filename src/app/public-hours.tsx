@@ -3,6 +3,7 @@ import { getDayAvailability } from "@/modules/venue/application/get-day-availabi
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { PublicSlotPicker } from "@/app/public-slot-picker";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 
 const TIME_ZONE = "Asia/Beirut";
@@ -15,10 +16,12 @@ export async function PublicHours({
   localDate,
   dateValue,
   tenantSlug,
+  locale,
 }: {
   localDate: CivilDate;
   dateValue: string;
   tenantSlug: string;
+  locale: UiLocale;
 }) {
   const occupied = await listApprovedOccupied();
   const pitches = await getDayAvailability({
@@ -30,8 +33,8 @@ export async function PublicHours({
   if (pitches.length === 0) {
     return (
       <EmptyState
-        title={ui("public.emptyPitches")}
-        next={ui("public.emptyPitchesNext")}
+        title={ui("public.emptyPitches", locale)}
+        next={ui("public.emptyPitchesNext", locale)}
       />
     );
   }
@@ -41,6 +44,7 @@ export async function PublicHours({
       pitches={pitches}
       dateValue={dateValue}
       tenantSlug={tenantSlug}
+      locale={locale}
     />
   );
 }
