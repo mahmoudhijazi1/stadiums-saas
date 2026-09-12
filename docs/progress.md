@@ -3006,6 +3006,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `/owner/today` AR and EN. Time is the largest line. Upcoming/Due/Paid are pills. Expand a row: phone has a Phone icon, not a bare number.
 
+---
+
+## Chapter 135 — 2026-09-13 — Toast above the tab bar
+
+**When:** 2026-09-13
+
+**What:** Sonner Toaster is `top-center` (safe-area offset) instead of default bottom. Owner tab bar stays tappable after Approve/Collect.
+
+**Why:** Bottom toasts sat on the Home tab strip on a phone.
+
+**Files:** `src/components/ui/sonner.tsx`.
+
+**How to verify:** Approve or collect on `/owner/today` — toast appears under the status bar, not over رئيسية / احجز.
+
+
 
 
 
