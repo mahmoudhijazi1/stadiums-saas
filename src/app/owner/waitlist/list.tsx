@@ -1,4 +1,5 @@
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
+import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { formatLocalRange } from "@/app/owner/shared";
 import { Button } from "@/components/ui/button";
@@ -12,14 +13,18 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 
-export async function OwnerWaitlist() {
+export async function OwnerWaitlist({
+  locale = "ar",
+}: {
+  locale?: UiLocale;
+}) {
   const waitlist = await listOpenWaitlist();
 
   if (waitlist.length === 0) {
     return (
       <EmptyState
-        title={ui("empty.waitlist")}
-        next={ui("empty.waitlistNext")}
+        title={ui("empty.waitlist", locale)}
+        next={ui("empty.waitlistNext", locale)}
       />
     );
   }
@@ -50,7 +55,7 @@ export async function OwnerWaitlist() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {ui("owner.notify")}
+                      {ui("owner.notify", locale)}
                     </a>
                   </Button>
                 </CardContent>

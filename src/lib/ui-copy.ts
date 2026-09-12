@@ -3,7 +3,7 @@ import type { UiLocale } from "@/lib/locale";
 /**
  * Arabic chrome (DR-005). Keys, not sentences in JSX. Unknown key → the key
  * (missing copy stays visible). Interpolated money/counts are helpers below.
- * Optional English is a second table for the public lang/dir toggle — not next-intl.
+ * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
   "doc.title": "ملاعب",
@@ -126,6 +126,71 @@ const ENGLISH: Record<string, string> = {
   "public.errName": "Enter a name.",
   "public.errPhone": "Enter a phone with 8–15 digits.",
   "dialog.close": "Close",
+  "login.title": "Log in",
+  "login.identifier": "Identifier",
+  "login.password": "Password",
+  "login.submit": "Log in",
+  "owner.logout": "Log out",
+  "owner.tabs": "Sections",
+  "owner.today": "Today",
+  "owner.money": "Money",
+  "owner.pending": "Pending",
+  "owner.confirmed": "Confirmed",
+  "owner.requested": "Requested",
+  "owner.due": "Due",
+  "owner.paid": "Paid",
+  "owner.approve": "Approve",
+  "owner.reject": "Reject",
+  "owner.collectMixed": "Collect mixed",
+  "owner.usd": "USD",
+  "owner.lbp": "LBP",
+  "owner.cancel": "Cancel",
+  "owner.bookHeading": "Book an hour",
+  "owner.showSlots": "Show hours",
+  "owner.book": "Book",
+  "owner.waitlist": "Waitlist",
+  "owner.notify": "Notify",
+  "owner.period": "This period",
+  "owner.difference": "Difference",
+  "owner.in": "In",
+  "owner.out": "Out",
+  "owner.from": "From",
+  "owner.to": "To",
+  "owner.view": "View",
+  "owner.displayRate": "Display rate",
+  "owner.show": "Show",
+  "owner.rate": "Exchange rate",
+  "owner.noRate": "No rate set",
+  "owner.newRate": "New rate",
+  "owner.setRate": "Set rate",
+  "owner.expenses": "Expenses",
+  "owner.recordExpense": "Record expense",
+  "owner.category": "Category",
+  "owner.what": "Description",
+  "owner.when": "Date",
+  "owner.recordExpenseSubmit": "Record expense",
+  "empty.pending": "No pending requests.",
+  "empty.pendingNext": "When someone requests an hour, it shows here.",
+  "empty.confirmed": "No confirmed matches today.",
+  "empty.confirmedNext": "Approved hours show here for collection.",
+  "empty.pitches": "No pitches yet.",
+  "empty.pitchesNext": "Pitches show here when this stadium lists them.",
+  "empty.noCreate": "No permission to book.",
+  "empty.noCreateNext": "This page is for the owner or anyone given booking access.",
+  "empty.waitlist": "No waitlist.",
+  "empty.waitlistNext": "Anyone who requested a taken hour shows here after a cancel.",
+  "empty.expenses": "No expenses yet.",
+  "empty.expensesNextRecord": "Record one above.",
+  "empty.expensesNextStaff": "Nothing in this list.",
+  "cat.ELECTRICITY": "Electricity",
+  "cat.WATER": "Water",
+  "cat.MAINTENANCE": "Maintenance",
+  "cat.SALARY": "Salary",
+  "cat.EQUIPMENT": "Equipment",
+  "cat.OTHER": "Other",
+  "role.OWNER": "Owner",
+  "role.STAFF": "Staff",
+  lbpNote: "Set a display rate (or set the exchange rate first)",
 };
 
 /** Chrome for a key. Default Arabic. Missing English key falls back to Arabic. */
@@ -158,26 +223,34 @@ export function hoursEmptyState(
 }
 
 /** Pending heading with a Western count. */
-export function pendingCount(n: number): string {
-  return `قيد الانتظار · ${n}`;
+export function pendingCount(n: number, locale: UiLocale = "ar"): string {
+  return `${ui("owner.pending", locale)} · ${n}`;
 }
 
 /** Confirmed heading with a Western count. */
-export function confirmedCount(n: number): string {
-  return `مؤكد · ${n}`;
+export function confirmedCount(n: number, locale: UiLocale = "ar"): string {
+  return `${ui("owner.confirmed", locale)} · ${n}`;
 }
 
 /** Collect remaining USD — amount is already formatUsd (Latin). */
-export function collectUsdLabel(amount: string): string {
-  return `تحصيل $${amount}`;
+export function collectUsdLabel(amount: string, locale: UiLocale = "ar"): string {
+  return locale === "en" ? `Collect $${amount}` : `تحصيل $${amount}`;
 }
 
 /** Confirmed card due line. Amounts are already formatUsd (Latin). */
-export function dueRemainingLine(due: string, remaining: string): string {
-  return `المستحق $${due} · المتبقي $${remaining}`;
+export function dueRemainingLine(
+  due: string,
+  remaining: string,
+  locale: UiLocale = "ar",
+): string {
+  return locale === "en"
+    ? `Due $${due} · remaining $${remaining}`
+    : `المستحق $${due} · المتبقي $${remaining}`;
 }
 
 /** Exchange-rate card line. Amount is Latin digits, no currency symbol. */
-export function lbpPerUsdLine(amount: string): string {
-  return `${amount} ليرة لكل دولار`;
+export function lbpPerUsdLine(amount: string, locale: UiLocale = "ar"): string {
+  return locale === "en"
+    ? `${amount} LBP per USD`
+    : `${amount} ليرة لكل دولار`;
 }

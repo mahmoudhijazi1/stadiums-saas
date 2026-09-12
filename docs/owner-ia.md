@@ -33,7 +33,7 @@ Why:
 - Shared chrome (header + tab bar) does not remount on tab `<Link>` (local `layout.md`: layouts are cached on the client and do not rerender).
 - Independent in-page `<Suspense>` per tab. **No `loading.tsx` under `/owner` or a tab folder** — that file wraps the whole `page.js` and would unmount Money GET date fields and Book day chips (already burned once; see `docs/progress.md`).
 
-The only `"use client"` owner chrome is the tab bar (`usePathname` for the active tab), `FlashToast` (`useSearchParams`), and the Book calendar chip (same Popover as public). Tab **content** lists stay Server Components.
+The only `"use client"` owner chrome is the tab bar (`usePathname` for the active tab), `FlashToast` (`useSearchParams`), the Book calendar chip (same Popover as public), and `LangToggle` (same cookie + `html` lang/dir as public). Tab **content** lists stay Server Components.
 
 Layouts cannot read `searchParams` or pathname (they would go stale). Tenant for tab Links comes from `getCurrentTenant()` (header). Flash toasts read `ok`/`error` in a Client child.
 
@@ -70,7 +70,7 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 
 | Piece | Where |
 |---|---|
-| Auth gate + header + logout | `src/app/owner/layout.tsx` |
+| Auth gate + header + logout + lang toggle | `src/app/owner/layout.tsx` |
 | Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
 | `OwnerToday` (`today/lists.tsx`) + `today/actions.ts` | `/owner/today` |

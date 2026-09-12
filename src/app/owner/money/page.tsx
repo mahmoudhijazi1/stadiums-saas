@@ -17,6 +17,7 @@ import {
   requireOwnerMembership,
   tenantSlugFrom,
 } from "@/app/owner/shared";
+import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 
 function readPeriodQuery(params: {
@@ -52,6 +53,7 @@ export default async function OwnerMoneyPage({
   const params = await searchParams;
   const tenantSlug = tenantSlugFrom(params, tenant.slug);
   const membership = await requireOwnerMembership(tenantSlug);
+  const locale = await getUiLocale();
   const periodQuery = readPeriodQuery(params);
   const today = formatCivilDate(
     civilDateInTimeZone(new Date(), OWNER_TIME_ZONE),
@@ -59,13 +61,14 @@ export default async function OwnerMoneyPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl">{ui("owner.money")}</h2>
+      <h2 className="font-heading text-xl">{ui("owner.money", locale)}</h2>
       <Suspense fallback={<MoneySkeleton />}>
         <OwnerMoney
           membership={membership}
           tenantSlug={tenantSlug}
           periodQuery={periodQuery}
           today={today}
+          locale={locale}
         />
       </Suspense>
     </section>

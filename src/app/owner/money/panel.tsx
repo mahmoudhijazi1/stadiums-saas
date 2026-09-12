@@ -11,7 +11,8 @@ import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { formatUsd, parseLbp } from "@/lib/money";
-import { ui } from "@/lib/ui-copy";
+import type { UiLocale } from "@/lib/locale";
+import { lbpPerUsdLine, ui } from "@/lib/ui-copy";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { submitRecordExpense, submitSetExchangeRate } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -58,8 +59,8 @@ function formatLocalDay(value: Date): string {
   }).format(value);
 }
 
-function categoryLabel(category: ExpenseCategory): string {
-  return ui(`cat.${category}`);
+function categoryLabel(category: ExpenseCategory, locale: UiLocale): string {
+  return ui(`cat.${category}`, locale);
 }
 
 function formatPeriodAmount(
@@ -78,11 +79,13 @@ export async function OwnerMoney({
   tenantSlug,
   periodQuery,
   today,
+  locale = "ar",
 }: {
   membership: CurrentMembership;
   tenantSlug: string;
   periodQuery: LedgerPeriodQuery;
   today: string;
+  locale?: UiLocale;
 }) {
   const expenses = await listRecentExpenses();
   const rate = await getCurrentRate();
@@ -102,7 +105,7 @@ export async function OwnerMoney({
   const showLbp = periodQuery.view === "lbp" && displayRate !== null;
   const lbpNote =
     periodQuery.view === "lbp" && displayRate === null
-      ? ui("lbpNote")
+      ? ui("lbpNote", locale)
       : null;
 
   return (
@@ -110,7 +113,7 @@ export async function OwnerMoney({
       {summary ? (
         <section className="flex flex-col gap-4">
           <h3 className="text-sm font-medium text-muted-foreground">
-            {ui("owner.period")}
+            {ui("owner.period", locale)}
           </h3>
           <Card>
             <CardHeader className="gap-1">
@@ -120,19 +123,19 @@ export async function OwnerMoney({
                 </LtrIsolate>
               </CardDescription>
               <p className="text-base font-medium">
-                {ui("owner.difference")}{" "}
+                {ui("owner.difference", locale)}{" "}
                 <LtrIsolate>
                   {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
                 </LtrIsolate>
               </p>
               <p className="text-sm text-muted-foreground">
-                {ui("owner.in")}{" "}
+                {ui("owner.in", locale)}{" "}
                 <LtrIsolate>
                   {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
                 </LtrIsolate>
               </p>
               <p className="text-sm text-muted-foreground">
-                {ui("owner.out")}{" "}
+                {ui("owner.out", locale)}{" "}
                 <LtrIsolate>
                   {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
                 </LtrIsolate>
@@ -149,7 +152,7 @@ export async function OwnerMoney({
               >
                 <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="from">{ui("owner.from")}</Label>
+                  <Label htmlFor="from">{ui("owner.from", locale)}</Label>
                   <DateField
                     id="from"
                     name="from"
@@ -158,7 +161,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="to">{ui("owner.to")}</Label>
+                  <Label htmlFor="to">{ui("owner.to", locale)}</Label>
                   <DateField
                     id="to"
                     name="to"
@@ -167,19 +170,19 @@ export async function OwnerMoney({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="view">{ui("owner.view")}</Label>
+                  <Label htmlFor="view">{ui("owner.view", locale)}</Label>
                   <SelectField
                     id="view"
                     name="view"
                     defaultValue={periodQuery.view}
                     options={[
-                      { value: "usd", label: ui("owner.usd") },
-                      { value: "lbp", label: ui("owner.lbp") },
+                      { value: "usd", label: ui("owner.usd", locale) },
+                      { value: "lbp", label: ui("owner.lbp", locale) },
                     ]}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="displayRate">{ui("owner.displayRate")}</Label>
+                  <Label htmlFor="displayRate">{ui("owner.displayRate", locale)}</Label>
                   <Input
                     id="displayRate"
                     type="text"
@@ -191,7 +194,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <Button type="submit" variant="secondary" className="w-full">
-                  {ui("owner.show")}
+                  {ui("owner.show", locale)}
                 </Button>
               </form>
             </CardContent>
@@ -201,17 +204,15 @@ export async function OwnerMoney({
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-medium text-muted-foreground">
-          {ui("owner.rate")}
+          {ui("owner.rate", locale)}
         </h3>
         <Card>
           <CardHeader>
             <CardDescription>
               {rate ? (
-                <>
-                  <LtrIsolate>{rate.toFixed(0)}</LtrIsolate> ليرة لكل دولار
-                </>
+                lbpPerUsdLine(rate.toFixed(0), locale)
               ) : (
-                ui("owner.noRate")
+                ui("owner.noRate", locale)
               )}
             </CardDescription>
           </CardHeader>
@@ -223,7 +224,7 @@ export async function OwnerMoney({
               >
                 {keepPeriodQuery(tenantSlug, periodQuery)}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="lbpPerUsd">{ui("owner.newRate")}</Label>
+                  <Label htmlFor="lbpPerUsd">{ui("owner.newRate", locale)}</Label>
                   <Input
                     id="lbpPerUsd"
                     type="text"
@@ -234,7 +235,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <SubmitButton variant="secondary" className="w-full">
-                  {ui("owner.setRate")}
+                  {ui("owner.setRate", locale)}
                 </SubmitButton>
               </form>
             </CardContent>
@@ -244,13 +245,13 @@ export async function OwnerMoney({
 
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-medium text-muted-foreground">
-          {ui("owner.expenses")}
+          {ui("owner.expenses", locale)}
         </h3>
         {mayRecordExpense ? (
           <Card>
             <CardHeader className="gap-1">
               <CardTitle className="text-base">
-                {ui("owner.recordExpense")}
+                {ui("owner.recordExpense", locale)}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -260,7 +261,7 @@ export async function OwnerMoney({
               >
                 {keepPeriodQuery(tenantSlug, periodQuery)}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="category">{ui("owner.category")}</Label>
+                  <Label htmlFor="category">{ui("owner.category", locale)}</Label>
                   <SelectField
                     id="category"
                     name="category"
@@ -268,12 +269,12 @@ export async function OwnerMoney({
                     defaultValue="ELECTRICITY"
                     options={EXPENSE_CATEGORIES.map((category) => ({
                       value: category,
-                      label: categoryLabel(category),
+                      label: categoryLabel(category, locale),
                     }))}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="description">{ui("owner.what")}</Label>
+                  <Label htmlFor="description">{ui("owner.what", locale)}</Label>
                   <Input
                     id="description"
                     type="text"
@@ -283,7 +284,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="occurredOn">{ui("owner.when")}</Label>
+                  <Label htmlFor="occurredOn">{ui("owner.when", locale)}</Label>
                   <DateField
                     id="occurredOn"
                     name="occurredOn"
@@ -292,7 +293,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseUsd">{ui("owner.usd")}</Label>
+                  <Label htmlFor="expenseUsd">{ui("owner.usd", locale)}</Label>
                   <Input
                     id="expenseUsd"
                     type="text"
@@ -303,7 +304,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseLbp">{ui("owner.lbp")}</Label>
+                  <Label htmlFor="expenseLbp">{ui("owner.lbp", locale)}</Label>
                   <Input
                     id="expenseLbp"
                     type="text"
@@ -313,7 +314,7 @@ export async function OwnerMoney({
                   />
                 </div>
                 <SubmitButton className="w-full">
-                  {ui("owner.recordExpenseSubmit")}
+                  {ui("owner.recordExpenseSubmit", locale)}
                 </SubmitButton>
               </form>
             </CardContent>
@@ -321,18 +322,18 @@ export async function OwnerMoney({
         ) : null}
         {expenses.length === 0 ? (
           <EmptyState
-            title={ui("empty.expenses")}
+            title={ui("empty.expenses", locale)}
             next={
               mayRecordExpense
-                ? ui("empty.expensesNextRecord")
-                : ui("empty.expensesNextStaff")
+                ? ui("empty.expensesNextRecord", locale)
+                : ui("empty.expensesNextStaff", locale)
             }
           />
         ) : (
           <ul className="flex flex-col gap-2">
             {expenses.map((row) => (
               <li key={row.id} className="text-sm">
-                {categoryLabel(row.category)} — {row.description} —{" "}
+                {categoryLabel(row.category, locale)} — {row.description} —{" "}
                 <LtrIsolate>{formatLocalDay(row.occurredAt)}</LtrIsolate> —{" "}
                 <LtrIsolate>${formatUsd(row.amountUsd)}</LtrIsolate>
               </li>

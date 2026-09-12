@@ -3,7 +3,14 @@ import { BOOKINGS_APPROVE, BOOKINGS_CANCEL, PAYMENTS_COLLECT, can } from "@/modu
 import { listDueBookings } from "@/modules/booking/application/list-due-bookings";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { formatUsd } from "@/lib/money";
-import { confirmedCount, pendingCount, ui } from "@/lib/ui-copy";
+import type { UiLocale } from "@/lib/locale";
+import {
+  collectUsdLabel,
+  confirmedCount,
+  dueRemainingLine,
+  pendingCount,
+  ui,
+} from "@/lib/ui-copy";
 import {
   submitApproveBooking,
   submitCancelBooking,
@@ -41,9 +48,11 @@ function formatLocalDateTime(value: Date): string {
 export async function OwnerToday({
   membership,
   tenantSlug,
+  locale = "ar",
 }: {
   membership: CurrentMembership;
   tenantSlug: string;
+  locale?: UiLocale;
 }) {
   const pending = await listPendingRequests();
   const confirmed = await listDueBookings();
@@ -54,12 +63,12 @@ export async function OwnerToday({
   return (
     <>
       <h3 className="text-sm font-medium text-muted-foreground">
-        {pendingCount(pending.length)}
+        {pendingCount(pending.length, locale)}
       </h3>
       {pending.length === 0 ? (
         <EmptyState
-          title={ui("empty.pending")}
-          next={ui("empty.pendingNext")}
+          title={ui("empty.pending", locale)}
+          next={ui("empty.pendingNext", locale)}
         />
       ) : (
         <ul className="flex flex-col gap-3">
@@ -69,7 +78,7 @@ export async function OwnerToday({
                 <CardHeader className="gap-1">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{row.pitchName}</CardTitle>
-                    <Badge variant="outline">{ui("owner.pending")}</Badge>
+                    <Badge variant="outline">{ui("owner.pending", locale)}</Badge>
                   </div>
                   <CardDescription>
                     <LtrIsolate className="block">
@@ -80,7 +89,7 @@ export async function OwnerToday({
                       <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                     </span>
                     <span className="mt-1 block">
-                      {ui("owner.requested")}{" "}
+                      {ui("owner.requested", locale)}{" "}
                       <LtrIsolate>{formatLocalDateTime(row.requestedAt)}</LtrIsolate>
                     </span>
                   </CardDescription>
@@ -90,13 +99,15 @@ export async function OwnerToday({
                     <form action={submitApproveBooking} className="min-w-0 flex-1">
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepTenantQuery(tenantSlug)}
-                      <SubmitButton className="w-full">{ui("owner.approve")}</SubmitButton>
+                      <SubmitButton className="w-full">
+                        {ui("owner.approve", locale)}
+                      </SubmitButton>
                     </form>
                     <form action={submitRejectBooking} className="min-w-0 flex-1">
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepTenantQuery(tenantSlug)}
                       <SubmitButton variant="outline" className="w-full">
-                        {ui("owner.reject")}
+                        {ui("owner.reject", locale)}
                       </SubmitButton>
                     </form>
                   </CardContent>
@@ -108,12 +119,12 @@ export async function OwnerToday({
       )}
 
       <h3 className="text-sm font-medium text-muted-foreground">
-        {confirmedCount(confirmed.length)}
+        {confirmedCount(confirmed.length, locale)}
       </h3>
       {confirmed.length === 0 ? (
         <EmptyState
-          title={ui("empty.confirmed")}
-          next={ui("empty.confirmedNext")}
+          title={ui("empty.confirmed", locale)}
+          next={ui("empty.confirmedNext", locale)}
         />
       ) : (
         <ul className="flex flex-col gap-3">
@@ -124,7 +135,9 @@ export async function OwnerToday({
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{row.pitchName}</CardTitle>
                     <Badge variant={row.remaining.gt(0) ? "outline" : "default"}>
-                      {row.remaining.gt(0) ? ui("owner.due") : ui("owner.paid")}
+                      {row.remaining.gt(0)
+                        ? ui("owner.due", locale)
+                        : ui("owner.paid", locale)}
                     </Badge>
                   </div>
                   <CardDescription>
@@ -136,11 +149,11 @@ export async function OwnerToday({
                       <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                     </span>
                     <span className="mt-1 block">
-                      المستحق{" "}
-                      <LtrIsolate>${formatUsd(row.priceUsd)}</LtrIsolate>
-                      {" · "}
-                      المتبقي{" "}
-                      <LtrIsolate>${formatUsd(row.remaining)}</LtrIsolate>
+                      {dueRemainingLine(
+                        formatUsd(row.priceUsd),
+                        formatUsd(row.remaining),
+                        locale,
+                      )}
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -156,10 +169,7 @@ export async function OwnerToday({
                           value={formatUsd(row.remaining)}
                         />
                         <SubmitButton className="w-full">
-                          تحصيل{" "}
-                          <LtrIsolate>
-                            ${formatUsd(row.remaining)}
-                          </LtrIsolate>
+                          {collectUsdLabel(formatUsd(row.remaining), locale)}
                         </SubmitButton>
                       </form>
                       <form
@@ -169,7 +179,9 @@ export async function OwnerToday({
                         <input type="hidden" name="bookingId" value={row.id} />
                         {keepTenantQuery(tenantSlug)}
                         <div className="flex flex-col gap-2">
-                          <Label htmlFor={`usd-${row.id}`}>{ui("owner.usd")}</Label>
+                          <Label htmlFor={`usd-${row.id}`}>
+                            {ui("owner.usd", locale)}
+                          </Label>
                           <Input
                             id={`usd-${row.id}`}
                             type="text"
@@ -180,7 +192,9 @@ export async function OwnerToday({
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <Label htmlFor={`lbp-${row.id}`}>{ui("owner.lbp")}</Label>
+                          <Label htmlFor={`lbp-${row.id}`}>
+                            {ui("owner.lbp", locale)}
+                          </Label>
                           <Input
                             id={`lbp-${row.id}`}
                             type="text"
@@ -190,7 +204,7 @@ export async function OwnerToday({
                           />
                         </div>
                         <SubmitButton variant="secondary" className="w-full">
-                          {ui("owner.collectMixed")}
+                          {ui("owner.collectMixed", locale)}
                         </SubmitButton>
                       </form>
                     </>
@@ -200,7 +214,7 @@ export async function OwnerToday({
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepTenantQuery(tenantSlug)}
                       <SubmitButton variant="outline" className="w-full">
-                        {ui("owner.cancel")}
+                        {ui("owner.cancel", locale)}
                       </SubmitButton>
                     </form>
                   ) : null}

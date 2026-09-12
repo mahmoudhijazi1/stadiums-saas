@@ -16,6 +16,7 @@ import {
 } from "@/app/owner/shared";
 import { DayChips } from "@/components/day-chips";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 
 export default async function OwnerBookPage({
@@ -25,12 +26,13 @@ export default async function OwnerBookPage({
   const params = await searchParams;
   const tenantSlug = tenantSlugFrom(params, tenant.slug);
   const membership = await requireOwnerMembership(tenantSlug);
+  const locale = await getUiLocale();
 
   if (!can(membership, BOOKINGS_CREATE)) {
     return (
       <EmptyState
-        title={ui("empty.noCreate")}
-        next={ui("empty.noCreateNext")}
+        title={ui("empty.noCreate", locale)}
+        next={ui("empty.noCreateNext", locale)}
       />
     );
   }
@@ -41,16 +43,21 @@ export default async function OwnerBookPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl">{ui("owner.bookHeading")}</h2>
+      <h2 className="font-heading text-xl">{ui("owner.bookHeading", locale)}</h2>
       <DayChips
         tenantSlug={tenantSlug}
         today={todayCivil}
         selectedDate={bookOn}
         pathname="/owner/book"
         dateQueryKey="bookOn"
+        locale={locale}
       />
       <Suspense key={bookOn} fallback={<BookSlotsSkeleton />}>
-        <OwnerBookSlots tenantSlug={tenantSlug} bookOn={bookOn} />
+        <OwnerBookSlots
+          tenantSlug={tenantSlug}
+          bookOn={bookOn}
+          locale={locale}
+        />
       </Suspense>
     </section>
   );

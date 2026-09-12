@@ -17,6 +17,8 @@ describe("ui", () => {
     expect(ui("public.tomorrow")).toBe("غداً");
     expect(ui("public.hours", "en")).toBe("Hours");
     expect(ui("public.today", "en")).toBe("Today");
+    expect(ui("owner.today", "en")).toBe("Today");
+    expect(ui("owner.book", "en")).toBe("Book");
   });
 
   it("returns the key itself when unknown", () => {
@@ -33,6 +35,8 @@ describe("interpolated chrome", () => {
       "المستحق $30.00 · المتبقي $10.00",
     );
     expect(lbpPerUsdLine("90000")).toBe("90000 ليرة لكل دولار");
+    expect(pendingCount(3, "en")).toBe("Pending · 3");
+    expect(lbpPerUsdLine("90000", "en")).toBe("90000 LBP per USD");
   });
 });
 

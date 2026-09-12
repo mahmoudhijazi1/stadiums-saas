@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ui } from "@/lib/ui-copy";
+import type { UiLocale } from "@/lib/locale";
 import { cn } from "cn";
 
 const TAB_META: {
@@ -31,23 +32,25 @@ const TAB_META: {
 export function OwnerTabBar({
   tenantSlug,
   showBook,
+  locale = "ar",
 }: {
   tenantSlug: string;
   showBook: boolean;
+  locale?: UiLocale;
 }) {
   const pathname = usePathname();
   const tabs = TAB_META.filter((tab) => !tab.bookOnly || showBook);
 
   return (
     <nav
-      aria-label={ui("owner.tabs")}
+      aria-label={ui("owner.tabs", locale)}
       className="sticky bottom-0 z-10 mt-auto px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <ul className="flex gap-1 rounded-2xl border bg-card/95 p-1 shadow-lg backdrop-blur-md">
         {tabs.map((tab) => {
           const selected = pathname === tab.href;
           const Icon = tab.Icon;
-          const label = ui(tab.labelKey);
+          const label = ui(tab.labelKey, locale);
           return (
             <li key={tab.href} className="min-w-0 flex-1">
               <Link

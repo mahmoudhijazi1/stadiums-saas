@@ -2946,6 +2946,22 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** Open a slot on Book — dim is edge to edge, no white column. Scrollbar is a thin Volt pill, not a reserved white lane.
 
+---
+
+## Chapter 131 — 2026-09-12 — Owner header EN/ع toggle
+
+**When:** 2026-09-12
+
+**What:** Owner header has the same EN/ع control as public (`LangToggle`, cookie `stadium_locale`, `html` lang/dir). Shared component; `setUiLocale` lives at `src/app/locale-actions.ts`. Owner chrome, tabs, and tab pages pass `locale` into `ui()`. English strings cover owner / empty / role / category keys. Stadium and pitch names stay as stored.
+
+**Why:** Public already flipped dir; owner copy was hardcoded Arabic so a header button would only change layout.
+
+**Files:** `src/components/lang-toggle.tsx`; `src/app/locale-actions.ts`; `src/app/owner/layout.tsx`; `tab-bar.tsx`; today/book/waitlist/money pages + lists/panel/picker; `src/lib/ui-copy.ts`; `test/lib/ui-copy.test.ts`; `docs/owner-ia.md`.
+
+**Relation:** Same cookie as public. No next-intl. Login still defaults to Arabic until that screen gets the button.
+
+**How to verify:** `npm test`. `/owner/today` — EN in the header; tabs and Today copy go English + LTR. ع returns Arabic + RTL. Public `/` still shares the cookie.
+
 
 
 

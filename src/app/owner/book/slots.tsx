@@ -4,6 +4,7 @@ import { civilFromYyyyMmDd } from "./date";
 import { OwnerSlotPicker } from "./picker";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
+import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 
 /**
@@ -13,9 +14,11 @@ import { ui } from "@/lib/ui-copy";
 export async function OwnerBookSlots({
   tenantSlug,
   bookOn,
+  locale = "ar",
 }: {
   tenantSlug: string;
   bookOn: string;
+  locale?: UiLocale;
 }) {
   const pitches = await getDayAvailability({
     localDate: civilFromYyyyMmDd(bookOn),
@@ -27,8 +30,8 @@ export async function OwnerBookSlots({
   if (pitches.length === 0) {
     return (
       <EmptyState
-        title={ui("empty.pitches")}
-        next={ui("empty.pitchesNext")}
+        title={ui("empty.pitches", locale)}
+        next={ui("empty.pitchesNext", locale)}
       />
     );
   }
@@ -38,6 +41,7 @@ export async function OwnerBookSlots({
       pitches={pitches}
       tenantSlug={tenantSlug}
       bookOn={bookOn}
+      locale={locale}
     />
   );
 }

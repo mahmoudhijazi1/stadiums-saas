@@ -6,6 +6,7 @@ import {
 } from "@/app/owner/shared";
 import { OwnerWaitlist } from "./list";
 import { WaitlistSkeleton } from "./skeleton";
+import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 
 export default async function OwnerWaitlistPage({
@@ -15,12 +16,13 @@ export default async function OwnerWaitlistPage({
   const params = await searchParams;
   const tenantSlug = tenantSlugFrom(params, tenant.slug);
   await requireOwnerMembership(tenantSlug);
+  const locale = await getUiLocale();
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl">{ui("owner.waitlist")}</h2>
+      <h2 className="font-heading text-xl">{ui("owner.waitlist", locale)}</h2>
       <Suspense fallback={<WaitlistSkeleton />}>
-        <OwnerWaitlist />
+        <OwnerWaitlist locale={locale} />
       </Suspense>
     </section>
   );

@@ -1,4 +1,4 @@
-/** Public locale cookie. Not next-intl — cookie + html lang/dir only. */
+/** Locale cookie. Not next-intl — cookie + html lang/dir only. */
 
 export type UiLocale = "ar" | "en";
 
