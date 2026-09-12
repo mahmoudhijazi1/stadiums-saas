@@ -48,13 +48,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectField } from "@/components/ui/select-field";
 
 const TIME_ZONE = "Asia/Beirut";
-
-const nativeField =
-  "h-11 w-full rounded-md border border-input bg-background px-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 function queryString(
   value: string | string[] | undefined,
@@ -334,13 +333,11 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
             <input type="hidden" name="tenant" value={tenantSlug} />
             <div className="flex flex-col gap-2">
               <Label htmlFor="bookOn">Day</Label>
-              <Input
+              <DateField
                 id="bookOn"
-                type="date"
                 name="bookOn"
                 required
                 defaultValue={bookOn}
-                className="font-mono"
               />
             </div>
             <Button type="submit" variant="secondary" className="w-full">
@@ -514,37 +511,33 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                 <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="from">From</Label>
-                  <Input
+                  <DateField
                     id="from"
-                    type="date"
                     name="from"
                     required
                     defaultValue={summary.from}
-                    className="font-mono"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="to">To</Label>
-                  <Input
+                  <DateField
                     id="to"
-                    type="date"
                     name="to"
                     required
                     defaultValue={summary.to}
-                    className="font-mono"
                   />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="view">View</Label>
-                  <select
+                  <SelectField
                     id="view"
                     name="view"
                     defaultValue={periodQuery.view}
-                    className={nativeField}
-                  >
-                    <option value="usd">USD</option>
-                    <option value="lbp">LBP</option>
-                  </select>
+                    options={[
+                      { value: "usd", label: "USD" },
+                      { value: "lbp", label: "LBP" },
+                    ]}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="displayRate">Display rate</Label>
@@ -608,19 +601,16 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                 {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="category">Category</Label>
-                  <select
+                  <SelectField
                     id="category"
                     name="category"
                     required
                     defaultValue="ELECTRICITY"
-                    className={nativeField}
-                  >
-                    {EXPENSE_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {categoryLabel(category)}
-                      </option>
-                    ))}
-                  </select>
+                    options={EXPENSE_CATEGORIES.map((category) => ({
+                      value: category,
+                      label: categoryLabel(category),
+                    }))}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="description">What</Label>
@@ -634,13 +624,11 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="occurredOn">When</Label>
-                  <Input
+                  <DateField
                     id="occurredOn"
-                    type="date"
                     name="occurredOn"
                     required
                     defaultValue={today}
-                    className="font-mono"
                   />
                 </div>
                 <div className="flex flex-col gap-2">

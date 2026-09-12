@@ -2396,6 +2396,27 @@ The login box now sits in the middle of the page like a form, not a stripe glued
 
 The owner phone screen now starts with “who is waiting” and “who is on the pitch,” in the same colors as login. The kitchen still does the same jobs; it just stopped looking like a notepad.
 
+---
+
+## Chapter 103 — 2026-09-12 — custom Select and Calendar on owner
+
+**When:** 2026-09-12
+
+**What:** Owner native `<select>` and `type="date"` are gone. shadcn Select, Popover, and Calendar are in `src/components/ui/`. Thin client **DateField** and **SelectField** keep a hidden `<input name>` so GET (`bookOn`, `from`, `to`) and Server Actions (`occurredOn`, `category`, `view`) still submit the same strings. Select trigger is `h-11`. Calendar uses `en-GB` + Latin numerals so the grid is Western digits. `button.tsx` stays `h-11` (do not re-run shadcn add with `--overwrite` on it). Public booking is unchanged this slice.
+
+**Why:** Visual system — OS date pickers and dropdowns broke the Carbon/Volt look. Not a SPEC. Actions and Prisma stay put.
+
+**Files:** `src/components/ui/select.tsx`; `src/components/ui/popover.tsx`; `src/components/ui/calendar.tsx`; `src/components/ui/date-field.tsx`; `src/components/ui/select-field.tsx`; `src/app/owner/page.tsx`; `package.json` / lockfile (`date-fns`, `react-day-picker`). `src/app/owner/actions.ts` untouched.
+
+**Relation:** `src/components/ui` must not import `src/modules/*`. Owner page still has no Prisma / no `tenantId`. Payment still does not import Booking.
+
+**How to verify:** `/owner?tenant=ahmad` after login. Day / From / To / When open a calendar popover (mono `yyyy-mm-dd`). View and Category are the custom dropdown. Show slots / Show / Record expense still post or GET the same field names. Public `?date=` is still the native control until the next public restyle.
+
+### In plain language
+
+The owner forms no longer pop up the phone’s own calendar and menu. They use our green-ring picker and list instead, but they still send the same dates and category codes to the kitchen.
+
+
 
 
 
