@@ -8,6 +8,7 @@ import { FlashToast } from "@/components/ui/flash-toast";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ui } from "@/lib/ui-copy";
+import { LogOut } from "lucide-react";
 
 /**
  * Shared owner chrome. layout.md: nested layout persists across tab Link
@@ -27,21 +28,29 @@ export default async function OwnerLayout({
       <Suspense fallback={null}>
         <FlashToast />
       </Suspense>
-      <header className="flex items-start justify-between gap-4 px-6 pt-8">
+      <header className="flex items-center justify-between gap-3 px-6 pt-5">
         <div className="min-w-0">
-          <h1 className="font-heading text-2xl">{tenant.name}</h1>
           <p className="text-sm text-muted-foreground">
-            <LtrIsolate>{membership.identifier}</LtrIsolate>
+            {tenant.name}
             {" · "}
             {ui(`role.${membership.role}`)}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            <LtrIsolate>{membership.identifier}</LtrIsolate>
           </p>
         </div>
         <form action={submitLogout}>
           <input type="hidden" name="tenant" value={tenant.slug} />
-          <SubmitButton variant="outline">{ui("owner.logout")}</SubmitButton>
+          <SubmitButton
+            variant="ghost"
+            size="icon-sm"
+            aria-label={ui("owner.logout")}
+          >
+            <LogOut />
+          </SubmitButton>
         </form>
       </header>
-      <div className="flex flex-1 flex-col gap-8 px-6 py-8 pb-4">{children}</div>
+      <div className="flex flex-1 flex-col gap-8 px-6 py-6 pb-4">{children}</div>
       <OwnerTabBar tenantSlug={tenant.slug} showBook={showBook} />
     </div>
   );

@@ -10,7 +10,7 @@ const TIME_ZONE = "Asia/Beirut";
 
 /**
  * Thin hours RSC. Occupied from Booking; Venue only UTC ranges (SPEC-05).
- * Slot tap UI lives in PublicSlotPicker (one Client Component).
+ * Slot tap UI lives in PublicSlotPicker → shared SlotPicker.
  */
 export async function PublicHours({
   localDate,

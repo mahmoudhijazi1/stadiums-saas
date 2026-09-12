@@ -14,10 +14,8 @@ import {
   requireOwnerMembership,
   tenantSlugFrom,
 } from "@/app/owner/shared";
-import { Button } from "@/components/ui/button";
-import { DateField } from "@/components/ui/date-field";
+import { DayChips } from "@/components/day-chips";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Label } from "@/components/ui/label";
 import { ui } from "@/lib/ui-copy";
 
 export default async function OwnerBookPage({
@@ -37,29 +35,20 @@ export default async function OwnerBookPage({
     );
   }
 
-  const today = formatCivilDate(
-    civilDateInTimeZone(new Date(), OWNER_TIME_ZONE),
-  );
+  const todayCivil = civilDateInTimeZone(new Date(), OWNER_TIME_ZONE);
+  const today = formatCivilDate(todayCivil);
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-lg">{ui("owner.bookHeading")}</h2>
-      <form method="get" action="/owner/book" className="flex flex-col gap-3">
-        <input type="hidden" name="tenant" value={tenantSlug} />
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="bookOn">{ui("public.day")}</Label>
-          <DateField
-            id="bookOn"
-            name="bookOn"
-            required
-            defaultValue={bookOn}
-          />
-        </div>
-        <Button type="submit" variant="secondary" className="w-full">
-          {ui("owner.showSlots")}
-        </Button>
-      </form>
+      <h2 className="font-heading text-xl">{ui("owner.bookHeading")}</h2>
+      <DayChips
+        tenantSlug={tenantSlug}
+        today={todayCivil}
+        selectedDate={bookOn}
+        pathname="/owner/book"
+        dateQueryKey="bookOn"
+      />
       <Suspense key={bookOn} fallback={<BookSlotsSkeleton />}>
         <OwnerBookSlots tenantSlug={tenantSlug} bookOn={bookOn} />
       </Suspense>

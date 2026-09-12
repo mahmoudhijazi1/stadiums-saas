@@ -26,48 +26,39 @@ export async function OwnerWaitlist() {
 
   return (
     <ul className="flex flex-col gap-3">
-      {waitlist.map((group) => (
-        <li key={`${group.pitchId}-${group.start.toISOString()}`}>
-          <Card>
-            <CardHeader className="gap-1">
-              <CardTitle className="text-base">{group.pitchName}</CardTitle>
-              <CardDescription>
-                <LtrIsolate>
-                  {formatLocalRange(group.start, group.end)}
-                </LtrIsolate>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="flex flex-col gap-3">
-                {group.people.map((person) => (
-                  <li
-                    key={person.personId}
-                    className="flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p>{person.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        <LtrIsolate>{person.phone}</LtrIsolate>
-                      </p>
-                    </div>
-                    {person.whatsAppHref ? (
-                      <Button variant="outline" asChild>
-                        <a
-                          href={person.whatsAppHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {ui("owner.notify")}
-                        </a>
-                      </Button>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </li>
-      ))}
+      {waitlist.flatMap((group) =>
+        group.people.map((person) => (
+          <li key={`${group.pitchId}-${group.start.toISOString()}-${person.personId}`}>
+            <Card>
+              <CardHeader className="gap-1">
+                <CardTitle className="text-base">{group.pitchName}</CardTitle>
+                <CardDescription>
+                  <LtrIsolate className="block">
+                    {formatLocalRange(group.start, group.end)}
+                  </LtrIsolate>
+                  <span className="mt-1 block">
+                    {person.name}{" "}
+                    <LtrIsolate>{person.phone}</LtrIsolate>
+                  </span>
+                </CardDescription>
+              </CardHeader>
+              {person.whatsAppHref ? (
+                <CardContent>
+                  <Button variant="outline" className="w-full" asChild>
+                    <a
+                      href={person.whatsAppHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {ui("owner.notify")}
+                    </a>
+                  </Button>
+                </CardContent>
+              ) : null}
+            </Card>
+          </li>
+        )),
+      )}
     </ul>
   );
 }

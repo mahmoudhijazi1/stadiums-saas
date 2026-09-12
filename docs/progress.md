@@ -2804,6 +2804,54 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. Open `/owner/today` — approve still toasts on Today. Book a slot — stay on `/owner/book` with `bookOn`. Rate/expense still land on `/owner/money`. No import of `@/app/owner/actions`.
 
+---
+
+## Chapter 122 — 2026-09-12 — Owner chrome: waitlist cards, quieter header, Money heading
+
+**When:** 2026-09-12
+
+**What:** Waitlist people use the same card anatomy as Today (pitch + time + name/phone in `CardHeader`, إبلاغ full-width in `CardContent`). Shared owner header no longer uses a `text-2xl` stadium `h1`; stadium + role are muted, logout is ghost icon-only. Money has a page `h2` المال; period/rate/expenses are `h3` subsections like Today. Book/Waitlist page titles match Today’s `text-xl`.
+
+**Why:** Waitlist looked unfinished vs Today. Stadium/logout were competing with the tab the owner opened (BR-9). Money was the only tab without a page heading.
+
+**Files:** `src/app/owner/waitlist/list.tsx`; `layout.tsx`; `money/page.tsx`; `money/panel.tsx`; `waitlist/page.tsx`; `book/page.tsx`.
+
+**Relation:** No Server Actions, use cases, or module boundaries. `LtrIsolate` on times/phones unchanged. Notify is still `wa.me` `<a>`, not an action.
+
+**How to verify:** Waitlist card — name/phone stacked under the time, إبلاغ full-width like إلغاء. Header: stadium small, tab title (اليوم / المال) is the big type. Money opens with المال then هذه الفترة.
+
+---
+
+## Chapter 123 — 2026-09-12 — Shared SlotPicker for public hours and owner Book
+
+**When:** 2026-09-12
+
+**What:** Public and owner Book share one client `SlotPicker`: 2-col time+price grid, one expanded name/phone form. Props are `action`, `hiddenFields`, `submitLabel`, optional `locale`. Local pitch/slot view types — no `booking/`, access, or venue imports. Thin wrappers: `PublicSlotPicker` (`tenant`+`date`, اطلب) and `OwnerSlotPicker` (`tenant`+`bookOn`, احجز). Name/phone client checks moved to `src/lib/request-fields.ts`. Owner Book no longer stacks a form on every free slot. Auth stays on `/owner/book`.
+
+**Why:** Owner booked more often than a visitor; N stacked forms was the public problem again. One picker, two wrappers, so the grids cannot drift.
+
+**Files:** `src/components/slot-picker.tsx`; `src/lib/request-fields.ts`; `test/lib/request-fields.test.ts`; `src/app/(public)/slot-picker.tsx`; `hours.tsx`; `src/app/owner/book/picker.tsx`; `slots.tsx`; `skeleton.tsx`; `docs/owner-ia.md`. Deleted `(public)/request-fields.ts` and its old test path.
+
+**Relation:** `submitPublicSlotRequest` / `submitCreateOwnerBooking` unchanged. `components/ui` still does not import `src/modules/*`. Pages still have no Prisma / no `tenantId`. No extra owner fields.
+
+**How to verify:** `npm test`. Public — tap a free hour, one form, Taken muted, Request still `ok=requested`. Owner Book — same grid, one form, stays on `/owner/book` with `bookOn`. Staff without create still EmptyState. EN/ع still only public labels.
+
+---
+
+## Chapter 124 — 2026-09-12 — Owner Book uses public day chips
+
+**When:** 2026-09-12
+
+**What:** Owner Book date is the same five Link chips + calendar overflow as public hours. Shared `DayChips` / `DateCalendarChip` take `pathname` + `dateQueryKey` (`date` on `/`, `bookOn` on `/owner/book`). The GET date form and عرض الساعات button are gone. Chips sit outside `<Suspense>` so they stay mounted while slots load. Public `PublicDayChips` is a thin wrapper.
+
+**Why:** Same interaction as public; owner books more often, so a submit-to-change-day form was extra friction.
+
+**Files:** `src/components/day-chips.tsx`; `src/components/date-calendar-chip.tsx`; `src/app/(public)/day-chips.tsx`; `src/app/owner/book/page.tsx`; `docs/owner-ia.md`. Deleted `(public)/date-calendar-chip.tsx`.
+
+**Relation:** `bookOn` query and create-booking redirect unchanged. `DateField` still used on Money. No use-case changes. Past `bookOn` still shows the past empty state.
+
+**How to verify:** `npm test`. `/owner/book` — today/tomorrow chips, calendar for later days, slots update without a submit. Create booking still returns to the same `bookOn`. Public `?date=` chips unchanged.
+
 
 
 

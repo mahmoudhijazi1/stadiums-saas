@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { publicRequestFieldErrors } from "@/app/(public)/request-fields";
+import { publicRequestFieldErrors } from "@/lib/request-fields";
 
 describe("publicRequestFieldErrors", () => {
   it("requires a name and 8–15 digit phone", () => {

@@ -31,9 +31,9 @@ Why:
 
 - Back button, bookmarks, and per-tab URLs work.
 - Shared chrome (header + tab bar) does not remount on tab `<Link>` (local `layout.md`: layouts are cached on the client and do not rerender).
-- Independent in-page `<Suspense>` per tab. **No `loading.tsx` under `/owner` or a tab folder** — that file wraps the whole `page.js` and would unmount Book/Money GET date fields (already burned once; see `docs/progress.md`).
+- Independent in-page `<Suspense>` per tab. **No `loading.tsx` under `/owner` or a tab folder** — that file wraps the whole `page.js` and would unmount Money GET date fields and Book day chips (already burned once; see `docs/progress.md`).
 
-The only `"use client"` owner chrome is the tab bar (`usePathname` for the active tab) and `FlashToast` (`useSearchParams`). Tab **content** stays Server Components.
+The only `"use client"` owner chrome is the tab bar (`usePathname` for the active tab), `FlashToast` (`useSearchParams`), and the Book calendar chip (same Popover as public). Tab **content** lists stay Server Components.
 
 Layouts cannot read `searchParams` or pathname (they would go stale). Tenant for tab Links comes from `getCurrentTenant()` (header). Flash toasts read `ok`/`error` in a Client child.
 
@@ -62,7 +62,7 @@ Use-case logic is unchanged. Only the redirect path:
 | `submitLogin` | `/owner/today` |
 | Waitlist notify | WhatsApp `<a>` — no action |
 
-GET forms: Book day → `action="/owner/book"`; period → `action="/owner/money"`.
+GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar (`?bookOn=`), same interaction as public `?date=` — not a GET form.
 
 ---
 
@@ -74,7 +74,9 @@ GET forms: Book day → `action="/owner/book"`; period → `action="/owner/money
 | Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
 | `OwnerToday` (`today/lists.tsx`) + `today/actions.ts` | `/owner/today` |
-| Date GET form + `OwnerBookSlots` (`book/slots.tsx`) + `book/actions.ts` | `/owner/book` |
+| Date chips + `OwnerBookSlots` (`book/slots.tsx`) + `OwnerSlotPicker` (`book/picker.tsx`) + `book/actions.ts` | `/owner/book` |
+| Shared slot grid | `src/components/slot-picker.tsx` (public + owner Book; no booking/access/venue types) |
+| Shared day chips | `src/components/day-chips.tsx` (public `?date=` + owner `?bookOn=`) |
 | `OwnerWaitlist` (`waitlist/list.tsx`) | `/owner/waitlist` (no Server Action) |
 | `OwnerMoney` (`money/panel.tsx`) + `money/actions.ts` | `/owner/money` |
 | Shared membership / tenant slug / `queryString` / `formatLocalRange` | `src/app/owner/shared.tsx` |

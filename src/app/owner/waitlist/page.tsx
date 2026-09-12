@@ -18,7 +18,7 @@ export default async function OwnerWaitlistPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-lg">{ui("owner.waitlist")}</h2>
+      <h2 className="font-heading text-xl">{ui("owner.waitlist")}</h2>
       <Suspense fallback={<WaitlistSkeleton />}>
         <OwnerWaitlist />
       </Suspense>

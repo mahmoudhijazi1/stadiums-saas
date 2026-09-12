@@ -109,7 +109,9 @@ export async function OwnerMoney({
     <div className="flex flex-col gap-8">
       {summary ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg">{ui("owner.period")}</h2>
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {ui("owner.period")}
+          </h3>
           <Card>
             <CardHeader className="gap-1">
               <CardDescription>
@@ -198,7 +200,9 @@ export async function OwnerMoney({
       ) : null}
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">{ui("owner.rate")}</h2>
+        <h3 className="text-sm font-medium text-muted-foreground">
+          {ui("owner.rate")}
+        </h3>
         <Card>
           <CardHeader>
             <CardDescription>
@@ -239,7 +243,9 @@ export async function OwnerMoney({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">{ui("owner.expenses")}</h2>
+        <h3 className="text-sm font-medium text-muted-foreground">
+          {ui("owner.expenses")}
+        </h3>
         {mayRecordExpense ? (
           <Card>
             <CardHeader className="gap-1">

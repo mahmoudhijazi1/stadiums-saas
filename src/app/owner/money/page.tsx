@@ -17,6 +17,7 @@ import {
   requireOwnerMembership,
   tenantSlugFrom,
 } from "@/app/owner/shared";
+import { ui } from "@/lib/ui-copy";
 
 function readPeriodQuery(params: {
   from?: string | string[];
@@ -57,13 +58,16 @@ export default async function OwnerMoneyPage({
   );
 
   return (
-    <Suspense fallback={<MoneySkeleton />}>
-      <OwnerMoney
-        membership={membership}
-        tenantSlug={tenantSlug}
-        periodQuery={periodQuery}
-        today={today}
-      />
-    </Suspense>
+    <section className="flex flex-col gap-4">
+      <h2 className="font-heading text-xl">{ui("owner.money")}</h2>
+      <Suspense fallback={<MoneySkeleton />}>
+        <OwnerMoney
+          membership={membership}
+          tenantSlug={tenantSlug}
+          periodQuery={periodQuery}
+          today={today}
+        />
+      </Suspense>
+    </section>
   );
 }
