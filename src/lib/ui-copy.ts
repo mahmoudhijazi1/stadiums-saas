@@ -31,6 +31,7 @@ const ARABIC: Record<string, string> = {
   "public.langArabic": "العربية",
   "public.errName": "أدخل الاسم.",
   "public.errPhone": "أدخل هاتفاً من 8 إلى 15 رقماً.",
+  "dialog.close": "إغلاق",
   "login.title": "تسجيل الدخول",
   "login.identifier": "المعرّف",
   "login.password": "كلمة السر",
@@ -124,6 +125,7 @@ const ENGLISH: Record<string, string> = {
   "public.langArabic": "العربية",
   "public.errName": "Enter a name.",
   "public.errPhone": "Enter a phone with 8–15 digits.",
+  "dialog.close": "Close",
 };
 
 /** Chrome for a key. Default Arabic. Missing English key falls back to Arabic. */

@@ -11,7 +11,7 @@ Four real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (
 | Tab | URL | Contains | Does **not** contain |
 |---|---|---|---|
 | Today | `/owner/today` | Pending requests + confirmed-today (approve / reject / collect / cancel) | Book date picker, waitlist, rate, period, expenses |
-| Book | `/owner/book` | Date picker + slot grid + owner create form | Today lists, waitlist, money. Past `bookOn` is an empty state (create, not history) |
+| Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Today lists, waitlist, money. Past `bookOn` is an empty state (create, not history) |
 | Waitlist | `/owner/waitlist` | Open slot-interest groups + WhatsApp notify | Rate, period, expenses, Book |
 | Money | `/owner/money` | Period report GET form, exchange rate, record expense + recent list | Waitlist, Book, Today |
 
@@ -75,7 +75,7 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
 | `OwnerToday` (`today/lists.tsx`) + `today/actions.ts` | `/owner/today` |
 | Date chips + `OwnerBookSlots` (`book/slots.tsx`) + `OwnerSlotPicker` (`book/picker.tsx`) + `book/actions.ts` | `/owner/book` |
-| Shared slot grid | `src/components/slot-picker.tsx` (public + owner Book; no booking/access/venue types) |
+| Shared slot grid | `src/components/slot-picker.tsx` (public + owner Book; name/phone in a Dialog; no booking/access/venue types) |
 | Shared day chips | `src/components/day-chips.tsx` (public `?date=` + owner `?bookOn=`) |
 | `OwnerWaitlist` (`waitlist/list.tsx`) | `/owner/waitlist` (no Server Action) |
 | `OwnerMoney` (`money/panel.tsx`) + `money/actions.ts` | `/owner/money` |

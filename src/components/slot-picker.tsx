@@ -1,12 +1,19 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
 import {
   hasPublicRequestFieldErrors,
   publicRequestFieldErrors,
   type PublicRequestFieldErrors,
 } from "@/lib/request-fields";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,9 +43,108 @@ function slotKey(pitchId: string, startIso: string): string {
   return `${pitchId}:${startIso}`;
 }
 
+function findSelected(
+  pitches: SlotPickerPitch[],
+  key: string | null,
+): { pitch: SlotPickerPitch; slot: SlotPickerSlot } | null {
+  if (!key) return null;
+  for (const pitch of pitches) {
+    for (const slot of pitch.slots) {
+      if (slotKey(pitch.id, slot.startIso) === key) {
+        return { pitch, slot };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Latin duration from UTC instants. Integer minutes — not money, not a float total.
+ */
+export function formatSlotDuration(startIso: string, endIso: string): string {
+  const minutes = Math.round(
+    (new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000,
+  );
+  if (!Number.isFinite(minutes) || minutes <= 0) return "";
+  if (minutes % 60 === 0) return `${minutes / 60}h`;
+  if (minutes % 30 === 0) return `${minutes / 60}h`;
+  return `${minutes}m`;
+}
+
+function SlotFace({
+  slot,
+  variant,
+}: {
+  slot: SlotPickerSlot;
+  variant: "idle" | "selected" | "taken";
+}) {
+  const duration = formatSlotDuration(slot.startIso, slot.endIso);
+  const selected = variant === "selected";
+  const taken = variant === "taken";
+
+  return (
+    <span className="flex w-full min-w-0 items-stretch gap-2.5">
+      <span className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1">
+        <LtrIsolate
+          className={cn(
+            "text-xl font-bold leading-none",
+            !taken && "transition-colors duration-200 ease-out",
+            selected ? "text-primary-foreground" : "text-card-foreground",
+          )}
+        >
+          {slot.startLocal}
+        </LtrIsolate>
+        <LtrIsolate
+          className={cn(
+            "text-xs font-normal",
+            !taken && "transition-colors duration-200 ease-out",
+            selected ? "text-primary-foreground/70" : "text-muted-foreground",
+          )}
+        >
+          {` → ${slot.endLocal}`}
+        </LtrIsolate>
+      </span>
+      <span
+        aria-hidden
+        className={cn(
+          "my-1 w-px shrink-0",
+          selected ? "bg-primary-foreground/40" : "bg-muted-foreground/40",
+        )}
+      />
+      <span className="flex min-w-0 flex-1 flex-col items-end justify-center gap-0.5">
+        <LtrIsolate
+          className={cn(
+            "text-xs",
+            !taken && "transition-colors duration-200 ease-out",
+            selected ? "text-primary-foreground/70" : "text-muted-foreground",
+          )}
+        >
+          {`$${slot.priceUsd}`}
+        </LtrIsolate>
+        {duration ? (
+          <LtrIsolate
+            className={cn(
+              "text-xs font-medium",
+              !taken && "transition-colors duration-200 ease-out",
+              selected
+                ? "text-primary-foreground"
+                : taken
+                  ? "text-muted-foreground"
+                  : "text-primary",
+            )}
+          >
+            {duration}
+          </LtrIsolate>
+        ) : null}
+      </span>
+    </span>
+  );
+}
+
 /**
  * Compact time+price grid. Selection only — the Server Action is a prop.
- * No booking / access / venue types.
+ * Name/phone is a dialog so the 2-col grid does not shift. No booking /
+ * access / venue types.
  */
 export function SlotPicker({
   pitches,
@@ -54,116 +160,108 @@ export function SlotPicker({
   locale?: UiLocale;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const picked = findSelected(pitches, selected);
 
   return (
-    <ul className="flex flex-col gap-6">
-      {pitches.map((pitch) => (
-        <li key={pitch.id} className="flex flex-col gap-3">
-          <h3 className="font-medium">{pitch.name}</h3>
-          {pitch.slots.length === 0 ? (
-            <EmptyState
-              {...hoursEmptyState(pitch.emptyKind ?? "closed", locale)}
+    <>
+      <ul className="flex flex-col gap-6">
+        {pitches.map((pitch) => (
+          <li key={pitch.id} className="flex flex-col gap-3">
+            <h3 className="font-medium">{pitch.name}</h3>
+            {pitch.slots.length === 0 ? (
+              <EmptyState
+                {...hoursEmptyState(pitch.emptyKind ?? "closed", locale)}
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {pitch.slots.map((slot) => {
+                  const key = slotKey(pitch.id, slot.startIso);
+                  const isSelected = selected === key;
+                  return (
+                    <SlotBlock
+                      key={slot.startIso}
+                      slot={slot}
+                      isSelected={isSelected}
+                      locale={locale}
+                      onToggle={() =>
+                        setSelected((current) =>
+                          current === key ? null : key,
+                        )
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <Dialog
+        open={picked !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        {picked ? (
+          <DialogContent closeLabel={ui("dialog.close", locale)}>
+            <DialogHeader className="pe-8">
+              <DialogTitle className="sr-only">
+                {`${picked.slot.startLocal} → ${picked.slot.endLocal}`}
+              </DialogTitle>
+              <SlotFace slot={picked.slot} variant="idle" />
+              <DialogDescription>{picked.pitch.name}</DialogDescription>
+            </DialogHeader>
+            <RequestForm
+              pitchId={picked.pitch.id}
+              slot={picked.slot}
+              action={action}
+              hiddenFields={hiddenFields}
+              submitLabel={submitLabel}
+              locale={locale}
             />
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {pitch.slots.map((slot) => {
-                const key = slotKey(pitch.id, slot.startIso);
-                const isSelected = selected === key;
-                return (
-                  <SlotBlock
-                    key={slot.startIso}
-                    pitchId={pitch.id}
-                    slot={slot}
-                    isSelected={isSelected}
-                    action={action}
-                    hiddenFields={hiddenFields}
-                    submitLabel={submitLabel}
-                    locale={locale}
-                    onToggle={() =>
-                      setSelected((current) => (current === key ? null : key))
-                    }
-                  />
-                );
-              })}
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+    </>
   );
 }
 
 function SlotBlock({
-  pitchId,
   slot,
   isSelected,
-  action,
-  hiddenFields,
-  submitLabel,
   locale,
   onToggle,
 }: {
-  pitchId: string;
   slot: SlotPickerSlot;
   isSelected: boolean;
-  action: (formData: FormData) => void | Promise<void>;
-  hiddenFields: Record<string, string>;
-  submitLabel: string;
   locale: UiLocale;
   onToggle: () => void;
 }) {
-  const time = (
-    <LtrIsolate className="text-lg font-semibold leading-none tracking-tight">
-      {`${slot.startLocal}–${slot.endLocal}`}
-    </LtrIsolate>
-  );
-  const price = (
-    <LtrIsolate className="text-sm font-medium text-primary">
-      {`$${slot.priceUsd}`}
-    </LtrIsolate>
-  );
-
   if (!slot.available) {
     return (
-      <div className="flex min-h-16 flex-col items-start justify-center gap-2 rounded-xl border bg-card/60 px-3 py-3 text-start opacity-60">
-        {time}
-        <div className="flex w-full items-center justify-between gap-2">
-          {price}
-          <Badge variant="outline">{ui("public.taken", locale)}</Badge>
-        </div>
+      <div className="flex min-h-20 w-full flex-col justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-3 text-start opacity-60">
+        <SlotFace slot={slot} variant="taken" />
+        <Badge variant="outline">{ui("public.taken", locale)}</Badge>
       </div>
     );
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-pressed={isSelected}
-        className={cn(
-          "flex min-h-16 flex-col items-start justify-center gap-2 rounded-xl border bg-card px-3 py-3 text-start shadow-sm transition-all outline-none",
-          "hover:bg-accent/50 hover:border-primary/40",
-          "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
-          isSelected && "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background",
-        )}
-      >
-        {time}
-        {price}
-      </button>
-      {isSelected ? (
-        <RequestForm
-          pitchId={pitchId}
-          slot={slot}
-          action={action}
-          hiddenFields={hiddenFields}
-          submitLabel={submitLabel}
-          locale={locale}
-          time={time}
-          price={price}
-        />
-      ) : null}
-    </>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={isSelected}
+      className={cn(
+        "flex min-h-20 w-full items-center rounded-xl bg-card px-3 py-3 text-start outline-none",
+        "border transition-[background-color,color,border-color] duration-200 ease-out",
+        "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        isSelected
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-muted-foreground/40",
+      )}
+    >
+      <SlotFace slot={slot} variant={isSelected ? "selected" : "idle"} />
+    </button>
   );
 }
 
@@ -174,8 +272,6 @@ function RequestForm({
   hiddenFields,
   submitLabel,
   locale,
-  time,
-  price,
 }: {
   pitchId: string;
   slot: SlotPickerSlot;
@@ -183,8 +279,6 @@ function RequestForm({
   hiddenFields: Record<string, string>;
   submitLabel: string;
   locale: UiLocale;
-  time: ReactNode;
-  price: ReactNode;
 }) {
   const [fieldErrors, setFieldErrors] = useState<PublicRequestFieldErrors>({});
   const nameErrorId = `name-err-${slot.startIso}`;
@@ -209,12 +303,8 @@ function RequestForm({
       action={action}
       noValidate
       onSubmit={onSubmit}
-      className="col-span-2 flex flex-col gap-4 rounded-xl border bg-card px-4 py-4 shadow-sm"
+      className="flex flex-col gap-3"
     >
-      <p className="flex items-baseline justify-between gap-2">
-        {time}
-        {price}
-      </p>
       <input type="hidden" name="pitchId" value={pitchId} />
       <input type="hidden" name="start" value={slot.startIso} />
       <input type="hidden" name="end" value={slot.endIso} />

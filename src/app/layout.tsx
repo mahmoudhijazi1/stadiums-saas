@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   IBM_Plex_Mono,
   IBM_Plex_Sans_Arabic,
@@ -40,13 +40,21 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+// Local generate-viewport.md: static `viewport` on the root layout.
+// Default themeColor is null; OS dark chrome then paints a black status bar
+// over this light page. Off-White matches --background.
+export const viewport: Viewport = {
+  themeColor: "#f8f9fa",
+  colorScheme: "light",
+};
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getUiLocale();
   return (
     <html
       lang={htmlLang(locale)}
       dir={htmlDir(locale)}
-      className={`${plexArabic.variable} ${kufi.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${plexArabic.variable} ${kufi.variable} ${plexMono.variable} h-full bg-background antialiased`}
     >
       <body className="min-h-svh flex flex-col">
         {children}

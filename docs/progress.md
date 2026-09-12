@@ -2852,6 +2852,100 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. `/owner/book` — today/tomorrow chips, calendar for later days, slots update without a submit. Create booking still returns to the same `bookOn`. Public `?date=` chips unchanged.
 
+---
+
+## Chapter 125 — 2026-09-12 — SlotPicker v2: kickoff hierarchy, Volt duration, select motion
+
+**When:** 2026-09-12
+
+**What:** Slot tiles: start time is the hero; end is a smaller Slate line (`→ 17:00`); price + duration share the third line. Idle duration is the only Volt accent. Idle fill is `bg-card` plus a 1px `#dee2e6` hairline (`border-border` on these tiles only — `#ffffff` vs page `#f8f9fa` is ~1.02:1 and would vanish in sun). Selected is a 200ms ease-out fill-invert (no ring, no hover, no shadow). Taken is the same stack, muted, instant. No globals / `--border` change.
+
+**Why:** Equal-weight `16:00–17:00` plus a snap invert read as a flat box. Kickoff is the number that matters; duration is real info (1h / 1.5h).
+
+**Files:** `src/components/slot-picker.tsx`; `test/components/slot-duration.test.ts`.
+
+**Relation:** Day chips unchanged. Request form still the expanded card; header uses the same type stack. No booking/access/venue types.
+
+**How to verify:** `npm test`. Public/owner Book — idle tile: large 16:00, small → 17:00, `$30.00 · 1h` with Volt on `1h`. Tap — Volt fill over ~200ms. Taken: no Volt, محجوز. Day chips still have their own border.
+
+---
+
+## Chapter 126 — 2026-09-12 — Idle tile Slate hairline; light theme-color
+
+**When:** 2026-09-12
+
+**What:** Idle slot tiles use a 1px Slate hairline (`border-muted-foreground/40`, `#495057` at 40%) — not `#dee2e6`, not `shadow-sm`. Selected stays Volt invert (`border-primary`); taken stays the faint `border-border`. Root viewport is `themeColor: #f8f9fa` + `colorScheme: light` (local `generate-viewport.md`; Next default `themeColor` is null). `html` paints `--background` and `color-scheme: light` so OS-dark chrome / canvas does not show a black strip above the header.
+
+**Why:** Chapter 125’s `#dee2e6` hairline was still invisible on-screen (sunlight risk confirmed). The black bar was not a tile style — missing theme-color on a light page.
+
+**Files:** `src/components/slot-picker.tsx`; `src/app/layout.tsx`; `src/app/globals.css`.
+
+**Relation:** `--border` / day chips unchanged. No use-case or route change.
+
+**How to verify:** `npm test`. Idle tiles have a visible Slate line, no shadow. Selected invert unchanged. View source: `<meta name="theme-color" content="#f8f9fa">` and `<meta name="color-scheme" content="light">`. No black strip above the header.
+
+---
+
+## Chapter 127 — 2026-09-12 — Slot form is a dialog; ticket split on every tile
+
+**When:** 2026-09-12
+
+**What:** Name/phone is a compact Dialog over the grid (Carbon dim `bg-foreground/45` + `backdrop-blur-sm`, not `bg-black/80`). The 2-col board does not shift. Selected tile stays in place (Volt invert). Overlay / Esc / X dismisses. Ticket split (time | fare) is now idle, selected, and taken. Same Server Action and hidden fields.
+
+**Why:** In-grid `col-span-2` was the smallest “one form” fix; it shoved stubs once tiles became tickets. Modal keeps the board still.
+
+**Files:** `src/components/ui/dialog.tsx`; `src/components/slot-picker.tsx`; `src/lib/ui-copy.ts`; `src/app/(public)/skeletons.tsx`; `src/app/owner/book/skeleton.tsx`; `docs/owner-ia.md`.
+
+**Relation:** `submitPublicSlotRequest` / `submitCreateOwnerBooking` unchanged. `components/ui` still does not import `src/modules/*`. No `--border` change.
+
+**How to verify:** `npm test`. Public / owner Book — tap a free stub: grid stays put, tile inverts, dialog has the ticket face + name/phone. Overlay or Esc closes. Taken tiles use the same split. Request / احجز still `ok=`.
+
+---
+
+## Chapter 128 — 2026-09-12 — Scrollbar gutter both-edges; dialog does not open a white strip
+
+**When:** 2026-09-12
+
+**What:** `html { scrollbar-gutter: stable both-edges }` so `mx-auto` stays optically centered and the classic Windows bar never covers content. Dialog overlay is `left-0 w-screen` (covers the gutter). RemoveScroll’s extra `margin/padding-right` on `body[data-scroll-locked]` is zeroed — that gap was the white column beside the dim.
+
+**Why:** `stable` alone reserved only the bar’s side, so the column sat off-center. Opening the dialog hid the bar and RemoveScroll added a second gap on top of the gutter.
+
+**Files:** `src/app/globals.css`; `src/components/ui/dialog.tsx`.
+
+**Relation:** Same Dialog / Server Action. Overlay still Carbon dim + light blur.
+
+**How to verify:** Long Book page — column centered with or without a bar. Open a slot — dim covers the full viewport, no white strip, page behind does not jump.
+
+---
+
+## Chapter 129 — 2026-09-12 — Thin Volt scrollbar; drop both-edges gutter
+
+**When:** 2026-09-12
+
+**What:** Dropped `scrollbar-gutter: stable both-edges` (empty lanes on both sides). Page and nested overflow use a 6px Volt thumb (`--primary`) on a transparent track; Firefox `scrollbar-width: thin`. One-side `stable` gutter remains so the bar does not cover tiles. Dialog overlay / RemoveScroll zeroing from ch. 128 stays.
+
+**Why:** Both-edges reserved matching empty space opposite the bar — the new white columns. A thin Volt bar matches the rest of the UI and needs only one thin lane.
+
+**Files:** `src/app/globals.css`.
+
+**Relation:** Dialog dim still `w-screen`. No token change.
+
+**How to verify:** Book page — thin Volt bar, no empty strip on the other side. Open a slot — dim edge to edge.
+
+---
+
+## Chapter 130 — 2026-09-12 — Drop scrollbar-gutter; overlay spans 100vw
+
+**When:** 2026-09-12
+
+**What:** Removed `scrollbar-gutter` (the reserved lane stayed empty and white when the dialog hid the bar). Overlay is `100vw` with `margin-left: calc(50% - 50vw)` so the dim covers the visual viewport. Volt thumb is inset via a transparent border so it reads as a thin overlay, not a solid column.
+
+**Why:** `stable` + `overflow: hidden` on `html` left an uncovered gutter. Padding-zero on RemoveScroll was not enough.
+
+**Files:** `src/app/globals.css`; `src/components/ui/dialog.tsx`.
+
+**How to verify:** Open a slot on Book — dim is edge to edge, no white column. Scrollbar is a thin Volt pill, not a reserved white lane.
+
 
 
 
