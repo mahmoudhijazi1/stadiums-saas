@@ -2336,6 +2336,46 @@ If the hour already ended, the public page stays up and says so in English. The 
 
 The design kit is on the shelf. The kitchen (bookings, money, database) did not change. We can now drop in buttons and forms without rewriting Tailwind from scratch.
 
+---
+
+## Chapter 100 — 2026-09-12 — visual system tokens + owner Login
+
+**When:** 2026-09-12
+
+**What:** One shared shadcn token set: Carbon `#1a1d20`, Off-White `#f8f9fa`, Volt `#10b981` (primary + focus ring, sparse), Athletic Slate `#495057`. Modest radius `0.5rem`. No OS auto-dark content flip; `--sidebar` stays Carbon for later owner chrome. Fonts: Noto Kufi Arabic (headings), IBM Plex Sans Arabic (body), IBM Plex Mono (money/times). Button/Input default height `h-11` (44px). Added Card, Badge, Input, Label. Owner Login restyled with those pieces; Volt only on submit. `submitLogin` unchanged.
+
+**Why:** Visual system plan (calm / utilitarian). Not a SPEC. RTL logical-property rules untouched.
+
+**Files:** `src/app/globals.css`; `src/app/layout.tsx`; `src/components/ui/button.tsx`; `src/components/ui/input.tsx`; `src/components/ui/card.tsx`; `src/components/ui/badge.tsx`; `src/components/ui/label.tsx`; `src/app/login/page.tsx`.
+
+**Relation:** `src/components/ui` must not import `src/modules/*`. Login still has no Prisma / no `tenantId`. Payment still does not import Booking.
+
+**How to verify:** `http://localhost:3000/login?tenant=ahmad` — Card, Volt Log in button, Plex/Kufi/Mono on `<html>`. `?error=access.invalid_login` shows “Invalid login.” CSS `--primary: #10b981`. Owner schedule and public booking pages not restyled.
+
+### In plain language
+
+The paint is mixed once in the CSS file: dark carbon text, off-white paper, a little pitch-green for the main button. Login now looks like that. The rest of the stadium screens still wear the old clothes until we dress them the same way.
+
+---
+
+## Chapter 101 — 2026-09-12 — Login card actually centered
+
+**When:** 2026-09-12
+
+**What:** Login was a full-width strip stuck to the top (`min-h-full` never filled the viewport). Main is now `min-h-svh` + column + center. Card `max-w-sm`. Title is “Log in”; stadium name stays tenant-authored. Same tokens, same `submitLogin`.
+
+**Why:** Follow-up to ch.100. Colors were right; layout was not.
+
+**Files:** `src/app/login/page.tsx`; `src/app/layout.tsx` (`min-h-svh` on body).
+
+**Relation:** No Prisma. No owner/public restyle.
+
+**How to verify:** `/login?tenant=ahmad` — narrow card in the middle of the screen, not a banner at the top.
+
+### In plain language
+
+The login box now sits in the middle of the page like a form, not a stripe glued to the ceiling.
+
 
 
 

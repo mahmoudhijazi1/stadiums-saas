@@ -1,6 +1,16 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { errorMessage } from "@/lib/error-messages";
 import { submitLogin } from "@/app/login/actions";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 /**
  * Thin login route. No Prisma and no tenantId.
@@ -12,36 +22,50 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const errorKey = typeof params.error === "string" ? params.error : undefined;
 
   return (
-    <main style={{ fontFamily: "system-ui", padding: "1.5rem", lineHeight: 1.6 }}>
-      <h1>Log in — {tenant.name}</h1>
-      <p>
-        Tenant: <code>{tenant.slug}</code>
-      </p>
-      {errorKey ? <p>{errorMessage(errorKey)}</p> : null}
-      <form action={submitLogin}>
-        <input type="hidden" name="tenant" value={tenant.slug} />
-        <p>
-          <label>
-            Identifier{" "}
-            <input
-              type="text"
-              name="identifier"
-              required
-              autoComplete="username"
-              placeholder="owner@ahmad"
-            />
-          </label>
-        </p>
-        <p>
-          <label>
-            Password{" "}
-            <input type="password" name="password" required autoComplete="current-password" />
-          </label>
-        </p>
-        <p>
-          <button type="submit">Log in</button>
-        </p>
-      </form>
+    <main className="flex min-h-svh flex-col items-center justify-center px-6 py-10">
+      <Card className="w-full max-w-sm shrink-0">
+        <CardHeader className="gap-1">
+          <CardTitle className="font-heading text-2xl">Log in</CardTitle>
+          <CardDescription>
+            {tenant.name}
+            <span className="mt-1 block font-mono text-xs">{tenant.slug}</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {errorKey ? (
+            <p className="mb-6 text-sm text-destructive" role="alert">
+              {errorMessage(errorKey)}
+            </p>
+          ) : null}
+          <form action={submitLogin} className="flex flex-col gap-6">
+            <input type="hidden" name="tenant" value={tenant.slug} />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="identifier">Identifier</Label>
+              <Input
+                id="identifier"
+                type="text"
+                name="identifier"
+                required
+                autoComplete="username"
+                placeholder="owner@ahmad"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                name="password"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Log in
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }
