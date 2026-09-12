@@ -9,6 +9,10 @@ import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { formatUsd, parseLbp } from "@/lib/money";
+import {
+  lbpPerUsdLine,
+  ui,
+} from "@/lib/ui-copy";
 import { submitRecordExpense, submitSetExchangeRate } from "@/app/owner/actions";
 import {
   categoryLabel,
@@ -74,17 +78,17 @@ export async function OwnerRest({
   const showLbp = periodQuery.view === "lbp" && displayRate !== null;
   const lbpNote =
     periodQuery.view === "lbp" && displayRate === null
-      ? "Set a display rate (or set exchange rate first)"
+      ? ui("lbpNote")
       : null;
 
   return (
     <>
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">Waitlist</h2>
+        <h2 className="font-heading text-lg">{ui("owner.waitlist")}</h2>
         {waitlist.length === 0 ? (
           <EmptyState
-            title="No waitlist."
-            next="People who asked for a taken hour show up here after you cancel."
+            title={ui("empty.waitlist")}
+            next={ui("empty.waitlistNext")}
           />
         ) : (
           <ul className="flex flex-col gap-3">
@@ -117,7 +121,7 @@ export async function OwnerRest({
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
-                                Notify
+                                {ui("owner.notify")}
                               </a>
                             </Button>
                           ) : null}
@@ -134,21 +138,21 @@ export async function OwnerRest({
 
       {summary ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg">This period</h2>
+          <h2 className="font-heading text-lg">{ui("owner.period")}</h2>
           <Card>
             <CardHeader className="gap-1">
               <CardDescription className="font-mono">
                 {summary.from} → {summary.to}
               </CardDescription>
               <p className="font-mono text-base font-medium">
-                Difference{" "}
+                {ui("owner.difference")}{" "}
                 {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
               </p>
               <p className="font-mono text-sm text-muted-foreground">
-                In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
+                {ui("owner.in")} {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
               </p>
               <p className="font-mono text-sm text-muted-foreground">
-                Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
+                {ui("owner.out")} {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
               </p>
               {lbpNote ? (
                 <p className="text-sm text-muted-foreground">{lbpNote}</p>
@@ -158,7 +162,7 @@ export async function OwnerRest({
               <form method="get" action="/owner" className="flex flex-col gap-4">
                 <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="from">From</Label>
+                  <Label htmlFor="from">{ui("owner.from")}</Label>
                   <DateField
                     id="from"
                     name="from"
@@ -167,7 +171,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="to">To</Label>
+                  <Label htmlFor="to">{ui("owner.to")}</Label>
                   <DateField
                     id="to"
                     name="to"
@@ -176,19 +180,19 @@ export async function OwnerRest({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="view">View</Label>
+                  <Label htmlFor="view">{ui("owner.view")}</Label>
                   <SelectField
                     id="view"
                     name="view"
                     defaultValue={periodQuery.view}
                     options={[
-                      { value: "usd", label: "USD" },
-                      { value: "lbp", label: "LBP" },
+                      { value: "usd", label: ui("owner.usd") },
+                      { value: "lbp", label: ui("owner.lbp") },
                     ]}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="displayRate">Display rate</Label>
+                  <Label htmlFor="displayRate">{ui("owner.displayRate")}</Label>
                   <Input
                     id="displayRate"
                     type="text"
@@ -200,7 +204,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <Button type="submit" variant="secondary" className="w-full">
-                  Show
+                  {ui("owner.show")}
                 </Button>
               </form>
             </CardContent>
@@ -209,11 +213,11 @@ export async function OwnerRest({
       ) : null}
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">Exchange rate</h2>
+        <h2 className="font-heading text-lg">{ui("owner.rate")}</h2>
         <Card>
           <CardHeader>
             <CardDescription className="font-mono">
-              {rate ? `${rate.toFixed(0)} LBP per USD` : "No rate set"}
+              {rate ? lbpPerUsdLine(rate.toFixed(0)) : ui("owner.noRate")}
             </CardDescription>
           </CardHeader>
           {isOwner ? (
@@ -221,7 +225,7 @@ export async function OwnerRest({
               <form action={submitSetExchangeRate} className="flex flex-col gap-4">
                 {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="lbpPerUsd">New rate</Label>
+                  <Label htmlFor="lbpPerUsd">{ui("owner.newRate")}</Label>
                   <Input
                     id="lbpPerUsd"
                     type="text"
@@ -232,7 +236,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <SubmitButton variant="secondary" className="w-full">
-                  Set rate
+                  {ui("owner.setRate")}
                 </SubmitButton>
               </form>
             </CardContent>
@@ -241,17 +245,17 @@ export async function OwnerRest({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-lg">Expenses</h2>
+        <h2 className="font-heading text-lg">{ui("owner.expenses")}</h2>
         {mayRecordExpense ? (
           <Card>
             <CardHeader className="gap-1">
-              <CardTitle className="text-base">Record expense</CardTitle>
+              <CardTitle className="text-base">{ui("owner.recordExpense")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form action={submitRecordExpense} className="flex flex-col gap-4">
                 {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">{ui("owner.category")}</Label>
                   <SelectField
                     id="category"
                     name="category"
@@ -264,7 +268,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="description">What</Label>
+                  <Label htmlFor="description">{ui("owner.what")}</Label>
                   <Input
                     id="description"
                     type="text"
@@ -274,7 +278,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="occurredOn">When</Label>
+                  <Label htmlFor="occurredOn">{ui("owner.when")}</Label>
                   <DateField
                     id="occurredOn"
                     name="occurredOn"
@@ -283,7 +287,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseUsd">USD</Label>
+                  <Label htmlFor="expenseUsd">{ui("owner.usd")}</Label>
                   <Input
                     id="expenseUsd"
                     type="text"
@@ -294,7 +298,7 @@ export async function OwnerRest({
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="expenseLbp">LBP</Label>
+                  <Label htmlFor="expenseLbp">{ui("owner.lbp")}</Label>
                   <Input
                     id="expenseLbp"
                     type="text"
@@ -303,18 +307,20 @@ export async function OwnerRest({
                     className="font-mono"
                   />
                 </div>
-                <SubmitButton className="w-full">Record expense</SubmitButton>
+                <SubmitButton className="w-full">
+                  {ui("owner.recordExpenseSubmit")}
+                </SubmitButton>
               </form>
             </CardContent>
           </Card>
         ) : null}
         {expenses.length === 0 ? (
           <EmptyState
-            title="No expenses yet."
+            title={ui("empty.expenses")}
             next={
               mayRecordExpense
-                ? "Record one above."
-                : "None recorded in this list."
+                ? ui("empty.expensesNextRecord")
+                : ui("empty.expensesNextStaff")
             }
           />
         ) : (

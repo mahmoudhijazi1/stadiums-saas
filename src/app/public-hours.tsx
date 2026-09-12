@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ui } from "@/lib/ui-copy";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -36,8 +37,8 @@ export async function PublicHours({
   if (pitches.length === 0) {
     return (
       <EmptyState
-        title="No pitches yet."
-        next="This stadium has not listed pitches."
+        title={ui("public.emptyPitches")}
+        next={ui("public.emptyPitchesNext")}
       />
     );
   }
@@ -49,8 +50,8 @@ export async function PublicHours({
           <h3 className="font-medium">{pitch.name}</h3>
           {pitch.slots.length === 0 ? (
             <EmptyState
-              title="Closed this day."
-              next="Pick another day to see hours."
+              title={ui("public.closed")}
+              next={ui("public.closedNext")}
             />
           ) : (
             <ul className="flex flex-col gap-2">
@@ -63,7 +64,7 @@ export async function PublicHours({
                           {slot.startLocal}–{slot.endLocal}
                         </CardTitle>
                         {slot.available ? null : (
-                          <Badge variant="outline">Taken</Badge>
+                          <Badge variant="outline">{ui("public.taken")}</Badge>
                         )}
                       </div>
                       <CardDescription className="font-mono">
@@ -94,7 +95,9 @@ export async function PublicHours({
                             value={tenantSlug}
                           />
                           <div className="flex flex-col gap-2">
-                            <Label htmlFor={`name-${slot.startIso}`}>Name</Label>
+                            <Label htmlFor={`name-${slot.startIso}`}>
+                              {ui("public.name")}
+                            </Label>
                             <Input
                               id={`name-${slot.startIso}`}
                               type="text"
@@ -105,7 +108,7 @@ export async function PublicHours({
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label htmlFor={`phone-${slot.startIso}`}>
-                              Phone
+                              {ui("public.phone")}
                             </Label>
                             <Input
                               id={`phone-${slot.startIso}`}
@@ -116,7 +119,9 @@ export async function PublicHours({
                               className="font-mono"
                             />
                           </div>
-                          <SubmitButton className="w-full">Request</SubmitButton>
+                          <SubmitButton className="w-full">
+                            {ui("public.request")}
+                          </SubmitButton>
                         </form>
                       </CardContent>
                     ) : null}

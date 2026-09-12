@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Unexpected render failure (Next error.js). Client — no logger, no Prisma.
  * Do not show error.message (dev leak). retry() from local error.md (not reset).
+ * Arabic-first; English second (SPEC-13). No ui-copy import on this path.
  */
 export default function Error({
   error,
@@ -15,13 +16,13 @@ export default function Error({
 }) {
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-4 px-6 py-8">
-      <h1 className="font-heading text-2xl">Something went wrong. Try again.</h1>
-      <p dir="rtl" className="text-muted-foreground">
-        حدث خطأ. حاول مرة أخرى.
+      <h1 className="font-heading text-2xl">حدث خطأ. حاول مرة أخرى.</h1>
+      <p dir="ltr" className="text-muted-foreground">
+        Something went wrong. Try again.
       </p>
       <p>
         <Button type="button" onClick={() => retry()}>
-          Try again / حاول مرة أخرى
+          حاول مرة أخرى / Try again
         </Button>
       </p>
       {error.digest ? (

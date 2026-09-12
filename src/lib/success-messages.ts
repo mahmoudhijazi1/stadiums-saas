@@ -1,21 +1,21 @@
 /**
- * English copy for success flash keys (ok= on redirect). next-intl later; keys stay.
+ * Arabic copy for success flash keys (ok= on redirect). DR-005; keys stay.
  * Unknown keys → generic done line.
  */
-const ENGLISH: Record<string, string> = {
-  approved: "Approved.",
-  rejected: "Rejected.",
-  collected: "Collected.",
-  booked: "Booked.",
-  cancelled: "Cancelled.",
-  rate_set: "Rate set.",
-  expense_recorded: "Expense recorded.",
-  requested: "Request received.",
+const ARABIC: Record<string, string> = {
+  approved: "تمت الموافقة.",
+  rejected: "تم الرفض.",
+  collected: "تم التحصيل.",
+  booked: "تم الحجز.",
+  cancelled: "تم الإلغاء.",
+  rate_set: "تم تعيين السعر.",
+  expense_recorded: "سُجّل المصروف.",
+  requested: "وصل الطلب.",
 };
 
-const GENERIC = "Done.";
+const GENERIC = "تم.";
 
-/** Owner/public toast English for a success key. Never a stack. */
+/** Owner/public toast Arabic for a success key. Never a stack. */
 export function successMessage(key: string): string {
-  return ENGLISH[key] ?? GENERIC;
+  return ARABIC[key] ?? GENERIC;
 }

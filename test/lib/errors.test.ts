@@ -22,16 +22,12 @@ describe("UnexpectedError", () => {
 });
 
 describe("errorMessage", () => {
-  it("returns catalog English for a known key", () => {
-    expect(errorMessage("booking.slot_ended")).toBe(
-      "That hour has already ended.",
-    );
+  it("returns catalog Arabic for a known key", () => {
+    expect(errorMessage("booking.slot_ended")).toBe("هذه الساعة انتهت.");
   });
 
-  it("returns generic English for an unknown key or legacy 1", () => {
-    expect(errorMessage("not.a.real.key")).toBe(
-      "Something went wrong. Try again.",
-    );
-    expect(errorMessage("1")).toBe("Something went wrong. Try again.");
+  it("returns generic Arabic for an unknown key or legacy 1", () => {
+    expect(errorMessage("not.a.real.key")).toBe("حدث خطأ. حاول مرة أخرى.");
+    expect(errorMessage("1")).toBe("حدث خطأ. حاول مرة أخرى.");
   });
 });

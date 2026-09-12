@@ -42,7 +42,7 @@ describe("slotAvailableMessage", () => {
         endLocal: "19:00",
       }),
     ).toBe(
-      "Ahmad Stadium: Pitch 1 18:00–19:00 is free again if you still want it.",
+      "Ahmad Stadium: Pitch 1 18:00–19:00 أصبحت متاحة مجدداً إذا ما زلت تريدها.",
     );
   });
 });

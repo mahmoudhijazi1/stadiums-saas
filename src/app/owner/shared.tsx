@@ -1,5 +1,6 @@
+import { ui } from "@/lib/ui-copy";
+import type { ExpenseCategory } from "@/modules/expense/domain/categories";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
-import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 
 export const OWNER_TIME_ZONE = "Asia/Beirut";
@@ -75,21 +76,6 @@ export function civilFromYyyyMmDd(value: string): CivilDate {
   return { year, month, day };
 }
 
-export function categoryLabel(
-  category: (typeof EXPENSE_CATEGORIES)[number],
-): string {
-  switch (category) {
-    case "ELECTRICITY":
-      return "Electricity";
-    case "WATER":
-      return "Water";
-    case "MAINTENANCE":
-      return "Maintenance";
-    case "SALARY":
-      return "Salary";
-    case "EQUIPMENT":
-      return "Equipment";
-    case "OTHER":
-      return "Other";
-  }
+export function categoryLabel(category: ExpenseCategory): string {
+  return ui(`cat.${category}`);
 }

@@ -1,35 +1,35 @@
 /**
- * English copy for DomainError keys (DR-004). next-intl later; keys stay.
+ * Arabic copy for DomainError keys (DR-005). Keys stay (DR-004); next-intl later.
  * Unknown keys and legacy ?error=1 → generic.
  */
-const ENGLISH: Record<string, string> = {
-  "error.generic": "Something went wrong. Try again.",
-  "form.invalid": "Check the form and try again.",
-  "access.not_allowed": "You cannot do that.",
-  "access.invalid_login": "Invalid login.",
-  "booking.not_found": "Booking not found.",
-  "booking.pending_only": "Only a pending request can be approved or rejected.",
-  "booking.confirmed_only": "Only a confirmed booking can be cancelled.",
-  "booking.slot_not_offered": "That hour is not offered.",
-  "booking.slot_taken": "That hour is taken.",
-  "booking.slot_ended": "That hour has already ended.",
-  "booking.slot_unavailable": "Slot no longer available.",
-  "booking.pitch_not_found": "Pitch not found.",
-  "booking.requester_not_found": "Requester not found.",
-  "payment.collect_unapproved": "Only an approved booking can be collected.",
-  "payment.nothing_due": "Nothing due.",
-  "payment.rate_required": "Set exchange rate first.",
-  "payment.amount_required": "Amount required.",
-  "payment.amount_positive": "Amount must be positive.",
-  "notification.bad_phone": "Phone cannot be used for WhatsApp.",
-  "ledger.invalid_period": "Invalid period.",
-  "expense.invalid_date": "Invalid expense date.",
+const ARABIC: Record<string, string> = {
+  "error.generic": "حدث خطأ. حاول مرة أخرى.",
+  "form.invalid": "راجع النموذج وحاول مرة أخرى.",
+  "access.not_allowed": "لا يمكنك فعل ذلك.",
+  "access.invalid_login": "تسجيل الدخول غير صالح.",
+  "booking.not_found": "الحجز غير موجود.",
+  "booking.pending_only": "يمكن الموافقة على طلب معلّق أو رفضه فقط.",
+  "booking.confirmed_only": "يمكن إلغاء حجز مؤكد فقط.",
+  "booking.slot_not_offered": "هذه الساعة غير معروضة.",
+  "booking.slot_taken": "هذه الساعة محجوزة.",
+  "booking.slot_ended": "هذه الساعة انتهت.",
+  "booking.slot_unavailable": "الساعة لم تعد متاحة.",
+  "booking.pitch_not_found": "الملعب غير موجود.",
+  "booking.requester_not_found": "صاحب الطلب غير موجود.",
+  "payment.collect_unapproved": "يمكن التحصيل من حجز موافق عليه فقط.",
+  "payment.nothing_due": "لا يوجد مبلغ مستحق.",
+  "payment.rate_required": "عيّن سعر الصرف أولاً.",
+  "payment.amount_required": "المبلغ مطلوب.",
+  "payment.amount_positive": "يجب أن يكون المبلغ أكبر من صفر.",
+  "notification.bad_phone": "لا يمكن استخدام هذا الرقم لواتساب.",
+  "ledger.invalid_period": "الفترة غير صالحة.",
+  "expense.invalid_date": "تاريخ المصروف غير صالح.",
 };
 
-const GENERIC = "Something went wrong. Try again.";
+const GENERIC = "حدث خطأ. حاول مرة أخرى.";
 
-/** Owner-facing English for a key. Never returns a stack or Prisma dump. */
+/** Owner-facing Arabic for a key. Never returns a stack or Prisma dump. */
 export function errorMessage(key: string): string {
   if (key === "1") return GENERIC;
-  return ENGLISH[key] ?? GENERIC;
+  return ARABIC[key] ?? GENERIC;
 }

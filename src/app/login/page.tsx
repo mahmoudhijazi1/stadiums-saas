@@ -1,5 +1,6 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { errorMessage } from "@/lib/error-messages";
+import { ui } from "@/lib/ui-copy";
 import { submitLogin } from "@/app/login/actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {
@@ -25,7 +26,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <main className="flex min-h-svh flex-col items-center justify-center px-6 py-10">
       <Card className="w-full max-w-sm shrink-0">
         <CardHeader className="gap-1">
-          <CardTitle className="font-heading text-2xl">Log in</CardTitle>
+          <CardTitle className="font-heading text-2xl">
+            {ui("login.title")}
+          </CardTitle>
           <CardDescription>
             {tenant.name}
             <span className="mt-1 block font-mono text-xs">{tenant.slug}</span>
@@ -40,7 +43,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <form action={submitLogin} className="flex flex-col gap-6">
             <input type="hidden" name="tenant" value={tenant.slug} />
             <div className="flex flex-col gap-2">
-              <Label htmlFor="identifier">Identifier</Label>
+              <Label htmlFor="identifier">{ui("login.identifier")}</Label>
               <Input
                 id="identifier"
                 type="text"
@@ -51,7 +54,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{ui("login.password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -61,7 +64,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
               />
             </div>
             <SubmitButton className="w-full">
-              Log in
+              {ui("login.submit")}
             </SubmitButton>
           </form>
         </CardContent>

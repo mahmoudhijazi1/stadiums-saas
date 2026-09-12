@@ -28,15 +28,15 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ## Where we are (2026-09-12)
 
-**On `feature/spec-12-error-handling`.** SPEC-01–12 click-proofed. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
+**On `main`.** SPEC-01–13 click-proofed. UI is Arabic + RTL. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
 
 **What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, Cancels, sees waitlist + Notify, records expenses, and sees This period.
 
-**What they cannot do yet:** refunds, no-show, other WhatsApp templates, per-player split, Arabic UI, games-played / pitch-busy (BR-57).
+**What they cannot do yet:** refunds, no-show, other WhatsApp templates, per-player split, English UI switch, games-played / pitch-busy (BR-57).
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, Book, or cancel).
 
-**Next:** Commit SPEC-12 when asked. Overpay warning parked.
+**Next:** No-show as product asks (SPEC not written). Overpay warning parked.
 
 ---
 
@@ -2475,6 +2475,126 @@ The screens now tell you when something worked (a small toast), when a list is e
 ### In plain language
 
 Picking a day used to blank the whole screen because the waiter was waiting in the lobby. Now the date field stays on the counter while only the hours list walks to the kitchen.
+
+---
+
+## Chapter 107 — 2026-09-12 — SPEC-13 written (not started in code)
+
+**When:** 2026-09-12
+
+**What:** Product chose Arabic/RTL next. Wrote DR-005 + numbered SPEC-13: `dir="rtl"` `lang="ar"`, Arabic dictionaries for the existing error/success keys plus chrome `ui()`, WhatsApp “slot available” body in Arabic. No next-intl, no `/ar` URL, no language switch, no `tenant.settings`. Calendar stays `en-GB` (Western digits). Tenant-authored names stay as written.
+
+**Why:** [DR-005](./decisions/DR-005-arabic-rtl.md), [SPEC-13](./specs/SPEC-13-arabic-rtl.md), BRD A-1 / A-2 / R-4 / RULE-11. Keys from DR-004 stay the seam.
+
+**Files:** `docs/decisions/DR-005-arabic-rtl.md`; `docs/specs/SPEC-13-arabic-rtl.md`; `docs/README.md`.
+
+**Relation:** Does not change booking/money/waitlist rules. English secondary / next-intl later.
+
+**How to verify:** Read the spec. Confirm or correct the pins (Arabic-only, no locale URL, `en-GB` calendar, WhatsApp template). Then OK step 1.
+
+### In plain language
+
+The kitchen still speaks the same language. This slice is the waiter switching the menu to Arabic and serving from the right, without moving the restaurant to a new street address.
+
+---
+
+## Chapter 108 — 2026-09-12 — SPEC-13 step 1: Arabic dictionaries
+
+**When:** 2026-09-12
+
+**What:** Error and success dictionaries now return the SPEC-13 Arabic catalog (same keys). New `ui(key)` chrome map plus helpers for counts / Collect / due line / LBP-per-USD. Unknown `ui` key returns the key. Pages and `dir` unchanged. WhatsApp body still English until step 5.
+
+**Why:** SPEC-13 step 1 / DR-005. Copy is not in JSX yet so step 3–4 only swap callers.
+
+**Files:** `src/lib/error-messages.ts`; `src/lib/success-messages.ts`; `src/lib/ui-copy.ts`; `test/lib/errors.test.ts`; `test/lib/success-messages.test.ts`; `test/lib/ui-copy.test.ts`.
+
+**Relation:** `src/lib` must not import `src/modules/*`. Pages still have no Prisma / no `tenantId`. next-intl still out.
+
+**How to verify:** `npm test` — 27 suites, 154 passed. UI still English until later steps; toasts would already be Arabic if you trigger `ok=` / `error=`.
+
+### In plain language
+
+The menu cards are printed in Arabic, but they are still in the drawer. The waiter has not put them on the tables yet.
+
+---
+
+## Chapter 109 — 2026-09-12 — SPEC-13 step 2: dir + crash screens
+
+**When:** 2026-09-12
+
+**What:** Root `<html lang="ar" dir="rtl">`. Title `ملاعب` via `ui("doc.title")`. `error.tsx` / `global-error` are Arabic-first with English as a second `dir="ltr"` line; retry button `حاول مرة أخرى / Try again`. `global-error` does not import `ui-copy`. Grep of `src/` found no `pl-`/`pr-`/`ml-`/`mr-`/`text-left`/`text-right`/`left-0`/`right-0` (Radix `data-[side=left]` animations left as-is).
+
+**Why:** SPEC-13 step 2 / DR-005. Local layout.md: root layout owns `<html>` / `<body>`. error.md: `retry`, Client Component.
+
+**Files:** `src/app/layout.tsx`; `src/app/error.tsx`; `src/app/global-error.tsx`.
+
+**Relation:** Chrome on pages still English until step 3. No Prisma / no `tenantId`. next-intl still out.
+
+**How to verify:** View source of `/?tenant=ahmad` — `lang="ar"` `dir="rtl"` `<title>ملاعب</title>`. Login labels still English.
+
+### In plain language
+
+The restaurant flipped the tables so people sit on the right. The printed menu on the tables is still English until the next trip to the kitchen.
+
+---
+
+## Chapter 110 — 2026-09-12 — SPEC-13 step 3: public + login chrome
+
+**When:** 2026-09-12
+
+**What:** Public `/` and `/login` labels, empty states, Taken badge, and submit buttons use `ui(...)`. GET still posts `name="date"`. Request action and hidden fields unchanged. Stadium name and pitch names stay as stored. `errorMessage` on login was already Arabic from step 1.
+
+**Why:** SPEC-13 step 3 / DR-005 / RULE-11.
+
+**Files:** `src/app/page.tsx`; `src/app/public-hours.tsx`; `src/app/login/page.tsx`.
+
+**Relation:** Owner chrome still English until step 4. Pages still have no Prisma / no `tenantId`.
+
+**How to verify:** `/?tenant=ahmad` — اليوم / عرض الساعات / الساعات / اطلب; pitch names unchanged. `/login?tenant=ahmad` — تسجيل الدخول / دخول. Bad password still in-card via `access.invalid_login`.
+
+### In plain language
+
+The visitor and the lock on the door now speak Arabic. The owner’s kitchen list is still English until the next step.
+
+---
+
+## Chapter 111 — 2026-09-12 — SPEC-13 step 4: owner chrome
+
+**When:** 2026-09-12
+
+**What:** Owner header, Today, Book, Waitlist, period, rate, and expenses use `ui(...)` / count and money helpers. `categoryLabel` reads `cat.*`. Role is `role.OWNER` / `role.STAFF`. GET names (`bookOn`, `from`, `to`, `view`) unchanged. Added chrome key `owner.requested` (`طُلب`) — the catalog missed the “Requested {time}” line.
+
+**Why:** SPEC-13 step 4 / DR-005 / RULE-11.
+
+**Files:** `src/app/owner/page.tsx`; `today.tsx`; `book-slots.tsx`; `rest.tsx`; `shared.tsx`; `src/lib/ui-copy.ts`.
+
+**Relation:** WhatsApp body still English until step 5. Pages still have no Prisma / no `tenantId`.
+
+**How to verify:** `/owner` after login — اليوم / خروج / احجز ساعة / مالك; pitch and requester names as stored; Approve/Collect/Book still submit.
+
+### In plain language
+
+The owner’s list on the wall is Arabic now. The WhatsApp note he sends is still English until the last step.
+
+---
+
+## Chapter 112 — 2026-09-12 — SPEC-13 step 5: WhatsApp Arabic body
+
+**When:** 2026-09-12
+
+**What:** `slotAvailableMessage` uses the pinned Arabic sentence. Stadium/pitch stay as stored; times stay Latin `18:00–19:00`. Jest updated. No other BR-71 templates. SPEC-13 is done in code.
+
+**Why:** SPEC-13 step 5 / DR-005 / A-8 / RULE-11.
+
+**Files:** `src/modules/notification/domain/whatsapp-link.ts`; `test/modules/notification/domain/whatsapp-link.test.ts`; `docs/README.md`; `docs/decisions/DR-005-arabic-rtl.md`.
+
+**Relation:** Notification still does not import Booking. Other WhatsApp templates stay out.
+
+**How to verify:** `npm test`. Notify `wa.me` text: `Ahmad Stadium: Pitch 1 18:00–19:00 أصبحت متاحة مجدداً إذا ما زلت تريدها.`
+
+### In plain language
+
+The note the owner pastes into WhatsApp is Arabic now, with the same stadium name and Latin times. This Arabic slice is finished.
 
 
 

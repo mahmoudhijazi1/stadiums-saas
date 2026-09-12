@@ -5,6 +5,13 @@ import { listPendingRequests } from "@/modules/booking/application/list-pending-
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { formatUsd } from "@/lib/money";
 import {
+  collectUsdLabel,
+  confirmedCount,
+  dueRemainingLine,
+  pendingCount,
+  ui,
+} from "@/lib/ui-copy";
+import {
   submitApproveBooking,
   submitCancelBooking,
   submitCollectPayment,
@@ -48,12 +55,12 @@ export async function OwnerToday({
   return (
     <>
       <h3 className="text-sm font-medium text-muted-foreground">
-        Pending · {pending.length}
+        {pendingCount(pending.length)}
       </h3>
       {pending.length === 0 ? (
         <EmptyState
-          title="No pending requests."
-          next="When someone asks for an hour, it shows up here."
+          title={ui("empty.pending")}
+          next={ui("empty.pendingNext")}
         />
       ) : (
         <ul className="flex flex-col gap-3">
@@ -63,7 +70,7 @@ export async function OwnerToday({
                 <CardHeader className="gap-1">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{row.pitchName}</CardTitle>
-                    <Badge variant="outline">Pending</Badge>
+                    <Badge variant="outline">{ui("owner.pending")}</Badge>
                   </div>
                   <CardDescription>
                     <span className="font-mono">
@@ -74,7 +81,7 @@ export async function OwnerToday({
                       <span className="font-mono">{row.requesterPhone}</span>
                     </span>
                     <span className="mt-1 block">
-                      Requested {formatLocalDateTime(row.requestedAt)}
+                      {ui("owner.requested")} {formatLocalDateTime(row.requestedAt)}
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -83,13 +90,13 @@ export async function OwnerToday({
                     <form action={submitApproveBooking} className="min-w-0 flex-1">
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                      <SubmitButton className="w-full">Approve</SubmitButton>
+                      <SubmitButton className="w-full">{ui("owner.approve")}</SubmitButton>
                     </form>
                     <form action={submitRejectBooking} className="min-w-0 flex-1">
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                       <SubmitButton variant="outline" className="w-full">
-                        Reject
+                        {ui("owner.reject")}
                       </SubmitButton>
                     </form>
                   </CardContent>
@@ -101,12 +108,12 @@ export async function OwnerToday({
       )}
 
       <h3 className="text-sm font-medium text-muted-foreground">
-        Confirmed · {confirmed.length}
+        {confirmedCount(confirmed.length)}
       </h3>
       {confirmed.length === 0 ? (
         <EmptyState
-          title="No confirmed games today."
-          next="Approved hours will list here to collect."
+          title={ui("empty.confirmed")}
+          next={ui("empty.confirmedNext")}
         />
       ) : (
         <ul className="flex flex-col gap-3">
@@ -117,7 +124,7 @@ export async function OwnerToday({
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base">{row.pitchName}</CardTitle>
                     <Badge variant={row.remaining.gt(0) ? "outline" : "default"}>
-                      {row.remaining.gt(0) ? "Due" : "Paid"}
+                      {row.remaining.gt(0) ? ui("owner.due") : ui("owner.paid")}
                     </Badge>
                   </div>
                   <CardDescription>
@@ -129,8 +136,10 @@ export async function OwnerToday({
                       <span className="font-mono">{row.requesterPhone}</span>
                     </span>
                     <span className="mt-1 block font-mono">
-                      Due ${formatUsd(row.priceUsd)} · remaining $
-                      {formatUsd(row.remaining)}
+                      {dueRemainingLine(
+                        formatUsd(row.priceUsd),
+                        formatUsd(row.remaining),
+                      )}
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -146,7 +155,7 @@ export async function OwnerToday({
                           value={formatUsd(row.remaining)}
                         />
                         <SubmitButton className="w-full">
-                          Collect ${formatUsd(row.remaining)} USD
+                          {collectUsdLabel(formatUsd(row.remaining))}
                         </SubmitButton>
                       </form>
                       <form
@@ -156,7 +165,7 @@ export async function OwnerToday({
                         <input type="hidden" name="bookingId" value={row.id} />
                         {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                         <div className="flex flex-col gap-2">
-                          <Label htmlFor={`usd-${row.id}`}>USD</Label>
+                          <Label htmlFor={`usd-${row.id}`}>{ui("owner.usd")}</Label>
                           <Input
                             id={`usd-${row.id}`}
                             type="text"
@@ -167,7 +176,7 @@ export async function OwnerToday({
                           />
                         </div>
                         <div className="flex flex-col gap-2">
-                          <Label htmlFor={`lbp-${row.id}`}>LBP</Label>
+                          <Label htmlFor={`lbp-${row.id}`}>{ui("owner.lbp")}</Label>
                           <Input
                             id={`lbp-${row.id}`}
                             type="text"
@@ -177,7 +186,7 @@ export async function OwnerToday({
                           />
                         </div>
                         <SubmitButton variant="secondary" className="w-full">
-                          Collect mixed
+                          {ui("owner.collectMixed")}
                         </SubmitButton>
                       </form>
                     </>
@@ -187,7 +196,7 @@ export async function OwnerToday({
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                       <SubmitButton variant="outline" className="w-full">
-                        Cancel
+                        {ui("owner.cancel")}
                       </SubmitButton>
                     </form>
                   ) : null}

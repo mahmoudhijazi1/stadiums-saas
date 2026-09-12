@@ -10,7 +10,8 @@ export function whatsAppHref(phoneDigits: string, text: string): string {
 }
 
 /**
- * English “slot now available” body (BR-71 this slice). Times are already local strings.
+ * Arabic “slot now available” body (BR-71 / SPEC-13). Times are already local Latin strings.
+ * Stadium and pitch names stay as stored (RULE-11).
  */
 export function slotAvailableMessage(input: {
   stadiumName: string;
@@ -18,7 +19,7 @@ export function slotAvailableMessage(input: {
   startLocal: string;
   endLocal: string;
 }): string {
-  return `${input.stadiumName}: ${input.pitchName} ${input.startLocal}–${input.endLocal} is free again if you still want it.`;
+  return `${input.stadiumName}: ${input.pitchName} ${input.startLocal}–${input.endLocal} أصبحت متاحة مجدداً إذا ما زلت تريدها.`;
 }
 
 function toLebanonWhatsAppNumber(phoneDigits: string): string {

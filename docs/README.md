@@ -38,6 +38,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [DR-002 — Core data model](./decisions/DR-002-core-data-model.md)
 - [DR-003 — Auth, sessions, memberships](./decisions/DR-003-auth-sessions.md)
 - [DR-004 — Error handling (logs vs owner screens)](./decisions/DR-004-error-handling.md)
+- [DR-005 — Arabic-first UI (RTL + copy, no locale URL)](./decisions/DR-005-arabic-rtl.md)
 
 ### Specs
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md) (implemented)
@@ -51,7 +52,8 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-09 — Owner-created booking (phone-call, confirmed immediately)](./specs/SPEC-09-owner-create-booking.md) (implemented)
 - [SPEC-10 — Cancel a confirmed booking](./specs/SPEC-10-cancel-booking.md) (implemented)
 - [SPEC-11 — Waitlist on a freed slot](./specs/SPEC-11-waitlist.md) (implemented)
-- [SPEC-12 — Error handling (typed errors, logs, no crash)](./specs/SPEC-12-error-handling.md) (not started in code)
+- [SPEC-12 — Error handling (typed errors, logs, no crash)](./specs/SPEC-12-error-handling.md) (implemented)
+- [SPEC-13 — Arabic-first UI (RTL + copy)](./specs/SPEC-13-arabic-rtl.md) (implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -66,8 +68,9 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- SPEC-12 error handling — wait for OK on step 1. Then Arabic / no-show as product asks.
-- Parked (not next): overpay warning / credit / cap — see SPEC-06 out of scope.
+- No-show (BR-22) as product asks — write SPEC-14 first.
+- Parked: English switch / next-intl / `[locale]`; overpay warning; remaining BR-71
+  WhatsApp templates.
 - One numbered step at a time.
 
 ## Framework note

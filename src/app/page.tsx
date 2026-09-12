@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DateField } from "@/components/ui/date-field";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { Label } from "@/components/ui/label";
+import { ui } from "@/lib/ui-copy";
 import { Suspense } from "react";
 
 /**
@@ -42,16 +43,16 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       <form method="get" action="/" className="flex flex-col gap-3">
         <input type="hidden" name="tenant" value={tenant.slug} />
         <div className="flex flex-col gap-2">
-          <Label htmlFor="date">Day</Label>
+          <Label htmlFor="date">{ui("public.day")}</Label>
           <DateField id="date" name="date" required defaultValue={dateValue} />
         </div>
         <Button type="submit" variant="secondary" className="w-full">
-          Show hours
+          {ui("public.showHours")}
         </Button>
       </form>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">Hours</h2>
+        <h2 className="font-heading text-xl">{ui("public.hours")}</h2>
         <Suspense key={dateValue} fallback={<HoursListSkeleton />}>
           <PublicHours
             localDate={localDate}

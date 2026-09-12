@@ -5,6 +5,7 @@ import {
   Noto_Kufi_Arabic,
 } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ui } from "@/lib/ui-copy";
 import "./globals.css";
 
 // Local next/dist/docs/01-app/03-api-reference/02-components/font.md:
@@ -30,14 +31,15 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stadiums",
+  title: ui("doc.title"),
   description: "Book a pitch. Collect in cash.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="ar"
+      dir="rtl"
       className={`${plexArabic.variable} ${kufi.variable} ${plexMono.variable} h-full antialiased`}
     >
       <body className="min-h-svh flex flex-col">

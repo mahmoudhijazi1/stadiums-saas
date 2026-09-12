@@ -23,6 +23,7 @@ import { DateField } from "@/components/ui/date-field";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ui } from "@/lib/ui-copy";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -118,17 +119,17 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
           <p className="text-sm text-muted-foreground">
             <span className="font-mono">{membership.identifier}</span>
             {" · "}
-            {membership.role}
+            {ui(`role.${membership.role}`)}
           </p>
         </div>
         <form action={submitLogout}>
           <input type="hidden" name="tenant" value={tenantSlug} />
-          <SubmitButton variant="outline">Log out</SubmitButton>
+          <SubmitButton variant="outline">{ui("owner.logout")}</SubmitButton>
         </form>
       </header>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">Today</h2>
+        <h2 className="font-heading text-xl">{ui("owner.today")}</h2>
         <Suspense fallback={<TodayListsSkeleton />}>
           <OwnerToday
             membership={membership}
@@ -141,11 +142,11 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
 
       {mayCreateBooking ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-lg">Book a slot</h2>
+          <h2 className="font-heading text-lg">{ui("owner.bookHeading")}</h2>
           <form method="get" action="/owner" className="flex flex-col gap-3">
             <input type="hidden" name="tenant" value={tenantSlug} />
             <div className="flex flex-col gap-2">
-              <Label htmlFor="bookOn">Day</Label>
+              <Label htmlFor="bookOn">{ui("public.day")}</Label>
               <DateField
                 id="bookOn"
                 name="bookOn"
@@ -154,7 +155,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
               />
             </div>
             <Button type="submit" variant="secondary" className="w-full">
-              Show slots
+              {ui("owner.showSlots")}
             </Button>
           </form>
           <Suspense key={bookOn} fallback={<BookSlotsSkeleton />}>

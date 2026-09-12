@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ui } from "@/lib/ui-copy";
 
 export async function OwnerBookSlots({
   tenantSlug,
@@ -38,8 +39,8 @@ export async function OwnerBookSlots({
   if (bookPitches.length === 0) {
     return (
       <EmptyState
-        title="No pitches yet."
-        next="Pitches appear here when this stadium lists them."
+        title={ui("empty.pitches")}
+        next={ui("empty.pitchesNext")}
       />
     );
   }
@@ -51,8 +52,8 @@ export async function OwnerBookSlots({
           <h3 className="font-medium">{pitch.name}</h3>
           {pitch.slots.length === 0 ? (
             <EmptyState
-              title="Closed this day."
-              next="Pick another day to see hours."
+              title={ui("public.closed")}
+              next={ui("public.closedNext")}
             />
           ) : (
             <ul className="flex flex-col gap-3">
@@ -65,7 +66,7 @@ export async function OwnerBookSlots({
                           {slot.startLocal}–{slot.endLocal}
                         </CardTitle>
                         {slot.available ? null : (
-                          <Badge variant="outline">Taken</Badge>
+                          <Badge variant="outline">{ui("public.taken")}</Badge>
                         )}
                       </div>
                       <CardDescription className="font-mono">
@@ -83,7 +84,9 @@ export async function OwnerBookSlots({
                           <input type="hidden" name="end" value={slot.endIso} />
                           {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                           <div className="flex flex-col gap-2">
-                            <Label htmlFor={`name-${slot.startIso}`}>Name</Label>
+                            <Label htmlFor={`name-${slot.startIso}`}>
+                              {ui("public.name")}
+                            </Label>
                             <Input
                               id={`name-${slot.startIso}`}
                               type="text"
@@ -94,7 +97,7 @@ export async function OwnerBookSlots({
                           </div>
                           <div className="flex flex-col gap-2">
                             <Label htmlFor={`phone-${slot.startIso}`}>
-                              Phone
+                              {ui("public.phone")}
                             </Label>
                             <Input
                               id={`phone-${slot.startIso}`}
@@ -105,7 +108,7 @@ export async function OwnerBookSlots({
                               className="font-mono"
                             />
                           </div>
-                          <SubmitButton className="w-full">Book</SubmitButton>
+                          <SubmitButton className="w-full">{ui("owner.book")}</SubmitButton>
                         </form>
                       </CardContent>
                     ) : null}
