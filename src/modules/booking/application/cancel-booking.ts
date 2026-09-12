@@ -1,18 +1,24 @@
+import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CANCEL, can } from "@/modules/access/domain/can";
-import { assertApprovedForCancel } from "@/modules/booking/domain/decision";
+import {
+  assertApprovedForCancel,
+  assertNotPastUnpaidCancel,
+} from "@/modules/booking/domain/decision";
 import {
   findBookingForDecision,
   setApprovedCancelled,
 } from "@/modules/booking/infrastructure/bookings";
+import { remainingDue } from "@/modules/payment/domain/collect";
+import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 
 /**
- * APPROVED → CANCELLED (BR-26). Auth before $transaction. No refund / Payment.
- * Occupied drops because exclusion is APPROVED-only.
+ * APPROVED → CANCELLED (BR-26). Auth before $transaction. No refund / Payment write.
+ * Occupied drops because exclusion is APPROVED-only. Past unpaid is refused (BR-49).
  */
 export async function cancelBooking(bookingId: string): Promise<void> {
   const membership = await getCurrentMembership();
@@ -27,6 +33,14 @@ export async function cancelBooking(bookingId: string): Promise<void> {
         throw new DomainError("booking.not_found");
       }
       assertApprovedForCancel(booking.status);
+
+      const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
+      assertNotPastUnpaidCancel({
+        start: booking.start,
+        remaining: remainingDue(booking.priceUsd, collected),
+        now: new Date(),
+      });
+
       await setApprovedCancelled(tx, booking.id);
     });
 

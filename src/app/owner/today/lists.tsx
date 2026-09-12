@@ -24,6 +24,7 @@ import {
   groupPendingBySlot,
   upcomingStatus,
 } from "@/modules/booking/domain/home-inbox";
+import { isPastUnpaidCancel } from "@/modules/booking/domain/decision";
 import { Clock, MapPin, Phone } from "lucide-react";
 
 function keepTenantQuery(tenantSlug: string) {
@@ -150,5 +151,6 @@ function toUpcomingViews(
     remainingUsd: formatUsd(row.remaining),
     priceUsd: formatUsd(row.priceUsd),
     status: upcomingStatus(row.start, row.remaining, now),
+    showCancel: !isPastUnpaidCancel(row.start, row.remaining, now),
   }));
 }

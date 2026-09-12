@@ -3020,6 +3020,22 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** Approve or collect on `/owner/today` — toast appears under the status bar, not over رئيسية / احجز.
 
+---
+
+## Chapter 136 — 2026-09-13 — No Cancel on past unpaid (BR-49)
+
+**When:** 2026-09-13
+
+**What:** Cancel is hidden on Home when `start <= now` and remaining > 0. `cancelBooking` uses the same `sumCollectedUsd` + `remainingDue` as collect, then `assertNotPastUnpaidCancel`. Future games and past paid still cancel. Collect unchanged.
+
+**Why:** SPEC-10 allowed Cancel on any APPROVED; cancelling a past unpaid game dropped the debt with no ledger trace (BR-49).
+
+**Files:** `src/modules/booking/domain/decision.ts`; `application/cancel-booking.ts`; `infrastructure/bookings.ts` (`priceUsd` on decision load); `src/app/owner/today/lists.tsx`, `upcoming-panel.tsx`; `src/lib/error-messages.ts`; tests.
+
+**Relation:** No Payment write. Action stays thin. No-show still unused.
+
+**How to verify:** `npm test`. Home — expand a due/overdue row after kickoff: Collect, no Cancel. Future unpaid: Cancel still there. Paid past: Cancel still there. Stale POST → toast `booking.cancel_past_unpaid`.
+
 
 
 

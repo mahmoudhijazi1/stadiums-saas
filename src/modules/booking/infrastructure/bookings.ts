@@ -156,6 +156,7 @@ export type BookingForDecision = {
   status: BookingStatus;
   start: Date;
   end: Date;
+  priceUsd: Decimal;
 };
 
 type BookingSqlRow = {
@@ -164,6 +165,7 @@ type BookingSqlRow = {
   status: BookingStatus;
   start: Date | string;
   end: Date | string;
+  priceUsd: Decimal | string;
 };
 
 /**
@@ -180,7 +182,8 @@ export async function findBookingForDecision(
       "pitchId",
       status,
       lower(during) AS start,
-      upper(during) AS end
+      upper(during) AS end,
+      "priceUsd"
     FROM "Booking"
     WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
   `;
@@ -192,6 +195,7 @@ export async function findBookingForDecision(
     status: row.status,
     start: asDate(row.start),
     end: asDate(row.end),
+    priceUsd: new Decimal(row.priceUsd.toString()),
   };
 }
 

@@ -10,6 +10,7 @@ const ARABIC: Record<string, string> = {
   "booking.not_found": "الحجز غير موجود.",
   "booking.pending_only": "يمكن الموافقة على طلب معلّق أو رفضه فقط.",
   "booking.confirmed_only": "يمكن إلغاء حجز مؤكد فقط.",
+  "booking.cancel_past_unpaid": "لا يمكن إلغاء مباراة مضت وما زال عليها مبلغ.",
   "booking.slot_not_offered": "هذه الساعة غير معروضة.",
   "booking.slot_taken": "هذه الساعة محجوزة.",
   "booking.slot_ended": "هذه الساعة انتهت.",

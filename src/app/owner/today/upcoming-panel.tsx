@@ -36,6 +36,7 @@ export type UpcomingRowView = {
   remainingUsd: string;
   priceUsd: string;
   status: UpcomingStatus;
+  showCancel: boolean;
 };
 
 function keepTenantQuery(tenantSlug: string) {
@@ -322,7 +323,7 @@ function UpcomingRows({
                       </form>
                     </>
                   ) : null}
-                  {mayCancel ? (
+                  {mayCancel && row.showCancel ? (
                     <form action={submitCancelBooking}>
                       <input type="hidden" name="bookingId" value={row.id} />
                       {keepTenantQuery(tenantSlug)}
