@@ -2436,6 +2436,27 @@ The owner forms no longer pop up the phone’s own calendar and menu. They use o
 
 Walk-up booking now wears the same clothes as the owner phone: a green-ring day picker and stacked hour cards. Asking for an hour still sends the same name, phone, and times to the kitchen.
 
+---
+
+## Chapter 105 — 2026-09-12 — UX craft (states, hierarchy, toast)
+
+**When:** 2026-09-12
+
+**What:** One feedback pattern: Server Actions still redirect; success adds `ok=` (public `requested` replaces `received=1`); owner/public **FlashToast** + sonner, then strips `ok`/`error` from the URL. Login errors stay in-card. Empty lists use a titled **EmptyState** (text only, no new action icons). Submit buttons use `useFormStatus` (Next forms.md). Skeleton `loading.tsx` on `/` and `/owner` (login has its own so it does not inherit the hours skeleton). Today has counts and Due/Paid; later owner headings are quieter; period **Difference** reads first. Public date is a filter; hours + Request are the job. `error.tsx` / `global-error` use tokens. Document title is “Stadiums”.
+
+**Why:** Craft pass after tokens/restyle (ch.99–104). Not a SPEC. Use cases and Prisma unchanged; thin actions only add `ok=` on the existing success redirect.
+
+**Files:** `src/components/ui/sonner.tsx`, `skeleton.tsx`, `empty-state.tsx`, `submit-button.tsx`, `flash-toast.tsx`; `src/lib/success-messages.ts`; `test/lib/success-messages.test.ts`; `src/app/layout.tsx`; `src/app/loading.tsx`; `src/app/owner/loading.tsx`; `src/app/login/loading.tsx`; `src/app/login/page.tsx`; `src/app/owner/page.tsx`; `src/app/owner/actions.ts`; `src/app/page.tsx`; `src/app/request-slot.ts`; `src/app/error.tsx`; `src/app/global-error.tsx`; `package.json` (sonner).
+
+**Relation:** `src/components/ui` must not import `src/modules/*`. Pages still have no Prisma / no `tenantId`. Payment still does not import Booking.
+
+**How to verify:** `/?tenant=ahmad` — Hours, not a duplicate “Schedule for” line; Request then a toast “Request received.” `/login?tenant=ahmad` — in-card error, Log in pending. `/owner` after login — Pending · n, empty blocks, Approve toast, Collect still Volt, mixed secondary. Title “Stadiums”.
+
+### In plain language
+
+The screens now tell you when something worked (a small toast), when a list is empty on purpose, and which button matters. The kitchen still does the same jobs; the waiter just stopped going silent after you tap.
+
+
 
 
 

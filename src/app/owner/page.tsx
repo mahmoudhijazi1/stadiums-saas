@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import Decimal from "decimal.js";
-import { errorMessage } from "@/lib/error-messages";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { formatUsd, parseLbp } from "@/lib/money";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
@@ -49,9 +48,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FlashToast } from "@/components/ui/flash-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -98,6 +100,21 @@ function formatPeriodAmount(
   return `$${formatUsd(amountUsd)}`;
 }
 
+function ownerKeepSearch(
+  tenantSlug: string,
+  bookOn: string,
+  period: LedgerPeriodQuery,
+): string {
+  const next = new URLSearchParams();
+  next.set("tenant", tenantSlug);
+  next.set("bookOn", bookOn);
+  if (period.from) next.set("from", period.from);
+  if (period.to) next.set("to", period.to);
+  if (period.view !== "usd") next.set("view", period.view);
+  if (period.displayRate) next.set("displayRate", period.displayRate);
+  return next.toString();
+}
+
 /**
  * Thin locked page. No Prisma and no tenantId.
  * Next 16: searchParams is a Promise (page.js docs). Period form is GET, not a Server Action.
@@ -131,6 +148,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
   const mayCreateBooking = can(membership, BOOKINGS_CREATE);
   const isOwner = membership.role === "OWNER";
   const errorKey = queryString(params.error);
+  const ok = queryString(params.ok);
   const today = todayInTimeZone(TIME_ZONE);
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
   const bookLocalDate = civilFromYyyyMmDd(bookOn);
@@ -165,6 +183,11 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-8 px-6 py-8">
+      <FlashToast
+        ok={ok}
+        error={errorKey}
+        keepQuery={ownerKeepSearch(tenantSlug, bookOn, periodQuery)}
+      />
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-heading text-2xl">{tenant.name}</h1>
@@ -176,24 +199,21 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
         </div>
         <form action={submitLogout}>
           <input type="hidden" name="tenant" value={tenantSlug} />
-          <Button type="submit" variant="outline">
-            Log out
-          </Button>
+          <SubmitButton variant="outline">Log out</SubmitButton>
         </form>
       </header>
-
-      {errorKey ? (
-        <p className="text-sm text-destructive" role="alert">
-          {errorMessage(errorKey)}
-        </p>
-      ) : null}
 
       <section className="flex flex-col gap-4">
         <h2 className="font-heading text-xl">Today</h2>
 
-        <h3 className="text-sm font-medium text-muted-foreground">Pending</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">
+          Pending · {pending.length}
+        </h3>
         {pending.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No pending requests.</p>
+          <EmptyState
+            title="No pending requests."
+            next="When someone asks for an hour, it shows up here."
+          />
         ) : (
           <ul className="flex flex-col gap-3">
             {pending.map((row) => (
@@ -220,16 +240,14 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                       <form action={submitApproveBooking} className="min-w-0 flex-1">
                         <input type="hidden" name="bookingId" value={row.id} />
                         {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                        <Button type="submit" className="w-full">
-                          Approve
-                        </Button>
+                        <SubmitButton className="w-full">Approve</SubmitButton>
                       </form>
                       <form action={submitRejectBooking} className="min-w-0 flex-1">
                         <input type="hidden" name="bookingId" value={row.id} />
                         {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                        <Button type="submit" variant="outline" className="w-full">
+                        <SubmitButton variant="outline" className="w-full">
                           Reject
-                        </Button>
+                        </SubmitButton>
                       </form>
                     </CardContent>
                   ) : null}
@@ -239,16 +257,26 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
           </ul>
         )}
 
-        <h3 className="text-sm font-medium text-muted-foreground">Confirmed</h3>
+        <h3 className="text-sm font-medium text-muted-foreground">
+          Confirmed · {confirmed.length}
+        </h3>
         {confirmed.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No confirmed bookings.</p>
+          <EmptyState
+            title="No confirmed games today."
+            next="Approved hours will list here to collect."
+          />
         ) : (
           <ul className="flex flex-col gap-3">
             {confirmed.map((row) => (
               <li key={row.id}>
                 <Card>
                   <CardHeader className="gap-1">
-                    <CardTitle className="text-base">{row.pitchName}</CardTitle>
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-base">{row.pitchName}</CardTitle>
+                      <Badge variant={row.remaining.gt(0) ? "outline" : "default"}>
+                        {row.remaining.gt(0) ? "Due" : "Paid"}
+                      </Badge>
+                    </div>
                     <CardDescription>
                       <span className="font-mono">{formatLocalRange(row.start, row.end)}</span>
                       <span className="mt-1 block">
@@ -272,13 +300,13 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                             name="usdAmount"
                             value={formatUsd(row.remaining)}
                           />
-                          <Button type="submit" className="w-full">
+                          <SubmitButton className="w-full">
                             Collect ${formatUsd(row.remaining)} USD
-                          </Button>
+                          </SubmitButton>
                         </form>
                         <form
                           action={submitCollectPayment}
-                          className="flex flex-col gap-3"
+                          className="flex flex-col gap-4"
                         >
                           <input type="hidden" name="bookingId" value={row.id} />
                           {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
@@ -303,9 +331,9 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                               className="font-mono"
                             />
                           </div>
-                          <Button type="submit" variant="secondary" className="w-full">
+                          <SubmitButton variant="secondary" className="w-full">
                             Collect mixed
-                          </Button>
+                          </SubmitButton>
                         </form>
                       </>
                     ) : null}
@@ -313,9 +341,9 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                       <form action={submitCancelBooking}>
                         <input type="hidden" name="bookingId" value={row.id} />
                         {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
-                        <Button type="submit" variant="outline" className="w-full">
+                        <SubmitButton variant="outline" className="w-full">
                           Cancel
-                        </Button>
+                        </SubmitButton>
                       </form>
                     ) : null}
                   </CardContent>
@@ -328,7 +356,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
 
       {mayCreateBooking ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-xl">Book a slot</h2>
+          <h2 className="font-heading text-lg">Book a slot</h2>
           <form method="get" action="/owner" className="flex flex-col gap-3">
             <input type="hidden" name="tenant" value={tenantSlug} />
             <div className="flex flex-col gap-2">
@@ -345,35 +373,43 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
             </Button>
           </form>
           {bookPitches.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No pitches yet.</p>
+            <EmptyState
+              title="No pitches yet."
+              next="Pitches appear here when this stadium lists them."
+            />
           ) : (
             <ul className="flex flex-col gap-4">
               {bookPitches.map((pitch) => (
                 <li key={pitch.id} className="flex flex-col gap-3">
                   <h3 className="font-medium">{pitch.name}</h3>
                   {pitch.slots.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Closed / No slots.
-                    </p>
+                    <EmptyState
+                      title="Closed this day."
+                      next="Pick another day to see hours."
+                    />
                   ) : (
                     <ul className="flex flex-col gap-3">
                       {pitch.slots.map((slot) => (
                         <li key={slot.startIso}>
                           <Card>
                             <CardHeader className="gap-1">
-                              <CardTitle className="font-mono text-base">
-                                {slot.startLocal}–{slot.endLocal}
-                              </CardTitle>
+                              <div className="flex items-center justify-between gap-2">
+                                <CardTitle className="font-mono text-base">
+                                  {slot.startLocal}–{slot.endLocal}
+                                </CardTitle>
+                                {slot.available ? null : (
+                                  <Badge variant="outline">Taken</Badge>
+                                )}
+                              </div>
                               <CardDescription className="font-mono">
                                 ${slot.priceUsd}
-                                {slot.available ? null : " · taken"}
                               </CardDescription>
                             </CardHeader>
                             {slot.available ? (
                               <CardContent>
                                 <form
                                   action={submitCreateOwnerBooking}
-                                  className="flex flex-col gap-3"
+                                  className="flex flex-col gap-4"
                                 >
                                   <input
                                     type="hidden"
@@ -416,9 +452,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                                       className="font-mono"
                                     />
                                   </div>
-                                  <Button type="submit" className="w-full">
-                                    Book
-                                  </Button>
+                                  <SubmitButton className="w-full">Book</SubmitButton>
                                 </form>
                               </CardContent>
                             ) : null}
@@ -435,9 +469,12 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       ) : null}
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">Waitlist</h2>
+        <h2 className="font-heading text-lg">Waitlist</h2>
         {waitlist.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No waitlist.</p>
+          <EmptyState
+            title="No waitlist."
+            next="People who asked for a taken hour show up here after you cancel."
+          />
         ) : (
           <ul className="flex flex-col gap-3">
             {waitlist.map((group) => (
@@ -486,28 +523,28 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
 
       {summary ? (
         <section className="flex flex-col gap-4">
-          <h2 className="font-heading text-xl">This period</h2>
+          <h2 className="font-heading text-lg">This period</h2>
           <Card>
             <CardHeader className="gap-1">
               <CardDescription className="font-mono">
                 {summary.from} → {summary.to}
               </CardDescription>
-              <p className="font-mono text-sm">
-                In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
-              </p>
-              <p className="font-mono text-sm">
-                Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
-              </p>
-              <p className="font-mono text-sm">
+              <p className="font-mono text-base font-medium">
                 Difference{" "}
                 {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+              </p>
+              <p className="font-mono text-sm text-muted-foreground">
+                In {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
+              </p>
+              <p className="font-mono text-sm text-muted-foreground">
+                Out {formatPeriodAmount(summary.outUsd, showLbp, displayRate)}
               </p>
               {lbpNote ? (
                 <p className="text-sm text-muted-foreground">{lbpNote}</p>
               ) : null}
             </CardHeader>
             <CardContent>
-              <form method="get" action="/owner" className="flex flex-col gap-3">
+              <form method="get" action="/owner" className="flex flex-col gap-4">
                 <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="from">From</Label>
@@ -561,7 +598,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       ) : null}
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">Exchange rate</h2>
+        <h2 className="font-heading text-lg">Exchange rate</h2>
         <Card>
           <CardHeader>
             <CardDescription className="font-mono">
@@ -570,7 +607,7 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
           </CardHeader>
           {isOwner ? (
             <CardContent>
-              <form action={submitSetExchangeRate} className="flex flex-col gap-3">
+              <form action={submitSetExchangeRate} className="flex flex-col gap-4">
                 {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="lbpPerUsd">New rate</Label>
@@ -583,9 +620,9 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                     className="font-mono"
                   />
                 </div>
-                <Button type="submit" variant="secondary" className="w-full">
+                <SubmitButton variant="secondary" className="w-full">
                   Set rate
-                </Button>
+                </SubmitButton>
               </form>
             </CardContent>
           ) : null}
@@ -593,11 +630,14 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">Expenses</h2>
+        <h2 className="font-heading text-lg">Expenses</h2>
         {mayRecordExpense ? (
           <Card>
+            <CardHeader className="gap-1">
+              <CardTitle className="text-base">Record expense</CardTitle>
+            </CardHeader>
             <CardContent>
-              <form action={submitRecordExpense} className="flex flex-col gap-3">
+              <form action={submitRecordExpense} className="flex flex-col gap-4">
                 {keepOwnerQuery(tenantSlug, bookOn, periodQuery)}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="category">Category</Label>
@@ -652,15 +692,20 @@ export default async function OwnerPage({ searchParams }: PageProps<"/owner">) {
                     className="font-mono"
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Record expense
-                </Button>
+                <SubmitButton className="w-full">Record expense</SubmitButton>
               </form>
             </CardContent>
           </Card>
         ) : null}
         {expenses.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No expenses yet.</p>
+          <EmptyState
+            title="No expenses yet."
+            next={
+              mayRecordExpense
+                ? "Record one above."
+                : "None recorded in this list."
+            }
+          />
         ) : (
           <ul className="flex flex-col gap-2">
             {expenses.map((row) => (

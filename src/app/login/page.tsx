@@ -1,7 +1,7 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { errorMessage } from "@/lib/error-messages";
 import { submitLogin } from "@/app/login/actions";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Card,
   CardContent,
@@ -60,9 +60,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
                 autoComplete="current-password"
               />
             </div>
-            <Button type="submit" className="w-full">
+            <SubmitButton className="w-full">
               Log in
-            </Button>
+            </SubmitButton>
           </form>
         </CardContent>
       </Card>

@@ -39,6 +39,6 @@ export async function submitPublicSlotRequest(formData: FormData) {
     next.set("error", errorKey);
     redirect(`/?${next.toString()}`);
   }
-  next.set("received", "1");
+  next.set("ok", "requested");
   redirect(`/?${next.toString()}`);
 }

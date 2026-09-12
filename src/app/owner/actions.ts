@@ -57,6 +57,7 @@ async function submitDecision(
   formData: FormData,
   decide: (bookingId: string) => Promise<void>,
   useCase: string,
+  ok: string,
 ) {
   let errorKey: string | undefined;
   try {
@@ -70,19 +71,19 @@ async function submitDecision(
   if (errorKey) {
     redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
   }
-  redirect(`/owner${ownerQuery(formData)}`);
+  redirect(`/owner${ownerQuery(formData, { ok })}`);
 }
 
 export async function submitApproveBooking(formData: FormData) {
-  await submitDecision(formData, approveBooking, "submitApproveBooking");
+  await submitDecision(formData, approveBooking, "submitApproveBooking", "approved");
 }
 
 export async function submitRejectBooking(formData: FormData) {
-  await submitDecision(formData, rejectBooking, "submitRejectBooking");
+  await submitDecision(formData, rejectBooking, "submitRejectBooking", "rejected");
 }
 
 export async function submitCancelBooking(formData: FormData) {
-  await submitDecision(formData, cancelBooking, "submitCancelBooking");
+  await submitDecision(formData, cancelBooking, "submitCancelBooking", "cancelled");
 }
 
 /**
@@ -106,7 +107,7 @@ export async function submitCreateOwnerBooking(formData: FormData) {
   if (errorKey) {
     redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
   }
-  redirect(`/owner${ownerQuery(formData)}`);
+  redirect(`/owner${ownerQuery(formData, { ok: "booked" })}`);
 }
 
 /**
@@ -135,7 +136,7 @@ export async function submitCollectPayment(formData: FormData) {
   if (errorKey) {
     redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
   }
-  redirect(`/owner${ownerQuery(formData)}`);
+  redirect(`/owner${ownerQuery(formData, { ok: "collected" })}`);
 }
 
 /**
@@ -154,7 +155,7 @@ export async function submitSetExchangeRate(formData: FormData) {
   if (errorKey) {
     redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
   }
-  redirect(`/owner${ownerQuery(formData)}`);
+  redirect(`/owner${ownerQuery(formData, { ok: "rate_set" })}`);
 }
 
 /**
@@ -190,5 +191,5 @@ export async function submitRecordExpense(formData: FormData) {
   if (errorKey) {
     redirect(`/owner${ownerQuery(formData, { error: errorKey })}`);
   }
-  redirect(`/owner${ownerQuery(formData)}`);
+  redirect(`/owner${ownerQuery(formData, { ok: "expense_recorded" })}`);
 }

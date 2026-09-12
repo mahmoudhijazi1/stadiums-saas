@@ -1,5 +1,4 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { errorMessage } from "@/lib/error-messages";
 import { submitPublicSlotRequest } from "@/app/request-slot";
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
@@ -14,8 +13,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
+import { EmptyState } from "@/components/ui/empty-state";
+import { FlashToast } from "@/components/ui/flash-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 /**
  * Thin route. No Prisma and no tenantId.
@@ -36,15 +38,23 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     timeZone: TIME_ZONE,
     occupied,
   });
-  const received = params.received === "1";
+  const ok =
+    typeof params.ok === "string"
+      ? params.ok
+      : params.received === "1"
+        ? "requested"
+        : undefined;
   const errorKey = typeof params.error === "string" ? params.error : undefined;
   const dateValue = formatCivilDate(localDate);
+  const keep = new URLSearchParams();
+  keep.set("tenant", tenant.slug);
+  keep.set("date", dateValue);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-6">
+    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-8">
+      <FlashToast ok={ok} error={errorKey} keepQuery={keep.toString()} />
       <header>
         <h1 className="font-heading text-2xl">{tenant.name}</h1>
-        <p className="font-mono text-sm text-muted-foreground">{tenant.slug}</p>
       </header>
 
       <form method="get" action="/" className="flex flex-col gap-3">
@@ -54,36 +64,27 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <DateField id="date" name="date" required defaultValue={dateValue} />
         </div>
         <Button type="submit" variant="secondary" className="w-full">
-          Show slots
+          Show hours
         </Button>
       </form>
 
-      <p className="text-sm text-muted-foreground">
-        Schedule for <span className="font-mono">{dateValue}</span> ({TIME_ZONE})
-      </p>
-
-      {received ? (
-        <p className="text-sm">Request received</p>
-      ) : null}
-      {errorKey ? (
-        <p className="text-sm text-destructive" role="alert">
-          {errorMessage(errorKey)}
-        </p>
-      ) : null}
-
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">Pitches</h2>
+        <h2 className="font-heading text-xl">Hours</h2>
         {pitches.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No pitches yet.</p>
+          <EmptyState
+            title="No pitches yet."
+            next="This stadium has not listed pitches."
+          />
         ) : (
           <ul className="flex flex-col gap-4">
             {pitches.map((pitch) => (
               <li key={pitch.id} className="flex flex-col gap-2">
                 <h3 className="font-medium">{pitch.name}</h3>
                 {pitch.slots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Closed / No slots.
-                  </p>
+                  <EmptyState
+                    title="Closed this day."
+                    next="Pick another day to see hours."
+                  />
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {pitch.slots.map((slot) => (
@@ -106,7 +107,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                             <CardContent className="px-4">
                               <form
                                 action={submitPublicSlotRequest}
-                                className="flex flex-col gap-3"
+                                className="flex flex-col gap-4"
                               >
                                 <input
                                   type="hidden"
@@ -158,9 +159,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                                     className="font-mono"
                                   />
                                 </div>
-                                <Button type="submit" className="w-full">
+                                <SubmitButton className="w-full">
                                   Request
-                                </Button>
+                                </SubmitButton>
                               </form>
                             </CardContent>
                           ) : null}
