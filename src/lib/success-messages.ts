@@ -13,6 +13,8 @@ const ARABIC: Record<string, string> = {
   rate_set: "تم تعيين السعر.",
   expense_recorded: "سُجّل المصروف.",
   requested: "وصل الطلب.",
+  pitch_created: "أُضيف الملعب.",
+  pitch_updated: "حُفظ الملعب.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -24,6 +26,8 @@ const ENGLISH: Record<string, string> = {
   rate_set: "Rate set.",
   expense_recorded: "Expense recorded.",
   requested: "Request received.",
+  pitch_created: "Pitch added.",
+  pitch_updated: "Pitch saved.",
 };
 
 const GENERIC_AR = "تم.";

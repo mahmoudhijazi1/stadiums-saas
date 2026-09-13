@@ -495,3 +495,40 @@ export async function findBookingForCollect(
     priceUsd: new Decimal(row.priceUsd.toString()),
   };
 }
+
+export type LivePitchWindowRow = {
+  start: Date;
+  end: Date;
+  status: "APPROVED" | "PENDING";
+};
+
+type LivePitchSqlRow = {
+  start: Date | string;
+  end: Date | string;
+  status: "APPROVED" | "PENDING";
+};
+
+/**
+ * Live APPROVED + PENDING on one pitch (hours-cover). Finished games
+ * (`upper(during) <= now`) stay out of the query. Venue never imports this.
+ */
+export async function listLiveWindowsOnPitch(
+  tx: TenantTx,
+  pitchId: string,
+  now: Date,
+): Promise<LivePitchWindowRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<LivePitchSqlRow[]>`
+    SELECT lower(during) AS start, upper(during) AS end, status
+    FROM "Booking"
+    WHERE "tenantId" = ${tenantId}
+      AND "pitchId" = ${pitchId}
+      AND status IN ('APPROVED'::"BookingStatus", 'PENDING'::"BookingStatus")
+      AND upper(during) > ${now}
+  `;
+  return rows.map((row) => ({
+    start: asDate(row.start),
+    end: asDate(row.end),
+    status: row.status,
+  }));
+}

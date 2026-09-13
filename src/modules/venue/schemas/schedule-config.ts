@@ -6,7 +6,7 @@ import { isUsdString, parseUsd } from "@/lib/money";
  * Prisma types Json as unknown; this is the only allowed shape for schedule_config.
  */
 
-const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+export const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 const clockTime = z.iso.time({ precision: -1 }); // HH:mm, 00:00–23:59
 

@@ -27,12 +27,18 @@ describe("errorMessage", () => {
     expect(errorMessage("booking.cancel_past_unpaid")).toBe(
       "لا يمكن إلغاء مباراة مضت وما زال عليها مبلغ.",
     );
+    expect(errorMessage("venue.hours_approved")).toBe(
+      "لا يمكن تقليص الساعات: هناك حجز مؤكد في الوقت المحذوف.",
+    );
   });
 
   it("returns catalog English when locale is en", () => {
     expect(errorMessage("booking.slot_ended", "en")).toBe("That hour has ended.");
     expect(errorMessage("booking.cancel_past_unpaid", "en")).toBe(
       "Cannot cancel a game that has started while money is still owed.",
+    );
+    expect(errorMessage("venue.hours_day_overlap", "en")).toBe(
+      "A day cannot be in two hours groups.",
     );
   });
 

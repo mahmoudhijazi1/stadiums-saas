@@ -38,10 +38,14 @@ Do not grow a tab by stacking another product’s UI on it. If it is not in the 
 **Settings** (`/owner/more/settings`):
 
 - Exchange rate: current value + OWNER-only set form (moved from Money). Staff see the current rate, not the form.
-- Reserved for later (do not build in this slice):
+- Pitch list + OWNER create/edit (name, repeatable hours groups, game length, default USD, day price overrides). Each hours row is weekday checkboxes + one open/close; a day belongs to at most one row; days in no row are closed. Writes go through `parseScheduleConfig` with `gapMinutes: 0`. `priceRules` are edited in place and survive a default-price or duration-only save. Pending-in-removed-hours still uses the confirm second-submit. Live APPROVED in a removed window refuses. Approve re-checks `resolveOfferedSlot` against current hours.
+- Still deferred:
   - Company / stadium info and images — **Phase 2+**. Lives on `tenant.settings` (DR-002 §2.6); that jsonb is still deferred.
   - Staff permissions UI — flags already exist on membership jsonb (DR-003 / BR-98); there is no owner screen to edit them yet.
-  - Pitch create/edit (name, opening hours, game length, price — BR-3–BR-5) — **known gap**. Data exists (`Pitch.name` + `scheduleConfig`), seed is the only writer, availability engine reads it. No owner form and no write use case. Belongs in Settings once built.
+  - Multiple windows on the same weekday — schema allows `hours[day]` to be several `{ start, end }` pairs; the editor is one pair per row and collapse uses `window[0]` if `length > 1`. A save writes that single window. Not this slice.
+  - Time-of-day `priceRules` (`start`/`end` on a rule) — not this slice.
+  - `gapMinutes` stays 0 (changing it moves the offered grid; hours-cover would not warn).
+  - Pitch delete.
   - Pitch blocks (BR-6, maintenance / private / academy) — **open question**. No `pitch_blocks` table yet (SPEC-02 deferred). Not the same as editing a pitch’s weekly hours.
 
 ---
@@ -52,7 +56,7 @@ The bottom bar does not change again after this restructure. New products are **
 
 | Concern | Where |
 |---|---|
-| Settings (rate now; company / pitches / staff later) | More → Settings |
+| Settings (rate + pitch list/create/edit; company / staff later) | More → Settings |
 | Tournaments (future bounded context; seam via `pitch_blocks` like Academy) | More list row when that SPEC exists |
 | Shop (Phase 2) | More list row — not a Reports subsection |
 | Academy (Phase 3) | More list row — seam is `pitch_blocks`, not a Reports subsection |
@@ -69,7 +73,7 @@ Why:
 - Shared chrome (header + tab bar) does not remount on tab `<Link>` (local `layout.md`: layouts are cached on the client and do not rerender).
 - Independent in-page `<Suspense>` per tab. **No `loading.tsx` under `/owner` or a tab folder** — that file wraps the whole `page.js` and would unmount Money GET date fields and Book day chips (already burned once; see `docs/progress.md`).
 
-The only `"use client"` owner chrome is the tab bar (`usePathname` for the active tab, including prefix match so `/owner/more/settings` keeps More selected), `FlashToast` (`useSearchParams`), the Book calendar chip (same Popover as public), and `LangToggle` (same cookie + `html` lang/dir as public). Tab **content** lists stay Server Components.
+The only `"use client"` owner chrome is the tab bar (`usePathname` for the active tab, including prefix match so `/owner/more/settings` keeps More selected), `FlashToast` (`useSearchParams`), the Book calendar chip (same Popover as public), `LangToggle` (same cookie + `html` lang/dir as public), pitch hours groups (`hours-groups.tsx`), and pitch day-price rows (`price-rules.tsx`). Tab **content** lists stay Server Components.
 
 Layouts cannot read `searchParams` or pathname (they would go stale). Tenant for tab Links comes from `getCurrentTenant()` (header). Flash toasts read `ok`/`error` in a Client child.
 
@@ -85,6 +89,7 @@ Tab bar Links carry **`tenant` only** (local-dev; not isolation).
 | `bookOn` | `/owner/book` only |
 | `from` `to` `view` `displayRate` | `/owner/money` only |
 | `ok` / `error` | the tab the action redirected to; FlashToast strips them |
+| `name` `hoursGroupsJson` `slotDurationMinutes` `defaultPriceUsd` `priceRulesJson` `needPending` | pitch create/edit URLs after a refused save (`error` is stripped; pending confirm and draft JSON stay) |
 
 ### Server Action redirects
 
@@ -96,6 +101,8 @@ Use-case logic is unchanged. Only the redirect path:
 | `submitCreateOwnerBooking` | `/owner/book` (keeps `bookOn`) |
 | `submitRecordExpense` | `/owner/money` |
 | `submitSetExchangeRate` | `/owner/more/settings` |
+| `submitCreatePitch` | `/owner/more/settings` (`ok=pitch_created`) |
+| `submitUpdatePitch` | `/owner/more/settings` on success; edit URL + draft/`needPending` on confirm or refuse |
 | `submitLogin` | `/owner/today` |
 | Waitlist notify | WhatsApp `<a>` — no action |
 
@@ -118,6 +125,7 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 | `OwnerMoney` (`money/panel.tsx`, `reveal.tsx`, `bars.ts`) + `money/actions.ts` | `/owner/money` (Reports) |
 | More hub | `src/app/owner/more/page.tsx` |
 | `OwnerSettings` (`more/settings/panel.tsx`) + `more/settings/actions.ts` | `/owner/more/settings` |
+| Pitch create/edit | `more/settings/pitches/{new,[pitchId],form,hours-groups,price-rules,actions}` |
 | Shared membership / tenant slug / `queryString` / `formatLocalRange` | `src/app/owner/shared.tsx` |
 | Form field + POST keep-query / `redirectOwner` | `src/app/owner/form-query.ts` (today + book + money + settings) |
 | Per-tab Suspense fallbacks | `today/skeleton.tsx`, `book/skeleton.tsx`, `waitlist/skeleton.tsx`, `money/skeleton.tsx`, `more/settings/skeleton.tsx` |
@@ -140,7 +148,9 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Waitlist after cancel | Waitlist |
 | Period P&L, expenses | Reports (`/owner/money`) |
 | Exchange rate (set) | More → Settings |
-| Pitch create/edit (BR-3–5) | Settings when built — **missing today** |
+| Pitch create/edit (BR-3–5) | Settings — hours groups + day price rows |
+| Extra windows on one weekday / time-window priceRules / gapMinutes UI | Settings later (`gapMinutes` stays 0; editor uses `window[0]`) |
+| Pitch delete | Settings later |
 | Pitch blocks (BR-6) | Open — no table yet; not Settings until a SPEC |
 | Company / stadium info | Settings — Phase 2+ / `tenant.settings` |
 | Staff permission flags UI | Settings later |

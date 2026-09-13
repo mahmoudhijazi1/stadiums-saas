@@ -27,6 +27,11 @@ const ARABIC: Record<string, string> = {
   "notification.bad_phone": "لا يمكن استخدام هذا الرقم لواتساب.",
   "ledger.invalid_period": "الفترة غير صالحة.",
   "expense.invalid_date": "تاريخ المصروف غير صالح.",
+  "venue.hours_approved":
+    "لا يمكن تقليص الساعات: هناك حجز مؤكد في الوقت المحذوف.",
+  "venue.hours_pending":
+    "هناك طلب معلّق في ساعات ستُحذف. أكّد للحفظ دون رفض الطلب.",
+  "venue.hours_day_overlap": "لا يمكن وضع نفس اليوم في مجموعتي ساعات.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -53,6 +58,11 @@ const ENGLISH: Record<string, string> = {
   "notification.bad_phone": "That number cannot be used for WhatsApp.",
   "ledger.invalid_period": "That period is not valid.",
   "expense.invalid_date": "That expense date is not valid.",
+  "venue.hours_approved":
+    "Cannot shrink hours: an approved booking sits in a removed window.",
+  "venue.hours_pending":
+    "A pending request sits in hours you are removing. Confirm to save without rejecting it.",
+  "venue.hours_day_overlap": "A day cannot be in two hours groups.",
 };
 
 /** Owner-facing copy for a key. Never returns a stack or Prisma dump. */

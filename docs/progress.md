@@ -3082,6 +3082,68 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. `/owner/money` — net is the largest figure; In/Out tiles; bars; “تغيير الفترة” / “إضافة مصروف” collapsed. Expense rows are cards, not an em-dash sentence.
 
+---
+
+## Chapter 140 — 2026-09-13 — Pitch MVP: daily window + flatten/pending confirm
+
+**When:** 2026-09-13
+
+**What:** Owner Settings lists pitches and (OWNER only) create/edit: name, one open/close copied to all 7 days, slot duration, default USD. Writes go through `parseScheduleConfig` with `gapMinutes: 0` and `priceRules: []`. Hours-cover (not generated-slot match) refuses live APPROVED in a removed window; PENDING in a removed window and flatten-of-mixed-days/`priceRules` use the same checkbox second-submit (`confirmPending` / `confirmFlatten`). Duration-only changes do not trip hours-cover. `approveBooking` re-checks `resolveOfferedSlot` against current hours before flipping PENDING → APPROVED.
+
+**Why:** Seed was the only pitch writer. Flatten must not silently wipe Ahmad A1 Fri/Sat hours and weekend `priceRules`. DR-001: Venue does not import Booking — `listLiveWindowsOnPitch` feeds `{ start, end, status }[]` into `updatePitch`.
+
+**Files:** `src/modules/venue/domain/{daily-schedule,hours-cover}.ts`, `availability.ts` (`bookingFitsOpenHours`); `schemas/pitch-draft.ts`; `application/{create-pitch,update-pitch,list-pitch-summaries,get-pitch-editor}.ts`; `infrastructure/pitches.ts`; `src/modules/booking/infrastructure/bookings.ts` (`listLiveWindowsOnPitch`); `application/{list-live-pitch-windows,approve-booking}.ts`; `src/app/owner/more/settings/panel.tsx`; `pitches/{new,[pitchId],form,actions}`; copy catalogs; `docs/owner-ia.md`; tests.
+
+**Relation:** Booking/Payment writes unchanged except the live-window read and approve re-check. No `priceRules` editor, per-day grid, `pitch_blocks`, or pitch delete.
+
+**How to verify:** `npm test`. More → Settings: pitch list (A1 = ساعات مختلفة). Edit A1 — flatten checkbox visible; save without it toasts `venue.confirm_flatten` and does not write. Check it, save — all 7 days match the form window, `priceRules` empty. Shrink hours over a live APPROVED → refuse. Over PENDING only → checkbox then save (request stays PENDING). Approve a request whose hour was closed → `booking.slot_not_offered`, still PENDING.
+
+---
+
+## Chapter 141 — 2026-09-13 — Day priceRules editor; flatten is hours-only
+
+**When:** 2026-09-13
+
+**What:** Pitch create/edit can add repeatable day-checkbox + USD `priceRules` (cap 10). Flatten retargeted to **hours mismatch only** — weekend prices no longer trip the confirm, and a duration/default-price save with unchanged hours keeps existing rules. `gapMinutes` stays hardcoded 0. Time-of-day rule clocks are not in the UI; stored `start`/`end` round-trip in the JSON draft if already present.
+
+**Why:** BR-5 (weekend costs more). The MVP wrote `priceRules: []` and treated any rules as flatten, so A1 could not keep $40 Fri/Sat. Gap stays hidden because it moves the offered grid and hours-cover would not warn.
+
+**Files:** `src/modules/venue/domain/daily-schedule.ts`; `schemas/pitch-draft.ts`; `application/{create-pitch,update-pitch,get-pitch-editor}.ts`; `src/app/owner/more/settings/pitches/{form,price-rules,actions,new,[pitchId]}`; copy catalogs; `docs/owner-ia.md`; tests.
+
+**Relation:** No Booking/Payment write changes. Per-day hours grid, time-window rule editor, and `gapMinutes` UI stay out.
+
+**How to verify:** `npm test` (includes duration+price-only save keeps weekend rules and `hoursSaveBlocker` is null). Edit a uniform-hours pitch with Fri/Sat $40 — no flatten checkbox; change duration or default USD; save; public/book still shows $40 on those days. Mixed-hours A1 still shows flatten for hours.
+
+---
+
+## Chapter 142 — 2026-09-13 — Price-rule checkbox ids must not use a module counter
+
+**When:** 2026-09-13
+
+**What:** `PriceRuleRows` used a module-level `rowSeq` for checkbox `id`/`htmlFor`. The Node module kept incrementing across SSR, so the client started at `r0` while the HTML was `r2` (hydration mismatch). Ids are now `useId()` + stable row index; new rows after click use a `useRef` (never during SSR).
+
+**Why:** React hydrates against the server HTML. A process-wide counter is `Date.now()`/`Math.random()`-class input.
+
+**Files:** `src/app/owner/more/settings/pitches/price-rules.tsx`
+
+**How to verify:** Open `/owner/more/settings/pitches/[pitchId]` for A1 — no hydration warning in the console. Day checkboxes still toggle.
+
+---
+
+## Chapter 143 — 2026-09-13 — Hours groups; flatten retired
+
+**When:** 2026-09-13
+
+**What:** Pitch create/edit replaces the single Opens/Closes pair with repeatable hours groups (weekday checkboxes + one open/close per row). Collapse walks `WEEKDAYS`, skips `[]`, and groups identical window arrays — A1 is two rows (Mon–Thu 16:00–22:00, Fri–Sat 16:00–23:00) plus Sun closed. A day in two rows is disabled in the UI and rejected as `venue.hours_day_overlap`. Flatten (`confirmFlatten` / `needFlatten` / `venue.confirm_flatten`) is gone. Pending-in-removed-hours confirm stays. `gapMinutes` stays 0. Known limit: schema still allows several windows per day; the editor and collapse use `window[0]`.
+
+**Why:** The schema already stored per-day hours; the form was writing one window onto all seven days and treating mixed days as a flatten confirm. That was a schema/form mismatch, not a copy problem. BR-3/4.
+
+**Files:** `src/modules/venue/domain/{daily-schedule,hours-cover}.ts`; `schemas/pitch-draft.ts`; `application/{create-pitch,update-pitch,get-pitch-editor,list-pitch-summaries}.ts`; `src/app/owner/more/settings/{panel,pitches/form,hours-groups,actions,new,[pitchId]}`; copy catalogs; `docs/owner-ia.md`; tests.
+
+**Relation:** Booking/Payment writes unchanged. Venue still does not import Booking. No time-window `priceRules` UI, no `gapMinutes` UI, no pitch delete, no `pitch_blocks`.
+
+**How to verify:** `npm test`. Edit Ahmad A1 — two hours rows + Sun closed; Fri/Sat $40 still in Day Prices; no flatten checkbox. Duration-only save keeps hours groups and weekend prices. Duplicate day → `venue.hours_day_overlap`. Shrink hours over live APPROVED → refuse; PENDING-only → confirm then save.
+
 
 
 

@@ -159,4 +159,30 @@ describe("resolveOfferedSlot occupied", () => {
       }),
     ).toThrow("booking.slot_taken");
   });
+
+  it("fails when the window is no longer inside open hours", () => {
+    const slots = generateSlotsForDay({
+      config: evening,
+      localDate: WED,
+      timeZone: BEIRUT,
+      occupied: [],
+    });
+    const late = slots.at(-1);
+    if (!late) throw new Error("expected a late Wednesday slot");
+    const short = parseScheduleConfig({
+      ...CLOSED_WEEK_SCHEDULE,
+      defaultPriceUsd: "30.00",
+      hours: { ...CLOSED_WEEK_SCHEDULE.hours, wed: [{ start: "16:00", end: "18:00" }] },
+    });
+    expect(() =>
+      resolveOfferedSlot({
+        config: short,
+        localDate: WED,
+        timeZone: BEIRUT,
+        start: late.start,
+        end: late.end,
+        now: new Date("2026-09-01T00:00:00.000Z"),
+      }),
+    ).toThrow("booking.slot_not_offered");
+  });
 });

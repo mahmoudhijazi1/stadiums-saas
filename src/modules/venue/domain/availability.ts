@@ -234,6 +234,32 @@ export function civilDateInTimeZone(instant: Date, timeZone: string): CivilDate 
   return { year: parts.year, month: parts.month, day: parts.day };
 }
 
+/**
+ * True if [start, end) sits entirely inside an open hours window on the
+ * civil day of `start`. Used when hours shrink — not when duration changes.
+ */
+export function bookingFitsOpenHours(
+  config: ScheduleConfig,
+  range: { start: Date; end: Date },
+  timeZone: string,
+): boolean {
+  const localDate = civilDateInTimeZone(range.start, timeZone);
+  const weekday = weekdayOfCivilDate(localDate);
+  const windows = config.hours[weekday];
+  return windows.some((window) => {
+    const utc = windowToUtcRange(
+      window.start,
+      window.end,
+      localDate,
+      timeZone,
+    );
+    return (
+      range.start.getTime() >= utc.start.getTime() &&
+      range.end.getTime() <= utc.end.getTime()
+    );
+  });
+}
+
 function zonedParts(
   instant: Date,
   timeZone: string,
