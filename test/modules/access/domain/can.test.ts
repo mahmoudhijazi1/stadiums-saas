@@ -3,6 +3,7 @@ import {
   BOOKINGS_APPROVE,
   BOOKINGS_CANCEL,
   BOOKINGS_CREATE,
+  BOOKINGS_NO_SHOW,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
   REPORTS_VIEW,
@@ -121,6 +122,29 @@ describe("can", () => {
   it("does not treat bookings.approve as bookings.cancel", () => {
     expect(
       can({ role: "STAFF", permissions: { "bookings.approve": true } }, BOOKINGS_CANCEL),
+    ).toBe(false);
+  });
+
+  it("lets OWNER record a no-show without a json shopping list", () => {
+    expect(can({ role: "OWNER", permissions: {} }, BOOKINGS_NO_SHOW)).toBe(true);
+  });
+
+  it("does not let STAFF record a no-show by default", () => {
+    expect(can({ role: "STAFF", permissions: {} }, BOOKINGS_NO_SHOW)).toBe(false);
+    expect(
+      can({ role: "STAFF", permissions: { "bookings.no_show": false } }, BOOKINGS_NO_SHOW),
+    ).toBe(false);
+  });
+
+  it("lets STAFF record a no-show only when the flag is strictly true", () => {
+    expect(
+      can({ role: "STAFF", permissions: { "bookings.no_show": true } }, BOOKINGS_NO_SHOW),
+    ).toBe(true);
+  });
+
+  it("does not treat bookings.cancel as bookings.no_show", () => {
+    expect(
+      can({ role: "STAFF", permissions: { "bookings.cancel": true } }, BOOKINGS_NO_SHOW),
     ).toBe(false);
   });
 });

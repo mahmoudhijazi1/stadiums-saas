@@ -1,6 +1,7 @@
 export const BOOKINGS_APPROVE = "bookings.approve";
 export const BOOKINGS_CREATE = "bookings.create";
 export const BOOKINGS_CANCEL = "bookings.cancel";
+export const BOOKINGS_NO_SHOW = "bookings.no_show";
 export const PAYMENTS_COLLECT = "payments.collect";
 export const EXPENSES_RECORD = "expenses.record";
 export const REPORTS_VIEW = "reports.view";
@@ -9,6 +10,7 @@ export type Permission =
   | typeof BOOKINGS_APPROVE
   | typeof BOOKINGS_CREATE
   | typeof BOOKINGS_CANCEL
+  | typeof BOOKINGS_NO_SHOW
   | typeof PAYMENTS_COLLECT
   | typeof EXPENSES_RECORD
   | typeof REPORTS_VIEW;

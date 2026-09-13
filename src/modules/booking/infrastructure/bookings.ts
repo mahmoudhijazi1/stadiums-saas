@@ -276,6 +276,22 @@ export async function setApprovedCancelled(
 }
 
 /**
+ * APPROVED → NO_SHOW. 0 rows means gone or not confirmed (SPEC-14).
+ */
+export async function setApprovedNoShow(
+  tx: TenantTx,
+  bookingId: string,
+): Promise<void> {
+  const result = await tx.booking.updateMany({
+    where: { id: bookingId, status: "APPROVED" },
+    data: { status: "NO_SHOW" },
+  });
+  if (result.count !== 1) {
+    throw new DomainError("booking.not_found");
+  }
+}
+
+/**
  * Requester person on this booking (for slot_interests). Guard scopes the participant.
  */
 export async function findRequesterPersonId(
@@ -368,8 +384,11 @@ export async function listSlotInterestsWithPeople(
   }));
 }
 
+export type HomeCollectStatus = "APPROVED" | "NO_SHOW";
+
 export type ApprovedCollectRow = {
   id: string;
+  status: HomeCollectStatus;
   pitchName: string;
   start: Date;
   end: Date;
@@ -380,6 +399,7 @@ export type ApprovedCollectRow = {
 
 type ApprovedCollectSqlRow = {
   id: string;
+  status: HomeCollectStatus;
   pitchName: string;
   start: Date | string;
   end: Date | string;
@@ -389,14 +409,15 @@ type ApprovedCollectSqlRow = {
 };
 
 /**
- * APPROVED games for Home. Soonest start first. Remaining is computed in
- * Booking application via Payment sums — no payment join here.
+ * APPROVED and unpaid-capable NO_SHOW rows for Home. Remaining is
+ * computed in Booking application via Payment sums — no payment join here.
  */
 function mapApprovedCollect(
   rows: ApprovedCollectSqlRow[],
 ): ApprovedCollectRow[] {
   return rows.map((row) => ({
     id: row.id,
+    status: row.status,
     pitchName: row.pitchName,
     start: asDate(row.start),
     end: asDate(row.end),
@@ -406,7 +427,7 @@ function mapApprovedCollect(
   }));
 }
 
-/** APPROVED whose slot starts in `[from, to)` (UTC). */
+/** APPROVED / NO_SHOW whose slot starts in `[from, to)` (UTC). */
 export async function listApprovedBookingsInRange(
   tx: TenantTx,
   from: Date,
@@ -416,6 +437,7 @@ export async function listApprovedBookingsInRange(
   const rows = await tx.$queryRaw<ApprovedCollectSqlRow[]>`
     SELECT
       b.id,
+      b.status,
       p.name AS "pitchName",
       lower(b.during) AS start,
       upper(b.during) AS end,
@@ -427,7 +449,7 @@ export async function listApprovedBookingsInRange(
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
     JOIN "Person" per ON per.id = bp."personId"
     WHERE b."tenantId" = ${tenantId}
-      AND b.status = 'APPROVED'::"BookingStatus"
+      AND b.status IN ('APPROVED'::"BookingStatus", 'NO_SHOW'::"BookingStatus")
       AND lower(b.during) >= ${from}
       AND lower(b.during) < ${to}
     ORDER BY lower(b.during) ASC
@@ -435,7 +457,7 @@ export async function listApprovedBookingsInRange(
   return mapApprovedCollect(rows);
 }
 
-/** APPROVED whose slot started before `before` (UTC). Includes paid. */
+/** APPROVED / NO_SHOW whose slot started before `before` (UTC). */
 export async function listApprovedBookingsStartingBefore(
   tx: TenantTx,
   before: Date,
@@ -444,6 +466,7 @@ export async function listApprovedBookingsStartingBefore(
   const rows = await tx.$queryRaw<ApprovedCollectSqlRow[]>`
     SELECT
       b.id,
+      b.status,
       p.name AS "pitchName",
       lower(b.during) AS start,
       upper(b.during) AS end,
@@ -455,7 +478,7 @@ export async function listApprovedBookingsStartingBefore(
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
     JOIN "Person" per ON per.id = bp."personId"
     WHERE b."tenantId" = ${tenantId}
-      AND b.status = 'APPROVED'::"BookingStatus"
+      AND b.status IN ('APPROVED'::"BookingStatus", 'NO_SHOW'::"BookingStatus")
       AND lower(b.during) < ${before}
     ORDER BY lower(b.during) ASC
   `;

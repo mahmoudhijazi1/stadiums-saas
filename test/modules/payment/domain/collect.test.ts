@@ -61,9 +61,13 @@ describe("remainingDue / collect gates", () => {
     expect(() => assertHasDue(new Decimal("-1"))).toThrow("payment.nothing_due");
   });
 
-  it("only APPROVED may be collected", () => {
+  it("allows APPROVED or NO_SHOW to be collected", () => {
     expect(() => assertCanCollect("APPROVED")).not.toThrow();
+    expect(() => assertCanCollect("NO_SHOW")).not.toThrow();
     expect(() => assertCanCollect("PENDING")).toThrow(
+      "payment.collect_unapproved",
+    );
+    expect(() => assertCanCollect("CANCELLED")).toThrow(
       "payment.collect_unapproved",
     );
   });

@@ -54,6 +54,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-11 — Waitlist on a freed slot](./specs/SPEC-11-waitlist.md) (implemented)
 - [SPEC-12 — Error handling (typed errors, logs, no crash)](./specs/SPEC-12-error-handling.md) (implemented)
 - [SPEC-13 — Arabic-first UI (RTL + copy)](./specs/SPEC-13-arabic-rtl.md) (implemented)
+- [SPEC-14 — Record a no-show](./specs/SPEC-14-no-show.md) (implemented)
 
 ### Guides
 - [Progress & learning log](./progress.md) — what we built, in order; agents append after each step
@@ -69,9 +70,9 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 
 ## What's next
 
-- No-show (BR-22) as product asks — write SPEC-14 first.
+- Games-played / pitch-busy (BR-57) as product asks — `NO_SHOW` is not a played game.
 - Parked: English switch / next-intl / `[locale]`; overpay warning; remaining BR-71
-  WhatsApp templates.
+  WhatsApp templates; refunds.
 - One numbered step at a time.
 
 ## Framework note

@@ -10,7 +10,7 @@ Five real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (
 
 | Tab | URL | Contains | Does **not** contain |
 |---|---|---|---|
-| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED (BR-49); today’s confirmed (compact status tags, tap-in collect/cancel); inline next 7 civil days | Book date picker, waitlist, rate, period, expenses |
+| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact status tags, tap-in collect/cancel/no-show after the hour ends); inline next 7 civil days | Book date picker, waitlist, rate, period, expenses |
 | Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Home lists, waitlist, Reports, Settings |
 | Waitlist | `/owner/waitlist` | Open slot-interest groups + WhatsApp notify | Rate, period, expenses, Book |
 | Reports | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense” | Exchange-rate **set** form, waitlist, Book, Home, Settings |
@@ -97,7 +97,7 @@ Use-case logic is unchanged. Only the redirect path:
 
 | Action | Lands on |
 |---|---|
-| `submitApproveBooking` / `submitRejectBooking` / `submitCancelBooking` / `submitCollectPayment` | `/owner/today` |
+| `submitApproveBooking` / `submitRejectBooking` / `submitCancelBooking` / `submitRecordNoShow` / `submitCollectPayment` | `/owner/today` |
 | `submitCreateOwnerBooking` | `/owner/book` (keeps `bookOn`) |
 | `submitRecordExpense` | `/owner/money` |
 | `submitSetExchangeRate` | `/owner/more/settings` |
@@ -157,7 +157,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | **Tournaments** | **More list row** (future; `pitch_blocks` seam) |
 | **Shop (Phase 2)** | **More list row** |
 | **Academy (Phase 3)** | **More list row** |
-| No-show (parked SPEC-14) | Likely Home (ops on a confirmed booking) — confirm in the SPEC |
+| No-show (BR-22 / SPEC-14) | Home — after the hour has ended; unpaid stays for Collect |
 | Public booking request | Not owner — public `/` |
 
 ---

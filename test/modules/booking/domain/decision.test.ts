@@ -2,6 +2,8 @@ import { describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
 import {
   assertApprovedForCancel,
+  assertApprovedForNoShow,
+  assertEndedForNoShow,
   assertNotPastUnpaidCancel,
   assertPendingForDecision,
   isPastUnpaidCancel,
@@ -86,5 +88,48 @@ describe("assertNotPastUnpaidCancel", () => {
         now: new Date("2026-09-13T12:00:00.000Z"),
       }),
     ).not.toThrow();
+  });
+});
+
+describe("assertApprovedForNoShow", () => {
+  it("allows APPROVED", () => {
+    expect(() => assertApprovedForNoShow("APPROVED")).not.toThrow();
+  });
+
+  it.each(["PENDING", "REJECTED", "CANCELLED", "NO_SHOW"] as const)(
+    "refuses %s",
+    (status) => {
+      expect(() => assertApprovedForNoShow(status)).toThrow(
+        "booking.no_show_only_approved",
+      );
+    },
+  );
+});
+
+const END = new Date("2026-09-13T14:00:00.000Z");
+
+describe("assertEndedForNoShow", () => {
+  it("allows end equal to now", () => {
+    expect(() =>
+      assertEndedForNoShow({ end: END, now: END }),
+    ).not.toThrow();
+  });
+
+  it("allows after end", () => {
+    expect(() =>
+      assertEndedForNoShow({
+        end: END,
+        now: new Date("2026-09-13T14:00:01.000Z"),
+      }),
+    ).not.toThrow();
+  });
+
+  it("refuses a window that has not ended", () => {
+    expect(() =>
+      assertEndedForNoShow({
+        end: END,
+        now: new Date("2026-09-13T13:59:59.000Z"),
+      }),
+    ).toThrow("booking.no_show_not_ended");
   });
 });

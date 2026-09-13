@@ -40,6 +40,9 @@ describe("errorMessage", () => {
     expect(errorMessage("venue.hours_day_overlap", "en")).toBe(
       "A day cannot be in two hours groups.",
     );
+    expect(errorMessage("booking.no_show_only_approved", "en")).toBe(
+      "Only a confirmed booking can be marked no-show.",
+    );
   });
 
   it("returns generic Arabic for an unknown key or legacy 1", () => {

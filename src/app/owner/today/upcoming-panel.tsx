@@ -10,6 +10,7 @@ import {
 import {
   submitCancelBooking,
   submitCollectPayment,
+  submitRecordNoShow,
 } from "./actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export type UpcomingRowView = {
   priceUsd: string;
   status: UpcomingStatus;
   showCancel: boolean;
+  showNoShow: boolean;
 };
 
 function keepTenantQuery(tenantSlug: string) {
@@ -122,6 +124,7 @@ export function UpcomingPanel({
   locale,
   mayCollect,
   mayCancel,
+  mayNoShow,
 }: {
   overdue: UpcomingRowView[];
   today: UpcomingRowView[];
@@ -130,6 +133,7 @@ export function UpcomingPanel({
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
+  mayNoShow: boolean;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [showComing, setShowComing] = useState(false);
@@ -154,6 +158,7 @@ export function UpcomingPanel({
             locale={locale}
             mayCollect={mayCollect}
             mayCancel={mayCancel}
+            mayNoShow={mayNoShow}
           />
         </>
       ) : null}
@@ -168,6 +173,7 @@ export function UpcomingPanel({
           locale={locale}
           mayCollect={mayCollect}
           mayCancel={mayCancel}
+          mayNoShow={mayNoShow}
         />
       ) : overdue.length === 0 ? (
         <EmptyState
@@ -198,6 +204,7 @@ export function UpcomingPanel({
               locale={locale}
               mayCollect={mayCollect}
               mayCancel={mayCancel}
+              mayNoShow={mayNoShow}
             />
           ) : null}
         </>
@@ -215,6 +222,7 @@ function UpcomingRows({
   locale,
   mayCollect,
   mayCancel,
+  mayNoShow,
 }: {
   rows: UpcomingRowView[];
   showDate: boolean;
@@ -224,6 +232,7 @@ function UpcomingRows({
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
+  mayNoShow: boolean;
 }) {
   return (
     <ul className="flex flex-col gap-2">
@@ -329,6 +338,15 @@ function UpcomingRows({
                       {keepTenantQuery(tenantSlug)}
                       <SubmitButton variant="outline" className="w-full">
                         {ui("owner.cancel", locale)}
+                      </SubmitButton>
+                    </form>
+                  ) : null}
+                  {mayNoShow && row.showNoShow ? (
+                    <form action={submitRecordNoShow}>
+                      <input type="hidden" name="bookingId" value={row.id} />
+                      {keepTenantQuery(tenantSlug)}
+                      <SubmitButton variant="outline" className="w-full">
+                        {ui("owner.noShow", locale)}
                       </SubmitButton>
                     </form>
                   ) : null}

@@ -44,3 +44,23 @@ export function assertNotPastUnpaidCancel(input: {
     throw new DomainError("booking.cancel_past_unpaid");
   }
 }
+
+/**
+ * Only APPROVED may become NO_SHOW (BR-22). Domain, not Prisma.
+ */
+export function assertApprovedForNoShow(status: BookingStatusLike): void {
+  if (status !== "APPROVED") {
+    throw new DomainError("booking.no_show_only_approved");
+  }
+}
+
+/** Hour finished: no-show is not for a future or in-progress window. */
+export function isNoShowWindowEnded(end: Date, now: Date): boolean {
+  return end.getTime() <= now.getTime();
+}
+
+export function assertEndedForNoShow(input: { end: Date; now: Date }): void {
+  if (!isNoShowWindowEnded(input.end, input.now)) {
+    throw new DomainError("booking.no_show_not_ended");
+  }
+}

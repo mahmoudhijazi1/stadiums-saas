@@ -3144,6 +3144,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. Edit Ahmad A1 — two hours rows + Sun closed; Fri/Sat $40 still in Day Prices; no flatten checkbox. Duration-only save keeps hours groups and weekend prices. Duplicate day → `venue.hours_day_overlap`. Shrink hours over live APPROVED → refuse; PENDING-only → confirm then save.
 
+---
+
+## Chapter 144 — 2026-09-13 — SPEC-14 no-show (BR-22)
+
+**When:** 2026-09-13
+
+**What:** Fast-forwarded `main` to include Settings / hours groups, branched `feature/spec-14-no-show`. Owner (or `"bookings.no_show"`) records APPROVED → `NO_SHOW` after the hour has ended. Unpaid no-show stays on Home overdue/today so Collect still works (`assertCanCollect` allows `NO_SHOW`). Paid no-show leaves Home. Cancel, waitlist, exclusion, and ledger writes are unchanged. No confirm dialog.
+
+**Why:** BR-22 wants “didn’t happen” distinct from cancel. Cancel already refuses past unpaid (BR-49 / ch.136); no-show is that close-out without dropping the debt. DR-002 §2.12: status, not a boolean. SPEC-14.
+
+**Files:** `docs/specs/SPEC-14-no-show.md`; `src/modules/access/domain/can.ts`; `booking/domain/decision.ts`; `application/{record-no-show,list-due-bookings,collect-booking-payment}.ts`; `infrastructure/bookings.ts`; `payment/domain/collect.ts`; `src/app/owner/today/{actions,lists,upcoming-panel}`; copy catalogs; `docs/owner-ia.md`; tests.
+
+**Relation:** Payment still does not import Booking. Waitlist / public occupancy unchanged (`NO_SHOW` does not occupy). Pitch Settings untouched.
+
+**How to verify:** `npm test`. Home — after a finished unpaid APPROVED, expand: Collect + لم يحضر, no Cancel. Tap no-show; still Collect. Collect remaining → row leaves. Future row: no No-show. `staff@ahmad`: no button. Stale POST before end → `booking.no_show_not_ended`.
+
+
 
 
 

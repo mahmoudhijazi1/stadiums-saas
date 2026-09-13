@@ -47,11 +47,12 @@ export function remainingDue(priceUsd: Decimal, collectedUsd: Decimal): Decimal 
 }
 
 /**
- * Only APPROVED games may take cash this slice (SPEC-06). Payment does not
- * import Booking — the status is a string the use case already loaded.
+ * APPROVED or NO_SHOW may take cash (SPEC-06 + SPEC-14 / BR-49).
+ * Payment does not import Booking — the status is a string the use case
+ * already loaded.
  */
 export function assertCanCollect(status: string): void {
-  if (status !== "APPROVED") {
+  if (status !== "APPROVED" && status !== "NO_SHOW") {
     throw new DomainError("payment.collect_unapproved");
   }
 }

@@ -8,6 +8,7 @@ import {
   listApprovedBookingsInRange,
   listApprovedBookingsStartingBefore,
   type ApprovedCollectRow,
+  type HomeCollectStatus,
 } from "@/modules/booking/infrastructure/bookings";
 import { partitionHomeConfirmed } from "@/modules/booking/domain/home-inbox";
 import {
@@ -22,6 +23,7 @@ const COMING_DAYS = 7;
 
 export type DueBooking = {
   id: string;
+  status: HomeCollectStatus;
   pitchName: string;
   start: Date;
   end: Date;
@@ -42,6 +44,7 @@ export type HomeConfirmedLists = {
  * Staff may look. Remaining from Payment sums — Booking does not join
  * payment tables. Paid today/later stay so Cancel is reachable (SPEC-10).
  * Paid-before-today is omitted; unpaid-before-today is overdue.
+ * Unpaid NO_SHOW stays (Collect); paid NO_SHOW is omitted (SPEC-14).
  */
 export async function listDueBookings(): Promise<HomeConfirmedLists> {
   const membership = await getCurrentMembership();
@@ -71,8 +74,11 @@ export async function listDueBookings(): Promise<HomeConfirmedLists> {
   const withRemaining = [...pastRows, ...windowRows].map((row) =>
     toDueBooking(row, collected.get(row.id) ?? new Decimal(0)),
   );
+  const visible = withRemaining.filter(
+    (row) => row.status === "APPROVED" || row.remaining.gt(0),
+  );
 
-  return partitionHomeConfirmed(withRemaining, now, TIME_ZONE);
+  return partitionHomeConfirmed(visible, now, TIME_ZONE);
 }
 
 function toDueBooking(
@@ -81,6 +87,7 @@ function toDueBooking(
 ): DueBooking {
   return {
     id: row.id,
+    status: row.status,
     pitchName: row.pitchName,
     start: row.start,
     end: row.end,

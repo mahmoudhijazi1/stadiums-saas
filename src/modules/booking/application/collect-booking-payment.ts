@@ -20,7 +20,7 @@ import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { findBookingForCollect } from "@/modules/booking/infrastructure/bookings";
 
 /**
- * Collect cash on an APPROVED booking. Auth before $transaction.
+ * Collect cash on an APPROVED or NO_SHOW booking. Auth before $transaction.
  * recordPayment writes payment + tenders + ledger IN inside this tx (DR-002 §2.21).
  */
 export async function collectBookingPayment(input: {

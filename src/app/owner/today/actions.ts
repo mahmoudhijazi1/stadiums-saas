@@ -5,7 +5,7 @@ import { actionErrorKey } from "@/lib/use-case-error";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
-import { rejectBooking } from "@/modules/booking/application/reject-booking";
+import { recordNoShow } from "@/modules/booking/application/record-no-show";
 import { parseBookingDecision } from "@/modules/booking/schemas/booking-decision";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
@@ -48,6 +48,10 @@ export async function submitRejectBooking(formData: FormData) {
 
 export async function submitCancelBooking(formData: FormData) {
   await submitDecision(formData, cancelBooking, "submitCancelBooking", "cancelled");
+}
+
+export async function submitRecordNoShow(formData: FormData) {
+  await submitDecision(formData, recordNoShow, "submitRecordNoShow", "no_show");
 }
 
 export async function submitCollectPayment(formData: FormData) {

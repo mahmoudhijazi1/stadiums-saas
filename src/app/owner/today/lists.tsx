@@ -1,5 +1,5 @@
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
-import { BOOKINGS_APPROVE, BOOKINGS_CANCEL, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
+import { BOOKINGS_APPROVE, BOOKINGS_CANCEL, BOOKINGS_NO_SHOW, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import { listDueBookings, type DueBooking } from "@/modules/booking/application/list-due-bookings";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { formatUsd } from "@/lib/money";
@@ -24,7 +24,7 @@ import {
   groupPendingBySlot,
   upcomingStatus,
 } from "@/modules/booking/domain/home-inbox";
-import { isPastUnpaidCancel } from "@/modules/booking/domain/decision";
+import { isPastUnpaidCancel, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
 import { Clock, MapPin, Phone } from "lucide-react";
 
 function keepTenantQuery(tenantSlug: string) {
@@ -47,6 +47,7 @@ export async function OwnerToday({
   const mayDecide = can(membership, BOOKINGS_APPROVE);
   const mayCollect = can(membership, PAYMENTS_COLLECT);
   const mayCancel = can(membership, BOOKINGS_CANCEL);
+  const mayNoShow = can(membership, BOOKINGS_NO_SHOW);
 
   return (
     <>
@@ -131,6 +132,7 @@ export async function OwnerToday({
         locale={locale}
         mayCollect={mayCollect}
         mayCancel={mayCancel}
+        mayNoShow={mayNoShow}
       />
     </>
   );
@@ -151,6 +153,10 @@ function toUpcomingViews(
     remainingUsd: formatUsd(row.remaining),
     priceUsd: formatUsd(row.priceUsd),
     status: upcomingStatus(row.start, row.remaining, now),
-    showCancel: !isPastUnpaidCancel(row.start, row.remaining, now),
+    showCancel:
+      row.status === "APPROVED" &&
+      !isPastUnpaidCancel(row.start, row.remaining, now),
+    showNoShow:
+      row.status === "APPROVED" && isNoShowWindowEnded(row.end, now),
   }));
 }

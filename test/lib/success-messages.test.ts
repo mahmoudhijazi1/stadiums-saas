@@ -5,6 +5,7 @@ describe("successMessage", () => {
   it("returns catalog Arabic for a known key", () => {
     expect(successMessage("requested")).toBe("وصل الطلب.");
     expect(successMessage("approved")).toBe("تمت الموافقة.");
+    expect(successMessage("no_show")).toBe("سُجّل عدم الحضور.");
     expect(successMessage("pitch_updated")).toBe("حُفظ الملعب.");
   });
 
