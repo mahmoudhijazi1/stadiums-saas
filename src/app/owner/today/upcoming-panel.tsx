@@ -31,7 +31,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
-import { ChevronRight, CircleCheck, Clock, MapPin, Phone } from "lucide-react";
+import { ChevronRight, CircleCheck, Clock, MapPin, MessageCircle, Phone } from "lucide-react";
 
 export type UpcomingRowView = {
   id: string;
@@ -87,10 +87,39 @@ function DueRemainingFigures({
   locale: UiLocale;
 }) {
   const owed = remainingUsd !== "0.00";
+  const same = dueUsd === remainingUsd;
+
+  if (same) {
+    return (
+      <div
+        className={cn(
+          "rounded-lg px-3 py-3 text-start",
+          owed ? "bg-primary/15" : "bg-muted",
+        )}
+      >
+        <p
+          className={cn(
+            "text-xs",
+            owed ? "text-primary" : "text-muted-foreground",
+          )}
+        >
+          {ui("owner.remaining", locale)}
+        </p>
+        <p
+          className={cn(
+            "mt-0.5 text-2xl font-semibold",
+            owed ? "text-primary" : "text-muted-foreground",
+          )}
+        >
+          <LtrIsolate>${remainingUsd}</LtrIsolate>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-lg bg-muted px-3 py-2">
+      <div className="rounded-lg bg-muted px-3 py-2 text-start">
         <p className="text-xs text-muted-foreground">{ui("owner.due", locale)}</p>
         <p className="mt-0.5 text-base font-semibold text-foreground">
           <LtrIsolate>${dueUsd}</LtrIsolate>
@@ -98,7 +127,7 @@ function DueRemainingFigures({
       </div>
       <div
         className={cn(
-          "rounded-lg px-3 py-2",
+          "rounded-lg px-3 py-2 text-start",
           owed ? "bg-primary/15" : "bg-muted",
         )}
       >
@@ -281,7 +310,9 @@ export function UpcomingPanel({
                     )}
                     aria-hidden={confirmCancel}
                   >
-                    <LtrIsolate>{sheetRow.timeRange}</LtrIsolate>
+                    <LtrIsolate className="text-xl font-bold leading-none">
+                      {sheetRow.timeRange}
+                    </LtrIsolate>
                   </span>
                 </span>
               </BottomSheetTitle>
@@ -294,6 +325,24 @@ export function UpcomingPanel({
                 {sheetRow.requesterName}
               </BottomSheetDescription>
             </BottomSheetHeader>
+            <div className="flex flex-col gap-2 px-4 pt-2">
+              <p className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                <Phone aria-hidden className="size-3.5 shrink-0" />
+                <LtrIsolate>{sheetRow.requesterPhone}</LtrIsolate>
+              </p>
+              {sheetRow.confirmWhatsAppHref ? (
+                <Button variant="outline" className="w-full" asChild>
+                  <a
+                    href={sheetRow.confirmWhatsAppHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MessageCircle aria-hidden />
+                    {ui("owner.notifyWhatsApp", locale)}
+                  </a>
+                </Button>
+              ) : null}
+            </div>
             <BottomSheetStage
               stage={confirmCancel ? "confirm" : "details"}
               active={openId !== null}
@@ -307,6 +356,7 @@ export function UpcomingPanel({
                 inert={confirmCancel ? true : undefined}
               >
                 <UpcomingRowActions
+                  key={`${sheetRow.id}:${sheetRow.remainingUsd}`}
                   row={sheetRow}
                   tenantSlug={tenantSlug}
                   locale={locale}
@@ -465,30 +515,13 @@ function UpcomingRowActions({
   cancelRef: Ref<HTMLButtonElement>;
   onCancelBooking: () => void;
 }) {
+  const [mixedOpen, setMixedOpen] = useState(false);
+  const canCollect = mayCollect && row.status !== "paid";
+
   return (
     <>
-      <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Phone aria-hidden className="size-4 shrink-0" />
-        <LtrIsolate>{row.requesterPhone}</LtrIsolate>
-      </p>
-      {row.confirmWhatsAppHref ? (
-        <div className="flex flex-col gap-2">
-          <h4 className="text-sm font-medium text-muted-foreground">
-            {ui("owner.notifyGroup", locale)}
-          </h4>
-          <Button variant="outline" className="w-full" asChild>
-            <a
-              href={row.confirmWhatsAppHref}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {ui("owner.notify", locale)}
-            </a>
-          </Button>
-        </div>
-      ) : null}
       <div className="flex flex-col gap-4">
-        <h4 className="text-sm font-medium text-muted-foreground">
+        <h4 className="text-xs font-medium text-muted-foreground">
           {ui("owner.moneyGroup", locale)}
         </h4>
         <DueRemainingFigures
@@ -496,52 +529,64 @@ function UpcomingRowActions({
           remainingUsd={row.remainingUsd}
           locale={locale}
         />
-        {mayCollect && row.status !== "paid" ? (
+        {canCollect && !mixedOpen ? (
+          <form action={submitCollectPayment}>
+            <input type="hidden" name="bookingId" value={row.id} />
+            {keepTenantQuery(tenantSlug)}
+            <input type="hidden" name="usdAmount" value={row.remainingUsd} />
+            <SubmitButton className="w-full">
+              {collectUsdLabel(row.remainingUsd, locale)}
+            </SubmitButton>
+          </form>
+        ) : null}
+        {canCollect ? (
           <>
-            <form action={submitCollectPayment}>
-              <input type="hidden" name="bookingId" value={row.id} />
-              {keepTenantQuery(tenantSlug)}
-              <input
-                type="hidden"
-                name="usdAmount"
-                value={row.remainingUsd}
-              />
-              <SubmitButton className="w-full">
-                {collectUsdLabel(row.remainingUsd, locale)}
-              </SubmitButton>
-            </form>
-            <form action={submitCollectPayment} className="flex flex-col gap-4">
-              <input type="hidden" name="bookingId" value={row.id} />
-              {keepTenantQuery(tenantSlug)}
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`usd-${row.id}`}>
-                  {ui("owner.usd", locale)}
-                </Label>
-                <Input
-                  id={`usd-${row.id}`}
-                  type="text"
-                  name="usdAmount"
-                  inputMode="decimal"
-                  placeholder="30.00"
-                  className="font-mono"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`lbp-${row.id}`}>
-                  {ui("owner.lbp", locale)}
-                </Label>
-                <Input
-                  id={`lbp-${row.id}`}
-                  type="text"
-                  name="lbpAmount"
-                  inputMode="numeric"
-                  className="font-mono"
-                />
-              </div>
-              <SubmitButton variant="secondary" className="w-full">
-                {ui("owner.collectMixed", locale)}
-              </SubmitButton>
-            </form>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              aria-expanded={mixedOpen}
+              onClick={() => setMixedOpen((open) => !open)}
+            >
+              {mixedOpen
+                ? ui("owner.hideCollectMixed", locale)
+                : ui("owner.collectMixed", locale)}
+            </Button>
+            {mixedOpen ? (
+              <form action={submitCollectPayment} className="flex flex-col gap-4">
+                <input type="hidden" name="bookingId" value={row.id} />
+                {keepTenantQuery(tenantSlug)}
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`usd-${row.id}`}>
+                    {ui("owner.usdRemaining", locale)}
+                  </Label>
+                  <Input
+                    id={`usd-${row.id}`}
+                    type="text"
+                    name="usdAmount"
+                    inputMode="decimal"
+                    defaultValue={row.remainingUsd}
+                    placeholder={row.remainingUsd}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={`lbp-${row.id}`}>
+                    {ui("owner.lbp", locale)}
+                  </Label>
+                  <Input
+                    id={`lbp-${row.id}`}
+                    type="text"
+                    name="lbpAmount"
+                    inputMode="numeric"
+                    className="font-mono"
+                  />
+                </div>
+                <SubmitButton className="w-full">
+                  {ui("owner.moneyGroup", locale)}
+                </SubmitButton>
+              </form>
+            ) : null}
           </>
         ) : null}
         {mayNoShow && row.showNoShow ? (

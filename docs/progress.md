@@ -3256,6 +3256,40 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** Open a confirmed row → إلغاء الحجز. Console should not show the aria-hidden focus warning. Focus ring lands on تأكيد; تراجع lands on إلغاء الحجز.
 
+---
+
+## Chapter 151 — 2026-09-14 — Home sheet hierarchy and mixed-pay disclosure
+
+**When:** 2026-09-14
+
+**What:** Confirmed booking sheet: time is SlotFace-scale; pitch + name one muted line; phone is a small header icon+number. Due/remaining collapse to one remaining hero when they match; two tiles only after a partial. إبلاغ is ghost above a divider; Collect is the primary. USD/LBP hide behind دفع بعملتين (one-tap Collect unmounts while open). Mixed USD is remaining, labeled المتبقي بالدولار, not a $30 placeholder.
+
+**Why:** Every field had the same weight. Slot picker and Home rows already had progressive disclosure; this sheet had not.
+
+**Files:** `src/app/owner/today/upcoming-panel.tsx`; `src/lib/ui-copy.ts`; `test/lib/ui-copy.test.ts`; `docs/owner-ia.md`.
+
+**Relation:** No `submitCollectPayment` / cancel / WhatsApp-href changes. Cancel-confirm step unchanged.
+
+**How to verify:** `npm test`. Unpaid equal price/remaining: one hero, one Collect, no currency fields until دفع بعملتين. Open mixed: one-tap gone; USD prefilled remaining. Partial: two tiles. Paid: no Collect. RTL: no `pl`/`pr`.
+
+---
+
+## Chapter 152 — 2026-09-14 — Sheet start-edge, phone+إبلاغ, mixed outline
+
+**When:** 2026-09-14
+
+**What:** Booking sheet copy and amounts use `text-start`; remaining hero/tiles drop extra `px` so `$` sits on the same start edge as تحصيل. إبلاغ is a compact outline on the phone row (not its own section). دفع بعملتين is a full-width outline button; mixed disclosure (unmount one-tap, remaining USD) is unchanged.
+
+**Why:** `$25.00` read as centered; إبلاغ did not belong to the number; ghost `self-start` دفع بعملتين looked like a label.
+
+**Files:** `src/app/owner/today/upcoming-panel.tsx`; `docs/owner-ia.md`.
+
+**Relation:** Same `wa.me` `<a>` and `submitCollectPayment`. No domain change.
+
+**How to verify:** Open a confirmed APPROVED row. Phone and إبلاغ share a row. Time, remaining, Collect, دفع بعملتين, Cancel share the RTL start edge. دفع بعملتين has a border; tap still reveals USD/LBP and hides one-tap Collect.
+
+
+
 
 
 

@@ -28,6 +28,10 @@ describe("ui", () => {
     expect(ui("owner.upcomingTag")).toBe("قادم");
     expect(ui("owner.overdue")).toBe("متأخر");
     expect(ui("owner.collectMixed")).toBe("دفع بعملتين");
+    expect(ui("owner.hideCollectMixed")).toBe("إخفاء الدفع بعملتين");
+    expect(ui("owner.hideCollectMixed", "en")).toBe("Hide two-currency pay");
+    expect(ui("owner.usdRemaining")).toBe("المتبقي بالدولار");
+    expect(ui("owner.usdRemaining", "en")).toBe("Remaining USD");
     expect(ui("owner.remaining")).toBe("المتبقي");
     expect(ui("owner.remaining", "en")).toBe("Remaining");
     expect(ui("owner.book", "en")).toBe("Book");
@@ -41,6 +45,8 @@ describe("ui", () => {
     expect(ui("owner.waitlistTab")).toBe("انتظار");
     expect(ui("owner.waitlistTab", "en")).toBe("Waitlist");
     expect(ui("owner.notifyGroup")).toBe("إبلاغ");
+    expect(ui("owner.notifyWhatsApp")).toBe("إبلاغ عبر واتساب");
+    expect(ui("owner.notifyWhatsApp", "en")).toBe("Notify on WhatsApp");
     expect(ui("owner.notifyGroup", "en")).toBe("Notify");
     expect(ui("owner.moneyGroup")).toBe("تحصيل");
     expect(ui("owner.moneyGroup", "en")).toBe("Collect");
