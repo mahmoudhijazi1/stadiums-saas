@@ -44,6 +44,12 @@ describe("ui", () => {
     expect(ui("owner.notifyGroup", "en")).toBe("Notify");
     expect(ui("owner.moneyGroup")).toBe("تحصيل");
     expect(ui("owner.moneyGroup", "en")).toBe("Collect");
+    expect(ui("owner.openBooking")).toBe("عرض التفاصيل");
+    expect(ui("owner.openBooking", "en")).toBe("View details");
+    expect(ui("owner.cancel")).toBe("إلغاء الحجز");
+    expect(ui("owner.cancel", "en")).toBe("Cancel booking");
+    expect(ui("owner.cancelConfirm")).toBe("تأكيد إلغاء الحجز");
+    expect(ui("owner.cancelBack")).toBe("تراجع");
     expect(ui("owner.changePeriod")).toBe("تغيير الفترة");
     expect(ui("owner.changePeriod", "en")).toBe("Change period");
     expect(ui("owner.addExpense")).toBe("إضافة مصروف");

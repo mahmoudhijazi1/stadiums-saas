@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState, type Ref } from "react";
 import type { UiLocale } from "@/lib/locale";
 import {
   collectUsdLabel,
@@ -13,11 +13,17 @@ import {
   submitRecordNoShow,
 } from "./actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+  BottomSheet,
+  BottomSheetBody,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetHeader,
+  BottomSheetStage,
+  BottomSheetTitle,
+} from "@/components/ui/bottom-sheet";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +31,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
-import { CircleCheck, Clock, MapPin, Phone } from "lucide-react";
+import { ChevronRight, CircleCheck, Clock, MapPin, Phone } from "lucide-react";
 
 export type UpcomingRowView = {
   id: string;
@@ -139,9 +145,45 @@ export function UpcomingPanel({
   highlight?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const [showComing, setShowComing] = useState(
     () => Boolean(highlight && later.some((row) => row.id === highlight)),
   );
+  const openRow =
+    [...overdue, ...today, ...later].find((row) => row.id === openId) ?? null;
+  const sheetRow = openRow ?? heldRow;
+  const confirmSubmitRef = useRef<HTMLButtonElement>(null);
+  const cancelBookingRef = useRef<HTMLButtonElement>(null);
+  const pendingFocusRef = useRef<"confirm" | "cancel" | null>(null);
+
+  function closeSheet() {
+    setOpenId(null);
+  }
+
+  function setCancelStep(next: boolean) {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    pendingFocusRef.current = next ? "confirm" : "cancel";
+    setConfirmCancel(next);
+  }
+
+  useLayoutEffect(() => {
+    const target = pendingFocusRef.current;
+    pendingFocusRef.current = null;
+    if (target === "confirm") confirmSubmitRef.current?.focus();
+    if (target === "cancel") cancelBookingRef.current?.focus();
+  }, [confirmCancel]);
+
+  function openRowSheet(id: string) {
+    const row =
+      [...overdue, ...today, ...later].find((item) => item.id === id) ?? null;
+    if (!row) return;
+    setConfirmCancel(false);
+    setHeldRow(row);
+    setOpenId(id);
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -158,12 +200,8 @@ export function UpcomingPanel({
             rows={overdue}
             showDate
             openId={openId}
-            onToggle={setOpenId}
-            tenantSlug={tenantSlug}
+            onOpen={openRowSheet}
             locale={locale}
-            mayCollect={mayCollect}
-            mayCancel={mayCancel}
-            mayNoShow={mayNoShow}
             highlight={highlight}
           />
         </>
@@ -174,12 +212,8 @@ export function UpcomingPanel({
           rows={today}
           showDate={false}
           openId={openId}
-          onToggle={setOpenId}
-          tenantSlug={tenantSlug}
+          onOpen={openRowSheet}
           locale={locale}
-          mayCollect={mayCollect}
-          mayCancel={mayCancel}
-          mayNoShow={mayNoShow}
           highlight={highlight}
         />
       ) : overdue.length === 0 ? (
@@ -206,18 +240,130 @@ export function UpcomingPanel({
               rows={later}
               showDate
               openId={openId}
-              onToggle={setOpenId}
-              tenantSlug={tenantSlug}
+              onOpen={openRowSheet}
               locale={locale}
-              mayCollect={mayCollect}
-              mayCancel={mayCancel}
-              mayNoShow={mayNoShow}
               highlight={highlight}
             />
           ) : null}
         </>
       ) : null}
+
+      <BottomSheet
+        open={openId !== null}
+        onOpenChange={(open) => {
+          if (!open) closeSheet();
+        }}
+      >
+        {sheetRow ? (
+          <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
+            <BottomSheetHeader>
+              <BottomSheetTitle
+                aria-label={
+                  confirmCancel
+                    ? ui("owner.cancel", locale)
+                    : sheetRow.timeRange
+                }
+              >
+                <span className="grid">
+                  <span
+                    className={cn(
+                      "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                      confirmCancel ? "opacity-100" : "opacity-0",
+                    )}
+                    aria-hidden={!confirmCancel}
+                  >
+                    {ui("owner.cancel", locale)}
+                  </span>
+                  <span
+                    className={cn(
+                      "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                      confirmCancel ? "opacity-0" : "opacity-100",
+                    )}
+                    aria-hidden={confirmCancel}
+                  >
+                    <LtrIsolate>{sheetRow.timeRange}</LtrIsolate>
+                  </span>
+                </span>
+              </BottomSheetTitle>
+              <BottomSheetDescription>
+                {sheetRow.pitchName}
+                {showDateFor(sheetRow, overdue, later)
+                  ? ` · ${sheetRow.dateLabel}`
+                  : null}
+                {" · "}
+                {sheetRow.requesterName}
+              </BottomSheetDescription>
+            </BottomSheetHeader>
+            <BottomSheetStage
+              stage={confirmCancel ? "confirm" : "details"}
+              active={openId !== null}
+            >
+              <BottomSheetBody
+                className={cn(
+                  "flex flex-col gap-4 pb-4 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                  confirmCancel &&
+                    "pointer-events-none absolute inset-x-0 top-0 opacity-0",
+                )}
+                inert={confirmCancel ? true : undefined}
+              >
+                <UpcomingRowActions
+                  row={sheetRow}
+                  tenantSlug={tenantSlug}
+                  locale={locale}
+                  mayCollect={mayCollect}
+                  mayCancel={mayCancel}
+                  mayNoShow={mayNoShow}
+                  cancelRef={cancelBookingRef}
+                  onCancelBooking={() => setCancelStep(true)}
+                />
+              </BottomSheetBody>
+              <BottomSheetBody
+                className={cn(
+                  "flex flex-none flex-col gap-3 overflow-hidden pb-4 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                  !confirmCancel &&
+                    "pointer-events-none absolute inset-x-0 top-0 opacity-0",
+                )}
+                inert={!confirmCancel ? true : undefined}
+              >
+                <p className="text-sm text-muted-foreground">
+                  {ui("owner.cancelHint", locale)}
+                </p>
+                <form action={submitCancelBooking}>
+                  <input type="hidden" name="bookingId" value={sheetRow.id} />
+                  {keepTenantQuery(tenantSlug)}
+                  <SubmitButton
+                    ref={confirmSubmitRef}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    {ui("owner.cancelConfirm", locale)}
+                  </SubmitButton>
+                </form>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setCancelStep(false)}
+                >
+                  {ui("owner.cancelBack", locale)}
+                </Button>
+              </BottomSheetBody>
+            </BottomSheetStage>
+          </BottomSheetContent>
+        ) : null}
+      </BottomSheet>
     </div>
+  );
+}
+
+function showDateFor(
+  row: UpcomingRowView,
+  overdue: UpcomingRowView[],
+  later: UpcomingRowView[],
+): boolean {
+  return (
+    overdue.some((item) => item.id === row.id) ||
+    later.some((item) => item.id === row.id)
   );
 }
 
@@ -225,23 +371,15 @@ function UpcomingRows({
   rows,
   showDate,
   openId,
-  onToggle,
-  tenantSlug,
+  onOpen,
   locale,
-  mayCollect,
-  mayCancel,
-  mayNoShow,
   highlight,
 }: {
   rows: UpcomingRowView[];
   showDate: boolean;
   openId: string | null;
-  onToggle: (id: string | null) => void;
-  tenantSlug: string;
+  onOpen: (id: string) => void;
   locale: UiLocale;
-  mayCollect: boolean;
-  mayCancel: boolean;
-  mayNoShow: boolean;
   highlight?: string;
 }) {
   return (
@@ -260,9 +398,15 @@ function UpcomingRows({
             >
               <button
                 type="button"
+                aria-haspopup="dialog"
                 aria-expanded={open}
-                onClick={() => onToggle(open ? null : row.id)}
-                className="flex w-full items-start gap-3 px-4 py-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
+                onClick={() => onOpen(row.id)}
+                className={cn(
+                  "flex w-full items-start gap-3 px-4 py-3 text-start",
+                  "cursor-pointer outline-none transition-colors",
+                  "hover:bg-muted/60 active:bg-muted",
+                  "focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
+                )}
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
@@ -285,115 +429,142 @@ function UpcomingRows({
                     {row.requesterName}
                   </span>
                 </span>
-                <StatusBadge status={row.status} locale={locale} />
+                <span className="flex shrink-0 items-center gap-1 self-center">
+                  <StatusBadge status={row.status} locale={locale} />
+                  <ChevronRight
+                    aria-hidden
+                    className="size-5 text-muted-foreground rtl:rotate-180"
+                  />
+                </span>
+                <span className="sr-only">{ui("owner.openBooking", locale)}</span>
               </button>
-              {open ? (
-                <CardContent className="flex flex-col gap-4 border-t px-4 py-4">
-                  <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Phone aria-hidden className="size-4 shrink-0" />
-                    <LtrIsolate>{row.requesterPhone}</LtrIsolate>
-                  </p>
-                  {row.confirmWhatsAppHref ? (
-                    <div className="flex flex-col gap-2">
-                      <h4 className="text-sm font-medium text-muted-foreground">
-                        {ui("owner.notifyGroup", locale)}
-                      </h4>
-                      <Button variant="outline" className="w-full" asChild>
-                        <a
-                          href={row.confirmWhatsAppHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {ui("owner.notify", locale)}
-                        </a>
-                      </Button>
-                    </div>
-                  ) : null}
-                  <div className="flex flex-col gap-4">
-                    <h4 className="text-sm font-medium text-muted-foreground">
-                      {ui("owner.moneyGroup", locale)}
-                    </h4>
-                    <DueRemainingFigures
-                      dueUsd={row.priceUsd}
-                      remainingUsd={row.remainingUsd}
-                      locale={locale}
-                    />
-                    {mayCollect && row.status !== "paid" ? (
-                      <>
-                        <form action={submitCollectPayment}>
-                          <input type="hidden" name="bookingId" value={row.id} />
-                          {keepTenantQuery(tenantSlug)}
-                          <input
-                            type="hidden"
-                            name="usdAmount"
-                            value={row.remainingUsd}
-                          />
-                          <SubmitButton className="w-full">
-                            {collectUsdLabel(row.remainingUsd, locale)}
-                          </SubmitButton>
-                        </form>
-                        <form
-                          action={submitCollectPayment}
-                          className="flex flex-col gap-4"
-                        >
-                          <input type="hidden" name="bookingId" value={row.id} />
-                          {keepTenantQuery(tenantSlug)}
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor={`usd-${row.id}`}>
-                              {ui("owner.usd", locale)}
-                            </Label>
-                            <Input
-                              id={`usd-${row.id}`}
-                              type="text"
-                              name="usdAmount"
-                              inputMode="decimal"
-                              placeholder="30.00"
-                              className="font-mono"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Label htmlFor={`lbp-${row.id}`}>
-                              {ui("owner.lbp", locale)}
-                            </Label>
-                            <Input
-                              id={`lbp-${row.id}`}
-                              type="text"
-                              name="lbpAmount"
-                              inputMode="numeric"
-                              className="font-mono"
-                            />
-                          </div>
-                          <SubmitButton variant="secondary" className="w-full">
-                            {ui("owner.collectMixed", locale)}
-                          </SubmitButton>
-                        </form>
-                      </>
-                    ) : null}
-                    {mayCancel && row.showCancel ? (
-                      <form action={submitCancelBooking}>
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepTenantQuery(tenantSlug)}
-                        <SubmitButton variant="outline" className="w-full">
-                          {ui("owner.cancel", locale)}
-                        </SubmitButton>
-                      </form>
-                    ) : null}
-                    {mayNoShow && row.showNoShow ? (
-                      <form action={submitRecordNoShow}>
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepTenantQuery(tenantSlug)}
-                        <SubmitButton variant="outline" className="w-full">
-                          {ui("owner.noShow", locale)}
-                        </SubmitButton>
-                      </form>
-                    ) : null}
-                  </div>
-                </CardContent>
-              ) : null}
             </Card>
           </li>
         );
       })}
     </ul>
+  );
+}
+
+function UpcomingRowActions({
+  row,
+  tenantSlug,
+  locale,
+  mayCollect,
+  mayCancel,
+  mayNoShow,
+  cancelRef,
+  onCancelBooking,
+}: {
+  row: UpcomingRowView;
+  tenantSlug: string;
+  locale: UiLocale;
+  mayCollect: boolean;
+  mayCancel: boolean;
+  mayNoShow: boolean;
+  cancelRef: Ref<HTMLButtonElement>;
+  onCancelBooking: () => void;
+}) {
+  return (
+    <>
+      <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Phone aria-hidden className="size-4 shrink-0" />
+        <LtrIsolate>{row.requesterPhone}</LtrIsolate>
+      </p>
+      {row.confirmWhatsAppHref ? (
+        <div className="flex flex-col gap-2">
+          <h4 className="text-sm font-medium text-muted-foreground">
+            {ui("owner.notifyGroup", locale)}
+          </h4>
+          <Button variant="outline" className="w-full" asChild>
+            <a
+              href={row.confirmWhatsAppHref}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {ui("owner.notify", locale)}
+            </a>
+          </Button>
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-4">
+        <h4 className="text-sm font-medium text-muted-foreground">
+          {ui("owner.moneyGroup", locale)}
+        </h4>
+        <DueRemainingFigures
+          dueUsd={row.priceUsd}
+          remainingUsd={row.remainingUsd}
+          locale={locale}
+        />
+        {mayCollect && row.status !== "paid" ? (
+          <>
+            <form action={submitCollectPayment}>
+              <input type="hidden" name="bookingId" value={row.id} />
+              {keepTenantQuery(tenantSlug)}
+              <input
+                type="hidden"
+                name="usdAmount"
+                value={row.remainingUsd}
+              />
+              <SubmitButton className="w-full">
+                {collectUsdLabel(row.remainingUsd, locale)}
+              </SubmitButton>
+            </form>
+            <form action={submitCollectPayment} className="flex flex-col gap-4">
+              <input type="hidden" name="bookingId" value={row.id} />
+              {keepTenantQuery(tenantSlug)}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`usd-${row.id}`}>
+                  {ui("owner.usd", locale)}
+                </Label>
+                <Input
+                  id={`usd-${row.id}`}
+                  type="text"
+                  name="usdAmount"
+                  inputMode="decimal"
+                  placeholder="30.00"
+                  className="font-mono"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`lbp-${row.id}`}>
+                  {ui("owner.lbp", locale)}
+                </Label>
+                <Input
+                  id={`lbp-${row.id}`}
+                  type="text"
+                  name="lbpAmount"
+                  inputMode="numeric"
+                  className="font-mono"
+                />
+              </div>
+              <SubmitButton variant="secondary" className="w-full">
+                {ui("owner.collectMixed", locale)}
+              </SubmitButton>
+            </form>
+          </>
+        ) : null}
+        {mayNoShow && row.showNoShow ? (
+          <form action={submitRecordNoShow}>
+            <input type="hidden" name="bookingId" value={row.id} />
+            {keepTenantQuery(tenantSlug)}
+            <SubmitButton variant="outline" className="w-full">
+              {ui("owner.noShow", locale)}
+            </SubmitButton>
+          </form>
+        ) : null}
+      </div>
+      {mayCancel && row.showCancel ? (
+        <Button
+          ref={cancelRef}
+          type="button"
+          variant="ghost"
+          className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={onCancelBooking}
+        >
+          {ui("owner.cancel", locale)}
+        </Button>
+      ) : null}
+    </>
   );
 }

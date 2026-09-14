@@ -3176,6 +3176,90 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. Login `owner@ahmad` → pending Request → Approve → toast + ring on that القادم row (`highlight=` stays in the URL). Expand: إبلاغ then Collect/Cancel. Link opens WhatsApp; text is `{stadium}: {pitch} {start}–{end} تم تأكيد حجزك.` Unpaid NO_SHOW: no إبلاغ. Coming-days approve: that section is open, row may still be off-screen (no scrollIntoView yet).
 
+---
+
+## Chapter 146 — 2026-09-14 — Home confirmed details in a bottom sheet
+
+**When:** 2026-09-14
+
+**What:** Confirmed Home rows stay compact. Tap opens a shared bottom sheet (slide up, overlay, scroll inside) with إبلاغ + Collect/Cancel/No-show. Rows show a trailing chevron (`rtl:rotate-180`), hover/active wash, and `cursor-pointer` so they read as tappable. `BottomSheet` is a general Dialog-based component — same overlay/RemoveScroll rules as the centered dialog; no extra library.
+
+**Why:** Inline expand made the list very tall. A sheet keeps the list scannable and the actions on one surface. Chevron is the affordance that was missing.
+
+**Files:** `src/components/ui/bottom-sheet.tsx`; `src/app/owner/today/upcoming-panel.tsx`; `src/lib/ui-copy.ts`; `docs/owner-ia.md`; `test/lib/ui-copy.test.ts`.
+
+**Relation:** No Booking/Payment write changes. Highlight ring still on the compact row. Sheet is not auto-opened after Approve.
+
+**How to verify:** `npm test`. Home — compact confirmed rows with chevron. Tap: sheet slides up over the tab bar; overlay tap / Esc / close dismisses. Collect and إبلاغ still work in the sheet. RTL: chevron points toward the start edge.
+
+---
+
+## Chapter 147 — 2026-09-14 — Cancel booking is not “close the sheet”
+
+**When:** 2026-09-14
+
+**What:** Home sheet no longer has a full-width outline **إلغاء** that reads as dismiss. The sheet still closes with X / overlay / Esc (`إغلاق`). Booking cancel is a separate ghost **إلغاء الحجز**, then a red **تأكيد إلغاء الحجز** (hint: hour is freed) with **تراجع**. `cancelBooking` is unchanged.
+
+**Why:** In a bottom sheet, “Cancel” is the usual name for go-back. One tap was flipping APPROVED → CANCELLED forever. The owner (and the person who built it) hit it by mistake.
+
+**Files:** `src/app/owner/today/upcoming-panel.tsx` (`CancelBookingControl`); `src/lib/ui-copy.ts`; `docs/owner-ia.md`; `test/lib/ui-copy.test.ts`.
+
+**Relation:** No domain/status-rule changes. No-show stays one tap (`لم يحضر` does not mean close).
+
+**How to verify:** `npm test`. Open a confirmed row → X / dim / Esc close the sheet, booking stays APPROVED. إلغاء الحجز does not submit; تأكيد إلغاء الحجز does. تراجع returns to the quiet button.
+
+---
+
+## Chapter 148 — 2026-09-14 — Cancel confirm replaces the sheet, does not grow it
+
+**When:** 2026-09-14
+
+**What:** Tap إلغاء الحجز swaps the sheet to a short confirm view (title, which booking, hint, تأكيد / تراجع). Collect / إبلاغ go away until تراجع. Confirm buttons stay above the screen edge; no extra scroll. Close / open another row resets the step.
+
+**Why:** Appending the red confirm under Collect made a already-tall sheet taller; تأكيد sat under the fold.
+
+**Files:** `src/app/owner/today/upcoming-panel.tsx`; `docs/owner-ia.md`.
+
+**Relation:** Still two taps, same `submitCancelBooking`. No domain change.
+
+**How to verify:** Open a confirmed row with Collect visible → إلغاء الحجز → sheet shrinks; تأكيد and تراجع are on-screen without scrolling. تراجع restores Collect. X still only closes.
+
+---
+
+## Chapter 149 — 2026-09-14 — Smooth sheet height + close
+
+**When:** 2026-09-14
+
+**What:** Cancel confirm/back eases the sheet height (~320ms, same curve as the slide) and crossfades the two bodies. Closing X / overlay / Esc keeps the sheet mounted so it can slide down instead of vanishing. Opening the confirm step again does not replay that height anim during the slide-up.
+
+**Why:** Instant swap felt hard. Unmounting `BottomSheetContent` on `openId = null` cancelled the exit animation.
+
+**Files:** `src/components/ui/bottom-sheet.tsx` (`BottomSheetStage`); `src/app/owner/today/upcoming-panel.tsx`; `docs/owner-ia.md`.
+
+**Relation:** Still two taps, same `submitCancelBooking`. No domain change.
+
+**How to verify:** Open a confirmed row — sheet slides up. إلغاء الحجز — sheet shrinks, buttons fade in. تراجع — sheet grows back. X / dim — sheet slides down. Reduced-motion: instant swap, no height tween.
+
+---
+
+## Chapter 150 — 2026-09-14 — Cancel step: inert, not aria-hidden on focused button
+
+**When:** 2026-09-14
+
+**What:** Hidden sheet step uses `inert` only (no `aria-hidden`). Tap إلغاء الحجز blurs first, then focus moves to تأكيد إلغاء الحجز; تراجع returns focus to إلغاء الحجز.
+
+**Why:** Chrome blocked `aria-hidden` on the details panel because إلغاء الحجز still had focus. Spec: don’t hide a focused descendant; `inert` also prevents focus.
+
+**Files:** `src/app/owner/today/upcoming-panel.tsx`
+
+**Relation:** Same two-step cancel. No domain change.
+
+**How to verify:** Open a confirmed row → إلغاء الحجز. Console should not show the aria-hidden focus warning. Focus ring lands on تأكيد; تراجع lands on إلغاء الحجز.
+
+
+
+
+
 
 
 

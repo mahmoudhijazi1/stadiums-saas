@@ -10,7 +10,7 @@ Five real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (
 
 | Tab | URL | Contains | Does **not** contain |
 |---|---|---|---|
-| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact status tags, tap-in collect/cancel/no-show after the hour ends + إبلاغ WhatsApp confirm on APPROVED); inline next 7 civil days; `?ok=approved&highlight=` rings the new row | Book date picker, waitlist, rate, period, expenses |
+| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact rows with chevron; tap opens a bottom sheet for collect/cancel/no-show + إبلاغ WhatsApp confirm on APPROVED); inline next 7 civil days; `?ok=approved&highlight=` rings the new row | Book date picker, waitlist, rate, period, expenses |
 | Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Home lists, waitlist, Reports, Settings |
 | Waitlist | `/owner/waitlist` | Open slot-interest groups + WhatsApp notify | Rate, period, expenses, Book |
 | Reports | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense” | Exchange-rate **set** form, waitlist, Book, Home, Settings |
@@ -124,6 +124,7 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 | Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
 | `OwnerHome` (`today/lists.tsx` + `today/upcoming-panel.tsx`) + `today/actions.ts` | `/owner/today` |
+| Bottom sheet (shared) | `src/components/ui/bottom-sheet.tsx` — Dialog overlay, slides from the bottom |
 | Date chips + `OwnerBookSlots` (`book/slots.tsx`) + `OwnerSlotPicker` (`book/picker.tsx`) + `book/actions.ts` | `/owner/book` |
 | Shared slot grid | `src/components/slot-picker.tsx` (public + owner Book; name/phone in a Dialog; no booking/access/venue types) |
 | Shared day chips | `src/components/day-chips.tsx` (public `?date=` + owner `?bookOn=`) |
@@ -150,7 +151,8 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Concern | Tab / note |
 |---|---|
 | Pending + today’s confirmed + overdue unpaid | Home (`/owner/today`) |
-| Confirm-notify WhatsApp (BR-71 “booking confirmed”) | Home — APPROVED expand, إبلاغ group, not Waitlist |
+| Confirm-notify WhatsApp (BR-71 “booking confirmed”) | Home — APPROVED bottom sheet, إبلاغ group, not Waitlist |
+| Cancel a confirmed booking | Home sheet — two-step: إلغاء الحجز replaces the sheet body (height eases, does not append). Confirm / تراجع stay on-screen. Close is still X / overlay / Esc (sheet slides down) |
 | Phone-call / walk-in create | Book |
 | Waitlist after cancel | Waitlist |
 | Period P&L, expenses | Reports (`/owner/money`) |
