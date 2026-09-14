@@ -35,10 +35,12 @@ export async function OwnerToday({
   membership,
   tenantSlug,
   locale = "ar",
+  highlight,
 }: {
   membership: CurrentMembership;
   tenantSlug: string;
   locale?: UiLocale;
+  highlight?: string;
 }) {
   const pending = await listPendingRequests();
   const confirmed = await listDueBookings();
@@ -133,6 +135,7 @@ export async function OwnerToday({
         mayCollect={mayCollect}
         mayCancel={mayCancel}
         mayNoShow={mayNoShow}
+        highlight={highlight}
       />
     </>
   );
@@ -153,6 +156,7 @@ function toUpcomingViews(
     remainingUsd: formatUsd(row.remaining),
     priceUsd: formatUsd(row.priceUsd),
     status: upcomingStatus(row.start, row.remaining, now),
+    confirmWhatsAppHref: row.confirmWhatsAppHref,
     showCancel:
       row.status === "APPROVED" &&
       !isPastUnpaidCancel(row.start, row.remaining, now),

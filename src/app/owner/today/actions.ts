@@ -6,6 +6,7 @@ import { approveBooking } from "@/modules/booking/application/approve-booking";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { recordNoShow } from "@/modules/booking/application/record-no-show";
+import { rejectBooking } from "@/modules/booking/application/reject-booking";
 import { parseBookingDecision } from "@/modules/booking/schemas/booking-decision";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
@@ -39,7 +40,24 @@ async function submitDecision(
 }
 
 export async function submitApproveBooking(formData: FormData) {
-  await submitDecision(formData, approveBooking, "submitApproveBooking", "approved");
+  let errorKey: string | undefined;
+  let bookingId = "";
+  try {
+    const parsed = parseBookingDecision({
+      bookingId: field(formData, "bookingId"),
+    });
+    bookingId = parsed.bookingId;
+    await approveBooking(parsed.bookingId);
+  } catch (error) {
+    errorKey = await actionErrorKey(error, "submitApproveBooking");
+  }
+  if (errorKey) {
+    redirectOwner("/owner/today", formData, TODAY_KEEP, { error: errorKey });
+  }
+  redirectOwner("/owner/today", formData, TODAY_KEEP, {
+    ok: "approved",
+    highlight: bookingId,
+  });
 }
 
 export async function submitRejectBooking(formData: FormData) {

@@ -12,6 +12,7 @@ import { successMessage } from "@/lib/success-messages"
  * Toast from ?ok= / ?error= (and legacy public ?received=1), then strip
  * those keys. Must sit under <Suspense> (use-search-params.md).
  * Local Next use-router.md: router.replace.
+ * Does not strip `highlight` (Home confirm-notify ring after Approve).
  */
 function FlashToast({ locale = "ar" }: { locale?: UiLocale }) {
   const router = useRouter()

@@ -37,6 +37,7 @@ export type UpcomingRowView = {
   remainingUsd: string;
   priceUsd: string;
   status: UpcomingStatus;
+  confirmWhatsAppHref: string | null;
   showCancel: boolean;
   showNoShow: boolean;
 };
@@ -125,6 +126,7 @@ export function UpcomingPanel({
   mayCollect,
   mayCancel,
   mayNoShow,
+  highlight,
 }: {
   overdue: UpcomingRowView[];
   today: UpcomingRowView[];
@@ -134,9 +136,12 @@ export function UpcomingPanel({
   mayCollect: boolean;
   mayCancel: boolean;
   mayNoShow: boolean;
+  highlight?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const [showComing, setShowComing] = useState(false);
+  const [showComing, setShowComing] = useState(
+    () => Boolean(highlight && later.some((row) => row.id === highlight)),
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -159,6 +164,7 @@ export function UpcomingPanel({
             mayCollect={mayCollect}
             mayCancel={mayCancel}
             mayNoShow={mayNoShow}
+            highlight={highlight}
           />
         </>
       ) : null}
@@ -174,6 +180,7 @@ export function UpcomingPanel({
           mayCollect={mayCollect}
           mayCancel={mayCancel}
           mayNoShow={mayNoShow}
+          highlight={highlight}
         />
       ) : overdue.length === 0 ? (
         <EmptyState
@@ -205,6 +212,7 @@ export function UpcomingPanel({
               mayCollect={mayCollect}
               mayCancel={mayCancel}
               mayNoShow={mayNoShow}
+              highlight={highlight}
             />
           ) : null}
         </>
@@ -223,6 +231,7 @@ function UpcomingRows({
   mayCollect,
   mayCancel,
   mayNoShow,
+  highlight,
 }: {
   rows: UpcomingRowView[];
   showDate: boolean;
@@ -233,14 +242,22 @@ function UpcomingRows({
   mayCollect: boolean;
   mayCancel: boolean;
   mayNoShow: boolean;
+  highlight?: string;
 }) {
   return (
     <ul className="flex flex-col gap-2">
       {rows.map((row) => {
         const open = openId === row.id;
+        const highlighted = highlight === row.id;
         return (
-          <li key={row.id}>
-            <Card className={cn("gap-0 py-0", open && "ring-2 ring-inset ring-primary")}>
+          <li key={row.id} id={`booking-${row.id}`}>
+            <Card
+              className={cn(
+                "gap-0 py-0",
+                (open || highlighted) && "ring-2 ring-inset ring-primary",
+                highlighted && !open && "bg-primary/10",
+              )}
+            >
               <button
                 type="button"
                 aria-expanded={open}
@@ -276,80 +293,101 @@ function UpcomingRows({
                     <Phone aria-hidden className="size-4 shrink-0" />
                     <LtrIsolate>{row.requesterPhone}</LtrIsolate>
                   </p>
-                  <DueRemainingFigures
-                    dueUsd={row.priceUsd}
-                    remainingUsd={row.remainingUsd}
-                    locale={locale}
-                  />
-                  {mayCollect && row.status !== "paid" ? (
-                    <>
-                      <form action={submitCollectPayment}>
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepTenantQuery(tenantSlug)}
-                        <input
-                          type="hidden"
-                          name="usdAmount"
-                          value={row.remainingUsd}
-                        />
-                        <SubmitButton className="w-full">
-                          {collectUsdLabel(row.remainingUsd, locale)}
-                        </SubmitButton>
-                      </form>
-                      <form
-                        action={submitCollectPayment}
-                        className="flex flex-col gap-4"
-                      >
-                        <input type="hidden" name="bookingId" value={row.id} />
-                        {keepTenantQuery(tenantSlug)}
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor={`usd-${row.id}`}>
-                            {ui("owner.usd", locale)}
-                          </Label>
-                          <Input
-                            id={`usd-${row.id}`}
-                            type="text"
+                  {row.confirmWhatsAppHref ? (
+                    <div className="flex flex-col gap-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">
+                        {ui("owner.notifyGroup", locale)}
+                      </h4>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a
+                          href={row.confirmWhatsAppHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {ui("owner.notify", locale)}
+                        </a>
+                      </Button>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-col gap-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      {ui("owner.moneyGroup", locale)}
+                    </h4>
+                    <DueRemainingFigures
+                      dueUsd={row.priceUsd}
+                      remainingUsd={row.remainingUsd}
+                      locale={locale}
+                    />
+                    {mayCollect && row.status !== "paid" ? (
+                      <>
+                        <form action={submitCollectPayment}>
+                          <input type="hidden" name="bookingId" value={row.id} />
+                          {keepTenantQuery(tenantSlug)}
+                          <input
+                            type="hidden"
                             name="usdAmount"
-                            inputMode="decimal"
-                            placeholder="30.00"
-                            className="font-mono"
+                            value={row.remainingUsd}
                           />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Label htmlFor={`lbp-${row.id}`}>
-                            {ui("owner.lbp", locale)}
-                          </Label>
-                          <Input
-                            id={`lbp-${row.id}`}
-                            type="text"
-                            name="lbpAmount"
-                            inputMode="numeric"
-                            className="font-mono"
-                          />
-                        </div>
-                        <SubmitButton variant="secondary" className="w-full">
-                          {ui("owner.collectMixed", locale)}
+                          <SubmitButton className="w-full">
+                            {collectUsdLabel(row.remainingUsd, locale)}
+                          </SubmitButton>
+                        </form>
+                        <form
+                          action={submitCollectPayment}
+                          className="flex flex-col gap-4"
+                        >
+                          <input type="hidden" name="bookingId" value={row.id} />
+                          {keepTenantQuery(tenantSlug)}
+                          <div className="flex flex-col gap-2">
+                            <Label htmlFor={`usd-${row.id}`}>
+                              {ui("owner.usd", locale)}
+                            </Label>
+                            <Input
+                              id={`usd-${row.id}`}
+                              type="text"
+                              name="usdAmount"
+                              inputMode="decimal"
+                              placeholder="30.00"
+                              className="font-mono"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Label htmlFor={`lbp-${row.id}`}>
+                              {ui("owner.lbp", locale)}
+                            </Label>
+                            <Input
+                              id={`lbp-${row.id}`}
+                              type="text"
+                              name="lbpAmount"
+                              inputMode="numeric"
+                              className="font-mono"
+                            />
+                          </div>
+                          <SubmitButton variant="secondary" className="w-full">
+                            {ui("owner.collectMixed", locale)}
+                          </SubmitButton>
+                        </form>
+                      </>
+                    ) : null}
+                    {mayCancel && row.showCancel ? (
+                      <form action={submitCancelBooking}>
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepTenantQuery(tenantSlug)}
+                        <SubmitButton variant="outline" className="w-full">
+                          {ui("owner.cancel", locale)}
                         </SubmitButton>
                       </form>
-                    </>
-                  ) : null}
-                  {mayCancel && row.showCancel ? (
-                    <form action={submitCancelBooking}>
-                      <input type="hidden" name="bookingId" value={row.id} />
-                      {keepTenantQuery(tenantSlug)}
-                      <SubmitButton variant="outline" className="w-full">
-                        {ui("owner.cancel", locale)}
-                      </SubmitButton>
-                    </form>
-                  ) : null}
-                  {mayNoShow && row.showNoShow ? (
-                    <form action={submitRecordNoShow}>
-                      <input type="hidden" name="bookingId" value={row.id} />
-                      {keepTenantQuery(tenantSlug)}
-                      <SubmitButton variant="outline" className="w-full">
-                        {ui("owner.noShow", locale)}
-                      </SubmitButton>
-                    </form>
-                  ) : null}
+                    ) : null}
+                    {mayNoShow && row.showNoShow ? (
+                      <form action={submitRecordNoShow}>
+                        <input type="hidden" name="bookingId" value={row.id} />
+                        {keepTenantQuery(tenantSlug)}
+                        <SubmitButton variant="outline" className="w-full">
+                          {ui("owner.noShow", locale)}
+                        </SubmitButton>
+                      </form>
+                    ) : null}
+                  </div>
                 </CardContent>
               ) : null}
             </Card>

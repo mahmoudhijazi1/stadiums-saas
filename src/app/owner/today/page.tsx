@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import {
+  queryString,
   requireOwnerMembership,
   tenantSlugFrom,
 } from "@/app/owner/shared";
@@ -17,6 +18,9 @@ export default async function OwnerTodayPage({
   const tenantSlug = tenantSlugFrom(params, tenant.slug);
   const membership = await requireOwnerMembership(tenantSlug);
   const locale = await getUiLocale();
+  const highlight = queryString(
+    (params as { highlight?: string | string[] }).highlight,
+  );
 
   return (
     <section className="flex flex-col gap-4">
@@ -26,6 +30,7 @@ export default async function OwnerTodayPage({
           membership={membership}
           tenantSlug={tenantSlug}
           locale={locale}
+          highlight={highlight}
         />
       </Suspense>
     </section>

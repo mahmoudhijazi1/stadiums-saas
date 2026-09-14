@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   slotAvailableMessage,
   whatsAppHref,
+  bookingConfirmedMessage,
 } from "@/modules/notification/domain/whatsapp-link";
 
 describe("whatsAppHref", () => {
@@ -44,5 +45,18 @@ describe("slotAvailableMessage", () => {
     ).toBe(
       "Ahmad Stadium: Pitch 1 18:00–19:00 أصبحت متاحة مجدداً إذا ما زلت تريدها.",
     );
+  });
+});
+
+describe("bookingConfirmedMessage", () => {
+  it("names the stadium, pitch, and local times", () => {
+    expect(
+      bookingConfirmedMessage({
+        stadiumName: "Ahmad Stadium",
+        pitchName: "Pitch 1",
+        startLocal: "18:00",
+        endLocal: "19:00",
+      }),
+    ).toBe("Ahmad Stadium: Pitch 1 18:00–19:00 تم تأكيد حجزك.");
   });
 });

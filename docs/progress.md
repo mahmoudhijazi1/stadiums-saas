@@ -3160,6 +3160,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **How to verify:** `npm test`. Home — after a finished unpaid APPROVED, expand: Collect + لم يحضر, no Cancel. Tap no-show; still Collect. Collect remaining → row leaves. Future row: no No-show. `staff@ahmad`: no button. Stale POST before end → `booking.no_show_not_ended`.
 
+---
+
+## Chapter 145 — 2026-09-14 — Confirm-notify WhatsApp on Home
+
+**When:** 2026-09-14
+
+**What:** After Approve, Home’s confirmed row can إبلاغ via `wa.me` with a “booking confirmed” Arabic body. Link is a static `<a>` (same as waitlist), not a Server Action. Expand groups إبلاغ above تحصيل. Successful Approve redirects `ok=approved&highlight=<id>`; FlashToast still strips only `ok`; the row keeps a primary ring (coming-days opens if that id is in `later`). No auto-expand. Owner Book and reject-notify out.
+
+**Why:** BR-71 “booking confirmed”. Players have no login. Waitlist Notify is the losers’ hour-freed message; the winner’s confirm belongs on Home’s APPROVED expand. `approveBooking` is unchanged — notify is after the fact.
+
+**Files:** `src/modules/notification/domain/whatsapp-link.ts` (`bookingConfirmedMessage`); `src/modules/booking/application/list-due-bookings.ts`; `src/app/owner/today/{actions,page,lists,upcoming-panel}`; `src/components/ui/flash-toast.tsx`; `src/lib/ui-copy.ts`; `docs/owner-ia.md`; tests.
+
+**Relation:** Notification still does not import Booking. Booking builds the href. No Payment/Ledger write. `scrollIntoView` for a deep coming-days highlight is deferred on purpose (owner-ia Home deferred).
+
+**How to verify:** `npm test`. Login `owner@ahmad` → pending Request → Approve → toast + ring on that القادم row (`highlight=` stays in the URL). Expand: إبلاغ then Collect/Cancel. Link opens WhatsApp; text is `{stadium}: {pitch} {start}–{end} تم تأكيد حجزك.` Unpaid NO_SHOW: no إبلاغ. Coming-days approve: that section is open, row may still be off-screen (no scrollIntoView yet).
+
+
 
 
 

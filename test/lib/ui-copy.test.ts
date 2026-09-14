@@ -40,6 +40,10 @@ describe("ui", () => {
     expect(ui("owner.waitlist")).toBe("قائمة الانتظار");
     expect(ui("owner.waitlistTab")).toBe("انتظار");
     expect(ui("owner.waitlistTab", "en")).toBe("Waitlist");
+    expect(ui("owner.notifyGroup")).toBe("إبلاغ");
+    expect(ui("owner.notifyGroup", "en")).toBe("Notify");
+    expect(ui("owner.moneyGroup")).toBe("تحصيل");
+    expect(ui("owner.moneyGroup", "en")).toBe("Collect");
     expect(ui("owner.changePeriod")).toBe("تغيير الفترة");
     expect(ui("owner.changePeriod", "en")).toBe("Change period");
     expect(ui("owner.addExpense")).toBe("إضافة مصروف");

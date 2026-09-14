@@ -22,6 +22,19 @@ export function slotAvailableMessage(input: {
   return `${input.stadiumName}: ${input.pitchName} ${input.startLocal}–${input.endLocal} أصبحت متاحة مجدداً إذا ما زلت تريدها.`;
 }
 
+/**
+ * Arabic “booking confirmed” body (BR-71). Same skeleton as waitlist.
+ * Times are already local Latin strings. Names stay as stored (RULE-11).
+ */
+export function bookingConfirmedMessage(input: {
+  stadiumName: string;
+  pitchName: string;
+  startLocal: string;
+  endLocal: string;
+}): string {
+  return `${input.stadiumName}: ${input.pitchName} ${input.startLocal}–${input.endLocal} تم تأكيد حجزك.`;
+}
+
 function toLebanonWhatsAppNumber(phoneDigits: string): string {
   if (!/^\d+$/.test(phoneDigits)) {
     throw new DomainError("notification.bad_phone");

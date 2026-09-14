@@ -10,7 +10,7 @@ Five real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (
 
 | Tab | URL | Contains | Does **not** contain |
 |---|---|---|---|
-| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact status tags, tap-in collect/cancel/no-show after the hour ends); inline next 7 civil days | Book date picker, waitlist, rate, period, expenses |
+| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact status tags, tap-in collect/cancel/no-show after the hour ends + إبلاغ WhatsApp confirm on APPROVED); inline next 7 civil days; `?ok=approved&highlight=` rings the new row | Book date picker, waitlist, rate, period, expenses |
 | Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Home lists, waitlist, Reports, Settings |
 | Waitlist | `/owner/waitlist` | Open slot-interest groups + WhatsApp notify | Rate, period, expenses, Book |
 | Reports | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense” | Exchange-rate **set** form, waitlist, Book, Home, Settings |
@@ -47,6 +47,10 @@ Do not grow a tab by stacking another product’s UI on it. If it is not in the 
   - `gapMinutes` stays 0 (changing it moves the offered grid; hours-cover would not warn).
   - Pitch delete.
   - Pitch blocks (BR-6, maintenance / private / academy) — **open question**. No `pitch_blocks` table yet (SPEC-02 deferred). Not the same as editing a pitch’s weekly hours.
+
+**Home** (`/owner/today`) — still deferred:
+
+- Highlighted row (via `?highlight=`) has no `scrollIntoView` — if a future-day approve lands deep in an opened “coming days” list, the ring may render off-screen. Deferred deliberately, not forgotten. Add later: `scrollIntoView` on mount when highlight is set and the row exists, keyed off the same `highlight` prop already threaded through `upcoming-panel.tsx`.
 
 ---
 
@@ -89,6 +93,7 @@ Tab bar Links carry **`tenant` only** (local-dev; not isolation).
 | `bookOn` | `/owner/book` only |
 | `from` `to` `view` `displayRate` | `/owner/money` only |
 | `ok` / `error` | the tab the action redirected to; FlashToast strips them |
+| `highlight` | `/owner/today` after Approve only (booking id). FlashToast does **not** strip this. |
 | `name` `hoursGroupsJson` `slotDurationMinutes` `defaultPriceUsd` `priceRulesJson` `needPending` | pitch create/edit URLs after a refused save (`error` is stripped; pending confirm and draft JSON stay) |
 
 ### Server Action redirects
@@ -97,7 +102,8 @@ Use-case logic is unchanged. Only the redirect path:
 
 | Action | Lands on |
 |---|---|
-| `submitApproveBooking` / `submitRejectBooking` / `submitCancelBooking` / `submitRecordNoShow` / `submitCollectPayment` | `/owner/today` |
+| `submitApproveBooking` | `/owner/today` (`ok=approved` + `highlight=<bookingId>`) |
+| `submitRejectBooking` / `submitCancelBooking` / `submitRecordNoShow` / `submitCollectPayment` | `/owner/today` |
 | `submitCreateOwnerBooking` | `/owner/book` (keeps `bookOn`) |
 | `submitRecordExpense` | `/owner/money` |
 | `submitSetExchangeRate` | `/owner/more/settings` |
@@ -144,6 +150,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Concern | Tab / note |
 |---|---|
 | Pending + today’s confirmed + overdue unpaid | Home (`/owner/today`) |
+| Confirm-notify WhatsApp (BR-71 “booking confirmed”) | Home — APPROVED expand, إبلاغ group, not Waitlist |
 | Phone-call / walk-in create | Book |
 | Waitlist after cancel | Waitlist |
 | Period P&L, expenses | Reports (`/owner/money`) |
