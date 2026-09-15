@@ -8,66 +8,90 @@ Coming from Laravel: `app/` is like `routes/` + the thinnest possible controller
 
 ---
 
-## The target structure
+## The structure as it exists today
 
-Grow this one module at a time. Do NOT scaffold it all up front — empty wrong-shaped folders invite mistakes. This is the shape it grows *into*.
+Grow this one module at a time. Do NOT scaffold empty folders up front — wrong-shaped empties invite mistakes. Below is the shape of the **current** tree (not a wish-list).
 
 ```
 src/
+  proxy.ts                      ← Next.js 16 proxy (renamed from middleware).
+                                  Host / ?tenant= → header x-tenant-slug.
+                                  Must not query Postgres.
+
   app/                          ← Next.js routes ONLY. Thin. No business logic.
-    [locale]/                   ← next-intl locale segment (ar / en)
-      (owner)/                  ← owner back-office route group
-        dashboard/page.tsx
-        schedule/page.tsx
-      (public)/                 ← public per-tenant page route group
-        page.tsx
-    api/                        ← only if you need route handlers
-    layout.tsx
-    middleware.ts               ← tenant resolution (subdomain → header)
+    (public)/                   ← Public per-tenant booking page
+      page.tsx
+      request-slot.ts           ← Server Action → booking use case
+    login/
+      page.tsx
+      actions.ts
+    owner/                      ← Owner back-office
+      today/                    ← Home (approve, collect, cancel, no-show)
+      book/                     ← Owner create booking
+      waitlist/
+      money/                    ← Ledger summary + expenses
+      more/settings/            ← Pitches + rate
+      layout.tsx
+      tab-bar.tsx
+    layout.tsx                  ← html lang/dir from cookie locale
+    locale-actions.ts
+    error.tsx
+    global-error.tsx
+    # No [locale] segment. Locale is cookie stadium_locale (DR-005 / SPEC-13).
+    # No app/api/ route handlers yet — Server Actions only.
+
+  components/                   ← Shared React UI (not per-module ui/ folders)
+    ui/                         ← Primitives (button, dialog, bottom-sheet, …)
+    day-chips.tsx
+    slot-picker.tsx
+    lang-toggle.tsx
+    …
 
   modules/                      ← ALL business logic. One folder per bounded context.
+    access/                     ← Login, sessions, membership, can()
+      domain/
+      application/
+      infrastructure/
+      schemas/
     people/
-      domain/                   ← pure functions, no DB, no await. The rules.
-      application/              ← use cases. orchestration. await + transactions live here.
-      infrastructure/          ← all Prisma queries hidden here.
-      schemas/                 ← Zod input validation.
-      ui/                      ← React components for this feature.
     venue/
       domain/
-        availability.ts        ← the slot-generation engine (pure functions)
+        availability.ts         ← Slot-generation engine (pure)
       application/
       infrastructure/
       schemas/
-      ui/
     booking/
-      domain/
-        booking.rules.ts       ← canCancel(booking, policy, now), etc.
+      domain/                   ← decision, exclusion, waitlist, …
       application/
       infrastructure/
       schemas/
-      ui/
     payment/
     ledger/
     expense/
-    access/
-    notification/
-    platform/
+    notification/               ← domain only today (WhatsApp link helpers)
+    # No modules/*/ui/ — route UI lives under app/; shared under components/
+    # No modules/platform/ — platform tables use lib/platform-db.ts
     # shop/     ← Phase 2, don't create yet
     # academy/  ← Phase 3, don't create yet
 
-  lib/                          ← shared plumbing used by many modules
-    db.ts                       ← Prisma client + tenant extension
-    platform-db.ts              ← the unscoped escape-hatch client (allowlisted)
-    tenant-context.ts           ← request-scoped tenant context
-    auth.ts                     ← sessions + can(user, 'permission')
+  lib/                          ← Shared plumbing used by many modules
+    prisma-base.ts              ← One Prisma client, one pool
+    db.ts                       ← Tenant-scoped extension
+    platform-db.ts              ← Unscoped escape hatch (allowlisted)
+    tenant-context.ts           ← Request-scoped tenant (after header → load)
+    tenant-slug.ts              ← Parse host / ?tenant=
     money.ts                    ← Decimal helpers, USD/LBP
-    logger.ts                  ← server file logger → /logs (info/error)
-    i18n.ts
+    logger.ts                   ← Server file logger → /logs
+    locale.ts / get-ui-locale.ts / ui-copy.ts
+    error-messages.ts / success-messages.ts / errors.ts / use-case-error.ts
+    request-fields.ts / format-local-hm.ts / utils.ts
+    # No lib/auth.ts — sessions + can() live in modules/access/
+    # No lib/i18n.ts — dictionaries are the files above (no next-intl yet)
 
-  prisma/
-    schema.prisma
-    migrations/
+  prisma/                       ← schema.prisma, migrations/, seed.ts
 ```
+
+Also at repo root (not under `src/`): `docs/`, `test/` (Jest unit + `test/integration/`), `docker-compose.yml`, `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`.
 
 ---
 
@@ -77,7 +101,7 @@ For any function you write, ask one question:
 
 > **Does it touch the database or the internet, or does it just think?**
 
-- **Just thinks** → `domain/`. Pure function. No `await`. Takes data in, returns data or a boolean. Example: `canCancel(booking, policy, now)`. Testable with no database.
+- **Just thinks** → `domain/`. Pure function. No `await`. Takes data in, returns data or a boolean. Example: `canCancel`-style rules in `booking/domain/decision.ts`. Testable with no database.
 - **Touches the DB / orchestrates steps** → `application/`. This is where `await` and `$transaction` live. Gets data, asks a domain rule, saves, notifies.
 - **Talks to Prisma** → `infrastructure/`. Every query hides here. Nothing else in the app writes Prisma queries directly.
 
@@ -87,6 +111,8 @@ Laravel mapping:
 - Repository → `infrastructure/`
 - Model rules / validation → `domain/` (as functions, not fat models)
 
+`schemas/` (Zod) sits at the module edge when a use case needs validated input. Not every module has every subfolder — create a layer when it has something in it (e.g. `notification/` is domain-only today).
+
 ---
 
 ## Why by-feature and not by-type
@@ -94,6 +120,8 @@ Laravel mapping:
 Laravel groups by type: all controllers together, all models together. Here you group by feature: everything about booking in `modules/booking/`.
 
 The payoff is your Phase 3 test: **adding the academy = adding `modules/academy/`, touching nothing else.** If code were grouped by type, the academy would smear across `controllers/`, `models/`, `services/` — touching everything. By feature, it's one new folder.
+
+Shared chrome that is not a bounded context (`Button`, day chips) stays in `src/components/`. Feature-specific page composition stays next to the route under `src/app/`.
 
 ---
 
@@ -146,9 +174,9 @@ does this go in?" while it's unfamiliar. That cost fades after the first two or 
 The `domain`/`application`/`infrastructure` question becomes automatic once you've asked "does
 it touch the DB, or just think?" a dozen times.
 
-**One simplification worth allowing:** for a truly trivial module (say `expense/` if it ends up
-being almost nothing), you don't need all four sub-layers. If there's no real rule, there's no
-`domain/`. Don't create empty layers to be symmetric — create a layer when it has something in
+**One simplification worth allowing:** for a truly trivial module (say `notification/` today),
+you don't need all four sub-layers. If there's no real rule beyond helpers, there's no
+`application/`. Don't create empty layers to be symmetric — create a layer when it has something in
 it. Scalable-but-simple means the structure follows the content, not a template.
 
 ---

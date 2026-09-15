@@ -3315,7 +3315,7 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 
 
-## Integration tests ó dedicated prisma dev instance + Phase 1 cases
+## Integration tests ÔøΩ dedicated prisma dev instance + Phase 1 cases
 
 **When:** 2026-09-15
 
@@ -3323,7 +3323,7 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **Why:** Prove exclusion + transactional approve without mocks of `23P01`. User confirmed dedicated test DB (not reuse-dev) and both A+B deadlock checks.
 
-**Gotcha:** Local `prisma dev` **ignores the database name** in the URL and always serves `template1` for that named instance. `CREATE DATABASE stadiums_test` on the demo proxy does **not** isolate ó early truncates wiped demo data (reseeded). Isolation = `prisma dev --name stadiums-test` on TCP **:51218**, never demo **:51214**. Local proxy is **single-connection**; truncate must use the app Prisma pool (no second `pg.Pool`); concurrent dual `` is not viable for the TOCTOU race ó mapping test uses optional `deps.listApprovedRanges`.
+**Gotcha:** Local `prisma dev` **ignores the database name** in the URL and always serves `template1` for that named instance. `CREATE DATABASE stadiums_test` on the demo proxy does **not** isolate ÔøΩ early truncates wiped demo data (reseeded). Isolation = `prisma dev --name stadiums-test` on TCP **:51218**, never demo **:51214**. Local proxy is **single-connection**; truncate must use the app Prisma pool (no second `pg.Pool`); concurrent dual `` is not viable for the TOCTOU race ÔøΩ mapping test uses optional `deps.listApprovedRanges`.
 
 **Files:** `test/integration/*`, `jest.integration.config.ts`, `jest.config.ts` (excludes `*.integration.test.ts`), `package.json` `test:integration`, `docs/guides/testing-jest.md`, `src/modules/booking/application/approve-booking.ts` (optional deps seam), `src/lib/prisma-base.ts` (`PG_POOL_MAX`).
 
@@ -3387,3 +3387,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `bookings.ts`, `format-local-hm.ts` + test, `get-day-availability.ts`, `list-due-bookings.ts`, `list-open-waitlist.ts`, `owner/shared.tsx`, `day-chips.tsx`; removed `db-with-comments.ts`.
 
 **How to verify:** `npm test` ‚Äî 224 passed.
+
+## Docs: folder-structure.md matches the tree
+
+**When:** 2026-09-15
+
+**What:** Rewrote `docs/guides/folder-structure.md` from a stale target sketch (`[locale]`, `middleware.ts`, `lib/auth.ts`, `lib/i18n.ts`, `platform/`, module `ui/`) to the actual layout: `src/proxy.ts`, `(public)` / `login` / `owner/*`, `components/`, modules without `ui/`, access-owned auth, cookie locale helpers, `src/prisma/`.
+
+**Why:** Engineering audit + owner-ia flagged this guide as describing files that are not in the repo.
+
+**Files:** `docs/guides/folder-structure.md` only.
+
+**How to verify:** Open the guide and walk the tree under `src/` ‚Äî listed paths should exist; commented ‚Äúno ‚Ä¶‚Äù notes should stay absent.
