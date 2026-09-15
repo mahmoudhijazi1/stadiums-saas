@@ -16,14 +16,13 @@ import { ui } from "@/lib/ui-copy";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { inOutBarPercents } from "./bars";
 import { Reveal } from "./reveal";
-import { submitRecordExpense } from "./actions";
+import { RecordExpenseSheet } from "./expense-sheet";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { DateField } from "@/components/ui/date-field";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,7 +30,6 @@ import { Input } from "@/components/ui/input";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
-import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Banknote,
   Drill,
@@ -250,82 +248,16 @@ export async function OwnerMoney({
           {ui("owner.expenses", locale)}
         </h3>
         {mayRecordExpense ? (
-          <Reveal
-            closedLabel={ui("owner.addExpense", locale)}
-            openLabel={ui("owner.hideExpenseForm", locale)}
-          >
-            <Card>
-              <CardHeader className="gap-1">
-                <CardTitle className="text-base">
-                  {ui("owner.recordExpense", locale)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form
-                  action={submitRecordExpense}
-                  className="flex flex-col gap-4"
-                >
-                  {keepPeriodQuery(tenantSlug, periodQuery)}
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="category">{ui("owner.category", locale)}</Label>
-                    <SelectField
-                      id="category"
-                      name="category"
-                      required
-                      defaultValue="ELECTRICITY"
-                      options={EXPENSE_CATEGORIES.map((category) => ({
-                        value: category,
-                        label: categoryLabel(category, locale),
-                      }))}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="description">{ui("owner.what", locale)}</Label>
-                    <Input
-                      id="description"
-                      type="text"
-                      name="description"
-                      required
-                      maxLength={200}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="occurredOn">{ui("owner.when", locale)}</Label>
-                    <DateField
-                      id="occurredOn"
-                      name="occurredOn"
-                      required
-                      defaultValue={today}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="expenseUsd">{ui("owner.usd", locale)}</Label>
-                    <Input
-                      id="expenseUsd"
-                      type="text"
-                      name="usdAmount"
-                      inputMode="decimal"
-                      placeholder="30.00"
-                      className="font-mono"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="expenseLbp">{ui("owner.lbp", locale)}</Label>
-                    <Input
-                      id="expenseLbp"
-                      type="text"
-                      name="lbpAmount"
-                      inputMode="numeric"
-                      className="font-mono"
-                    />
-                  </div>
-                  <SubmitButton className="w-full">
-                    {ui("owner.recordExpenseSubmit", locale)}
-                  </SubmitButton>
-                </form>
-              </CardContent>
-            </Card>
-          </Reveal>
+          <RecordExpenseSheet
+            tenantSlug={tenantSlug}
+            periodQuery={periodQuery}
+            today={today}
+            locale={locale}
+            categoryOptions={EXPENSE_CATEGORIES.map((category) => ({
+              value: category,
+              label: categoryLabel(category, locale),
+            }))}
+          />
         ) : null}
         {expenses.length === 0 ? (
           <EmptyState

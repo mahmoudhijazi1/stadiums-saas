@@ -69,7 +69,7 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
     logger.info(`Public booking request received ${bookingId}`);
     return { bookingId };
   } catch (error) {
-    await rethrowUnexpected(
+    return await rethrowUnexpected(
       error,
       "Public booking request failed",
       "requestPublicSlot",
