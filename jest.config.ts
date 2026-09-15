@@ -10,8 +10,13 @@ const createJestConfig = nextJest({
 const config: Config = {
   coverageProvider: "v8",
   testEnvironment: "node",
-  // All tests live under /test, mirroring src/ (e.g. src/lib/x.ts → test/lib/x.test.ts)
+  // All unit tests under /test. Integration suites are *.integration.test.ts
+  // and run only via `npm run test:integration`.
   testMatch: ["<rootDir>/test/**/*.test.ts"],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "\\.integration\\.test\\.ts$",
+  ],
 };
 
 export default createJestConfig(config);

@@ -1,5 +1,5 @@
 {
-  "debug.javascript.autoAttachFilter": "smart",
+  "debug.javascript.autoAttachFilter": "disabled",
   "debug.javascript.unmapMissingSources": true,
   "debug.allowBreakpointsEverywhere": true
 }

@@ -17,9 +17,10 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaBase() {
+  const max = Number(process.env.PG_POOL_MAX ?? "10");
   const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
-    max: 10,
+    max: Number.isFinite(max) && max > 0 ? max : 10,
   });
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }

@@ -33,4 +33,40 @@ introduces. Manual SPEC acceptance checks still matter; Jest is the repeatable s
 - Testing pure helpers (tenant slug parsing, money helpers, availability) keeps middleware and pages thin.
 - Repository / extension tests prove the tenant rail when a SPEC’s acceptance criteria demand it.
 
-See also: [folder-structure.md](./folder-structure.md), [cursor-workflow.md](./cursor-workflow.md).
+## Integration tests (real Postgres)
+
+Priority-1 architectural claims (exclusion constraint, transactional
+`approveBooking`, no nested `platformDb` inside `$transaction`) need a
+**dedicated** database — never the local demo/seed database.
+
+### Docker Postgres (dev + test)
+
+One container, two databases (real name isolation):
+
+| Role | Database | Env |
+|------|----------|-----|
+| App + seed | `stadiums_dev` | `DATABASE_URL` |
+| Integration tests | `stadiums_test` | `DATABASE_URL_TEST` |
+
+```bash
+docker compose up -d
+# .env from .env.example — user stadiums_local / stadiums_local_dev @ localhost:5433
+npx prisma migrate deploy --config prisma7.config.ts   # stadiums_dev
+npm run db:seed
+npm run test:integration   # migrate stadiums_test, then Jest
+```
+
+- Prepare + run: `npm run test:integration`
+  1. `test/integration/migrate-test-db.ts` — `prisma migrate deploy` on `DATABASE_URL_TEST`
+  2. Jest with `jest.integration.config.ts` (`*.integration.test.ts`, `maxWorkers: 1`)
+- `setup-env.ts` rewrites `process.env.DATABASE_URL` to the test URL **before**
+  any `@/lib/db` import and sets `STADIUMS_INTEGRATION=1`.
+- Truncate: requires `STADIUMS_INTEGRATION=1` and a URL containing `/stadiums_test`.
+
+Inspect data with DBeaver (or similar) at `localhost:5433` — no pgAdmin container.
+
+Unit tests (`npm test`) stay offline and do not require Postgres.
+
+Deadlock regression for `approveBooking`: **A** elapsed &lt; 5s and **B**
+`platformDb.tenant.findUnique` call count stays 0 after tenant cache warm-up.
+

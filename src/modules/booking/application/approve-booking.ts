@@ -16,23 +16,41 @@ import {
   findBookingForDecision,
   listApprovedRanges,
   setPendingStatus,
+  type ApprovedRangeRow,
 } from "@/modules/booking/infrastructure/bookings";
 import { civilDateInTimeZone } from "@/modules/venue/domain/availability";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
 import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import type { TenantTx } from "@/lib/db";
 
 const TIME_ZONE = "Asia/Beirut";
+
+export type ApproveBookingDeps = {
+  /**
+   * Optional seam for integration tests that force the TOCTOU exclusion path
+   * (local prisma dev is single-connection, so a real race cannot).
+   */
+  listApprovedRanges?: (
+    tx: TenantTx,
+    pitchId?: string,
+  ) => Promise<ApprovedRangeRow[]>;
+};
 
 /**
  * Confirm a PENDING request. Overlapping PENDING on that pitch become REJECTED
  * with a slot_interests row on the approved window (BR-20 / BR-21).
  * Authorize before $transaction — session lives on platformDb (SPEC-03 guard).
  */
-export async function approveBooking(bookingId: string): Promise<void> {
+export async function approveBooking(
+  bookingId: string,
+  deps: ApproveBookingDeps = {},
+): Promise<void> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, BOOKINGS_APPROVE)) {
     throw new DomainError("access.not_allowed");
   }
+
+  const listApproved = deps.listApprovedRanges ?? listApprovedRanges;
 
   try {
     await db.$transaction(async (tx) => {
@@ -47,7 +65,7 @@ export async function approveBooking(bookingId: string): Promise<void> {
         throw new DomainError("booking.pitch_not_found");
       }
       const config = parseScheduleConfig(pitch.scheduleConfig);
-      const approved = await listApprovedRanges(tx, booking.pitchId);
+      const approved = await listApproved(tx, booking.pitchId);
       resolveOfferedSlot({
         config,
         localDate: civilDateInTimeZone(booking.start, TIME_ZONE),

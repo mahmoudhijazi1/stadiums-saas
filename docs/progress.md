@@ -3314,3 +3314,33 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 
 
+
+## Integration tests — dedicated prisma dev instance + Phase 1 cases
+
+**When:** 2026-09-15
+
+**What:** Priority-1 integration harness against real Postgres: smoke, `isExclusionViolation` (real `23P01`), `approveBooking` happy path, exclusion?`booking.slot_unavailable` mapping, deadlock guards A (elapsed < 5s) + B (`platformDb.tenant.findUnique` = 0 after warm-up).
+
+**Why:** Prove exclusion + transactional approve without mocks of `23P01`. User confirmed dedicated test DB (not reuse-dev) and both A+B deadlock checks.
+
+**Gotcha:** Local `prisma dev` **ignores the database name** in the URL and always serves `template1` for that named instance. `CREATE DATABASE stadiums_test` on the demo proxy does **not** isolate — early truncates wiped demo data (reseeded). Isolation = `prisma dev --name stadiums-test` on TCP **:51218**, never demo **:51214**. Local proxy is **single-connection**; truncate must use the app Prisma pool (no second `pg.Pool`); concurrent dual `` is not viable for the TOCTOU race — mapping test uses optional `deps.listApprovedRanges`.
+
+**Files:** `test/integration/*`, `jest.integration.config.ts`, `jest.config.ts` (excludes `*.integration.test.ts`), `package.json` `test:integration`, `docs/guides/testing-jest.md`, `src/modules/booking/application/approve-booking.ts` (optional deps seam), `src/lib/prisma-base.ts` (`PG_POOL_MAX`).
+
+**How it connects:** Integration suites import real application/domain/infra; request stubs mock `next/headers` + clearable React `cache`. Must not point `DATABASE_URL` at demo during truncate.
+
+**How to verify:** `npx prisma dev --name stadiums-test --detach` (or `start`), then `npm run test:integration` ? 3 suites / 7 tests green. `npm test` still offline. Demo `:51214` still has seeded tenants after reseed.
+
+## Local DB: Docker Postgres instead of prisma dev
+
+**When:** 2026-09-15
+
+**What:** Switched local development and integration tests from `prisma dev` (PGlite proxy) to Docker `postgres:16-alpine` with two databases: `stadiums_dev` (app/seed) and `stadiums_test` (integration). Deleted `ensure-db.ts` port/zombie workarounds. Inspect via DBeaver at localhost:5432 (no pgAdmin container).
+
+**Why:** `prisma dev` ignores the database name in the URL; truncates could hit demo data. Real Postgres matches production droplet isolation.
+
+**Files:** `docker-compose.yml`, `docker/postgres/init-test-db.sql`, `.env.example`, `test/integration/migrate-test-db.ts` (replaces `ensure-db.ts`), simplified `setup-env.ts` / `truncate.ts` / smoke; `package.json` `test:integration`; `docs/guides/testing-jest.md`.
+
+**How to verify:** `docker compose up -d`; migrate + seed `stadiums_dev`; `npm run test:integration` green; DBeaver connects with `stadiums_local` / `stadiums_local_dev`.
+
+**Correction:** Host port is **5433** (not 5432) because another local Docker Postgres already bound 5432. DBeaver ? localhost:5433.
