@@ -1,5 +1,7 @@
 # MVP readiness audit — requirements, integrity, launch
 
+> **Superseded note:** Isolation integration test landed after this date (`test/integration/isolation.integration.test.ts`); other P0 items (backup, deploy docs) still open.
+
 **When:** 2026-09-15  
 **Scope:** read-only. Correctness and launch readiness on top of architecture (companion to `engineering-audit.md` and `error-handling-logging-audit.md`).  
 **Method:** BRD walk + code/test greps + file reads. Isolation test **not executed** (harness gap — §3).  

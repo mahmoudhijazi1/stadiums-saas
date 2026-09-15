@@ -2,26 +2,40 @@
 
 Multi-tenant stadium booking platform (Next.js 16, Prisma 7, Postgres).
 
-## Docs
+**Start here for project status and where docs live:** [`docs/NOW.md`](./docs/NOW.md).
 
-All planning and agent workflow docs live under [`docs/`](./docs/README.md):
+## Docs
 
 | Path | What |
 |------|------|
-| [`docs/decisions/`](./docs/decisions/) | Architecture decisions (DR-NNN) |
-| [`docs/specs/`](./docs/specs/) | Build slices (SPEC-NN) |
-| [`docs/guides/`](./docs/guides/) | Cursor workflow, folder structure, rules, Jest testing |
-| [`docs/progress.md`](./docs/progress.md) | Learning/defense log (append after each step) |
-| [`docs/requirements/brd.md`](./docs/requirements/brd.md) | Product source of truth (BRD, draft v0.1) |
+| [`docs/NOW.md`](./docs/NOW.md) | **Current status + next work + pointers** (read first) |
+| [`docs/README.md`](./docs/README.md) | Catalog of DRs, SPECs, guides |
+| [`docs/requirements/brd.md`](./docs/requirements/brd.md) | Product source of truth |
+| [`docs/progress.md`](./docs/progress.md) | Append-only journey log |
 
-**Work order:** decision → spec → code. SPEC-01 and SPEC-02 are implemented. Next: [SPEC-03](./docs/specs/SPEC-03-booking-public-request.md) (public request, not implemented).
+**Work order:** decision → spec → code. Agent rules: [`.cursor/rules/`](./.cursor/rules/). Framework warning: [`AGENTS.md`](./AGENTS.md).
 
-Agent rules: [`.cursor/rules/`](./.cursor/rules/). Framework warning: [`AGENTS.md`](./AGENTS.md).
+## Local setup
+
+```bash
+docker compose up -d          # Postgres 16 on localhost:5433 (dev + test DBs)
+cp .env.example .env          # if needed
+npx prisma migrate deploy --config prisma7.config.ts
+npm run db:seed
+npm run dev
+```
+
+Seed logins (password `dev-owner`): `owner@ahmad`, `owner@sami`, `staff@ahmad`. Use `?tenant=ahmad` (or host slug) locally.
 
 ## Scripts
 
 ```bash
-npm run dev      # local Next.js
+npm run dev                 # Next.js
 npm run build
 npm run lint
+npm test                    # unit (Jest, offline)
+npm run test:integration    # migrate stadiums_test + integration Jest
+npm run db:seed
 ```
+
+Details: [`docs/guides/testing-jest.md`](./docs/guides/testing-jest.md).

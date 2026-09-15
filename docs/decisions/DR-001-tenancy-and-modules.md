@@ -1,5 +1,7 @@
 # DR-001 — Tenancy Runtime & Module Boundaries
 
+> **Superseded note:** Same — proxy, not middleware, in code (`src/proxy.ts`). This DR’s section 2 still says middleware.
+
 **Status:** Settled (MVP foundation)
 **Type:** Decision Record — what we decided, what we rejected, and why. This is a defense document.
 **Followed by:** DR-002 (Core Data Model)

@@ -1,5 +1,7 @@
 # Audit — error handling consistency + logging completeness
 
+> **Superseded note:** P0 logout + WhatsApp log and P1 read-wrap / info context landed after this date.
+
 **When:** 2026-09-15  
 **Scope:** read-only. Every Server Action under `src/app/`, every `application/` use case under `src/modules/{access,people,venue,booking,payment,ledger,expense}`, plus notification WhatsApp helpers (RULE-9 / DR-004 side effects). No fixes.  
 **Rule source:** [DR-004](../decisions/DR-004-error-handling.md), [SPEC-12](../specs/SPEC-12-error-handling.md), BRD RULE-9 / RULE-10.  

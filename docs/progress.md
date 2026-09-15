@@ -26,17 +26,17 @@ Agents **append** here after each finished SPEC step or notable decision. They d
 
 ---
 
-## Where we are (2026-09-12)
+## Where we are (2026-09-15)
 
-**On `feature/public-slot-picker`.** SPEC-01–13 click-proofed. UI is Arabic + RTL by default. Public `/` has an EN/ع header button (cookie `stadium_locale`) that flips `html` `lang`/`dir` and public chrome. Hours are a 2-col tap grid with one inline request form. Latin times/phones/money/day numbers are `<bdi dir="ltr">`. Domain failures stay on the page (`?error=<key>`). Unexpected still goes to `error.tsx` / `logs/`.
+**On `main`.** SPEC-01–14 shipped. UI is Arabic + RTL by default. Public `/` and owner chrome have an EN/ع toggle (cookie `stadium_locale`) that flips `html` `lang`/`dir`. Latin times/phones/money/day numbers use `<bdi dir="ltr">` / `LtrIsolate`. Domain failures stay on the page (`?error=<key>`). Unexpected goes to `error.tsx` / `logs/`. RULE-7 isolation is proven by `test/integration/isolation.integration.test.ts` (plus a tenant-guard fix for findUnique select / update pre-check).
 
-**What a visitor can do:** public PENDING request. Owner approves, Books a caller’s hour, Collects, Cancels, sees waitlist + Notify, records expenses, and sees This period.
+**What a visitor can do:** public PENDING request. Owner approves, Books a caller's hour, Collects, Cancels, marks No-show, sees waitlist + Notify, confirms via WhatsApp after approve, records expenses, and sees This period.
 
-**What they cannot do yet:** refunds, no-show, other WhatsApp templates, per-player split, next-intl / `[locale]` / owner English, games-played / pitch-busy (BR-57).
+**What they cannot do yet:** refunds, per-player split, pitch blocks, subscriptions/suspend, other WhatsApp templates (reject/cancel/reminder), public location/contact/QR, games-played / pitch-busy (BR-57). Ops: no written backup cadence; prod env checklist still thin — see [NOW.md](./NOW.md).
 
 **Local logins (seed only):** password `dev-owner`. Identifiers `owner@ahmad`, `owner@sami`, `staff@ahmad` (STAFF, cannot approve, collect, record expenses, view reports, Book, or cancel).
 
-**Next:** No-show as product asks (SPEC not written). Overpay warning parked.
+**Next:** MVP P0 remaining — backup cadence, then deploy/prod env truth ([NOW.md](./NOW.md)).
 
 ---
 
@@ -3459,3 +3459,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `test/integration/fixtures.ts`, `isolation.integration.test.ts`, `src/lib/db.ts`.
 
 **How to verify:** `npm run test:integration` — 11 passed (4 suites).
+
+## Docs consolidation — NOW.md entry point
+
+**When:** 2026-09-15
+
+**What:** Added `docs/NOW.md` as the single living status entry. Rewrote root `README.md` and `docs/README.md` to point at it. Fixed living staleness (`owner-ia` proxy TODO, prisma-transaction-tenant-guard footer, progress **Where we are**). One-line superseded banners on SPEC-01, DR-001, DR-005, SPEC-13, and the three dated audits. No audit merges, no progress rollup.
+
+**Why:** Docs had grown redundant/stale; agents need one clear start page.
+
+**Files:** `docs/NOW.md`, `README.md`, `docs/README.md`, `docs/owner-ia.md`, `docs/guides/prisma-transaction-tenant-guard.md`, `docs/progress.md` (Where we are), banner lines on listed historical docs.
+
+**How to verify:** Open `docs/NOW.md` — status, topic table, What’s next = backup + deploy docs.

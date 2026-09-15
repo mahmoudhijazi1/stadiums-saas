@@ -1,5 +1,7 @@
 # DR-005 — Arabic-first UI (RTL + copy, no locale URL)
 
+> **Superseded note:** Cookie EN/ع toggle shipped later on public + owner; next-intl / `[locale]` still out.
+
 **Status:** Accepted
 **Date:** 2026-09-12
 **Depends on:** BRD A-1, A-2, R-4, RULE-11; `.cursor/rules/100-rtl-i18n.mdc`;

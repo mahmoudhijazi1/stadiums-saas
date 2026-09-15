@@ -169,4 +169,4 @@ Copy these; do not “simplify” them away.
 - Not a reason to put `tenantId` on the public form (hidden field is the **slug** for `?tenant=` after redirect only).
 - Not RLS. RLS is still deferred (DR-001).
 
-When you wake up: SPEC-03 is implemented. Next product slice is **auth**, before owner approve. This file is only so we do not walk into the same Prisma trap on the first `$transaction` that approves a booking.
+When you wake up: SPEC-03 and later slices (auth, approve, money, …) are already shipped. This file is only so we do not walk into the same Prisma trap on the next `$transaction` that touches tenant-scoped models.

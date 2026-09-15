@@ -1,5 +1,7 @@
 # Engineering audit — architecture vs the actual tree
 
+> **Superseded note:** Several findings closed after this date (folder-structure rewrite, Priority 3, P0/P1 errors). Do not treat as current backlog.
+
 **When:** 2026-09-15  
 **Scope:** read-only pass over `src/`, `test/`, and the DRs/guides that claim how this repo is built. No fixes.  
 **Method:** import greps and file reads, not recollection of “what we decided.”

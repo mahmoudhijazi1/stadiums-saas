@@ -171,13 +171,11 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 
 ---
 
-## TODO — Proxy vs middleware (do not forget)
+## TODO — Proxy vs middleware (historical note)
 
-Next.js 16 local docs (`file-conventions/proxy`, `loading.md`, `use-pathname.md`) say **Proxy**. This repo already runs tenant resolution in **`src/proxy.ts`**.
+Next.js 16 uses **Proxy** (`src/proxy.ts`) for tenant resolution (host / `?tenant=` → `x-tenant-slug`). Living docs (`docs/guides/folder-structure.md`, [NOW.md](./NOW.md)) already say proxy.
 
-Training data, SPEC-01 step 2, DR-001 §2, and `docs/guides/folder-structure.md` still say **`middleware.ts`**.
-
-That is a **documentation drift**, not a runtime bug today. **Next time anyone touches tenant resolution**, update SPEC-01 / DR-001 / folder-structure to `proxy.ts` so agents do not recreate `middleware.ts`. Do not “fix” it in an unrelated owner-UI slice.
+SPEC-01 step 2 and DR-001 §2 still say **middleware** — that is **historical record**, not a bug and not a reason to recreate `middleware.ts`. Do not “fix” those SPEC/DR bodies; at most they carry a one-line superseded banner.
 
 ---
 

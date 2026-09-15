@@ -1,5 +1,7 @@
 # SPEC-01 — Tenancy Foundation
 
+> **Superseded note:** Runtime file is now `src/proxy.ts` (Next 16 rename); this SPEC still says middleware.
+
 **Type:** Build Spec — precise, boring instructions to hand to Cursor.
 **Depends on:** DR-001 (tenancy runtime & modules), DR-002 (data model).
 **Goal of this slice:** prove the tenant-isolation chain works end to end, using the smallest

@@ -1,5 +1,7 @@
 # SPEC-13 — Arabic-first UI (RTL + copy)
 
+> **Superseded note:** Cookie EN/ع toggle shipped later on public + owner; next-intl / `[locale]` still out.
+
 **Type:** Build Spec — precise, boring instructions to hand to Cursor.
 **Depends on:** [DR-005](../decisions/DR-005-arabic-rtl.md), DR-004 (keys stay),
 BRD A-1, A-2, R-4, RULE-11, `.cursor/rules/100-rtl-i18n.mdc`.
