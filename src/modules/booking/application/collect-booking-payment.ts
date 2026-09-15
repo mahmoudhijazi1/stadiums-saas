@@ -1,6 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   PAYMENTS_COLLECT,
@@ -56,7 +57,10 @@ export async function collectBookingPayment(input: {
       });
     });
 
-    logger.info(`Payment collected ${paymentId} booking ${input.bookingId}`);
+    logger.info(`Payment collected ${paymentId} booking ${input.bookingId}`, undefined, {
+      useCase: "collectBookingPayment",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Collect payment failed", "collectBookingPayment");
   }

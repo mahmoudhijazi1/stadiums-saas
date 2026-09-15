@@ -44,8 +44,19 @@ export async function submitLogin(formData: FormData) {
   redirect(`/owner/today${tenantQuery(tenant)}`);
 }
 
+/**
+ * Thin Server Action. logout → login. redirect() outside try/catch (redirect.md).
+ */
 export async function submitLogout(formData: FormData) {
   const tenant = field(formData, "tenant");
-  await logout();
+  let errorKey: string | undefined;
+  try {
+    await logout();
+  } catch (error) {
+    errorKey = await actionErrorKey(error, "submitLogout");
+  }
+  if (errorKey) {
+    redirect(`/login${tenantQuery(tenant, { error: errorKey })}`);
+  }
   redirect(`/login${tenantQuery(tenant)}`);
 }

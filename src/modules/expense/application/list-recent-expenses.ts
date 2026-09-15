@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { ExpenseCategory } from "@/modules/expense/domain/categories";
 import { listRecentExpenses as loadRecentExpenseRows } from "@/modules/expense/infrastructure/expenses";
@@ -24,18 +25,26 @@ export async function listRecentExpenses(): Promise<RecentExpense[]> {
     throw new DomainError("access.not_allowed");
   }
 
-  const rows = await loadRecentExpenseRows(db);
-  const spent = await sumCollectedUsdBySourceIds(
-    db,
-    "EXPENSE",
-    rows.map((row) => row.id),
-  );
+  try {
+    const rows = await loadRecentExpenseRows(db);
+    const spent = await sumCollectedUsdBySourceIds(
+      db,
+      "EXPENSE",
+      rows.map((row) => row.id),
+    );
 
-  return rows.map((row) => ({
-    id: row.id,
-    category: row.category,
-    description: row.description,
-    occurredAt: row.occurredAt,
-    amountUsd: spent.get(row.id) ?? new Decimal(0),
-  }));
+    return rows.map((row) => ({
+      id: row.id,
+      category: row.category,
+      description: row.description,
+      occurredAt: row.occurredAt,
+      amountUsd: spent.get(row.id) ?? new Decimal(0),
+    }));
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List recent expenses failed",
+      "listRecentExpenses",
+    );
+  }
 }

@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { insertExchangeRate } from "@/modules/payment/infrastructure/rates";
@@ -18,7 +19,10 @@ export async function setExchangeRate(lbpPerUsd: Decimal): Promise<void> {
 
   try {
     await insertExchangeRate(db, lbpPerUsd);
-    logger.info(`Exchange rate set ${lbpPerUsd.toFixed(0)}`);
+    logger.info(`Exchange rate set ${lbpPerUsd.toFixed(0)}`, undefined, {
+      useCase: "setExchangeRate",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Set exchange rate failed", "setExchangeRate");
   }

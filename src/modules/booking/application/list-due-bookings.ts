@@ -1,8 +1,11 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
-import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import { formatLocalHm } from "@/lib/format-local-hm";
+import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
+import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { remainingDue } from "@/modules/payment/domain/collect";
 import { sumCollectedUsdBySourceIds } from "@/modules/payment/infrastructure/payments";
 import {
@@ -21,7 +24,6 @@ import {
   bookingConfirmedMessage,
   whatsAppHref,
 } from "@/modules/notification/domain/whatsapp-link";
-import { formatLocalHm } from "@/lib/format-local-hm";
 
 const TIME_ZONE = "Asia/Beirut";
 /** Owner Home “coming days” booking list horizon (not the public day-chip count). */
@@ -60,40 +62,56 @@ export async function listDueBookings(): Promise<HomeConfirmedLists> {
     throw new DomainError("access.not_allowed");
   }
 
+  // Tenant / notFound stay outside try — must not become UnexpectedError.
   const tenant = await getCurrentTenant();
-  const now = new Date();
-  const today = civilDateInTimeZone(now, TIME_ZONE);
-  const todayStart = civilDayUtcRange(today, TIME_ZONE).start;
-  const horizonEnd = civilDayUtcRange(
-    addCalendarDays(today, COMING_DAYS + 1),
-    TIME_ZONE,
-  ).start;
 
-  const [windowRows, pastRows] = await Promise.all([
-    listApprovedBookingsInRange(db, todayStart, horizonEnd),
-    listApprovedBookingsStartingBefore(db, todayStart),
-  ]);
+  try {
+    const now = new Date();
+    const today = civilDateInTimeZone(now, TIME_ZONE);
+    const todayStart = civilDayUtcRange(today, TIME_ZONE).start;
+    const horizonEnd = civilDayUtcRange(
+      addCalendarDays(today, COMING_DAYS + 1),
+      TIME_ZONE,
+    ).start;
 
-  const collected = await sumCollectedUsdBySourceIds(
-    db,
-    "BOOKING",
-    [...windowRows, ...pastRows].map((row) => row.id),
-  );
+    const [windowRows, pastRows] = await Promise.all([
+      listApprovedBookingsInRange(db, todayStart, horizonEnd),
+      listApprovedBookingsStartingBefore(db, todayStart),
+    ]);
 
-  const withRemaining = [...pastRows, ...windowRows].map((row) =>
-    toDueBooking(row, collected.get(row.id) ?? new Decimal(0), tenant.name),
-  );
-  const visible = withRemaining.filter(
-    (row) => row.status === "APPROVED" || row.remaining.gt(0),
-  );
+    const collected = await sumCollectedUsdBySourceIds(
+      db,
+      "BOOKING",
+      [...windowRows, ...pastRows].map((row) => row.id),
+    );
 
-  return partitionHomeConfirmed(visible, now, TIME_ZONE);
+    const withRemaining = [...pastRows, ...windowRows].map((row) =>
+      toDueBooking(
+        row,
+        collected.get(row.id) ?? new Decimal(0),
+        tenant.name,
+        tenant.id,
+      ),
+    );
+    const visible = withRemaining.filter(
+      (row) => row.status === "APPROVED" || row.remaining.gt(0),
+    );
+
+    return partitionHomeConfirmed(visible, now, TIME_ZONE);
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List due bookings failed",
+      "listDueBookings",
+    );
+  }
 }
 
 function toDueBooking(
   row: ApprovedCollectRow,
   collectedUsd: Decimal,
   stadiumName: string,
+  tenantId: string,
 ): DueBooking {
   return {
     id: row.id,
@@ -107,12 +125,20 @@ function toDueBooking(
     requesterPhone: row.requesterPhone,
     confirmWhatsAppHref:
       row.status === "APPROVED"
-        ? confirmHref(row, stadiumName)
+        ? confirmHref(row, stadiumName, tenantId)
         : null,
   };
 }
 
-function confirmHref(row: ApprovedCollectRow, stadiumName: string): string | null {
+/**
+ * wa.me for confirm. Bad phone → null (RULE-9 / DR-004: do not block the list).
+ * info (not error): expected data issue, not a system bug. Does not log the phone.
+ */
+function confirmHref(
+  row: ApprovedCollectRow,
+  stadiumName: string,
+  tenantId: string,
+): string | null {
   try {
     return whatsAppHref(
       row.requesterPhone,
@@ -123,7 +149,11 @@ function confirmHref(row: ApprovedCollectRow, stadiumName: string): string | nul
         endLocal: formatLocalHm(row.end, TIME_ZONE),
       }),
     );
-  } catch {
+  } catch (error) {
+    logger.info("Confirm WhatsApp link skipped", error, {
+      useCase: "listDueBookings",
+      tenantId,
+    });
     return null;
   }
 }

@@ -83,7 +83,10 @@ export async function createOwnerBooking(
       return id;
     });
 
-    logger.info(`Owner booking created ${bookingId}`);
+    logger.info(`Owner booking created ${bookingId}`, undefined, {
+      useCase: "createOwnerBooking",
+      tenantId: await safeTenantId(),
+    });
     return { bookingId };
   } catch (error) {
     if (isExclusionViolation(error)) {

@@ -1,6 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_NO_SHOW, can } from "@/modules/access/domain/can";
@@ -34,7 +35,10 @@ export async function recordNoShow(bookingId: string): Promise<void> {
       await setApprovedNoShow(tx, booking.id);
     });
 
-    logger.info(`Booking no-show ${bookingId}`);
+    logger.info(`Booking no-show ${bookingId}`, undefined, {
+      useCase: "recordNoShow",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Record no-show failed", "recordNoShow");
   }

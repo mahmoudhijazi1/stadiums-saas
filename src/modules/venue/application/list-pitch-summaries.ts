@@ -1,6 +1,7 @@
 import { DomainError, UnexpectedError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   collapseHoursGroups,
@@ -30,28 +31,36 @@ export async function listPitchSummaries(): Promise<PitchSummary[]> {
     throw new DomainError("access.not_allowed");
   }
 
-  const pitches = await listPitches();
-  const tenantId = await safeTenantId();
+  try {
+    const pitches = await listPitches();
+    const tenantId = await safeTenantId();
 
-  return pitches.map((pitch) => {
-    let config;
-    try {
-      config = parseScheduleConfig(pitch.scheduleConfig);
-    } catch (error) {
-      logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error, {
-        useCase: "listPitchSummaries",
-        tenantId,
-      });
-      throw new UnexpectedError(error);
-    }
-    const { groups, closed } = collapseHoursGroups(config.hours);
-    return {
-      id: pitch.id,
-      name: pitch.name,
-      hoursGroups: groups,
-      closedDays: closed,
-      slotDurationMinutes: config.slotDurationMinutes,
-      defaultPriceUsd: config.defaultPriceUsd,
-    };
-  });
+    return pitches.map((pitch) => {
+      let config;
+      try {
+        config = parseScheduleConfig(pitch.scheduleConfig);
+      } catch (error) {
+        logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error, {
+          useCase: "listPitchSummaries",
+          tenantId,
+        });
+        throw new UnexpectedError(error);
+      }
+      const { groups, closed } = collapseHoursGroups(config.hours);
+      return {
+        id: pitch.id,
+        name: pitch.name,
+        hoursGroups: groups,
+        closedDays: closed,
+        slotDurationMinutes: config.slotDurationMinutes,
+        defaultPriceUsd: config.defaultPriceUsd,
+      };
+    });
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List pitch summaries failed",
+      "listPitchSummaries",
+    );
+  }
 }

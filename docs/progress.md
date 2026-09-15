@@ -3399,3 +3399,39 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/guides/folder-structure.md` only.
 
 **How to verify:** Open the guide and walk the tree under `src/` — listed paths should exist; commented “no …” notes should stay absent.
+
+## Audit: error handling + logging (read-only)
+
+**When:** 2026-09-15
+
+**What:** Full consistency audit of Server Actions + application use cases vs DR-004/SPEC-12, plus logger completeness vs business events. No code fixes.
+
+**Why:** Need evidence before claiming “every error has an expected shape” / “we can debug production from logs.”
+
+**Files:** `docs/guides/error-handling-logging-audit.md` (new).
+
+**How to verify:** Open that guide — every claim cites file/line; ordered P0–P3 list at the end.
+
+## P0: logout action wrap + WhatsApp soft-fail logs
+
+**When:** 2026-09-15
+
+**What:** (1) `submitLogout` try/catch + `actionErrorKey` → `?error=` on login (same shape as `submitLogin`). (2) Home confirm + waitlist WhatsApp catch blocks `logger.info` with useCase + tenantId, still return null (no phone in log).
+
+**Why:** Error-handling audit P0 — DR-004 action boundary + “log side-effect failures”; RULE-9 soft-fail unchanged. `info` not `error`: bad phone is expected data, not a system bug.
+
+**Files:** `src/app/login/actions.ts`, `list-due-bookings.ts`, `list-open-waitlist.ts`.
+
+**How to verify:** `npm test` — 224 passed. Force logout DB failure → login `?error=`; bad phone on Home/waitlist → null href + line in `logs/`.
+
+## P1: read-path wrap + business-log context
+
+**When:** 2026-09-15
+
+**What:** (1) `rethrowUnexpected` on every audited list/get/summarize use case (auth / `getCurrentTenant` stay outside try so `access.not_allowed` and `notFound` are unchanged). (2) Business `logger.info` lines pass `{ useCase, tenantId }` like error paths; message text unchanged.
+
+**Why:** Error-handling audit P1 — Prisma failures on reads must hit the logger; success events must be greppable by tenant/useCase on the droplet.
+
+**Files:** 11 read wraps + 12 info-context updates (23 unique application files).
+
+**How to verify:** `npm test` — 224 passed. Approve/collect → `logs/` line includes `useCase=` + `tenantId=`.

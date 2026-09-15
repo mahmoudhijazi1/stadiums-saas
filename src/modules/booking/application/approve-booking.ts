@@ -86,7 +86,10 @@ export async function approveBooking(
       });
     });
 
-    logger.info(`Booking approved ${bookingId}`);
+    logger.info(`Booking approved ${bookingId}`, undefined, {
+      useCase: "approveBooking",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     if (isExclusionViolation(error)) {
       logger.error("Approve collision", error, {

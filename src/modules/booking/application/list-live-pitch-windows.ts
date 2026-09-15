@@ -1,5 +1,6 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { listLiveWindowsOnPitch } from "@/modules/booking/infrastructure/bookings";
 
@@ -13,5 +14,13 @@ export async function listLivePitchWindows(pitchId: string, now: Date) {
     throw new DomainError("access.not_allowed");
   }
 
-  return listLiveWindowsOnPitch(db, pitchId, now);
+  try {
+    return await listLiveWindowsOnPitch(db, pitchId, now);
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List live pitch windows failed",
+      "listLivePitchWindows",
+    );
+  }
 }

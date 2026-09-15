@@ -3,6 +3,7 @@ import { formatLocalHm } from "@/lib/format-local-hm";
 import { logger } from "@/lib/logger";
 import { formatUsd } from "@/lib/money";
 import { safeTenantId } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   civilDateInTimeZone,
   dayHoursEmptyKind,
@@ -47,49 +48,57 @@ export async function getDayAvailability(input: {
   now: Date;
   occupied?: OccupiedWindow[];
 }): Promise<PitchDayAvailability[]> {
-  const pitches = await listPitches();
-  const occupied = input.occupied ?? [];
-  const tenantId = await safeTenantId();
-  const today = civilDateInTimeZone(input.now, input.timeZone);
+  try {
+    const pitches = await listPitches();
+    const occupied = input.occupied ?? [];
+    const tenantId = await safeTenantId();
+    const today = civilDateInTimeZone(input.now, input.timeZone);
 
-  return pitches.map((pitch) => {
-    let config;
-    try {
-      config = parseScheduleConfig(pitch.scheduleConfig);
-    } catch (error) {
-      logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error, {
-        useCase: "getDayAvailability",
-        tenantId,
-      });
-      throw new UnexpectedError(error);
-    }
-    const generated = generateSlotsForDay({
-      config,
-      localDate: input.localDate,
-      timeZone: input.timeZone,
-      occupied: occupied
-        .filter((range) => range.pitchId === pitch.id)
-        .map((range) => ({ start: range.start, end: range.end })),
-    });
-    const slots = dropEndedSlots(generated, input.now);
-
-    return {
-      id: pitch.id,
-      name: pitch.name,
-      emptyKind: dayHoursEmptyKind({
-        generatedCount: generated.length,
-        remainingCount: slots.length,
+    return pitches.map((pitch) => {
+      let config;
+      try {
+        config = parseScheduleConfig(pitch.scheduleConfig);
+      } catch (error) {
+        logger.error(`Invalid schedule_config on pitch ${pitch.id}`, error, {
+          useCase: "getDayAvailability",
+          tenantId,
+        });
+        throw new UnexpectedError(error);
+      }
+      const generated = generateSlotsForDay({
+        config,
         localDate: input.localDate,
-        today,
-      }),
-      slots: slots.map((slot) => ({
-        startIso: slot.start.toISOString(),
-        endIso: slot.end.toISOString(),
-        startLocal: formatLocalHm(slot.start, input.timeZone),
-        endLocal: formatLocalHm(slot.end, input.timeZone),
-        priceUsd: formatUsd(slot.priceUsd),
-        available: slot.available,
-      })),
-    };
-  });
+        timeZone: input.timeZone,
+        occupied: occupied
+          .filter((range) => range.pitchId === pitch.id)
+          .map((range) => ({ start: range.start, end: range.end })),
+      });
+      const slots = dropEndedSlots(generated, input.now);
+
+      return {
+        id: pitch.id,
+        name: pitch.name,
+        emptyKind: dayHoursEmptyKind({
+          generatedCount: generated.length,
+          remainingCount: slots.length,
+          localDate: input.localDate,
+          today,
+        }),
+        slots: slots.map((slot) => ({
+          startIso: slot.start.toISOString(),
+          endIso: slot.end.toISOString(),
+          startLocal: formatLocalHm(slot.start, input.timeZone),
+          endLocal: formatLocalHm(slot.end, input.timeZone),
+          priceUsd: formatUsd(slot.priceUsd),
+          available: slot.available,
+        })),
+      };
+    });
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "Get day availability failed",
+      "getDayAvailability",
+    );
+  }
 }

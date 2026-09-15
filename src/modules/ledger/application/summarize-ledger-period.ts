@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import {
@@ -33,23 +34,31 @@ export async function summarizeLedgerPeriod(input: {
     throw new DomainError("access.not_allowed");
   }
 
-  const range =
-    input.from !== undefined && input.to !== undefined
-      ? { from: input.from, to: input.to }
-      : currentMonthCivilRange(new Date(), TIME_ZONE);
+  try {
+    const range =
+      input.from !== undefined && input.to !== undefined
+        ? { from: input.from, to: input.to }
+        : currentMonthCivilRange(new Date(), TIME_ZONE);
 
-  const bounds = periodBoundsFromCivilRange(range.from, range.to, TIME_ZONE);
-  const totals = await sumAmountUsdByDirection(
-    db,
-    bounds.startInclusive,
-    bounds.endExclusive,
-  );
+    const bounds = periodBoundsFromCivilRange(range.from, range.to, TIME_ZONE);
+    const totals = await sumAmountUsdByDirection(
+      db,
+      bounds.startInclusive,
+      bounds.endExclusive,
+    );
 
-  return {
-    inUsd: totals.IN,
-    outUsd: totals.OUT,
-    netUsd: netUsd(totals.IN, totals.OUT),
-    from: range.from,
-    to: range.to,
-  };
+    return {
+      inUsd: totals.IN,
+      outUsd: totals.OUT,
+      netUsd: netUsd(totals.IN, totals.OUT),
+      from: range.from,
+      to: range.to,
+    };
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "Summarize ledger period failed",
+      "summarizeLedgerPeriod",
+    );
+  }
 }

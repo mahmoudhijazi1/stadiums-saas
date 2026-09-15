@@ -1,6 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
@@ -66,7 +67,10 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
       return id;
     });
 
-    logger.info(`Public booking request received ${bookingId}`);
+    logger.info(`Public booking request received ${bookingId}`, undefined, {
+      useCase: "requestPublicSlot",
+      tenantId: await safeTenantId(),
+    });
     return { bookingId };
   } catch (error) {
     return await rethrowUnexpected(

@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   EXPENSES_RECORD,
@@ -64,7 +65,10 @@ export async function recordExpense(input: {
       return expense.id;
     });
 
-    logger.info(`Expense recorded ${expenseId}`);
+    logger.info(`Expense recorded ${expenseId}`, undefined, {
+      useCase: "recordExpense",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Record expense failed", "recordExpense");
   }

@@ -78,7 +78,10 @@ export async function updatePitch(input: {
       });
     });
 
-    logger.info(`Pitch updated ${input.pitchId}`);
+    logger.info(`Pitch updated ${input.pitchId}`, undefined, {
+      useCase: "updatePitch",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Update pitch failed", "updatePitch");
   }

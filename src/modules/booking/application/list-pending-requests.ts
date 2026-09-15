@@ -1,5 +1,6 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { listPendingBookings } from "@/modules/booking/infrastructure/bookings";
 
@@ -13,5 +14,13 @@ export async function listPendingRequests() {
     throw new DomainError("access.not_allowed");
   }
 
-  return listPendingBookings(db);
+  try {
+    return await listPendingBookings(db);
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List pending requests failed",
+      "listPendingRequests",
+    );
+  }
 }

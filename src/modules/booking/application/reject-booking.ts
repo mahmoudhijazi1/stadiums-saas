@@ -1,6 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   BOOKINGS_APPROVE,
@@ -33,7 +34,10 @@ export async function rejectBooking(bookingId: string): Promise<void> {
       await setPendingStatus(tx, booking.id, "REJECTED");
     });
 
-    logger.info(`Booking rejected ${bookingId}`);
+    logger.info(`Booking rejected ${bookingId}`, undefined, {
+      useCase: "rejectBooking",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Reject booking failed", "rejectBooking");
   }

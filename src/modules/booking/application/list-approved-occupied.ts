@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { listApprovedRanges } from "@/modules/booking/infrastructure/bookings";
 
 /**
@@ -6,5 +7,13 @@ import { listApprovedRanges } from "@/modules/booking/infrastructure/bookings";
  * Venue never imports this — the page (or requestPublicSlot) passes ranges in.
  */
 export async function listApprovedOccupied() {
-  return listApprovedRanges(db);
+  try {
+    return await listApprovedRanges(db);
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List approved occupied failed",
+      "listApprovedOccupied",
+    );
+  }
 }

@@ -1,6 +1,9 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { formatLocalHm } from "@/lib/format-local-hm";
+import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { isWaitlistWindowOpen } from "@/modules/booking/domain/waitlist";
 import {
@@ -11,7 +14,6 @@ import {
   slotAvailableMessage,
   whatsAppHref,
 } from "@/modules/notification/domain/whatsapp-link";
-import { formatLocalHm } from "@/lib/format-local-hm";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -41,64 +43,80 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
     throw new DomainError("access.not_allowed");
   }
 
+  // Tenant / notFound stay outside try — must not become UnexpectedError.
   const tenant = await getCurrentTenant();
-  const now = new Date();
-  const occupied = await listApprovedRanges(db);
-  const interests = await listSlotInterestsWithPeople(db);
 
-  const groups = new Map<string, WaitlistGroup>();
-  const seenPerson = new Set<string>();
+  try {
+    const now = new Date();
+    const occupied = await listApprovedRanges(db);
+    const interests = await listSlotInterestsWithPeople(db);
 
-  for (const row of interests) {
-    if (
-      !isWaitlistWindowOpen({
-        window: { pitchId: row.pitchId, start: row.start, end: row.end },
-        occupied,
-        now,
-      })
-    ) {
-      continue;
-    }
+    const groups = new Map<string, WaitlistGroup>();
+    const seenPerson = new Set<string>();
 
-    const personKey = `${row.pitchId}|${row.start.getTime()}|${row.end.getTime()}|${row.personId}`;
-    if (seenPerson.has(personKey)) continue;
-    seenPerson.add(personKey);
+    for (const row of interests) {
+      if (
+        !isWaitlistWindowOpen({
+          window: { pitchId: row.pitchId, start: row.start, end: row.end },
+          occupied,
+          now,
+        })
+      ) {
+        continue;
+      }
 
-    const groupKey = `${row.pitchId}|${row.start.getTime()}|${row.end.getTime()}`;
-    let group = groups.get(groupKey);
-    if (!group) {
-      const startLocal = formatLocalHm(row.start, TIME_ZONE);
-      const endLocal = formatLocalHm(row.end, TIME_ZONE);
-      group = {
-        pitchId: row.pitchId,
-        pitchName: row.pitchName,
-        start: row.start,
-        end: row.end,
-        message: slotAvailableMessage({
-          stadiumName: tenant.name,
+      const personKey = `${row.pitchId}|${row.start.getTime()}|${row.end.getTime()}|${row.personId}`;
+      if (seenPerson.has(personKey)) continue;
+      seenPerson.add(personKey);
+
+      const groupKey = `${row.pitchId}|${row.start.getTime()}|${row.end.getTime()}`;
+      let group = groups.get(groupKey);
+      if (!group) {
+        const startLocal = formatLocalHm(row.start, TIME_ZONE);
+        const endLocal = formatLocalHm(row.end, TIME_ZONE);
+        group = {
+          pitchId: row.pitchId,
           pitchName: row.pitchName,
-          startLocal,
-          endLocal,
-        }),
-        people: [],
-      };
-      groups.set(groupKey, group);
+          start: row.start,
+          end: row.end,
+          message: slotAvailableMessage({
+            stadiumName: tenant.name,
+            pitchName: row.pitchName,
+            startLocal,
+            endLocal,
+          }),
+          people: [],
+        };
+        groups.set(groupKey, group);
+      }
+
+      let href: string | null = null;
+      try {
+        href = whatsAppHref(row.phone, group.message);
+      } catch (error) {
+        // RULE-9: keep the person row; DR-004: log side-effect failure.
+        // info (not error): bad phone is expected data, not a system bug. No phone in log.
+        logger.info("Waitlist WhatsApp link skipped", error, {
+          useCase: "listOpenWaitlist",
+          tenantId: tenant.id,
+        });
+        href = null;
+      }
+
+      group.people.push({
+        personId: row.personId,
+        name: row.name,
+        phone: row.phone,
+        whatsAppHref: href,
+      });
     }
 
-    let href: string | null = null;
-    try {
-      href = whatsAppHref(row.phone, group.message);
-    } catch {
-      href = null;
-    }
-
-    group.people.push({
-      personId: row.personId,
-      name: row.name,
-      phone: row.phone,
-      whatsAppHref: href,
-    });
+    return [...groups.values()];
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "List open waitlist failed",
+      "listOpenWaitlist",
+    );
   }
-
-  return [...groups.values()];
 }

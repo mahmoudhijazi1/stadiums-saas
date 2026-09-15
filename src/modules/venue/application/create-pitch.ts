@@ -1,5 +1,6 @@
 import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { scheduleFromHoursGroups } from "@/modules/venue/domain/daily-schedule";
@@ -27,7 +28,10 @@ export async function createPitch(draft: PitchDraft): Promise<{ id: string }> {
       name: draft.name,
       scheduleConfig,
     });
-    logger.info(`Pitch created ${row.id}`);
+    logger.info(`Pitch created ${row.id}`, undefined, {
+      useCase: "createPitch",
+      tenantId: await safeTenantId(),
+    });
     return { id: row.id };
   } catch (error) {
     return await rethrowUnexpected(error, "Create pitch failed", "createPitch");

@@ -2,6 +2,7 @@ import { DomainError, UnexpectedError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
+import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   collapseHoursGroups,
@@ -36,28 +37,36 @@ export async function getPitchEditor(
     throw new DomainError("access.not_allowed");
   }
 
-  const row = await findPitch(db, pitchId);
-  if (!row) return null;
-
-  let config;
   try {
-    config = parseScheduleConfig(row.scheduleConfig);
-  } catch (error) {
-    logger.error(`Invalid schedule_config on pitch ${row.id}`, error, {
-      useCase: "getPitchEditor",
-      tenantId: await safeTenantId(),
-    });
-    throw new UnexpectedError(error);
-  }
+    const row = await findPitch(db, pitchId);
+    if (!row) return null;
 
-  const { groups, closed } = collapseHoursGroups(config.hours);
-  return {
-    id: row.id,
-    name: row.name,
-    hoursGroups: groups,
-    closedDays: closed,
-    slotDurationMinutes: config.slotDurationMinutes,
-    defaultPriceUsd: config.defaultPriceUsd,
-    priceRules: config.priceRules,
-  };
+    let config;
+    try {
+      config = parseScheduleConfig(row.scheduleConfig);
+    } catch (error) {
+      logger.error(`Invalid schedule_config on pitch ${row.id}`, error, {
+        useCase: "getPitchEditor",
+        tenantId: await safeTenantId(),
+      });
+      throw new UnexpectedError(error);
+    }
+
+    const { groups, closed } = collapseHoursGroups(config.hours);
+    return {
+      id: row.id,
+      name: row.name,
+      hoursGroups: groups,
+      closedDays: closed,
+      slotDurationMinutes: config.slotDurationMinutes,
+      defaultPriceUsd: config.defaultPriceUsd,
+      priceRules: config.priceRules,
+    };
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "Get pitch editor failed",
+      "getPitchEditor",
+    );
+  }
 }

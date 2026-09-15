@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CANCEL, can } from "@/modules/access/domain/can";
@@ -44,7 +45,10 @@ export async function cancelBooking(bookingId: string): Promise<void> {
       await setApprovedCancelled(tx, booking.id);
     });
 
-    logger.info(`Booking cancelled ${bookingId}`);
+    logger.info(`Booking cancelled ${bookingId}`, undefined, {
+      useCase: "cancelBooking",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Cancel booking failed", "cancelBooking");
   }

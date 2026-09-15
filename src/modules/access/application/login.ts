@@ -1,6 +1,6 @@
 import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { getCurrentTenant } from "@/lib/tenant-context";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import type { LoginInput } from "@/modules/access/schemas/login";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
@@ -39,7 +39,10 @@ export async function login(input: LoginInput): Promise<void> {
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
     const session = await createSession(user.id, expiresAt);
     await writeSessionCookie(session.id, expiresAt);
-    logger.info(`Login ${user.id}`);
+    logger.info(`Login ${user.id}`, undefined, {
+      useCase: "login",
+      tenantId: await safeTenantId(),
+    });
   } catch (error) {
     await rethrowUnexpected(error, "Login failed", "login");
   }
