@@ -38,9 +38,10 @@ Do not grow a tab by stacking another product’s UI on it. If it is not in the 
 **Settings** (`/owner/more/settings`):
 
 - Exchange rate: current value + OWNER-only set form (moved from Money). Staff see the current rate, not the form.
+- Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`; OWNER-only set form (card below Exchange rate). Owner Home / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
 - Pitch list + OWNER create/edit (name, repeatable hours groups, game length, default USD, day price overrides). Each hours row is weekday checkboxes + one open/close; a day belongs to at most one row; days in no row are closed. Writes go through `parseScheduleConfig` with `gapMinutes: 0`. `priceRules` are edited in place and survive a default-price or duration-only save. Pending-in-removed-hours still uses the confirm second-submit. Live APPROVED in a removed window refuses. Approve re-checks `resolveOfferedSlot` against current hours.
 - Still deferred:
-  - Company / stadium info and images — **Phase 2+**. Lives on `tenant.settings` (DR-002 §2.6); that jsonb is still deferred.
+  - Company / stadium info and images — **Phase 2+**. More keys on the same `tenant.settings` jsonb (DR-002 §2.6); only `timeDisplay` is live today.
   - Staff permissions UI — flags already exist on membership jsonb (DR-003 / BR-98); there is no owner screen to edit them yet.
   - Multiple windows on the same weekday — schema allows `hours[day]` to be several `{ start, end }` pairs; the editor is one pair per row and collapse uses `window[0]` if `length > 1`. A save writes that single window. Not this slice.
   - Time-of-day `priceRules` (`start`/`end` on a rule) — not this slice.
@@ -60,7 +61,7 @@ The bottom bar does not change again after this restructure. New products are **
 
 | Concern | Where |
 |---|---|
-| Settings (rate + pitch list/create/edit; company / staff later) | More → Settings |
+| Settings (rate + time format + pitch list/create/edit; company / staff later) | More → Settings |
 | Tournaments (future bounded context; seam via `pitch_blocks` like Academy) | More list row when that SPEC exists |
 | Shop (Phase 2) | More list row — not a Reports subsection |
 | Academy (Phase 3) | More list row — seam is `pitch_blocks`, not a Reports subsection |
@@ -157,6 +158,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Waitlist after cancel | Waitlist |
 | Period P&L, expenses | Reports (`/owner/money`) |
 | Exchange rate (set) | More → Settings |
+| Time format 12h/24h (owner + public; WhatsApp stay 24h) | More → Settings |
 | Pitch create/edit (BR-3–5) | Settings — hours groups + day price rows |
 | Extra windows on one weekday / time-window priceRules / gapMinutes UI | Settings later (`gapMinutes` stays 0; editor uses `window[0]`) |
 | Pitch delete | Settings later |

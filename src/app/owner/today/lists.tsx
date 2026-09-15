@@ -11,7 +11,11 @@ import {
 } from "./actions";
 import { formatSlotDateLabel } from "./date-label";
 import { UpcomingPanel, type UpcomingRowView } from "./upcoming-panel";
-import { formatLocalClockRange } from "@/app/owner/shared";
+import {
+  formatLocalClockRange,
+  type HourCycle,
+} from "@/app/owner/shared";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import {
   Card,
   CardContent,
@@ -42,6 +46,8 @@ export async function OwnerToday({
   locale?: UiLocale;
   highlight?: string;
 }) {
+  const tenant = await getCurrentTenant();
+  const hourCycle: HourCycle = tenant.timeDisplay;
   const pending = await listPendingRequests();
   const confirmed = await listDueBookings();
   const groups = groupPendingBySlot(pending);
@@ -75,7 +81,11 @@ export async function OwnerToday({
                       className="size-4 shrink-0 text-muted-foreground"
                     />
                     <LtrIsolate className="text-lg font-semibold leading-none">
-                      {formatLocalClockRange(group.start, group.end)}
+                      {formatLocalClockRange(
+                        group.start,
+                        group.end,
+                        hourCycle,
+                      )}
                     </LtrIsolate>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -127,9 +137,9 @@ export async function OwnerToday({
       )}
 
       <UpcomingPanel
-        overdue={toUpcomingViews(confirmed.overdue, now, locale)}
-        today={toUpcomingViews(confirmed.today, now, locale)}
-        later={toUpcomingViews(confirmed.later, now, locale)}
+        overdue={toUpcomingViews(confirmed.overdue, now, locale, hourCycle)}
+        today={toUpcomingViews(confirmed.today, now, locale, hourCycle)}
+        later={toUpcomingViews(confirmed.later, now, locale, hourCycle)}
         tenantSlug={tenantSlug}
         locale={locale}
         mayCollect={mayCollect}
@@ -145,11 +155,12 @@ function toUpcomingViews(
   rows: DueBooking[],
   now: Date,
   locale: UiLocale,
+  hourCycle: HourCycle,
 ): UpcomingRowView[] {
   return rows.map((row) => ({
     id: row.id,
     pitchName: row.pitchName,
-    timeRange: formatLocalClockRange(row.start, row.end),
+    timeRange: formatLocalClockRange(row.start, row.end, hourCycle),
     dateLabel: formatSlotDateLabel(row.start, now, locale),
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,

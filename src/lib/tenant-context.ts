@@ -3,17 +3,29 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { platformDb } from "@/lib/platform-db";
+import {
+  parseTenantSettings,
+  type TimeDisplay,
+} from "@/lib/tenant-settings";
 
-type CurrentTenant = {
+export type CurrentTenant = {
   id: string;
   slug: string;
   name: string;
+  /** Owner + public UI clocks. WhatsApp formatters ignore this and use h23. */
+  timeDisplay: TimeDisplay;
 };
 
 /**
  * Request-scoped tenant (DR-001: app code establishes context after the header).
  * Prisma query extensions do not see React cache(); they do see this store
  * when the call sits inside `withCurrentTenant` / `db.$transaction`.
+ *
+ * ALS exists so Prisma ops can read tenant **id** without a nested lookup.
+ * Extra fields on CurrentTenant (e.g. timeDisplay) ride along only because
+ * loadTenant builds one object for React cache() — not a pattern for stuffing
+ * UI-display data into ALS. Owner formatters read via getCurrentTenant() in
+ * Server Components; they do not depend on ALS being set.
  */
 const tenantAls = new AsyncLocalStorage<CurrentTenant>();
 
@@ -25,14 +37,20 @@ async function loadTenant(): Promise<CurrentTenant> {
 
   const tenant = await platformDb.tenant.findUnique({
     where: { slug },
-    select: { id: true, slug: true, name: true },
+    select: { id: true, slug: true, name: true, settings: true },
   });
 
   if (!tenant) {
     notFound();
   }
 
-  return tenant;
+  const settings = parseTenantSettings(tenant.settings);
+  return {
+    id: tenant.id,
+    slug: tenant.slug,
+    name: tenant.name,
+    timeDisplay: settings.timeDisplay,
+  };
 }
 
 /**

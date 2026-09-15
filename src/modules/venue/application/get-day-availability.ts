@@ -1,5 +1,8 @@
 import { UnexpectedError } from "@/lib/errors";
-import { formatLocalHm } from "@/lib/format-local-hm";
+import {
+  formatLocalHm,
+  type HourCycle,
+} from "@/lib/format-local-hm";
 import { logger } from "@/lib/logger";
 import { formatUsd } from "@/lib/money";
 import { safeTenantId } from "@/lib/tenant-context";
@@ -47,6 +50,8 @@ export async function getDayAvailability(input: {
   timeZone: string;
   now: Date;
   occupied?: OccupiedWindow[];
+  /** Owner Book + public hours. WhatsApp formatters omit → stay 24h. */
+  hourCycle?: HourCycle;
 }): Promise<PitchDayAvailability[]> {
   try {
     const pitches = await listPitches();
@@ -87,8 +92,12 @@ export async function getDayAvailability(input: {
         slots: slots.map((slot) => ({
           startIso: slot.start.toISOString(),
           endIso: slot.end.toISOString(),
-          startLocal: formatLocalHm(slot.start, input.timeZone),
-          endLocal: formatLocalHm(slot.end, input.timeZone),
+          startLocal: formatLocalHm(
+            slot.start,
+            input.timeZone,
+            input.hourCycle,
+          ),
+          endLocal: formatLocalHm(slot.end, input.timeZone, input.hourCycle),
           priceUsd: formatUsd(slot.priceUsd),
           available: slot.available,
         })),

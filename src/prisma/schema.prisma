@@ -17,6 +17,8 @@ model Tenant {
   id                  String               @id @default(cuid())
   slug                String               @unique
   name                String
+  /// Per-stadium knobs (DR-002 §2.6). Zod at app edge. Default {}.
+  settings            Json                 @default("{}")
   createdAt           DateTime             @default(now())
   pitches             Pitch[]
   persons             Person[]

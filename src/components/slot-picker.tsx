@@ -84,10 +84,10 @@ function SlotFace({
 
   return (
     <span className="flex w-full min-w-0 items-stretch gap-2.5">
-      <span className="flex min-w-0 flex-1 flex-col items-start justify-center gap-1">
+      <span className="flex shrink-0 flex-col items-start justify-center gap-1">
         <LtrIsolate
           className={cn(
-            "text-xl font-bold leading-none",
+            "whitespace-nowrap text-xl font-bold leading-none",
             !taken && "transition-colors duration-200 ease-out",
             selected ? "text-primary-foreground" : "text-card-foreground",
           )}
@@ -96,7 +96,7 @@ function SlotFace({
         </LtrIsolate>
         <LtrIsolate
           className={cn(
-            "text-xs font-normal",
+            "whitespace-nowrap text-xs font-normal",
             !taken && "transition-colors duration-200 ease-out",
             selected ? "text-primary-foreground/70" : "text-muted-foreground",
           )}

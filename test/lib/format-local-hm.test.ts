@@ -13,4 +13,9 @@ describe("formatLocalHm", () => {
     const instant = new Date("2026-10-04T21:00:00.000Z");
     expect(formatLocalHm(instant, "Asia/Beirut")).toBe("00:00");
   });
+
+  it("formats h12 with Latin AM/PM in Asia/Beirut", () => {
+    const instant = new Date("2026-10-05T13:00:00.000Z");
+    expect(formatLocalHm(instant, "Asia/Beirut", "h12")).toBe("4:00 PM");
+  });
 });

@@ -3471,3 +3471,41 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/NOW.md`, `README.md`, `docs/README.md`, `docs/owner-ia.md`, `docs/guides/prisma-transaction-tenant-guard.md`, `docs/progress.md` (Where we are), banner lines on listed historical docs.
 
 **How to verify:** Open `docs/NOW.md` â€” status, topic table, Whatâ€™s next = backup + deploy docs.
+
+## Owner time display 12h/24h (Tenant.settings)
+
+**When:** 2026-09-15
+
+**What:** Additive `Tenant.settings` jsonb (default `{}`). Zod `timeDisplay: h23|h12`. OWNER Settings card below Exchange rate. `getCurrentTenant` parses settings once per request. Owner Home / Book / Waitlist pass `hourCycle` into `formatLocalHm` / `getDayAvailability`; public + WhatsApp keep default h23. No SPEC-15 — Settings slice like pitch hours.
+
+**Why:** Owners asked for 12h clocks; Arabic AM/PM on WhatsApp was a known risk, so customer-facing surfaces stay 24h. DR-002 §2.6 column finally exists for this knob only.
+
+**Files:** `src/prisma/schema.prisma` + migration `20260915060000_tenant_settings`; `src/lib/tenant-settings.ts`; `src/lib/tenant-context.ts`; `src/lib/format-local-hm.ts`; `src/modules/access/{application/set-time-display,infrastructure/tenants}.ts`; `src/app/owner/{shared,today/lists,waitlist/list,book/slots}.tsx`; `src/modules/venue/application/get-day-availability.ts`; `src/app/owner/more/settings/{panel,actions}.tsx`; copy + success keys; `docs/owner-ia.md`; tests `test/lib/{tenant-settings,format-local-hm}.test.ts`.
+
+**Relation:** ALS still only for tenant isolation — `timeDisplay` rides on the same `CurrentTenant` object already stored for id; UI reads via `getCurrentTenant()` in Server Components, not as a new ALS display bus. Access owns the OWNER write (platformDb Tenant row). Venue `getDayAvailability` takes optional `hourCycle`; public callers omit it. Must not import Booking from Access.
+
+**How to verify:** `npm test`. Migrate applied on dev. Settings ? set 12-hour ? Home/Book/Waitlist show `4:00 PM`; public `/` and WhatsApp prepare links still `16:00`.
+
+## Public clocks follow tenant timeDisplay
+
+**When:** 2026-09-15
+
+**What:** `PublicHours` passes `hourCycle: tenant.timeDisplay` into `getDayAvailability`. Owner + public share the setting; WhatsApp bodies still default h23.
+
+**Why:** Product call after ship — stadium visitors should see the same clock format the owner chose.
+
+**Files:** `src/app/(public)/hours.tsx`; comments in `get-day-availability.ts`, `tenant-settings.ts`; `docs/owner-ia.md`.
+
+**How to verify:** Settings ? 12-hour ? reload public `/` for that tenant — slots show `4:00 PM`. WhatsApp prepare text still `16:00`.
+
+## Slot picker: keep AM/PM on one line
+
+**When:** 2026-09-15
+
+**What:** `SlotFace` time column `whitespace-nowrap` + `shrink-0` so `5:00 PM` does not wrap under `text-xl` in the 2-col grid.
+
+**Why:** 12h `timeDisplay` made start/end strings longer than the old `HH:mm` the card was sized for.
+
+**Files:** `src/components/slot-picker.tsx`.
+
+**How to verify:** Public or Book with 12h — PM stays beside the clock, not under it.

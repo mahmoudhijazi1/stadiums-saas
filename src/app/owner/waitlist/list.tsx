@@ -1,7 +1,8 @@
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
-import { formatLocalRange } from "@/app/owner/shared";
+import { formatLocalRange, type HourCycle } from "@/app/owner/shared";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,6 +19,8 @@ export async function OwnerWaitlist({
 }: {
   locale?: UiLocale;
 }) {
+  const tenant = await getCurrentTenant();
+  const hourCycle: HourCycle = tenant.timeDisplay;
   const waitlist = await listOpenWaitlist();
 
   if (waitlist.length === 0) {
@@ -39,7 +42,7 @@ export async function OwnerWaitlist({
                 <CardTitle className="text-base">{group.pitchName}</CardTitle>
                 <CardDescription>
                   <LtrIsolate className="block">
-                    {formatLocalRange(group.start, group.end)}
+                    {formatLocalRange(group.start, group.end, hourCycle)}
                   </LtrIsolate>
                   <span className="mt-1 block">
                     {person.name}{" "}

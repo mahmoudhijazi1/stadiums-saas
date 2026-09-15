@@ -5,6 +5,7 @@ import { OwnerSlotPicker } from "./picker";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/ui-copy";
 
 /**
@@ -20,11 +21,13 @@ export async function OwnerBookSlots({
   bookOn: string;
   locale?: UiLocale;
 }) {
+  const tenant = await getCurrentTenant();
   const pitches = await getDayAvailability({
     localDate: civilFromYyyyMmDd(bookOn),
     timeZone: OWNER_TIME_ZONE,
     now: new Date(),
     occupied: await listApprovedOccupied(),
+    hourCycle: tenant.timeDisplay,
   });
 
   if (pitches.length === 0) {

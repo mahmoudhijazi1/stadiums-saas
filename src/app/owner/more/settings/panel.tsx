@@ -4,8 +4,9 @@ import type { CurrentMembership } from "@/modules/access/application/get-current
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import type { UiLocale } from "@/lib/locale";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { lbpPerUsdLine, ui } from "@/lib/ui-copy";
-import { submitSetExchangeRate } from "./actions";
+import { submitSetExchangeRate, submitSetTimeDisplay } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,11 +18,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 /**
- * Exchange rate + pitch list. OWNER sees rate set + create/edit.
- * Staff see the current rate and pitch names, not the forms.
+ * Exchange rate + time format + pitch list. OWNER sees set forms.
+ * Staff see the current values, not the forms.
  */
 export async function OwnerSettings({
   membership,
@@ -32,9 +34,14 @@ export async function OwnerSettings({
   tenantSlug: string;
   locale?: UiLocale;
 }) {
+  const tenant = await getCurrentTenant();
   const rate = await getCurrentRate();
   const pitches = await listPitchSummaries();
   const isOwner = membership.role === "OWNER";
+  const timeDisplayLabel =
+    tenant.timeDisplay === "h12"
+      ? ui("owner.timeDisplayH12", locale)
+      : ui("owner.timeDisplayH23", locale);
 
   return (
     <section className="flex flex-col gap-6">
@@ -74,6 +81,53 @@ export async function OwnerSettings({
                 </div>
                 <SubmitButton variant="secondary" className="w-full">
                   {ui("owner.setRate", locale)}
+                </SubmitButton>
+              </form>
+            </CardContent>
+          ) : null}
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <h3 className="text-sm font-medium text-muted-foreground">
+          {ui("owner.timeDisplay", locale)}
+        </h3>
+        <Card>
+          <CardHeader>
+            <CardDescription>
+              <LtrIsolate>{timeDisplayLabel}</LtrIsolate>
+            </CardDescription>
+          </CardHeader>
+          {isOwner ? (
+            <CardContent>
+              <form
+                action={submitSetTimeDisplay}
+                className="flex flex-col gap-4"
+              >
+                <input type="hidden" name="tenant" value={tenantSlug} />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="timeDisplay">
+                    {ui("owner.timeDisplay", locale)}
+                  </Label>
+                  <SelectField
+                    id="timeDisplay"
+                    name="timeDisplay"
+                    required
+                    defaultValue={tenant.timeDisplay}
+                    options={[
+                      {
+                        value: "h23",
+                        label: ui("owner.timeDisplayH23", locale),
+                      },
+                      {
+                        value: "h12",
+                        label: ui("owner.timeDisplayH12", locale),
+                      },
+                    ]}
+                  />
+                </div>
+                <SubmitButton variant="secondary" className="w-full">
+                  {ui("owner.setTimeDisplay", locale)}
                 </SubmitButton>
               </form>
             </CardContent>
