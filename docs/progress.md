@@ -3435,3 +3435,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** 11 read wraps + 12 info-context updates (23 unique application files).
 
 **How to verify:** `npm test` — 224 passed. Approve/collect → `logs/` line includes `useCase=` + `tenantId=`.
+
+## Audit: MVP readiness (read-only)
+
+**When:** 2026-09-15
+
+**What:** Full launch-readiness audit — BRD Phase 1 traceability, money integrity, isolation (unproven by automation), droplet performance, i18n/RTL, docs drift, deploy, fresh YAGNI/DRY. No code fixes. Isolation test not run (fixture needs parameterization).
+
+**Why:** Need an honest “hand to a paying owner?” answer with file evidence, not architecture vibes.
+
+**Files:** `docs/guides/mvp-readiness-audit.md` (new).
+
+**How to verify:** Open that guide — eight sections + ordered P0–P3 must-close list; verdict is pilot-with-supervision, not production-ready.
