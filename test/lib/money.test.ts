@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
-import { formatUsd, isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
+import { formatUsd, formatUsdMoney, isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
 
 describe("parseUsd / formatUsd", () => {
   it("parses a two-decimal string with Decimal, not a float", () => {
@@ -20,6 +20,14 @@ describe("parseUsd / formatUsd", () => {
     expect(normalizeUsdForm("30")).toBe("30.00");
     expect(normalizeUsdForm("30.00")).toBe("30.00");
     expect(normalizeUsdForm("30.0")).toBe("30.0");
+  });
+});
+
+describe("formatUsdMoney", () => {
+  it("puts the minus outside the dollar sign", () => {
+    expect(formatUsdMoney(new Decimal("-40.00"))).toBe("-$40.00");
+    expect(formatUsdMoney(new Decimal("40.00"))).toBe("$40.00");
+    expect(formatUsdMoney(new Decimal("0.00"))).toBe("$0.00");
   });
 });
 

@@ -10,9 +10,10 @@ import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-le
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
-import { formatUsd, parseLbp } from "@/lib/money";
+import { formatUsdMoney, parseLbp } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
+import { cn } from "@/lib/utils";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { inOutBarPercents } from "./bars";
 import { Reveal } from "./reveal";
@@ -47,6 +48,16 @@ const CATEGORY_ICONS: Record<ExpenseCategory, LucideIcon> = {
   SALARY: Banknote,
   EQUIPMENT: Drill,
   OTHER: Ellipsis,
+};
+
+/** Soft tile tint so categories scan without grouping headers. */
+const CATEGORY_TILE: Record<ExpenseCategory, string> = {
+  ELECTRICITY: "bg-amber-500/15 text-amber-800 dark:text-amber-200",
+  WATER: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
+  MAINTENANCE: "bg-orange-500/15 text-orange-800 dark:text-orange-200",
+  SALARY: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
+  EQUIPMENT: "bg-slate-500/15 text-slate-700 dark:text-slate-200",
+  OTHER: "bg-muted text-muted-foreground",
 };
 
 function keepPeriodQuery(
@@ -87,9 +98,11 @@ function formatPeriodAmount(
   lbpPerUsd: Decimal | null,
 ): string {
   if (showLbp && lbpPerUsd) {
-    return `${usdToDisplayLbp(amountUsd, lbpPerUsd).toFixed(0)} LBP`;
+    const lbp = usdToDisplayLbp(amountUsd, lbpPerUsd);
+    const digits = lbp.abs().toFixed(0);
+    return lbp.isNegative() ? `-${digits} LBP` : `${digits} LBP`;
   }
-  return `$${formatUsd(amountUsd)}`;
+  return formatUsdMoney(amountUsd);
 }
 
 export async function OwnerMoney({
@@ -276,22 +289,33 @@ export async function OwnerMoney({
                 <li key={row.id}>
                   <Card className="gap-0 py-0">
                     <div className="flex items-start gap-3 px-4 py-3">
-                      <Icon
+                      <span
                         aria-hidden
-                        className="mt-0.5 size-5 shrink-0 text-muted-foreground"
-                        strokeWidth={1.75}
-                      />
+                        className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-lg",
+                          CATEGORY_TILE[row.category],
+                        )}
+                      >
+                        <Icon className="size-5" strokeWidth={1.75} />
+                      </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{row.description}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {categoryLabel(row.category, locale)}
-                          {" · "}
-                          <LtrIsolate>{formatLocalDay(row.occurredAt)}</LtrIsolate>
-                        </p>
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="min-w-0 text-sm font-medium leading-snug">
+                            {row.description}
+                          </p>
+                          <p className="shrink-0 font-mono text-sm font-semibold tabular-nums">
+                            <LtrIsolate>
+                              {formatUsdMoney(row.amountUsd)}
+                            </LtrIsolate>
+                          </p>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <span>{categoryLabel(row.category, locale)}</span>
+                          <LtrIsolate>
+                            {formatLocalDay(row.occurredAt)}
+                          </LtrIsolate>
+                        </div>
                       </div>
-                      <p className="shrink-0 font-mono text-sm font-medium">
-                        <LtrIsolate>${formatUsd(row.amountUsd)}</LtrIsolate>
-                      </p>
                     </div>
                   </Card>
                 </li>

@@ -24,6 +24,16 @@ export function formatUsd(amount: Decimal): string {
 }
 
 /**
+ * Display USD with the sign outside the currency symbol.
+ * `formatUsd(-40)` is "-40.00"; callers that do `$` + that get "$-40.00".
+ * Use this for any signed UI amount (e.g. period net).
+ */
+export function formatUsdMoney(amount: Decimal): string {
+  const digits = formatUsd(amount.abs());
+  return amount.isNegative() ? `-$${digits}` : `$${digits}`;
+}
+
+/**
  * Form convenience (G-1): "30" means "30.00". "30.0" stays invalid.
  */
 export function normalizeUsdForm(value: string): string {

@@ -57,8 +57,8 @@ export function RecordExpenseSheet({
     <>
       <Button
         type="button"
-        variant="ghost"
-        className="self-start"
+        variant="outline"
+        className="w-full"
         onClick={() => setOpen(true)}
       >
         {ui("owner.addExpense", locale)}
