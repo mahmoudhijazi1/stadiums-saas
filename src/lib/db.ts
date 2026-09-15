@@ -87,13 +87,62 @@ const scoped = prismaBase.$extends({
           return run(args);
         }
 
-        // findUnique / update / delete: unique where can't always include tenantId —
-        // run the query, then reject rows that belong to another tenant.
+        // findMany-style ops get tenantId in where (above). findUnique / update /
+        // delete cannot always put tenantId in a unique where — handle carefully:
+        //
+        // - findUnique: ensure tenantId is on the result for the post-check (inject
+        //   into select if the caller omitted it), then null out cross-tenant rows.
+        // - update / delete: PRE-check with findFirst({ ...where, tenantId }). A
+        //   post-check is too late — the write already committed on top-level db.
+
+        if (op === "update" || op === "delete") {
+          const { where } = args as { where: Record<string, unknown> };
+          const modelKey =
+            model.charAt(0).toLowerCase() + model.slice(1);
+          const owned = await (
+            prismaBase as unknown as Record<
+              string,
+              {
+                findFirst: (args: {
+                  where: Record<string, unknown>;
+                  select: { id: true };
+                }) => Promise<{ id: string } | null>;
+              }
+            >
+          )[modelKey].findFirst({
+            where: { ...where, tenantId },
+            select: { id: true },
+          });
+          if (!owned) {
+            throw new Error(`Tenant scope violation on ${model}.${operation}`);
+          }
+          return run(args);
+        }
+
+        const selectArgs = args as {
+          select?: Record<string, unknown> | null;
+        };
+        const callerSelect = selectArgs.select;
+        const injectedTenantIdSelect =
+          callerSelect != null &&
+          typeof callerSelect === "object" &&
+          !("tenantId" in callerSelect);
+        if (injectedTenantIdSelect) {
+          selectArgs.select = { ...callerSelect, tenantId: true };
+        }
+
         const result = await run(args);
         if (result && typeof result === "object" && "tenantId" in result) {
           if ((result as { tenantId: string }).tenantId !== tenantId) {
             if (op === "findUnique") return null;
             throw new Error(`Tenant scope violation on ${model}.${operation}`);
+          }
+          if (injectedTenantIdSelect) {
+            const { tenantId: _stripped, ...rest } = result as Record<
+              string,
+              unknown
+            > & { tenantId: string };
+            return rest;
           }
         }
         return result;

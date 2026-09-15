@@ -3447,3 +3447,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/guides/mvp-readiness-audit.md` (new).
 
 **How to verify:** Open that guide — eight sections + ordered P0–P3 must-close list; verdict is pilot-with-supervision, not production-ready.
+
+## Isolation integration test (RULE-7) + tenant guard fix
+
+**When:** 2026-09-15
+
+**What:** Parameterized `seedMinimalFixture` + `seedTwoTenants`. New `test/integration/isolation.integration.test.ts` — under A’s context: findUnique null for B’s pitch, listPitches excludes B, update throws + B unchanged, `requestPublicSlot` → `booking.pitch_not_found` with no B booking. Guard fix in `db.ts`: inject `tenantId` into findUnique select when omitted; **pre-check** update/delete via `findFirst({ ...where, tenantId })` (post-check was too late — write already committed).
+
+**Why:** MVP readiness P0 — prove RULE-7 in practice. First run exposed that `findPitch`/`updatePitchRow` selects without `tenantId` skipped the post-check, so cross-tenant update succeeded.
+
+**Files:** `test/integration/fixtures.ts`, `isolation.integration.test.ts`, `src/lib/db.ts`.
+
+**How to verify:** `npm run test:integration` — 11 passed (4 suites).
