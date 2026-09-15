@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
+import { formatLocalHm } from "@/lib/format-local-hm";
 
 export const OWNER_TIME_ZONE = "Asia/Beirut";
 
@@ -41,10 +42,5 @@ export function formatLocalClockRange(start: Date, end: Date): string {
 }
 
 export function formatLocalClock(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: OWNER_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(value);
+  return formatLocalHm(value, OWNER_TIME_ZONE);
 }

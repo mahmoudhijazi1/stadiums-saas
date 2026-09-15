@@ -11,6 +11,7 @@ import {
   slotAvailableMessage,
   whatsAppHref,
 } from "@/modules/notification/domain/whatsapp-link";
+import { formatLocalHm } from "@/lib/format-local-hm";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -66,8 +67,8 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
     const groupKey = `${row.pitchId}|${row.start.getTime()}|${row.end.getTime()}`;
     let group = groups.get(groupKey);
     if (!group) {
-      const startLocal = formatLocalTime(row.start);
-      const endLocal = formatLocalTime(row.end);
+      const startLocal = formatLocalHm(row.start, TIME_ZONE);
+      const endLocal = formatLocalHm(row.end, TIME_ZONE);
       group = {
         pitchId: row.pitchId,
         pitchName: row.pitchName,
@@ -100,13 +101,4 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
   }
 
   return [...groups.values()];
-}
-
-function formatLocalTime(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(value);
 }

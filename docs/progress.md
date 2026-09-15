@@ -3344,3 +3344,46 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How to verify:** `docker compose up -d`; migrate + seed `stadiums_dev`; `npm run test:integration` green; DBeaver connects with `stadiums_local` / `stadiums_local_dev`.
 
 **Correction:** Host port is **5433** (not 5432) because another local Docker Postgres already bound 5432. DBeaver ? localhost:5433.
+## Money UI: signed USD + expense bottom sheet + row polish
+
+**When:** 2026-09-15
+
+**What:** Fixed Difference rendering `$-40.00` via `formatUsdMoney` (`-$40.00`). Expense form moved to a bottom sheet (`expense-sheet.tsx`). Expense rows: outline Add button, icon tile with category tint, description+amount primary, category/date separate secondary.
+
+**Why:** Sign-inside-`$` is the same class of display bug as reversed time ranges; expense UI matched Home sheet/row hierarchy.
+
+**Files:** `src/lib/money.ts`, `test/lib/money.test.ts`, `src/app/owner/money/{panel,expense-sheet}.tsx`.
+
+**How to verify:** `/owner/money` with negative Difference shows `-$…`; Add expense opens sheet; list rows show tinted icons.
+
+## Venue: atomic `updatePitch`
+
+**When:** 2026-09-15
+
+**What:** `updatePitch` wraps find → hours-cover classify → update in one `db.$transaction`. `findPitch` / `updatePitchRow` take `tx: TenantTx` (pass interactive `tx` or top-level `db`). `findPitchById` is a same-select alias for Booking call sites. Left `listPitches` / `insertPitch` / Access memberships on `db` (low near-term risk).
+
+**Why:** Only realistic near-term mid-transaction Venue trigger from the engineering-audit footgun analysis — Settings hours save should be atomic.
+
+**Files:** `src/modules/venue/infrastructure/pitches.ts`, `application/update-pitch.ts`, `application/get-pitch-editor.ts`.
+
+**How to verify:** Edit pitch hours in Settings and save; approve/public booking still use `findPitchById(tx, …)`.
+
+## Priority 3 dedup — starting
+
+**When:** 2026-09-15
+
+**What (planned):** (1) Shared internal booking insert helper; keep `insertPendingPublicBooking` / `insertApprovedOwnerBooking` exports. (2) One shared local HH:mm formatter. (3) Comments that `COMING_DAYS=7` vs `WINDOW_DAYS=5` are different concepts. (4) Delete dead `src/lib/db-with-comments.ts`.
+
+**Why:** Engineering-audit Priority 3 — refactor/document only, no product behavior change.
+
+## Priority 3 dedup — done
+
+**When:** 2026-09-15
+
+**What:** (1) `insertBookingDuring` shared helper; exports `insertPendingPublicBooking` / `insertApprovedOwnerBooking` unchanged. (2) `src/lib/format-local-hm.ts` — used by get-day-availability, list-due-bookings, list-open-waitlist, owner `formatLocalClock`. (3) Comments: `COMING_DAYS=7` = Home booking horizon; `WINDOW_DAYS=5` = day-chip strip (different concepts). (4) Deleted `src/lib/db-with-comments.ts` (zero imports).
+
+**Why:** Engineering-audit Priority 3 — dedup/document only.
+
+**Files:** `bookings.ts`, `format-local-hm.ts` + test, `get-day-availability.ts`, `list-due-bookings.ts`, `list-open-waitlist.ts`, `owner/shared.tsx`, `day-chips.tsx`; removed `db-with-comments.ts`.
+
+**How to verify:** `npm test` — 224 passed.

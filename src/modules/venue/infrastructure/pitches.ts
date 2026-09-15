@@ -11,8 +11,13 @@ export async function listPitches() {
   });
 }
 
-export async function findPitch(pitchId: string) {
-  return db.pitch.findUnique({
+/**
+ * One pitch in this tenant (id, name, scheduleConfig). Missing / other-tenant → null.
+ * Tx-safe: pass the interactive `tx`, or `db` for a top-level call outside `$transaction`.
+ * Same select and tx-safety as `findPitchById` (Booking kept that name historically).
+ */
+export async function findPitch(tx: TenantTx, pitchId: string) {
+  return tx.pitch.findUnique({
     where: { id: pitchId },
     select: { id: true, name: true, scheduleConfig: true },
   });
@@ -31,28 +36,29 @@ export async function insertPitch(input: {
   });
 }
 
-export async function updatePitchRow(input: {
-  pitchId: string;
-  name: string;
-  scheduleConfig: unknown;
-}) {
-  return db.pitch.update({
+/** Tx-safe pitch update — pass interactive `tx` or top-level `db`. */
+export async function updatePitchRow(
+  tx: TenantTx,
+  input: {
+    pitchId: string;
+    name: string;
+    scheduleConfig: unknown;
+  },
+) {
+  return tx.pitch.update({
     where: { id: input.pitchId },
     data: {
       name: input.name,
       scheduleConfig: input.scheduleConfig,
-    } as Parameters<typeof db.pitch.update>[0]["data"],
+    } as Parameters<typeof tx.pitch.update>[0]["data"],
     select: { id: true },
   });
 }
 
 /**
- * One pitch in this tenant. Missing or other-tenant id → null (extension).
- * Takes tx so it stays inside Booking's $transaction (DR-001).
+ * Alias of `findPitch` for Booking call sites (same fields, same tx-safety).
+ * Prefer `findPitch` in new Venue code; keep this name where Booking already imports it.
  */
 export async function findPitchById(tx: TenantTx, pitchId: string) {
-  return tx.pitch.findUnique({
-    where: { id: pitchId },
-    select: { id: true, name: true, scheduleConfig: true },
-  });
+  return findPitch(tx, pitchId);
 }

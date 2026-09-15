@@ -10,6 +10,40 @@ function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
+type BookingInsertStatus = "PENDING" | "APPROVED";
+type BookingInsertSource = "PUBLIC" | "OWNER";
+
+/**
+ * Raw INSERT for Booking.during (Unsupported — no Client create).
+ * tenantId in SQL — query extension does not stamp $executeRaw.
+ * Callers keep fixed status/source pairs via the named exports below.
+ */
+async function insertBookingDuring(
+  tx: TenantTx,
+  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+  status: BookingInsertStatus,
+  source: BookingInsertSource,
+): Promise<string> {
+  const id = randomUUID();
+  const tenantId = await getCurrentTenantId();
+  const price = formatUsd(input.priceUsd);
+
+  await tx.$executeRaw`
+    INSERT INTO "Booking" ("id", "tenantId", "pitchId", "during", "status", "source", "priceUsd")
+    VALUES (
+      ${id},
+      ${tenantId},
+      ${input.pitchId},
+      tstzrange(${input.start}, ${input.end}, '[)'),
+      ${status}::"BookingStatus",
+      ${source}::"BookingSource",
+      ${price}::decimal
+    )
+  `;
+
+  return id;
+}
+
 /**
  * Insert PENDING/PUBLIC with during as tstzrange.
  * Prisma Client has no booking.create (required Unsupported). tenantId must be
@@ -19,53 +53,19 @@ export async function insertPendingPublicBooking(
   tx: TenantTx,
   input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
 ): Promise<string> {
-  const id = randomUUID();
-  const tenantId = await getCurrentTenantId();
-  const price = formatUsd(input.priceUsd);
-
-  await tx.$executeRaw`
-    INSERT INTO "Booking" ("id", "tenantId", "pitchId", "during", "status", "source", "priceUsd")
-    VALUES (
-      ${id},
-      ${tenantId},
-      ${input.pitchId},
-      tstzrange(${input.start}, ${input.end}, '[)'),
-      'PENDING'::"BookingStatus",
-      'PUBLIC'::"BookingSource",
-      ${price}::decimal
-    )
-  `;
-
-  return id;
+  return insertBookingDuring(tx, input, "PENDING", "PUBLIC");
 }
 
 /**
  * Insert APPROVED/OWNER with during as tstzrange (SPEC-09).
  * Same raw insert as public PENDING — Client has no booking.create.
- * tenantId in SQL (extension does not stamp $executeRaw). Hits exclusion.
+ * Hits exclusion when windows overlap another APPROVED.
  */
 export async function insertApprovedOwnerBooking(
   tx: TenantTx,
   input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
 ): Promise<string> {
-  const id = randomUUID();
-  const tenantId = await getCurrentTenantId();
-  const price = formatUsd(input.priceUsd);
-
-  await tx.$executeRaw`
-    INSERT INTO "Booking" ("id", "tenantId", "pitchId", "during", "status", "source", "priceUsd")
-    VALUES (
-      ${id},
-      ${tenantId},
-      ${input.pitchId},
-      tstzrange(${input.start}, ${input.end}, '[)'),
-      'APPROVED'::"BookingStatus",
-      'OWNER'::"BookingSource",
-      ${price}::decimal
-    )
-  `;
-
-  return id;
+  return insertBookingDuring(tx, input, "APPROVED", "OWNER");
 }
 
 /**

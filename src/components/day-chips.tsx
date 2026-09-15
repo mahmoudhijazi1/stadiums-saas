@@ -10,6 +10,7 @@ import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 
+/** How many civil days the day-chip strip shows (public + Book). Not Home’s COMING_DAYS booking horizon. */
 const WINDOW_DAYS = 5;
 
 /**

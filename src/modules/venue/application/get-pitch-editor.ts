@@ -1,4 +1,5 @@
 import { DomainError, UnexpectedError } from "@/lib/errors";
+import db from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
@@ -35,7 +36,7 @@ export async function getPitchEditor(
     throw new DomainError("access.not_allowed");
   }
 
-  const row = await findPitch(pitchId);
+  const row = await findPitch(db, pitchId);
   if (!row) return null;
 
   let config;

@@ -1,4 +1,5 @@
 import { DomainError, UnexpectedError } from "@/lib/errors";
+import db from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
@@ -18,6 +19,7 @@ const TIME_ZONE = "Asia/Beirut";
 /**
  * Update name + hours groups + day priceRules. OWNER only.
  * `liveBookings` come from Booking (`listLivePitchWindows`).
+ * Authorize outside `$transaction`; find → classify → update run in one tx.
  */
 export async function updatePitch(input: {
   pitchId: string;
@@ -31,49 +33,52 @@ export async function updatePitch(input: {
   }
 
   try {
-    const row = await findPitch(input.pitchId);
-    if (!row) {
-      throw new DomainError("booking.pitch_not_found");
-    }
+    await db.$transaction(async (tx) => {
+      const row = await findPitch(tx, input.pitchId);
+      if (!row) {
+        throw new DomainError("booking.pitch_not_found");
+      }
 
-    try {
-      parseScheduleConfig(row.scheduleConfig);
-    } catch (error) {
-      logger.error(`Invalid schedule_config on pitch ${row.id}`, error, {
-        useCase: "updatePitch",
-        tenantId: await safeTenantId(),
+      try {
+        parseScheduleConfig(row.scheduleConfig);
+      } catch (error) {
+        logger.error(`Invalid schedule_config on pitch ${row.id}`, error, {
+          useCase: "updatePitch",
+          tenantId: await safeTenantId(),
+        });
+        throw new UnexpectedError(error);
+      }
+
+      const next = scheduleFromHoursGroups({
+        groups: input.draft.hoursGroups,
+        slotDurationMinutes: input.draft.slotDurationMinutes,
+        defaultPriceUsd: input.draft.defaultPriceUsd,
+        priceRules: input.draft.priceRules,
       });
-      throw new UnexpectedError(error);
-    }
+      const now = input.now ?? new Date();
+      const conflicts = classifyHoursConflicts(
+        next,
+        input.liveBookings,
+        TIME_ZONE,
+        now,
+      );
+      const blocker = hoursSaveBlocker({
+        approvedBlocking: conflicts.approvedBlocking,
+        pendingWarning: conflicts.pendingWarning,
+        confirmPending: input.draft.confirmPending,
+      });
+      if (blocker) {
+        throw new DomainError(blocker);
+      }
 
-    const next = scheduleFromHoursGroups({
-      groups: input.draft.hoursGroups,
-      slotDurationMinutes: input.draft.slotDurationMinutes,
-      defaultPriceUsd: input.draft.defaultPriceUsd,
-      priceRules: input.draft.priceRules,
+      await updatePitchRow(tx, {
+        pitchId: row.id,
+        name: input.draft.name,
+        scheduleConfig: next,
+      });
     });
-    const now = input.now ?? new Date();
-    const conflicts = classifyHoursConflicts(
-      next,
-      input.liveBookings,
-      TIME_ZONE,
-      now,
-    );
-    const blocker = hoursSaveBlocker({
-      approvedBlocking: conflicts.approvedBlocking,
-      pendingWarning: conflicts.pendingWarning,
-      confirmPending: input.draft.confirmPending,
-    });
-    if (blocker) {
-      throw new DomainError(blocker);
-    }
 
-    await updatePitchRow({
-      pitchId: row.id,
-      name: input.draft.name,
-      scheduleConfig: next,
-    });
-    logger.info(`Pitch updated ${row.id}`);
+    logger.info(`Pitch updated ${input.pitchId}`);
   } catch (error) {
     await rethrowUnexpected(error, "Update pitch failed", "updatePitch");
   }

@@ -21,9 +21,10 @@ import {
   bookingConfirmedMessage,
   whatsAppHref,
 } from "@/modules/notification/domain/whatsapp-link";
+import { formatLocalHm } from "@/lib/format-local-hm";
 
 const TIME_ZONE = "Asia/Beirut";
-/** Next civil days after today (Home “عرض الأيام القادمة”). */
+/** Owner Home “coming days” booking list horizon (not the public day-chip count). */
 const COMING_DAYS = 7;
 
 export type DueBooking = {
@@ -118,20 +119,11 @@ function confirmHref(row: ApprovedCollectRow, stadiumName: string): string | nul
       bookingConfirmedMessage({
         stadiumName,
         pitchName: row.pitchName,
-        startLocal: formatLocalTime(row.start),
-        endLocal: formatLocalTime(row.end),
+        startLocal: formatLocalHm(row.start, TIME_ZONE),
+        endLocal: formatLocalHm(row.end, TIME_ZONE),
       }),
     );
   } catch {
     return null;
   }
-}
-
-function formatLocalTime(value: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(value);
 }
