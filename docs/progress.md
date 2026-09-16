@@ -3523,3 +3523,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Invokes existing `test:integration` (`migrate-test-db.ts` + Jest). Does not change test files or scripts. ALS/tenant isolation unchanged.
 
 **How to verify:** Push this branch or open a PR — Actions tab must go green. A red step fails the job (PR not "safe").
+
+## CI build fixes (Prisma create types + Node 24)
+
+**When:** 2026-09-16
+
+**What:** First CI `next build` failed on two existing TS issues: `createPerson` data XOR (same cast as `insertRequesterParticipant` / `insertPitch`); `createOwnerBooking` catch did not `return await rethrowUnexpected` so the function looked like it could return `undefined`. Workflow actions bumped to checkout/setup-node `@v5` and Node 24 (Node 20 action runtime is deprecated on GH runners).
+
+**Why:** Make the CI job green without changing test scripts.
+
+**Files:** `src/modules/people/infrastructure/persons.ts`; `src/modules/booking/application/create-owner-booking.ts`; `.github/workflows/ci.yml`
+
+**How to verify:** Push — CI build step passes. `npm test` still green.

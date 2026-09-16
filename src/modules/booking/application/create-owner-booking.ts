@@ -96,6 +96,10 @@ export async function createOwnerBooking(
       });
       throw new DomainError("booking.slot_unavailable");
     }
-    await rethrowUnexpected(error, "Owner booking failed", "createOwnerBooking");
+    return await rethrowUnexpected(
+      error,
+      "Owner booking failed",
+      "createOwnerBooking",
+    );
   }
 }

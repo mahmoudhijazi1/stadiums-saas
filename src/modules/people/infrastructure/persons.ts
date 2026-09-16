@@ -25,6 +25,11 @@ export async function createPerson(
   input: { name: string; phone: string },
 ): Promise<Person> {
   return tx.person.create({
-    data: { name: input.name, phone: input.phone },
+    // Extension stamps tenantId at runtime. Prisma 7 create XOR still wants
+    // tenantId or tenant on the type (`$extends` does not rewrite inputs).
+    data: {
+      name: input.name,
+      phone: input.phone,
+    } as Parameters<typeof tx.person.create>[0]["data"],
   });
 }
