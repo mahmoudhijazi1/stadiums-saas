@@ -1,0 +1,63 @@
+# Tests + build only. No deploy.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Same major as docker-compose.yml (postgres:16-alpine)
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: stadiums_local
+          POSTGRES_PASSWORD: stadiums_local_dev
+          # migrate-test-db.ts / setup-env.ts require the DB name stadiums_test
+          POSTGRES_DB: stadiums_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stadiums_local -d stadiums_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Dummy CI-only creds — same values as .env.example / docker-compose. Not secrets.
+      DATABASE_URL: postgresql://stadiums_local:stadiums_local_dev@localhost:5432/stadiums_test?schema=public
+      DATABASE_URL_TEST: postgresql://stadiums_local:stadiums_local_dev@localhost:5432/stadiums_test?schema=public
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Client is gitignored (src/app/generated/prisma). Same as a fresh local clone.
+      - name: Generate Prisma client
+        run: npx prisma generate --config prisma7.config.ts
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Build
+        run: npm run build

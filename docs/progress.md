@@ -3476,13 +3476,13 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **When:** 2026-09-15
 
-**What:** Additive `Tenant.settings` jsonb (default `{}`). Zod `timeDisplay: h23|h12`. OWNER Settings card below Exchange rate. `getCurrentTenant` parses settings once per request. Owner Home / Book / Waitlist pass `hourCycle` into `formatLocalHm` / `getDayAvailability`; public + WhatsApp keep default h23. No SPEC-15 — Settings slice like pitch hours.
+**What:** Additive `Tenant.settings` jsonb (default `{}`). Zod `timeDisplay: h23|h12`. OWNER Settings card below Exchange rate. `getCurrentTenant` parses settings once per request. Owner Home / Book / Waitlist pass `hourCycle` into `formatLocalHm` / `getDayAvailability`; public + WhatsApp keep default h23. No SPEC-15 ï¿½ Settings slice like pitch hours.
 
-**Why:** Owners asked for 12h clocks; Arabic AM/PM on WhatsApp was a known risk, so customer-facing surfaces stay 24h. DR-002 §2.6 column finally exists for this knob only.
+**Why:** Owners asked for 12h clocks; Arabic AM/PM on WhatsApp was a known risk, so customer-facing surfaces stay 24h. DR-002 ï¿½2.6 column finally exists for this knob only.
 
 **Files:** `src/prisma/schema.prisma` + migration `20260915060000_tenant_settings`; `src/lib/tenant-settings.ts`; `src/lib/tenant-context.ts`; `src/lib/format-local-hm.ts`; `src/modules/access/{application/set-time-display,infrastructure/tenants}.ts`; `src/app/owner/{shared,today/lists,waitlist/list,book/slots}.tsx`; `src/modules/venue/application/get-day-availability.ts`; `src/app/owner/more/settings/{panel,actions}.tsx`; copy + success keys; `docs/owner-ia.md`; tests `test/lib/{tenant-settings,format-local-hm}.test.ts`.
 
-**Relation:** ALS still only for tenant isolation — `timeDisplay` rides on the same `CurrentTenant` object already stored for id; UI reads via `getCurrentTenant()` in Server Components, not as a new ALS display bus. Access owns the OWNER write (platformDb Tenant row). Venue `getDayAvailability` takes optional `hourCycle`; public callers omit it. Must not import Booking from Access.
+**Relation:** ALS still only for tenant isolation ï¿½ `timeDisplay` rides on the same `CurrentTenant` object already stored for id; UI reads via `getCurrentTenant()` in Server Components, not as a new ALS display bus. Access owns the OWNER write (platformDb Tenant row). Venue `getDayAvailability` takes optional `hourCycle`; public callers omit it. Must not import Booking from Access.
 
 **How to verify:** `npm test`. Migrate applied on dev. Settings ? set 12-hour ? Home/Book/Waitlist show `4:00 PM`; public `/` and WhatsApp prepare links still `16:00`.
 
@@ -3492,11 +3492,11 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **What:** `PublicHours` passes `hourCycle: tenant.timeDisplay` into `getDayAvailability`. Owner + public share the setting; WhatsApp bodies still default h23.
 
-**Why:** Product call after ship — stadium visitors should see the same clock format the owner chose.
+**Why:** Product call after ship ï¿½ stadium visitors should see the same clock format the owner chose.
 
 **Files:** `src/app/(public)/hours.tsx`; comments in `get-day-availability.ts`, `tenant-settings.ts`; `docs/owner-ia.md`.
 
-**How to verify:** Settings ? 12-hour ? reload public `/` for that tenant — slots show `4:00 PM`. WhatsApp prepare text still `16:00`.
+**How to verify:** Settings ? 12-hour ? reload public `/` for that tenant ï¿½ slots show `4:00 PM`. WhatsApp prepare text still `16:00`.
 
 ## Slot picker: keep AM/PM on one line
 
@@ -3508,4 +3508,30 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 
 **Files:** `src/components/slot-picker.tsx`.
 
-**How to verify:** Public or Book with 12h — PM stays beside the clock, not under it.
+**How to verify:** Public or Book with 12h ï¿½ PM stays beside the clock, not under it.
+
+## GitHub Actions CI (tests + build, no deploy)
+
+**When:** 2026-09-16
+
+**What:** Workflow `.github/workflows/ci.yml` on every push/PR: `npm ci`, `prisma generate` (generated client is gitignored), `npm test`, `npm run test:integration` against a `postgres:16-alpine` service (`stadiums_test`), then `npm run build`. No deploy. Dummy DB creds only (same as `.env.example`).
+
+**Why:** Catch unit/integration/build failures on the PR, not later. Backup/deploy still unsolved â€” out of scope.
+
+**Files:** `.github/workflows/ci.yml`
+
+**How it connects:** Invokes existing `test:integration` (`migrate-test-db.ts` + Jest). Does not change test files or scripts. ALS/tenant isolation unchanged.
+
+**How to verify:** Push this branch or open a PR â€” Actions tab must go green. A red step fails the job (PR not "safe").
+
+## CI build fixes (Prisma create types + Node 24)
+
+**When:** 2026-09-16
+
+**What:** First CI `next build` failed on two existing TS issues: `createPerson` data XOR (same cast as `insertRequesterParticipant` / `insertPitch`); `createOwnerBooking` catch did not `return await rethrowUnexpected` so the function looked like it could return `undefined`. Workflow actions bumped to checkout/setup-node `@v5` and Node 24 (Node 20 action runtime is deprecated on GH runners).
+
+**Why:** Make the CI job green without changing test scripts.
+
+**Files:** `src/modules/people/infrastructure/persons.ts`; `src/modules/booking/application/create-owner-booking.ts`; `.github/workflows/ci.yml`
+
+**How to verify:** Push â€” CI build step passes. `npm test` still green.
