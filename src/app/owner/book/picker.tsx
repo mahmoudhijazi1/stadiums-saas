@@ -11,12 +11,10 @@ import { ui } from "@/lib/ui-copy";
  */
 export function OwnerSlotPicker({
   pitches,
-  tenantSlug,
   bookOn,
   locale = "ar",
 }: {
   pitches: SlotPickerPitch[];
-  tenantSlug: string;
   bookOn: string;
   locale?: UiLocale;
 }) {
@@ -24,7 +22,7 @@ export function OwnerSlotPicker({
     <SlotPicker
       pitches={pitches}
       action={submitCreateOwnerBooking}
-      hiddenFields={{ tenant: tenantSlug, bookOn }}
+      hiddenFields={{ bookOn }}
       submitLabel={ui("owner.book", locale)}
       locale={locale}
     />

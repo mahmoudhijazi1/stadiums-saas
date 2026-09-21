@@ -48,10 +48,6 @@ export type UpcomingRowView = {
   showNoShow: boolean;
 };
 
-function keepTenantQuery(tenantSlug: string) {
-  return <input type="hidden" name="tenant" value={tenantSlug} />;
-}
-
 function StatusBadge({
   status,
   locale,
@@ -156,7 +152,6 @@ export function UpcomingPanel({
   overdue,
   today,
   later,
-  tenantSlug,
   locale,
   mayCollect,
   mayCancel,
@@ -166,7 +161,6 @@ export function UpcomingPanel({
   overdue: UpcomingRowView[];
   today: UpcomingRowView[];
   later: UpcomingRowView[];
-  tenantSlug: string;
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
@@ -358,7 +352,6 @@ export function UpcomingPanel({
                 <UpcomingRowActions
                   key={`${sheetRow.id}:${sheetRow.remainingUsd}`}
                   row={sheetRow}
-                  tenantSlug={tenantSlug}
                   locale={locale}
                   mayCollect={mayCollect}
                   mayCancel={mayCancel}
@@ -380,7 +373,6 @@ export function UpcomingPanel({
                 </p>
                 <form action={submitCancelBooking}>
                   <input type="hidden" name="bookingId" value={sheetRow.id} />
-                  {keepTenantQuery(tenantSlug)}
                   <SubmitButton
                     ref={confirmSubmitRef}
                     variant="destructive"
@@ -498,7 +490,6 @@ function UpcomingRows({
 
 function UpcomingRowActions({
   row,
-  tenantSlug,
   locale,
   mayCollect,
   mayCancel,
@@ -507,7 +498,6 @@ function UpcomingRowActions({
   onCancelBooking,
 }: {
   row: UpcomingRowView;
-  tenantSlug: string;
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
@@ -532,7 +522,6 @@ function UpcomingRowActions({
         {canCollect && !mixedOpen ? (
           <form action={submitCollectPayment}>
             <input type="hidden" name="bookingId" value={row.id} />
-            {keepTenantQuery(tenantSlug)}
             <input type="hidden" name="usdAmount" value={row.remainingUsd} />
             <SubmitButton className="w-full">
               {collectUsdLabel(row.remainingUsd, locale)}
@@ -555,7 +544,6 @@ function UpcomingRowActions({
             {mixedOpen ? (
               <form action={submitCollectPayment} className="flex flex-col gap-4">
                 <input type="hidden" name="bookingId" value={row.id} />
-                {keepTenantQuery(tenantSlug)}
                 <div className="flex flex-col gap-2">
                   <Label htmlFor={`usd-${row.id}`}>
                     {ui("owner.usdRemaining", locale)}
@@ -592,7 +580,6 @@ function UpcomingRowActions({
         {mayNoShow && row.showNoShow ? (
           <form action={submitRecordNoShow}>
             <input type="hidden" name="bookingId" value={row.id} />
-            {keepTenantQuery(tenantSlug)}
             <SubmitButton variant="outline" className="w-full">
               {ui("owner.noShow", locale)}
             </SubmitButton>

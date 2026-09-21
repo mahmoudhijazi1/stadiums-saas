@@ -19,14 +19,12 @@ const WINDOW_DAYS = 5;
  * so public (`date`) and owner Book (`bookOn`) share one row.
  */
 export function DayChips({
-  tenantSlug,
   today,
   selectedDate,
   pathname,
   dateQueryKey,
   locale = "ar",
 }: {
-  tenantSlug: string;
   today: CivilDate;
   selectedDate: string;
   pathname: string;
@@ -53,7 +51,7 @@ export function DayChips({
               <Link
                 href={{
                   pathname,
-                  query: { tenant: tenantSlug, [dateQueryKey]: date },
+                  query: { [dateQueryKey]: date },
                 }}
                 scroll={false}
                 aria-current={selected ? "date" : undefined}
@@ -79,7 +77,6 @@ export function DayChips({
         })}
         <li className="min-w-0 flex-1">
           <DateCalendarChip
-            tenantSlug={tenantSlug}
             selectedDate={selectedDate}
             todayYmd={formatCivilDate(today)}
             isSelected={calendarSelected}

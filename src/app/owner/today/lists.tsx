@@ -31,18 +31,12 @@ import {
 import { isPastUnpaidCancel, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
 import { Clock, MapPin, Phone } from "lucide-react";
 
-function keepTenantQuery(tenantSlug: string) {
-  return <input type="hidden" name="tenant" value={tenantSlug} />;
-}
-
 export async function OwnerToday({
   membership,
-  tenantSlug,
   locale = "ar",
   highlight,
 }: {
   membership: CurrentMembership;
-  tenantSlug: string;
   locale?: UiLocale;
   highlight?: string;
 }) {
@@ -113,14 +107,12 @@ export async function OwnerToday({
                         <div className="flex gap-2">
                           <form action={submitApproveBooking} className="min-w-0 flex-1">
                             <input type="hidden" name="bookingId" value={row.id} />
-                            {keepTenantQuery(tenantSlug)}
                             <SubmitButton className="w-full">
                               {ui("owner.approve", locale)}
                             </SubmitButton>
                           </form>
                           <form action={submitRejectBooking} className="min-w-0 flex-1">
                             <input type="hidden" name="bookingId" value={row.id} />
-                            {keepTenantQuery(tenantSlug)}
                             <SubmitButton variant="outline" className="w-full">
                               {ui("owner.reject", locale)}
                             </SubmitButton>
@@ -140,7 +132,6 @@ export async function OwnerToday({
         overdue={toUpcomingViews(confirmed.overdue, now, locale, hourCycle)}
         today={toUpcomingViews(confirmed.today, now, locale, hourCycle)}
         later={toUpcomingViews(confirmed.later, now, locale, hourCycle)}
-        tenantSlug={tenantSlug}
         locale={locale}
         mayCollect={mayCollect}
         mayCancel={mayCancel}

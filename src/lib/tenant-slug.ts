@@ -1,23 +1,9 @@
 /**
- * Pure function: turn a request host (and optional ?tenant=) into a tenant slug.
- * No database. No Next.js. Easy to test with Jest.
- *
- * Examples:
- *   ahmad.stadiums.com  → "ahmad"
- *   sami.lvh.me         → "sami"
- *   localhost?tenant=ahmad → "ahmad"  (local-dev fallback)
+ * Pure function: turn a request host into a tenant slug.
+ * No query params. Use ahmad.localhost / ahmad.lvh.me / ahmad.stadiums.com.
  */
-export function parseTenantSlug(
-  host: string,
-  searchParams?: Pick<URLSearchParams, "get"> | null,
-): string | null {
-  // 1) Local-dev fallback: ?tenant=ahmad (wins so you can test without DNS)
-  const fromQuery = searchParams?.get("tenant")?.trim().toLowerCase();
-  if (fromQuery && isValidSlug(fromQuery)) {
-    return fromQuery;
-  }
-
-  // 2) From the hostname (strip port like :3000)
+export function parseTenantSlug(host: string): string | null {
+  // Hostname from host (strip port like :3000)
   const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
   if (!hostname || hostname === "localhost" || hostname === "127.0.0.1") {
     return null;

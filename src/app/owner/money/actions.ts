@@ -7,7 +7,7 @@ import { parseRecordExpense } from "@/modules/expense/schemas/record-expense";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { field, redirectOwner } from "@/app/owner/form-query";
 
-const MONEY_KEEP = ["tenant", "from", "to", "view", "displayRate"] as const;
+const MONEY_KEEP = ["from", "to", "view", "displayRate"] as const;
 
 export async function submitRecordExpense(formData: FormData) {
   let errorKey: string | undefined;

@@ -11,19 +11,17 @@ import { ui } from "@/lib/ui-copy";
 export function PublicSlotPicker({
   pitches,
   dateValue,
-  tenantSlug,
   locale,
 }: {
   pitches: SlotPickerPitch[];
   dateValue: string;
-  tenantSlug: string;
   locale: UiLocale;
 }) {
   return (
     <SlotPicker
       pitches={pitches}
       action={submitPublicSlotRequest}
-      hiddenFields={{ tenant: tenantSlug, date: dateValue }}
+      hiddenFields={{ date: dateValue }}
       submitLabel={ui("public.request", locale)}
       locale={locale}
     />

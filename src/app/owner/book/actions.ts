@@ -5,7 +5,7 @@ import { createOwnerBooking } from "@/modules/booking/application/create-owner-b
 import { parseOwnerCreateBooking } from "@/modules/booking/schemas/owner-create-booking";
 import { field, redirectOwner } from "@/app/owner/form-query";
 
-const BOOK_KEEP = ["tenant", "bookOn"] as const;
+const BOOK_KEEP = ["bookOn"] as const;
 
 /**
  * Thin owner Book action. Zod → createOwnerBooking.

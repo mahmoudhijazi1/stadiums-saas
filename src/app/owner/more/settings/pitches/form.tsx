@@ -22,14 +22,12 @@ export type PitchFormDefaults = {
  * Pending hours-cover still uses a second-submit checkbox.
  */
 export function PitchDraftForm({
-  tenantSlug,
   locale,
   action,
   pitchId,
   defaults,
   showPending,
 }: {
-  tenantSlug: string;
   locale: UiLocale;
   action: (formData: FormData) => Promise<void>;
   pitchId?: string;
@@ -38,7 +36,6 @@ export function PitchDraftForm({
 }) {
   return (
     <form action={action} className="flex flex-col gap-4">
-      <input type="hidden" name="tenant" value={tenantSlug} />
       {pitchId ? <input type="hidden" name="pitchId" value={pitchId} /> : null}
 
       <div className="flex flex-col gap-2">

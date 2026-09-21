@@ -40,7 +40,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       </header>
 
       <PublicDayChips
-        tenantSlug={tenant.slug}
         today={today}
         selectedDate={dateValue}
         locale={locale}
@@ -52,7 +51,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <PublicHours
             localDate={localDate}
             dateValue={dateValue}
-            tenantSlug={tenant.slug}
             locale={locale}
             now={now}
           />

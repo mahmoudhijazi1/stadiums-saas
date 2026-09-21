@@ -13,11 +13,9 @@ import { ui } from "@/lib/ui-copy";
  * Slot tap UI lives in OwnerSlotPicker (shared SlotPicker).
  */
 export async function OwnerBookSlots({
-  tenantSlug,
   bookOn,
   locale = "ar",
 }: {
-  tenantSlug: string;
   bookOn: string;
   locale?: UiLocale;
 }) {
@@ -40,11 +38,6 @@ export async function OwnerBookSlots({
   }
 
   return (
-    <OwnerSlotPicker
-      pitches={pitches}
-      tenantSlug={tenantSlug}
-      bookOn={bookOn}
-      locale={locale}
-    />
+    <OwnerSlotPicker pitches={pitches} bookOn={bookOn} locale={locale} />
   );
 }

@@ -6,7 +6,8 @@ export function field(formData: FormData, key: string): string {
 }
 
 /**
- * Keep the tab's local query after POST. Hidden tenant is not isolation.
+ * Keep the tab's local query after POST (bookOn, period, etc.).
+ * Tenant is not in FormData — host/subdomain only.
  * Used by today/book/money/settings/pitch actions (2+ tabs) — stays at owner root.
  */
 export function ownerQuery(

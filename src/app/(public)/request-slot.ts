@@ -16,7 +16,6 @@ function field(formData: FormData, key: string): string {
  * redirect() must sit outside try/catch (Next redirect.md: redirect throws).
  */
 export async function submitPublicSlotRequest(formData: FormData) {
-  const tenant = field(formData, "tenant");
   const date = field(formData, "date");
   let errorKey: string | undefined;
   try {
@@ -33,7 +32,6 @@ export async function submitPublicSlotRequest(formData: FormData) {
   }
 
   const next = new URLSearchParams();
-  if (tenant) next.set("tenant", tenant);
   if (date) next.set("date", date);
   if (errorKey) {
     next.set("error", errorKey);

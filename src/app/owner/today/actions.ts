@@ -12,7 +12,7 @@ import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
 import { field, redirectOwner } from "@/app/owner/form-query";
 
-const TODAY_KEEP = ["tenant"] as const;
+const TODAY_KEEP = [] as const;
 
 /**
  * Thin Server Action (Next 16 forms.md: <form action> + FormData).

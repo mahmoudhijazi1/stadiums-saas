@@ -20,10 +20,9 @@ import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
-function keepPeriodQuery(tenantSlug: string, period: LedgerPeriodQuery) {
+function keepPeriodQuery(period: LedgerPeriodQuery) {
   return (
     <>
-      <input type="hidden" name="tenant" value={tenantSlug} />
       {period.from ? (
         <input type="hidden" name="from" value={period.from} />
       ) : null}
@@ -39,13 +38,11 @@ function keepPeriodQuery(tenantSlug: string, period: LedgerPeriodQuery) {
 }
 
 export function RecordExpenseSheet({
-  tenantSlug,
   periodQuery,
   today,
   locale,
   categoryOptions,
 }: {
-  tenantSlug: string;
   periodQuery: LedgerPeriodQuery;
   today: string;
   locale: UiLocale;
@@ -76,7 +73,7 @@ export function RecordExpenseSheet({
               action={submitRecordExpense}
               className="flex flex-col gap-4"
             >
-              {keepPeriodQuery(tenantSlug, periodQuery)}
+              {keepPeriodQuery(periodQuery)}
               <div className="flex flex-col gap-2">
                 <Label htmlFor="category">{ui("owner.category", locale)}</Label>
                 <SelectField

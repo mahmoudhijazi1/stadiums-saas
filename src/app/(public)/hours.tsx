@@ -17,13 +17,11 @@ const TIME_ZONE = "Asia/Beirut";
 export async function PublicHours({
   localDate,
   dateValue,
-  tenantSlug,
   locale,
   now,
 }: {
   localDate: CivilDate;
   dateValue: string;
-  tenantSlug: string;
   locale: UiLocale;
   now: Date;
 }) {
@@ -50,7 +48,6 @@ export async function PublicHours({
     <PublicSlotPicker
       pitches={pitches}
       dateValue={dateValue}
-      tenantSlug={tenantSlug}
       locale={locale}
     />
   );

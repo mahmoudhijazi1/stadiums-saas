@@ -8,7 +8,6 @@ import { parsePitchDraft } from "@/modules/venue/schemas/pitch-draft";
 import { field, redirectOwner } from "@/app/owner/form-query";
 
 const PITCH_KEEP = [
-  "tenant",
   "name",
   "slotDurationMinutes",
   "defaultPriceUsd",
@@ -46,7 +45,7 @@ export async function submitCreatePitch(formData: FormData) {
       error: errorKey,
     });
   }
-  redirectOwner("/owner/more/settings", formData, ["tenant"], {
+  redirectOwner("/owner/more/settings", formData, [], {
     ok: "pitch_created",
   });
 }
@@ -80,7 +79,7 @@ export async function submitUpdatePitch(formData: FormData) {
       ...confirmQuery(errorKey),
     });
   }
-  redirectOwner("/owner/more/settings", formData, ["tenant"], {
+  redirectOwner("/owner/more/settings", formData, [], {
     ok: "pitch_updated",
   });
 }

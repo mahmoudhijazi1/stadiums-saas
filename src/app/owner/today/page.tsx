@@ -1,9 +1,7 @@
 import { Suspense } from "react";
-import { getCurrentTenant } from "@/lib/tenant-context";
 import {
   queryString,
   requireOwnerMembership,
-  tenantSlugFrom,
 } from "@/app/owner/shared";
 import { OwnerToday } from "./lists";
 import { TodayListsSkeleton } from "./skeleton";
@@ -13,10 +11,8 @@ import { ui } from "@/lib/ui-copy";
 export default async function OwnerTodayPage({
   searchParams,
 }: PageProps<"/owner/today">) {
-  const tenant = await getCurrentTenant();
   const params = await searchParams;
-  const tenantSlug = tenantSlugFrom(params, tenant.slug);
-  const membership = await requireOwnerMembership(tenantSlug);
+  const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
   const highlight = queryString(
     (params as { highlight?: string | string[] }).highlight,
@@ -28,7 +24,6 @@ export default async function OwnerTodayPage({
       <Suspense fallback={<TodayListsSkeleton />}>
         <OwnerToday
           membership={membership}
-          tenantSlug={tenantSlug}
           locale={locale}
           highlight={highlight}
         />

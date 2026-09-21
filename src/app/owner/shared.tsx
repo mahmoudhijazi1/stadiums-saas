@@ -15,23 +15,10 @@ export function queryString(
   return typeof value === "string" ? value : undefined;
 }
 
-export function tenantSlugFrom(
-  params: { tenant?: string | string[] },
-  fallback: string,
-): string {
-  return typeof params.tenant === "string" && params.tenant.length > 0
-    ? params.tenant
-    : fallback;
-}
-
-export async function requireOwnerMembership(
-  tenantSlug: string,
-): Promise<CurrentMembership> {
+export async function requireOwnerMembership(): Promise<CurrentMembership> {
   const membership = await getCurrentMembership();
   if (!membership) {
-    const next = new URLSearchParams();
-    next.set("tenant", tenantSlug);
-    redirect(`/login?${next.toString()}`);
+    redirect("/login");
   }
   return membership;
 }

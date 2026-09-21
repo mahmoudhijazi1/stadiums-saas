@@ -19,16 +19,7 @@ describe("parseTenantSlug", () => {
     expect(parseTenantSlug("127.0.0.1")).toBeNull();
   });
 
-  it("uses ?tenant= for local testing (overrides host)", () => {
-    const params = new URLSearchParams("tenant=ahmad");
-    expect(parseTenantSlug("localhost:3000", params)).toBe("ahmad");
-    expect(parseTenantSlug("sami.stadiums.com", params)).toBe("ahmad");
-  });
-
-  it("rejects bad ?tenant= values", () => {
-    expect(
-      parseTenantSlug("localhost", new URLSearchParams("tenant=Bad_Slug")),
-    ).toBeNull();
-    expect(parseTenantSlug("localhost", new URLSearchParams("tenant="))).toBeNull();
+  it("rejects invalid subdomain slugs on multi-part hosts", () => {
+    expect(parseTenantSlug("Bad_Slug.stadiums.com")).toBeNull();
   });
 });

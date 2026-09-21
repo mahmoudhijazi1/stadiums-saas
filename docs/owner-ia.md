@@ -16,7 +16,7 @@ Five real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (
 | Reports | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense” | Exchange-rate **set** form, waitlist, Book, Home, Settings |
 | More | `/owner/more` | Hub list of destinations. Today: Settings | Tab content for Home / Book / Waitlist / Reports |
 
-`/owner` itself has no UI: it redirects to `/owner/today?tenant=`. Login lands on `/owner/today` (not `/owner`) so Server Action `redirect()` does not stack a second hop (`redirect.md`: actions **push** history).
+`/owner` itself has no UI: it redirects to `/owner/today`. Login lands on `/owner/today` (not `/owner`) so Server Action `redirect()` does not stack a second hop (`redirect.md`: actions **push** history). Tenant comes from the host (`ahmad.localhost` / subdomain), not `?tenant=`.
 
 Staff without `bookings.create`: Book tab is omitted. Hitting `/owner/book` directly shows an EmptyState, not slots.
 
@@ -175,7 +175,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 
 ## TODO — Proxy vs middleware (historical note)
 
-Next.js 16 uses **Proxy** (`src/proxy.ts`) for tenant resolution (host / `?tenant=` → `x-tenant-slug`). Living docs (`docs/guides/folder-structure.md`, [NOW.md](./NOW.md)) already say proxy.
+Next.js 16 uses **Proxy** (`src/proxy.ts`) for tenant resolution (host only → `x-tenant-slug`). Living docs (`docs/guides/folder-structure.md`, [NOW.md](./NOW.md)) already say proxy.
 
 SPEC-01 step 2 and DR-001 §2 still say **middleware** — that is **historical record**, not a bug and not a reason to recreate `middleware.ts`. Do not “fix” those SPEC/DR bodies; at most they carry a one-line superseded banner.
 

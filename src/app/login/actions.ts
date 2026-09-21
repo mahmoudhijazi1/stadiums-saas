@@ -11,13 +11,11 @@ function field(formData: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
-function tenantQuery(tenant: string, extra?: Record<string, string>): string {
+function loginQuery(extra?: Record<string, string>): string {
+  if (!extra) return "";
   const next = new URLSearchParams();
-  if (tenant) next.set("tenant", tenant);
-  if (extra) {
-    for (const [key, value] of Object.entries(extra)) {
-      if (value) next.set(key, value);
-    }
+  for (const [key, value] of Object.entries(extra)) {
+    if (value) next.set(key, value);
   }
   const qs = next.toString();
   return qs ? `?${qs}` : "";
@@ -27,7 +25,6 @@ function tenantQuery(tenant: string, extra?: Record<string, string>): string {
  * Thin Server Action. Zod → login. redirect() outside try/catch (Next redirect.md).
  */
 export async function submitLogin(formData: FormData) {
-  const tenant = field(formData, "tenant");
   let errorKey: string | undefined;
   try {
     const parsed = parseLogin({
@@ -39,16 +36,15 @@ export async function submitLogin(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitLogin");
   }
   if (errorKey) {
-    redirect(`/login${tenantQuery(tenant, { error: errorKey })}`);
+    redirect(`/login${loginQuery({ error: errorKey })}`);
   }
-  redirect(`/owner/today${tenantQuery(tenant)}`);
+  redirect("/owner/today");
 }
 
 /**
  * Thin Server Action. logout → login. redirect() outside try/catch (redirect.md).
  */
-export async function submitLogout(formData: FormData) {
-  const tenant = field(formData, "tenant");
+export async function submitLogout(_formData: FormData) {
   let errorKey: string | undefined;
   try {
     await logout();
@@ -56,7 +52,7 @@ export async function submitLogout(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitLogout");
   }
   if (errorKey) {
-    redirect(`/login${tenantQuery(tenant, { error: errorKey })}`);
+    redirect(`/login${loginQuery({ error: errorKey })}`);
   }
-  redirect(`/login${tenantQuery(tenant)}`);
+  redirect("/login");
 }

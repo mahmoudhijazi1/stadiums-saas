@@ -27,11 +27,9 @@ import { SubmitButton } from "@/components/ui/submit-button";
  */
 export async function OwnerSettings({
   membership,
-  tenantSlug,
   locale = "ar",
 }: {
   membership: CurrentMembership;
-  tenantSlug: string;
   locale?: UiLocale;
 }) {
   const tenant = await getCurrentTenant();
@@ -65,7 +63,6 @@ export async function OwnerSettings({
                 action={submitSetExchangeRate}
                 className="flex flex-col gap-4"
               >
-                <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="lbpPerUsd">
                     {ui("owner.newRate", locale)}
@@ -104,7 +101,6 @@ export async function OwnerSettings({
                 action={submitSetTimeDisplay}
                 className="flex flex-col gap-4"
               >
-                <input type="hidden" name="tenant" value={tenantSlug} />
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="timeDisplay">
                     {ui("owner.timeDisplay", locale)}
@@ -142,12 +138,7 @@ export async function OwnerSettings({
           </h3>
           {isOwner ? (
             <Button asChild variant="secondary" size="sm">
-              <Link
-                href={{
-                  pathname: "/owner/more/settings/pitches/new",
-                  query: { tenant: tenantSlug },
-                }}
-              >
+              <Link href="/owner/more/settings/pitches/new">
                 {ui("owner.pitchNew", locale)}
               </Link>
             </Button>
@@ -213,10 +204,7 @@ export async function OwnerSettings({
                 <li key={pitch.id}>
                   {isOwner ? (
                     <Link
-                      href={{
-                        pathname: `/owner/more/settings/pitches/${pitch.id}`,
-                        query: { tenant: tenantSlug },
-                      }}
+                      href={`/owner/more/settings/pitches/${pitch.id}`}
                       className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
                     >
                       {body}

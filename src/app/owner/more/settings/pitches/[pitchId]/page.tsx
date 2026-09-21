@@ -1,11 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCurrentTenant } from "@/lib/tenant-context";
-import {
-  queryString,
-  requireOwnerMembership,
-  tenantSlugFrom,
-} from "@/app/owner/shared";
+import { queryString, requireOwnerMembership } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
@@ -28,11 +23,9 @@ export default async function EditPitchPage({
   params: Promise<{ pitchId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const tenant = await getCurrentTenant();
   const route = await params;
   const query = await searchParams;
-  const tenantSlug = tenantSlugFrom(query, tenant.slug);
-  const membership = await requireOwnerMembership(tenantSlug);
+  const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
 
   if (membership.role !== "OWNER") {
@@ -54,17 +47,13 @@ export default async function EditPitchPage({
   return (
     <section className="flex flex-col gap-4">
       <Link
-        href={{
-          pathname: "/owner/more/settings",
-          query: { tenant: tenantSlug },
-        }}
+        href="/owner/more/settings"
         className="text-sm text-muted-foreground hover:text-foreground"
       >
         {ui("owner.pitchBack", locale)}
       </Link>
       <h2 className="font-heading text-xl">{ui("owner.pitchEdit", locale)}</h2>
       <PitchDraftForm
-        tenantSlug={tenantSlug}
         locale={locale}
         action={submitUpdatePitch}
         pitchId={editor.id}

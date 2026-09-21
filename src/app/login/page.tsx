@@ -16,7 +16,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 
 /**
  * Thin login route. No Prisma and no tenantId.
- * Hidden tenant slug only keeps local ?tenant= after redirect.
+ * Tenant comes from the host subdomain.
  */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const tenant = await getCurrentTenant();
@@ -42,7 +42,6 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </p>
           ) : null}
           <form action={submitLogin} className="flex flex-col gap-6">
-            <input type="hidden" name="tenant" value={tenant.slug} />
             <div className="flex flex-col gap-2">
               <Label htmlFor="identifier">{ui("login.identifier")}</Label>
               <Input

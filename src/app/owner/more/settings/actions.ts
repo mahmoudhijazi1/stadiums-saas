@@ -8,7 +8,7 @@ import { setExchangeRate } from "@/modules/payment/application/set-exchange-rate
 import { parseExchangeRate } from "@/modules/payment/schemas/exchange-rate";
 import { field, redirectOwner } from "@/app/owner/form-query";
 
-const SETTINGS_KEEP = ["tenant"] as const;
+const SETTINGS_KEEP = [] as const;
 
 /**
  * Thin action. Zod → setExchangeRate. redirect() outside try/catch

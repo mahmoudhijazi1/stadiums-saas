@@ -1,21 +1,12 @@
 import { Suspense } from "react";
-import { getCurrentTenant } from "@/lib/tenant-context";
-import {
-  requireOwnerMembership,
-  tenantSlugFrom,
-} from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/shared";
 import { OwnerWaitlist } from "./list";
 import { WaitlistSkeleton } from "./skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 
-export default async function OwnerWaitlistPage({
-  searchParams,
-}: PageProps<"/owner/waitlist">) {
-  const tenant = await getCurrentTenant();
-  const params = await searchParams;
-  const tenantSlug = tenantSlugFrom(params, tenant.slug);
-  await requireOwnerMembership(tenantSlug);
+export default async function OwnerWaitlistPage() {
+  await requireOwnerMembership();
   const locale = await getUiLocale();
 
   return (

@@ -3535,3 +3535,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/modules/people/infrastructure/persons.ts`; `src/modules/booking/application/create-owner-booking.ts`; `.github/workflows/ci.yml`
 
 **How to verify:** Push — CI build step passes. `npm test` still green.
+
+## Remove ?tenant= (host-only tenant)
+
+**When:** 2026-09-22
+
+**What:** Deleted the half-finished `?tenant=` / `TenantHiddenField` / `tenant-query` WIP. Tenant slug is host-only (`ahmad.localhost` / `ahmad.lvh.me` / subdomain). Forms, links, redirects, and keep lists no longer carry `tenant`.
+
+**Why:** Local already uses subdomain; query-param tenant was never isolation and the WIP imported a missing `@/lib/tenant-query`.
+
+**Files:** `src/lib/tenant-slug.ts`, `src/proxy.ts`, owner/public login + tabs/forms/links; deleted `tenant-hidden-field.tsx` and `test/lib/tenant-query.test.ts`.
+
+**How it connects:** `parseTenantSlug(host)` feeds proxy `x-tenant-slug`, then `getCurrentTenant`. Does not change Prisma, isolation, or business modules.
+
+**How to verify:** `npm test`. Browse `ahmad.localhost:3000` — no `?tenant=` on links or after form POST.

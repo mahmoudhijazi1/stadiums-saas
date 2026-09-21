@@ -42,7 +42,6 @@ function formatYyyyMmDd(date: Date): string {
  * Past days are disabled. A past selected date does not select this chip.
  */
 export function DateCalendarChip({
-  tenantSlug,
   selectedDate,
   todayYmd,
   isSelected,
@@ -51,7 +50,6 @@ export function DateCalendarChip({
   pathname,
   dateQueryKey,
 }: {
-  tenantSlug: string;
   selectedDate: string;
   todayYmd: string;
   isSelected: boolean;
@@ -95,7 +93,6 @@ export function DateCalendarChip({
             if (todayYmd && next < todayYmd) return;
             if (next === selectedDate) return;
             const query = new URLSearchParams();
-            query.set("tenant", tenantSlug);
             query.set(dateQueryKey, next);
             router.push(`${pathname}?${query.toString()}`, { scroll: false });
           }}

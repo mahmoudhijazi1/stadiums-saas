@@ -33,15 +33,13 @@ function tabSelected(pathname: string, href: string): boolean {
 
 /**
  * Active tab from usePathname (layout.md: layouts cannot read pathname).
- * Links are real routes; tenant query is local-dev only.
+ * Links are real routes; tenant comes from the host.
  * Nested More routes (`/owner/more/settings`) keep More selected.
  */
 export function OwnerTabBar({
-  tenantSlug,
   showBook,
   locale = "ar",
 }: {
-  tenantSlug: string;
   showBook: boolean;
   locale?: UiLocale;
 }) {
@@ -61,10 +59,7 @@ export function OwnerTabBar({
           return (
             <li key={tab.href} className="min-w-0 flex-1">
               <Link
-                href={{
-                  pathname: tab.href,
-                  query: { tenant: tenantSlug },
-                }}
+                href={tab.href}
                 aria-current={selected ? "page" : undefined}
                 aria-label={label}
                 className={cn(

@@ -22,7 +22,7 @@ export default async function OwnerLayout({
   children,
 }: LayoutProps<"/owner">) {
   const tenant = await getCurrentTenant();
-  const membership = await requireOwnerMembership(tenant.slug);
+  const membership = await requireOwnerMembership();
   const showBook = can(membership, BOOKINGS_CREATE);
   const locale = await getUiLocale();
 
@@ -45,7 +45,6 @@ export default async function OwnerLayout({
         <div className="flex shrink-0 items-center gap-1">
           <LangToggle locale={locale} />
           <form action={submitLogout}>
-            <input type="hidden" name="tenant" value={tenant.slug} />
             <SubmitButton
               variant="ghost"
               size="icon-sm"
@@ -57,11 +56,7 @@ export default async function OwnerLayout({
         </div>
       </header>
       <div className="flex flex-1 flex-col gap-8 px-6 py-6 pb-4">{children}</div>
-      <OwnerTabBar
-        tenantSlug={tenant.slug}
-        showBook={showBook}
-        locale={locale}
-      />
+      <OwnerTabBar showBook={showBook} locale={locale} />
     </div>
   );
 }

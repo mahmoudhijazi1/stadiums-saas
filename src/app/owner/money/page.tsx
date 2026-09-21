@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 import { ZodError } from "zod";
-import { getCurrentTenant } from "@/lib/tenant-context";
 import {
   parseLedgerPeriodQuery,
   type LedgerPeriodQuery,
@@ -15,7 +14,6 @@ import {
   OWNER_TIME_ZONE,
   queryString,
   requireOwnerMembership,
-  tenantSlugFrom,
 } from "@/app/owner/shared";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
@@ -49,10 +47,8 @@ function readPeriodQuery(params: {
 export default async function OwnerMoneyPage({
   searchParams,
 }: PageProps<"/owner/money">) {
-  const tenant = await getCurrentTenant();
   const params = await searchParams;
-  const tenantSlug = tenantSlugFrom(params, tenant.slug);
-  const membership = await requireOwnerMembership(tenantSlug);
+  const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
   const periodQuery = readPeriodQuery(params);
   const today = formatCivilDate(
@@ -65,7 +61,6 @@ export default async function OwnerMoneyPage({
       <Suspense fallback={<MoneySkeleton />}>
         <OwnerMoney
           membership={membership}
-          tenantSlug={tenantSlug}
           periodQuery={periodQuery}
           today={today}
           locale={locale}

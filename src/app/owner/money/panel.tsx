@@ -60,27 +60,6 @@ const CATEGORY_TILE: Record<ExpenseCategory, string> = {
   OTHER: "bg-muted text-muted-foreground",
 };
 
-function keepPeriodQuery(
-  tenantSlug: string,
-  period: LedgerPeriodQuery,
-) {
-  return (
-    <>
-      <input type="hidden" name="tenant" value={tenantSlug} />
-      {period.from ? (
-        <input type="hidden" name="from" value={period.from} />
-      ) : null}
-      {period.to ? <input type="hidden" name="to" value={period.to} /> : null}
-      {period.view !== "usd" ? (
-        <input type="hidden" name="view" value={period.view} />
-      ) : null}
-      {period.displayRate ? (
-        <input type="hidden" name="displayRate" value={period.displayRate} />
-      ) : null}
-    </>
-  );
-}
-
 function formatLocalDay(value: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: OWNER_TIME_ZONE,
@@ -107,13 +86,11 @@ function formatPeriodAmount(
 
 export async function OwnerMoney({
   membership,
-  tenantSlug,
   periodQuery,
   today,
   locale = "ar",
 }: {
   membership: CurrentMembership;
-  tenantSlug: string;
   periodQuery: LedgerPeriodQuery;
   today: string;
   locale?: UiLocale;
@@ -201,7 +178,6 @@ export async function OwnerMoney({
                   action="/owner/money"
                   className="flex flex-col gap-4"
                 >
-                  <input type="hidden" name="tenant" value={tenantSlug} />
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="from">{ui("owner.from", locale)}</Label>
                     <DateField
@@ -262,7 +238,6 @@ export async function OwnerMoney({
         </h3>
         {mayRecordExpense ? (
           <RecordExpenseSheet
-            tenantSlug={tenantSlug}
             periodQuery={periodQuery}
             today={today}
             locale={locale}
