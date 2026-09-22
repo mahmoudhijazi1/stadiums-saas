@@ -155,7 +155,7 @@ export async function OwnerSettings({
               const body = (
                 <>
                   <span className="min-w-0">
-                    <span className="block font-medium">{pitch.name}</span>
+                    <span className="block text-sm font-medium">{pitch.name}</span>
                     {pitch.hoursGroups.length === 0 &&
                     pitch.closedDays.length === 7 ? (
                       <span className="block text-sm text-muted-foreground">

@@ -79,7 +79,7 @@ export function HoursGroupRows({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-sm font-medium">
+      <legend className="text-sm font-medium text-muted-foreground">
         {ui("owner.pitchHours", locale)}
       </legend>
       <p className="text-sm text-muted-foreground">

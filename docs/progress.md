@@ -3573,3 +3573,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/app/login/page.tsx`.
 
 **How to verify:** `ahmad.localhost:3000/login` — Ahmad Stadium large, login title smaller, no `ahmad` slug, footer under card, labels right-aligned even after public EN toggle.
+
+## Owner typography consistency pass
+
+**When:** 2026-09-22
+
+**What:** Codified the dominant owner type scale. Page titles stay `h2 font-heading text-xl`. Section labels stay muted `h3 text-sm font-medium`. Unified pitch/entity names to `text-sm font-medium` (waitlist, settings, slot picker). Fieldset legends match section muted. EmptyState title `text-sm font-medium`. Tab labels `text-xs`. `global-error` h1 uses `font-heading text-2xl` like `error.tsx`. Time emphasis (row `text-lg` / sheet `text-xl`) left as intentional exceptions.
+
+**Why:** Walk after login redesign — headings and body felt uneven across tabs.
+
+**Files:** `empty-state.tsx`, `slot-picker.tsx`, `waitlist/list.tsx`, `settings/panel.tsx`, `hours-groups.tsx`, `price-rules.tsx`, `tab-bar.tsx`, `global-error.tsx`, `globals.css`.
+
+**How to verify:** Spot-check Home / Book / Waitlist / Settings — page titles same; section eyebrows muted sm; pitch names same weight/size.

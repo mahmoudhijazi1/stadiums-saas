@@ -157,6 +157,8 @@
   h1,
   h2,
   h3 {
+    /* Owner/public type scale: page = text-xl, brand/error = text-2xl;
+       section h3s add text-sm font-medium text-muted-foreground in JSX. */
     font-family: var(--font-heading), var(--font-sans), sans-serif;
   }
 }

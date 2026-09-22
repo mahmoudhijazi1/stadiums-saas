@@ -74,7 +74,7 @@ export function PriceRuleRows({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-sm font-medium">
+      <legend className="text-sm font-medium text-muted-foreground">
         {ui("owner.pitchPriceRules", locale)}
       </legend>
       <p className="text-sm text-muted-foreground">

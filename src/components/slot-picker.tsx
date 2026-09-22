@@ -167,7 +167,7 @@ export function SlotPicker({
       <ul className="flex flex-col gap-6">
         {pitches.map((pitch) => (
           <li key={pitch.id} className="flex flex-col gap-3">
-            <h3 className="font-medium">{pitch.name}</h3>
+            <p className="text-sm font-medium">{pitch.name}</p>
             {pitch.slots.length === 0 ? (
               <EmptyState
                 {...hoursEmptyState(pitch.emptyKind ?? "closed", locale)}

@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
@@ -39,7 +38,9 @@ export async function OwnerWaitlist({
           <li key={`${group.pitchId}-${group.start.toISOString()}-${person.personId}`}>
             <Card>
               <CardHeader className="gap-1">
-                <CardTitle className="text-base">{group.pitchName}</CardTitle>
+                <p className="text-sm font-medium leading-none">
+                  {group.pitchName}
+                </p>
                 <CardDescription>
                   <LtrIsolate className="block">
                     {formatLocalRange(group.start, group.end, hourCycle)}

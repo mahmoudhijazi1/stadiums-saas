@@ -78,7 +78,7 @@ export function OwnerTabBar({
                   )}
                   strokeWidth={selected ? 2.25 : 1.75}
                 />
-                <span className="max-w-full truncate text-[11px] leading-none font-medium">
+                <span className="max-w-full truncate text-xs leading-none font-medium">
                   {label}
                 </span>
               </Link>

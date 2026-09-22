@@ -18,7 +18,7 @@ export default function GlobalError({
     <html lang="ar" dir="rtl">
       <body className="min-h-svh bg-[#f8f9fa] text-[#1a1d20]">
         <main className="mx-auto flex w-full max-w-lg flex-col gap-4 px-6 py-8">
-          <h1 className="text-2xl font-semibold">حدث خطأ. حاول مرة أخرى.</h1>
+          <h1 className="font-heading text-2xl">حدث خطأ. حاول مرة أخرى.</h1>
           <p dir="ltr" className="text-[#495057]">
             Something went wrong. Try again.
           </p>
