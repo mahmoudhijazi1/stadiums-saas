@@ -3561,3 +3561,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/lib/tenant-slug.ts`, `src/proxy.ts`, `test/lib/tenant-slug.test.ts`.
 
 **How to verify:** `npm test`. Login on `ahmad.localhost:3000` ? lands on Home without 404; logout ? login form without 404. Approve/collect redirects should stay clean too.
+
+## Login page — tenant-first hierarchy + pinned Arabic RTL
+
+**When:** 2026-09-22
+
+**What:** Login card leads with tenant name, `????? ??????` as muted subtitle; removed slug line. Page forces `dir=rtl lang=ar` and Arabic `ui`/`errorMessage` so an EN cookie cannot left-align Arabic. Footer: muted `Powered by lebstads.com`. Identifier/password inputs `dir=ltr`. No locale toggle. No action/field changes.
+
+**Why:** Slug `LtrIsolate block` sat on the left; cookie EN + Arabic copy risked LTR layout. Brand/tenant should own the card; platform credit below.
+
+**Files:** `src/app/login/page.tsx`.
+
+**How to verify:** `ahmad.localhost:3000/login` — Ahmad Stadium large, login title smaller, no `ahmad` slug, footer under card, labels right-aligned even after public EN toggle.

@@ -17,6 +17,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 /**
  * Thin login route. No Prisma and no tenantId.
  * Tenant comes from the host subdomain.
+ * Always Arabic RTL — no locale toggle on this screen (cookie EN must not flip it).
  */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const tenant = await getCurrentTenant();
@@ -24,51 +25,70 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const errorKey = typeof params.error === "string" ? params.error : undefined;
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center px-6 py-10">
+    <main
+      dir="rtl"
+      lang="ar"
+      className="flex min-h-svh flex-col items-center justify-center gap-6 px-6 py-10"
+    >
       <Card className="w-full max-w-sm shrink-0">
-        <CardHeader className="gap-1">
-          <CardTitle className="font-heading text-2xl">
-            {ui("login.title")}
-          </CardTitle>
-          <CardDescription>
+        <CardHeader className="gap-2">
+          <CardTitle className="font-heading text-2xl leading-tight">
             {tenant.name}
-            <LtrIsolate className="mt-1 block text-xs">{tenant.slug}</LtrIsolate>
+          </CardTitle>
+          <CardDescription className="text-base">
+            {ui("login.title", "ar")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {errorKey ? (
             <p className="mb-6 text-sm text-destructive" role="alert">
-              {errorMessage(errorKey)}
+              {errorMessage(errorKey, "ar")}
             </p>
           ) : null}
           <form action={submitLogin} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="identifier">{ui("login.identifier")}</Label>
+              <Label htmlFor="identifier">{ui("login.identifier", "ar")}</Label>
               <Input
                 id="identifier"
                 type="text"
                 name="identifier"
                 required
                 autoComplete="username"
+                dir="ltr"
+                className="text-start"
                 placeholder="owner@ahmad"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{ui("login.password")}</Label>
+              <Label htmlFor="password">{ui("login.password", "ar")}</Label>
               <Input
                 id="password"
                 type="password"
                 name="password"
                 required
                 autoComplete="current-password"
+                dir="ltr"
+                className="text-start"
               />
             </div>
             <SubmitButton className="w-full">
-              {ui("login.submit")}
+              {ui("login.submit", "ar")}
             </SubmitButton>
           </form>
         </CardContent>
       </Card>
+      <p className="text-center text-xs text-muted-foreground">
+        <LtrIsolate>
+          Powered by{" "}
+          <a
+            href="https://lebstads.com"
+            className="underline-offset-2 hover:underline"
+            rel="noopener noreferrer"
+          >
+            lebstads.com
+          </a>
+        </LtrIsolate>
+      </p>
     </main>
   );
 }
