@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { parseTenantSlug } from "@/lib/tenant-slug";
+import { parseTenantSlug, resolveRequestHost } from "@/lib/tenant-slug";
 
 /**
  * Next.js 16 renamed middleware → proxy (same idea: runs before your page).
  * Docs: https://nextjs.org/docs/app/api-reference/file-conventions/proxy
  *
  * What it does:
- *   1. Look at the host only (ahmad.localhost / ahmad.lvh.me / subdomain)
+ *   1. Look at the host (x-forwarded-host when Host collapsed to localhost)
  *   2. Put the slug on a request header: x-tenant-slug
  *   3. The page can read that header later
- *
  */
 export function proxy(request: NextRequest) {
-  const host = request.headers.get("host") ?? "";
+  const host = resolveRequestHost(
+    request.headers.get("host"),
+    request.headers.get("x-forwarded-host"),
+    request.headers.get("origin"),
+    request.headers.get("referer"),
+  );
   const slug = parseTenantSlug(host);
 
   // Clone headers and pass them to the rest of the app

@@ -3549,3 +3549,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** `parseTenantSlug(host)` feeds proxy `x-tenant-slug`, then `getCurrentTenant`. Does not change Prisma, isolation, or business modules.
 
 **How to verify:** `npm test`. Browse `ahmad.localhost:3000` â€” no `?tenant=` on links or after form POST.
+
+## Fix 404 after Server Action redirect (collapsed Host)
+
+**When:** 2026-09-22
+
+**What:** After removing `?tenant=`, login/logout (and any Server Action `redirect()`) soft-nav showed Next 404 until hard refresh. Root cause: follow-up RSC request sends `Host: localhost:3000` while `x-forwarded-host` still has `ahmad.localhost:3000`. `resolveRequestHost` in `tenant-slug.ts` prefers forwarded / Origin / Referer when Host is bare localhost; proxy uses it.
+
+**Why:** `?tenant=` used to mask this (query won over host). Host-only resolution exposed vercel/next.js#65893-class behavior. Not login-specific — any action redirect.
+
+**Files:** `src/lib/tenant-slug.ts`, `src/proxy.ts`, `test/lib/tenant-slug.test.ts`.
+
+**How to verify:** `npm test`. Login on `ahmad.localhost:3000` ? lands on Home without 404; logout ? login form without 404. Approve/collect redirects should stay clean too.
