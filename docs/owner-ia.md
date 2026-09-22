@@ -121,7 +121,7 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 
 | Piece | Where |
 |---|---|
-| Auth gate + header + logout + lang toggle | `src/app/owner/layout.tsx` |
+| Auth gate + sticky header (name, lang, logout) + tab bar | `src/app/owner/layout.tsx` + `header.tsx` |
 | Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
 | Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
 | `OwnerHome` (`today/lists.tsx` + `today/upcoming-panel.tsx`) + `today/actions.ts` | `/owner/today` |

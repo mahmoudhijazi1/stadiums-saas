@@ -14,15 +14,26 @@ import { ui } from "@/lib/ui-copy";
 /**
  * Header control. Sets cookie + html lang/dir (ar=rtl, en=ltr).
  */
-export function LangToggle({ locale }: { locale: UiLocale }) {
+export function LangToggle({
+  locale,
+  variant = "outline",
+  size = "sm",
+  className,
+}: {
+  locale: UiLocale;
+  variant?: "outline" | "ghost";
+  size?: "sm" | "icon-sm";
+  className?: string;
+}) {
   const router = useRouter();
   const next = otherUiLocale(locale);
 
   return (
     <Button
       type="button"
-      variant="outline"
-      size="sm"
+      variant={variant}
+      size={size}
+      className={className}
       aria-label={ui(
         next === "en" ? "public.langEnglish" : "public.langArabic",
         locale,

@@ -3585,3 +3585,39 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `empty-state.tsx`, `slot-picker.tsx`, `waitlist/list.tsx`, `settings/panel.tsx`, `hours-groups.tsx`, `price-rules.tsx`, `tab-bar.tsx`, `global-error.tsx`, `globals.css`.
 
 **How to verify:** Spot-check Home / Book / Waitlist / Settings — page titles same; section eyebrows muted sm; pitch names same weight/size.
+
+## Owner sticky header
+
+**When:** 2026-09-22
+
+**What:** Extracted `OwnerHeader` client chrome: `sticky top-0` with backdrop blur, safe-area padding, scroll elevation (border + soft shadow). Tenant name is Kufi `text-base`; role + identifier muted on one line; lang toggle + logout with hover transitions. Layout stays RSC and passes labels in.
+
+**Why:** Header scrolled away with content; wanted modern fixed chrome matching the sticky tab bar.
+
+**Files:** `src/app/owner/header.tsx` (new), `layout.tsx`, `docs/owner-ia.md`.
+
+**How to verify:** Login ? scroll Home — header stays; after a few px it gains a light border/shadow. Logout / EN still work.
+
+## Owner header matches tab bar
+
+**When:** 2026-09-22
+
+**What:** Restyled `OwnerHeader` as a floating card like `OwnerTabBar`: `rounded-2xl border bg-card/95 shadow-lg backdrop-blur-md`, inset with `px-3` + safe-area. Scroll deepens shadow. Dropped full-bleed blur strip.
+
+**Why:** Flat sticky strip did not read as chrome; user asked to match bottom nav.
+
+**Files:** `src/app/owner/header.tsx`.
+
+**How to verify:** `/owner/today` — top pill mirrors bottom tab bar; scroll strengthens shadow.
+
+## Day chips: no Tomorrow label
+
+**When:** 2026-09-22
+
+**What:** `DayChips` no longer labels offset 1 as `public.tomorrow` (???? / Tomorrow). Tomorrow uses weekday + day number like the rest of the strip; only Today stays special.
+
+**Why:** Tomorrow overflowed the chip box on public + Book date rows.
+
+**Files:** `src/components/day-chips.tsx`.
+
+**How to verify:** Public `/` and `/owner/book` — second chip shows e.g. Wed / 23, not Tomorrow.

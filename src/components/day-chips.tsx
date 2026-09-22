@@ -59,8 +59,6 @@ export function DayChips({
               >
                 {offset === 0 ? (
                   ui("public.today", locale)
-                ) : offset === 1 ? (
-                  ui("public.tomorrow", locale)
                 ) : (
                   <span className="flex flex-col items-center gap-0.5">
                     <span className="leading-tight">
