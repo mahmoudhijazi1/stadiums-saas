@@ -96,11 +96,11 @@ function SlotFace({
   const quiet = selected ? "text-accent-ink/70" : "text-ink-muted";
 
   return (
-    <span className="flex w-full min-w-0 flex-col gap-3">
-      <span className="flex flex-col items-start gap-1">
+    <span className="flex h-full min-h-0 w-full flex-col justify-between">
+      <span className="flex flex-col">
         <LtrIsolate
           className={cn(
-            "font-display text-3xl leading-none font-extrabold tabular-nums",
+            "font-display text-3xl leading-[0.9] font-extrabold tabular-nums",
             timeColour,
           )}
         >
@@ -113,7 +113,7 @@ function SlotFace({
           </LtrIsolate>
         </span>
       </span>
-      <span className="flex items-end justify-between gap-2">
+      <span className="flex items-center justify-between gap-2">
         <LtrIsolate
           className={cn(
             "font-display text-xl leading-none font-extrabold tabular-nums",
@@ -123,11 +123,7 @@ function SlotFace({
           {`$${slot.priceUsd}`}
         </LtrIsolate>
         {duration ? (
-          <span
-            className={cn(
-              "rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold tracking-wide text-ink-muted",
-            )}
-          >
+          <span className="inline-flex h-5 items-center rounded-full bg-surface-2 px-2 text-[10px] font-semibold text-ink-muted">
             <LtrIsolate className="font-display tabular-nums">
               {duration}
             </LtrIsolate>
@@ -161,16 +157,16 @@ export function SlotPicker({
 
   return (
     <>
-      <ul className="flex flex-col gap-6">
+      <ul className="flex flex-col gap-6 lg:grid lg:grid-cols-2">
         {pitches.map((pitch) => (
           <li key={pitch.id} className="flex flex-col gap-3">
-            <p className="text-sm font-medium">{pitch.name}</p>
+            <p className="font-heading text-xl lg:text-2xl">{pitch.name}</p>
             {pitch.slots.length === 0 ? (
               <EmptyState
                 {...hoursEmptyState(pitch.emptyKind ?? "closed", locale)}
               />
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="slot-cols grid w-full grid-cols-2 gap-2.5 md:grid-cols-3">
                 {pitch.slots.map((slot) => {
                   const key = slotKey(pitch.id, slot.startIso);
                   const isSelected = selected === key;
@@ -239,7 +235,7 @@ function SlotBlock({
   if (!slot.available) {
     return (
       <div
-        className="fill-stripe flex min-h-28 w-full flex-col justify-center gap-2 rounded-[var(--radius-card)] px-3 py-3 text-start text-ink-muted"
+        className="fill-stripe flex min-h-[96px] w-full flex-col justify-center gap-2 rounded-[var(--radius-card)] px-[14px] py-3 text-start text-ink-muted lg:max-w-[320px]"
         aria-label={ui("public.taken", locale)}
       >
         <SlotFace slot={slot} variant="taken" locale={locale} />
@@ -254,7 +250,7 @@ function SlotBlock({
       onClick={onToggle}
       aria-pressed={isSelected}
       className={cn(
-        "flex min-h-28 w-full flex-col rounded-[var(--radius-card)] px-3 py-3 text-start outline-none",
+        "flex min-h-[96px] w-full flex-col rounded-[var(--radius-card)] px-[14px] py-3 text-start outline-none lg:max-w-[320px]",
         "transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-offset-2",
         isSelected

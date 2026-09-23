@@ -8,6 +8,7 @@ import { PublicDayChips } from "./day-chips";
 import { PublicHoursSkeleton } from "./skeletons";
 import { PublicHours } from "./hours";
 import { PublicLangToggle } from "./lang-toggle";
+import { Container } from "@/components/ui/container";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
@@ -30,12 +31,13 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const dateValue = formatCivilDate(localDate);
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 px-6 py-8">
+    <main>
+    <Container className="flex flex-col gap-6 py-8">
       <Suspense fallback={null}>
         <FlashToast locale={locale} />
       </Suspense>
       <header className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 font-heading text-2xl">{tenant.name}</h1>
+        <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
         <PublicLangToggle locale={locale} />
       </header>
 
@@ -46,7 +48,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       />
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl">{ui("public.hours", locale)}</h2>
+        <h2 className="font-heading text-xl lg:text-2xl">{ui("public.hours", locale)}</h2>
         <Suspense key={dateValue} fallback={<PublicHoursSkeleton />}>
           <PublicHours
             localDate={localDate}
@@ -56,6 +58,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           />
         </Suspense>
       </section>
+    </Container>
     </main>
   );
 }

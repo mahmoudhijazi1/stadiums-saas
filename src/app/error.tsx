@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Container } from "@/components/ui/container";
 
 /**
  * Unexpected render failure (Next error.js). Client — no logger, no Prisma.
@@ -15,8 +16,8 @@ export default function Error({
   retry: () => void;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-4 px-6 py-8">
-      <h1 className="font-heading text-2xl">حدث خطأ. حاول مرة أخرى.</h1>
+    <Container className="flex flex-col gap-4 py-8">
+      <h1 className="font-heading text-3xl lg:text-4xl">حدث خطأ. حاول مرة أخرى.</h1>
       <p dir="ltr" className="text-muted-foreground">
         Something went wrong. Try again.
       </p>
@@ -30,6 +31,6 @@ export default function Error({
           <code>{error.digest}</code>
         </p>
       ) : null}
-    </main>
+    </Container>
   );
 }

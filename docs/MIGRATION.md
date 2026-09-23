@@ -30,14 +30,28 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 
 ## Deliberately left
 
-- Component restyles (Phase 2).
-- Day picker selected state is a full fill (`bg-selected` / `text-selected-ink`): carbon in light, volt in dark. No ring. Unselected is surface + line.
+- Component restyles still ahead: buttons, inputs, list row, sheet chrome, modal, toast visuals. Segmented control and list row have no shared component yet.
 - Empty state: dashed `line-strong` outline, panel radius, centred display title, muted sentence. No icon tile and no action — those need new props; existing callers only pass `title` and `next`.
 - Expense category tiles (`money/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
 - Chart `--chart-1…5` and sidebar block — still primitives, no chart contract.
-- `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens.
-- Shadows, gradients, scroll-lift on header/tab-bar — Phase 2 chrome.
+- `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens. It uses `Container` for width only.
+- Shadows remain on dialog, card, and inputs. Header and tab bar no longer use shadow or blur.
 - Tenant `brandHex` injection in layout — built for, not shipped.
+- Login card is full width of `Container`. Dialog `sm:max-w-sm` is the shadcn modal, unused by the slot request (that uses the sheet).
+
+## Layout (one commit)
+
+- `Container` is the only page max-width: `max-w-[520px] md:max-w-3xl lg:max-w-5xl xl:max-w-6xl` with `px-4 md:px-6 lg:px-8`.
+- Owner nav is one component. Below `lg` it is a fixed bottom bar with safe-area padding. At `lg` it is a 240px sticky rail (`top: 0`, `height: 100dvh`) on the inline-start edge, `border-inline-end`, active `bg-accent-brand text-accent-ink`.
+- Main clears the bar with `padding-block-end: calc(88px + env(safe-area-inset-bottom))` below `lg` only.
+- Viewport meta includes `viewport-fit=cover` (`Viewport.viewportFit` in this Next version).
+- Slot tile is two zones, `min-h-[96px]`, padding `12px 14px`, gap `10px`. Time is `leading-[0.9]` and the only accent. Duration is `h-5 px-2 text-[10px]` on `surface-2` / `ink-muted`.
+- `:lang(ar) .leading-[0.9]` and `.leading-none` sit after the Arabic line-height rules so those utilities still apply. The text-xs/sm/base overrides are unchanged.
+- Day row: 7 days, horizontal scroll below `md`, equal cells from `md`, calendar cell only at `lg`.
+- Pitches stack until `lg`, then two columns. Slot tracks from `lg` are `repeat(auto-fill, minmax(220px, 1fr))` and each tile is `max-w-[320px]`.
+- Sheet is a bottom sheet below `lg` and a centred `max-w-md` dialog at `lg`.
+- Toast is bottom centre below `lg` (offset above the bar) and bottom inline-end at `lg`.
+- Screen titles `text-3xl lg:text-4xl`. Section titles `text-xl lg:text-2xl`. Prices and slot numbers do not change size by breakpoint.
 
 ## Hardcoded values that could not map to a role
 

@@ -52,7 +52,7 @@ export default async function EditPitchPage({
       >
         {ui("owner.pitchBack", locale)}
       </Link>
-      <h2 className="font-heading text-xl">{ui("owner.pitchEdit", locale)}</h2>
+      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.pitchEdit", locale)}</h2>
       <PitchDraftForm
         locale={locale}
         action={submitUpdatePitch}

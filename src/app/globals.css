@@ -365,6 +365,13 @@
 :lang(ar) h3 {
   line-height: 1.45;
 }
+/* Explicit leading utilities must beat the inherited 1.7, or slot times stay three rows tall. */
+:lang(ar) .leading-\[0\.9\] {
+  line-height: 0.9;
+}
+:lang(ar) .leading-none {
+  line-height: 1;
+}
 
 .fill-stripe {
   background-image: repeating-linear-gradient(
@@ -374,6 +381,14 @@
     var(--stripe-b) 6px,
     var(--stripe-b) 12px
   );
+}
+
+/* lg slot tracks: at least 220px, never past 320px. Tailwind's arbitrary
+   grid-cols parser drops the nested min(). */
+@media (width >= 64rem) {
+  .slot-cols {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
 }
 *::-webkit-scrollbar {
   width: 10px;

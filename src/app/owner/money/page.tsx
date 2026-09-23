@@ -57,7 +57,7 @@ export default async function OwnerMoneyPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl">{ui("owner.reports", locale)}</h2>
+      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.reports", locale)}</h2>
       <Suspense fallback={<MoneySkeleton />}>
         <OwnerMoney
           membership={membership}

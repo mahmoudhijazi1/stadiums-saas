@@ -32,9 +32,10 @@ function tabSelected(pathname: string, href: string): boolean {
 }
 
 /**
- * Active tab from usePathname (layout.md: layouts cannot read pathname).
- * Links are real routes; tenant comes from the host.
- * Nested More routes (`/owner/more/settings`) keep More selected.
+ * One nav, two layouts. Below lg it is a floating bottom bar.
+ * At lg it is a 240px sticky rail on the inline-start edge
+ * (right in Arabic) via flex order + border-inline-end — no dir branch.
+ * Active item is an accent fill with accent-ink.
  */
 export function OwnerTabBar({
   showBook,
@@ -49,35 +50,35 @@ export function OwnerTabBar({
   return (
     <nav
       aria-label={ui("owner.tabs", locale)}
-      className="sticky bottom-0 z-10 mt-auto px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-30 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+        "lg:sticky lg:inset-x-auto lg:start-0 lg:top-0 lg:bottom-auto lg:z-20 lg:h-dvh lg:w-60 lg:shrink-0",
+        "lg:border-e lg:border-line lg:bg-inverse lg:px-3 lg:py-4 lg:pb-4",
+        "dark:lg:border-line dark:lg:bg-surface",
+      )}
     >
-      <ul className="flex gap-1 rounded-2xl border bg-card/95 p-1 shadow-lg backdrop-blur-md">
+      <ul className="flex gap-1 rounded-[var(--radius-sheet)] border border-line bg-inverse p-1 text-inverse-ink lg:h-full lg:flex-col lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 dark:lg:text-ink">
         {tabs.map((tab) => {
           const selected = tabSelected(pathname, tab.href);
           const Icon = tab.Icon;
           const label = ui(tab.labelKey, locale);
           return (
-            <li key={tab.href} className="min-w-0 flex-1">
+            <li key={tab.href} className="min-w-0 flex-1 lg:flex-none">
               <Link
                 href={tab.href}
                 aria-current={selected ? "page" : undefined}
                 aria-label={label}
                 className={cn(
-                  "flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 outline-none",
-                  "text-muted-foreground transition-colors duration-200",
-                  "hover:text-foreground",
-                  "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                  selected && "bg-action-ink/10 text-action-ink",
+                  "flex h-14 w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] px-1 outline-none",
+                  "transition-colors duration-150 ease-out motion-reduce:transition-none",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
+                  "lg:h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3",
+                  selected
+                    ? "bg-accent-brand text-accent-ink"
+                    : "opacity-70 hover:opacity-100",
                 )}
               >
-                <Icon
-                  aria-hidden
-                  className={cn(
-                    "size-5 transition-transform duration-200",
-                    selected && "scale-110",
-                  )}
-                  strokeWidth={selected ? 2.25 : 1.75}
-                />
+                <Icon aria-hidden className="size-5 shrink-0" strokeWidth={selected ? 2.25 : 1.75} />
                 <span className="max-w-full truncate text-xs leading-none font-medium">
                   {label}
                 </span>

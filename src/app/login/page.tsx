@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { Container } from "@/components/ui/container";
 
 /**
  * Thin login route. No Prisma and no tenantId.
@@ -28,11 +29,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <main
       dir="rtl"
       lang="ar"
-      className="flex min-h-svh flex-col items-center justify-center gap-6 px-6 py-10"
+      className="flex min-h-svh flex-col justify-center py-10"
     >
-      <Card className="w-full max-w-sm shrink-0">
+      <Container className="flex flex-col gap-6">
+      <Card className="w-full">
         <CardHeader className="gap-2">
-          <CardTitle className="font-heading text-2xl leading-tight">
+          <CardTitle className="font-heading text-3xl leading-tight lg:text-4xl">
             {tenant.name}
           </CardTitle>
           <CardDescription className="text-base">
@@ -89,6 +91,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           </a>
         </LtrIsolate>
       </p>
+      </Container>
     </main>
   );
 }

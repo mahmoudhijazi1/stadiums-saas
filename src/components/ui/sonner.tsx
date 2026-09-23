@@ -1,6 +1,6 @@
 "use client"
 
-import type { CSSProperties } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -12,15 +12,32 @@ import {
 import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
+function useMinLg(): boolean {
+  const [wide, setWide] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)")
+    const apply = () => setWide(mq.matches)
+    apply()
+    mq.addEventListener("change", apply)
+    return () => mq.removeEventListener("change", apply)
+  }, [])
+  return wide
+}
+
 const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
   const { resolvedTheme } = useTheme()
+  const wide = useMinLg()
+  // Sonner positions are physical. Inline-end is right in LTR and left in RTL.
+  const position = wide
+    ? props.dir === "rtl"
+      ? "bottom-left"
+      : "bottom-right"
+    : "bottom-center"
 
   return (
     <Sonner
       theme={resolvedTheme === "dark" ? "dark" : "light"}
       className="toaster group"
-      position="top-center"
-      offset={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
       style={
         {
           "--normal-bg": "var(--popover)",
@@ -30,6 +47,12 @@ const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
         } as CSSProperties
       }
       {...props}
+      position={position}
+      offset={
+        wide
+          ? { bottom: "1rem" }
+          : { bottom: "calc(88px + env(safe-area-inset-bottom))" }
+      }
       closeButton
       toastOptions={{
         closeButton: true,

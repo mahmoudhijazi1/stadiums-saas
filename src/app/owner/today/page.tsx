@@ -20,7 +20,7 @@ export default async function OwnerTodayPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-xl">{ui("owner.homeHeading", locale)}</h2>
+      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.homeHeading", locale)}</h2>
       <Suspense fallback={<TodayListsSkeleton />}>
         <OwnerToday
           membership={membership}

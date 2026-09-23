@@ -11,7 +11,7 @@ import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 
 /** How many civil days the day-chip strip shows (public + Book). Not Home’s COMING_DAYS booking horizon. */
-const WINDOW_DAYS = 5;
+const WINDOW_DAYS = 7;
 
 /**
  * Same-week dates as Next.js Link (client transition, not a GET form).
@@ -42,12 +42,12 @@ export function DayChips({
 
   return (
     <nav aria-label={ui("public.day", locale)}>
-      <ul className="flex gap-1.5">
+      <ul className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-7 md:overflow-visible md:px-0 lg:grid-cols-[repeat(7,minmax(0,1fr))_auto]">
         {days.map((day, offset) => {
           const date = formatCivilDate(day);
           const selected = date === selectedDate;
           return (
-            <li key={date} className="min-w-0 flex-1">
+            <li key={date} className="w-[4.75rem] shrink-0 md:w-auto md:min-w-0">
               <Link
                 href={{
                   pathname,
@@ -80,7 +80,7 @@ export function DayChips({
             </li>
           );
         })}
-        <li className="min-w-0 flex-1">
+        <li className="hidden w-[4.75rem] shrink-0 lg:block lg:w-auto lg:min-w-0">
           <DateCalendarChip
             selectedDate={selectedDate}
             todayYmd={formatCivilDate(today)}

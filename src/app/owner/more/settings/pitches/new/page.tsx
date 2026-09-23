@@ -40,7 +40,7 @@ export default async function NewPitchPage({
       >
         {ui("owner.pitchBack", locale)}
       </Link>
-      <h2 className="font-heading text-xl">{ui("owner.pitchNew", locale)}</h2>
+      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.pitchNew", locale)}</h2>
       <PitchDraftForm
         locale={locale}
         action={submitCreatePitch}

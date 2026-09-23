@@ -1,5 +1,6 @@
 import { LangToggle } from "@/components/lang-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Container } from "@/components/ui/container";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 
@@ -23,10 +24,10 @@ export default async function PalettePage() {
   ] as const;
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-col gap-8 bg-bg px-6 py-8 text-ink">
+    <Container className="flex flex-col gap-8 bg-bg py-8 text-ink">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-3xl font-extrabold tracking-tight">
+          <h1 className="font-display text-3xl font-extrabold lg:text-4xl">
             Tokens
           </h1>
           <LangToggle locale={locale} />
@@ -67,7 +68,7 @@ export default async function PalettePage() {
       </section>
 
       <section className="flex flex-col gap-3" aria-label="Lines">
-        <h2 className="font-display text-xl font-extrabold">Lines</h2>
+        <h2 className="font-display text-xl font-extrabold lg:text-2xl">Lines</h2>
         <div className="h-px bg-line" />
         <div className="h-px bg-line-strong" />
         <div
@@ -75,6 +76,6 @@ export default async function PalettePage() {
           style={{ borderColor: "var(--line-dashed)" }}
         />
       </section>
-    </main>
+    </Container>
   );
 }
