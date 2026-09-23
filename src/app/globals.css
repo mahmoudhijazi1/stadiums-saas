@@ -390,6 +390,39 @@
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 }
+
+/* Day row: equal cells, no scroll. Today is first; the calendar is last.
+   Later days appear only when the row can hold them. */
+.day-strip {
+  container-type: inline-size;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  gap: 0.375rem;
+  overflow-x: hidden;
+}
+.day-strip > li {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+.day-strip > li:nth-child(n + 5):not(:last-child) {
+  display: none;
+}
+@container (min-width: 21.125rem) {
+  .day-strip > li:nth-child(5):not(:last-child) {
+    display: block;
+  }
+}
+@container (min-width: 24.75rem) {
+  .day-strip > li:nth-child(6):not(:last-child) {
+    display: block;
+  }
+}
+@container (min-width: 28.375rem) {
+  .day-strip > li:nth-child(7):not(:last-child) {
+    display: block;
+  }
+}
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;

@@ -57,14 +57,14 @@ function PitchHoursSkeleton({ slots = 6 }: { slots?: number }) {
  */
 function DayChipsSkeleton() {
   return (
-    <ul className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-7 md:overflow-visible md:px-0 lg:grid-cols-[repeat(7,minmax(0,1fr))_auto]">
+    <ul className="day-strip">
       {Array.from({ length: 7 }, (_, index) => (
-        <li key={index} className="w-[4.75rem] shrink-0 md:w-auto md:min-w-0">
+        <li key={index}>
           <Skeleton className="h-14 w-full rounded-xl" />
         </li>
       ))}
-      <li className="hidden w-14 shrink-0 lg:block">
-        <Skeleton className="h-14 w-14 rounded-xl" />
+      <li>
+        <Skeleton className="h-14 w-full rounded-xl" />
       </li>
     </ul>
   );

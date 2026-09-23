@@ -42,12 +42,12 @@ export function DayChips({
 
   return (
     <nav aria-label={ui("public.day", locale)}>
-      <ul className="-mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-7 md:overflow-visible md:px-0 lg:grid-cols-[repeat(7,minmax(0,1fr))_auto]">
+      <ul className="day-strip">
         {days.map((day, offset) => {
           const date = formatCivilDate(day);
           const selected = date === selectedDate;
           return (
-            <li key={date} className="w-[4.75rem] shrink-0 md:w-auto md:min-w-0">
+            <li key={date}>
               <Link
                 href={{
                   pathname,
@@ -57,11 +57,12 @@ export function DayChips({
                 aria-current={selected ? "date" : undefined}
                 className={dayChipClass(selected)}
               >
-                <span className="flex flex-col items-center gap-0.5">
+                <span className="flex w-full min-w-0 flex-col items-center gap-0.5">
                   <span
-                    className={
-                      selected ? "text-selected-ink" : "text-ink-muted"
-                    }
+                    className={cn(
+                      "w-full truncate text-center",
+                      selected ? "text-selected-ink" : "text-ink-muted",
+                    )}
                   >
                     {offset === 0
                       ? ui("public.today", locale)
@@ -80,7 +81,7 @@ export function DayChips({
             </li>
           );
         })}
-        <li className="hidden w-[4.75rem] shrink-0 lg:block lg:w-auto lg:min-w-0">
+        <li>
           <DateCalendarChip
             selectedDate={selectedDate}
             todayYmd={formatCivilDate(today)}

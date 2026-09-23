@@ -47,7 +47,7 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 - Viewport meta includes `viewport-fit=cover` (`Viewport.viewportFit` in this Next version).
 - Slot tile is two zones, `min-h-[96px]`, padding `12px 14px`, gap `10px`. Time is `leading-[0.9]` and the only accent. Duration is `h-5 px-2 text-[10px]` on `surface-2` / `ink-muted`.
 - `:lang(ar) .leading-[0.9]` and `.leading-none` sit after the Arabic line-height rules so those utilities still apply. The text-xs/sm/base overrides are unchanged.
-- Day row: 7 days, horizontal scroll below `md`, equal cells from `md`, calendar cell only at `lg`.
+- Day row: equal cells, no horizontal scroll. Today stays first and the calendar cell stays last. Later days appear only when the row is wide enough to hold them.
 - Pitches stack until `lg`, then two columns. Slot tracks from `lg` are `repeat(auto-fill, minmax(220px, 1fr))` and each tile is `max-w-[320px]`.
 - Sheet is a bottom sheet below `lg` and a centred `max-w-md` dialog at `lg`.
 - Toast is bottom centre below `lg` (offset above the bar) and bottom inline-end at `lg`.

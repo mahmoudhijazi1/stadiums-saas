@@ -1,14 +1,17 @@
 import { submitLogout } from "@/app/login/actions";
 import { LangToggle } from "@/components/lang-toggle";
-import { Container } from "@/components/ui/container";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
+import { cn } from "cn";
 import { LogOut } from "lucide-react";
 
+const iconButtonClass =
+  "rounded-full bg-inverse-ink/10 text-inverse-ink hover:bg-inverse-ink/15 hover:text-inverse-ink dark:lg:bg-ink/10 dark:lg:text-ink dark:lg:hover:bg-ink/15 dark:lg:hover:text-ink";
+
 /**
- * Full-width dark block on the content column. At lg it sits beside the
- * rail, still inside that column — not a second floating card.
+ * Below lg: a floating inverse bar, inset like the bottom nav.
+ * At lg: a full-width dark block on the content column, aligned with Container.
  */
 export function OwnerHeader({
   tenantName,
@@ -24,13 +27,26 @@ export function OwnerHeader({
   locale: UiLocale;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-inverse text-inverse-ink dark:border-b dark:border-line dark:bg-surface dark:text-ink">
-      <Container className="flex items-center justify-between gap-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
+    <header
+      className={cn(
+        "sticky top-0 z-20 bg-bg px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2",
+        "lg:bg-inverse lg:px-0 lg:pt-0 lg:pb-0 lg:text-inverse-ink",
+        "dark:lg:border-b dark:lg:border-line dark:lg:bg-surface dark:lg:text-ink",
+      )}
+    >
+      <div
+        className={cn(
+          "flex w-full items-center justify-between gap-3",
+          "rounded-[var(--radius-sheet)] border border-line bg-inverse px-4 py-3 text-inverse-ink",
+          "lg:mx-auto lg:max-w-5xl lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-3 lg:pt-[max(0.75rem,env(safe-area-inset-top))]",
+          "xl:max-w-6xl",
+        )}
+      >
         <div className="min-w-0">
           <p className="truncate font-heading text-base leading-tight font-medium">
             {tenantName}
           </p>
-          <p className="mt-0.5 truncate text-xs text-inverse-ink/70 dark:text-ink-muted">
+          <p className="mt-0.5 truncate text-xs text-inverse-ink/70 dark:lg:text-ink-muted">
             {roleLabel}
             <span aria-hidden className="mx-1 opacity-50">
               ·
@@ -43,20 +59,20 @@ export function OwnerHeader({
             locale={locale}
             variant="ghost"
             size="sm"
-            className="rounded-[var(--radius-control)] text-inverse-ink hover:bg-inverse-ink/10 hover:text-inverse-ink dark:text-ink dark:hover:bg-surface-2 dark:hover:text-ink"
+            className={iconButtonClass}
           />
           <form action={submitLogout}>
             <SubmitButton
               variant="ghost"
               size="icon-sm"
               aria-label={logoutLabel}
-              className="rounded-[var(--radius-control)] text-inverse-ink hover:bg-inverse-ink/10 hover:text-inverse-ink dark:text-ink dark:hover:bg-surface-2 dark:hover:text-ink"
+              className={iconButtonClass}
             >
               <LogOut className="size-4" />
             </SubmitButton>
           </form>
         </div>
-      </Container>
+      </div>
     </header>
   );
 }
