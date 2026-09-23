@@ -140,9 +140,9 @@ export async function OwnerMoney({
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-primary/15 px-3 py-2">
-                  <p className="text-xs text-primary">{ui("owner.in", locale)}</p>
-                  <p className="mt-0.5 text-base font-semibold text-primary">
+                <div className="rounded-lg bg-success/15 px-3 py-2">
+                  <p className="text-xs text-success">{ui("owner.in", locale)}</p>
+                  <p className="mt-0.5 text-base font-semibold text-success">
                     <LtrIsolate>
                       {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
                     </LtrIsolate>
@@ -315,7 +315,7 @@ function InOutBars({
     <div className="flex flex-col gap-2" aria-hidden>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-2 rounded-full bg-primary"
+          className="h-2 rounded-full bg-success"
           style={{ width: `${inPct}%` }}
         />
       </div>

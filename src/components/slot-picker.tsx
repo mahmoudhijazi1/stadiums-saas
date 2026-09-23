@@ -130,7 +130,7 @@ function SlotFace({
                 ? "text-primary-foreground"
                 : taken
                   ? "text-muted-foreground"
-                  : "text-primary",
+                  : "text-action-ink",
             )}
           >
             {duration}

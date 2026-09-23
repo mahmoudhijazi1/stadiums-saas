@@ -61,7 +61,7 @@ function StatusBadge({
   if (status === "paid") {
     return (
       <Badge variant="outline" className="font-normal text-muted-foreground">
-        <CircleCheck aria-hidden className="size-3 text-primary" />
+        <CircleCheck aria-hidden className="size-3 text-success" />
         {ui("owner.paid", locale)}
       </Badge>
     );
@@ -90,13 +90,13 @@ function DueRemainingFigures({
       <div
         className={cn(
           "rounded-lg px-3 py-3 text-start",
-          owed ? "bg-primary/15" : "bg-muted",
+          owed ? "bg-success/15" : "bg-muted",
         )}
       >
         <p
           className={cn(
             "text-xs",
-            owed ? "text-primary" : "text-muted-foreground",
+            owed ? "text-success" : "text-muted-foreground",
           )}
         >
           {ui("owner.remaining", locale)}
@@ -104,7 +104,7 @@ function DueRemainingFigures({
         <p
           className={cn(
             "mt-0.5 text-2xl font-semibold",
-            owed ? "text-primary" : "text-muted-foreground",
+            owed ? "text-success" : "text-muted-foreground",
           )}
         >
           <LtrIsolate>${remainingUsd}</LtrIsolate>
@@ -124,13 +124,13 @@ function DueRemainingFigures({
       <div
         className={cn(
           "rounded-lg px-3 py-2 text-start",
-          owed ? "bg-primary/15" : "bg-muted",
+          owed ? "bg-success/15" : "bg-muted",
         )}
       >
         <p
           className={cn(
             "text-xs",
-            owed ? "text-primary" : "text-muted-foreground",
+            owed ? "text-success" : "text-muted-foreground",
           )}
         >
           {ui("owner.remaining", locale)}
@@ -138,7 +138,7 @@ function DueRemainingFigures({
         <p
           className={cn(
             "mt-0.5 text-base font-semibold",
-            owed ? "text-primary" : "text-muted-foreground",
+            owed ? "text-success" : "text-muted-foreground",
           )}
         >
           <LtrIsolate>${remainingUsd}</LtrIsolate>
@@ -434,8 +434,8 @@ function UpcomingRows({
             <Card
               className={cn(
                 "gap-0 py-0",
-                (open || highlighted) && "ring-2 ring-inset ring-primary",
-                highlighted && !open && "bg-primary/10",
+                (open || highlighted) && "ring-2 ring-inset ring-action-ink",
+                highlighted && !open && "bg-action-ink/10",
               )}
             >
               <button

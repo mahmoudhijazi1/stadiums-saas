@@ -20,10 +20,16 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 - Sonner follows `resolvedTheme` (no hardcoded `theme="light"`).
 - Destructive button/badge text → `var(--destructive-foreground)` (coral needs carbon ink).
 
+### Volt-on-light ink
+
+- `--action-ink` is `--ink` in light and `--brand` in dark. `--ring` matches (ink / brand).
+- Call sites that used primary as text, border, ring, or a `/10`–`/15` wash now use `action-ink`. Solid `bg-primary` fills stay volt.
+- Money-in text, washes, the in-bar, owed figures, and the paid check use `success` (emerald), not volt and not action-ink.
+
 ## Deliberately left
 
 - Component restyles (Phase 2).
-- Slot request still in `Dialog` — structural move to sheet is its own commit before slot restyle.
+- Slot request still in `Dialog` — structural move to sheet is the next commit.
 - Expense category tiles (`money/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
 - Chart `--chart-1…5` and sidebar block — still primitives, no chart contract.
 - `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens.

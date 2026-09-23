@@ -3647,3 +3647,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Layout owns ThemeProvider + fonts. Components still use shadcn class names; role utilities are available for Phase 2. Must not import modules from `app/`. Tenant `brandHex` injection not shipped yet.
 
 **How to verify:** `http://ahmad.localhost:3000/dev/palette` — Light/Dark/System; selected is carbon in light, volt in dark; accent is volt both themes; success is emerald.
+
+## Volt is a fill; action ink is carbon in light
+
+**When:** 2026-09-23
+
+**What:** `--action-ink` is `--ink` in light and `--brand` in dark. `--ring` matches. Primary-as-text/border/ring/wash call sites use `action-ink`. Money-in figures and the in-bar use `success` (emerald).
+
+**Why:** `#D7FF3F` on `#F6F5EF` is ~1.3:1. `--primary` used to be emerald and was used as ink. `docs/theme.md` ink-safe action colour.
+
+**Files:** `src/app/globals.css`, `docs/theme.md`, `docs/MIGRATION.md`, `src/components/ui/button.tsx`, `src/components/ui/badge.tsx`, `src/components/day-chips.tsx`, `src/components/slot-picker.tsx`, `src/app/owner/tab-bar.tsx`, `src/app/owner/money/panel.tsx`, `src/app/owner/today/upcoming-panel.tsx`.
+
+**How it connects:** Solid `bg-primary` stays volt. Must not use `text-primary` for labels. Money-in must not import booking.
+
+**How to verify:** Light `/dev/palette` â€” computed `--action-ink` and `--ring` are `#111412`, `--primary` stays `#d7ff3f`. System theme flips when the OS scheme changes without reload. Login stays Arabic RTL and follows `.dark`.

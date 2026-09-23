@@ -26,6 +26,7 @@
   --color-inverse-ink: var(--inverse-ink);
   --color-accent-brand: var(--brand);
   --color-accent-ink: var(--accent-ink);
+  --color-action-ink: var(--action-ink);
   --color-alert: var(--alert);
   --color-success: var(--success);
   --color-selected: var(--selected);
@@ -137,6 +138,8 @@
   --alert-surface: color-mix(in oklab, var(--ls-coral-500) 12%, var(--surface));
 
   --success: var(--ls-emerald-500);
+  /* Ink-safe action colour. Volt is a fill only; carbon carries it on light. */
+  --action-ink: var(--ink);
   --deep: var(--ls-turf-700);
   --deep-alt: var(--ls-slate-600);
 
@@ -197,6 +200,7 @@
   /* Brand, not stolen --accent — carbon-on-carbon would vanish */
   --selected: var(--brand);
   --selected-ink: var(--brand-ink);
+  --action-ink: var(--brand);
 }
 
 /* ——— Layer 3: shadcn / library aliases ——— */
@@ -226,7 +230,8 @@
 
   --border: var(--line);
   --input: var(--line-strong);
-  --ring: var(--brand);
+  /* Volt focus ring disappears on paper. Ink in light, brand in dark. */
+  --ring: var(--ink);
 
   /* Charts + sidebar: primitives until a contract exists (theme.md §4) */
   --chart-1: var(--ls-emerald-500);

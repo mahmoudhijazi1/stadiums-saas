@@ -67,7 +67,7 @@ export function OwnerTabBar({
                   "text-muted-foreground transition-colors duration-200",
                   "hover:text-foreground",
                   "focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                  selected && "bg-primary/10 text-primary",
+                  selected && "bg-action-ink/10 text-action-ink",
                 )}
               >
                 <Icon

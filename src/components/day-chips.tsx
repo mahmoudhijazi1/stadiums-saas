@@ -92,9 +92,9 @@ export function DayChips({
 function dayChipClass(selected: boolean): string {
   return cn(
     "flex h-14 w-full min-w-0 flex-col items-center justify-center rounded-xl border bg-card px-1 py-1.5 text-xs shadow-sm outline-none transition-all",
-    "hover:bg-accent/50 hover:border-primary/40",
+    "hover:bg-accent/50 hover:border-action-ink/40",
     "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
-    selected && "border-primary ring-2 ring-inset ring-primary",
+    selected && "border-action-ink ring-2 ring-inset ring-action-ink",
   );
 }
 

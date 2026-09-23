@@ -139,6 +139,15 @@ Surfaces step **up** from the page, they do not invert.
 
 So `bg-[var(--selected)]` is correct in both themes and no component branches on theme.
 
+**Ink-safe action colour.** Volt (`--brand` / `--primary`) is a fill. On light paper it fails as text or as a hairline (~1.3:1). Use `--action-ink` for text, borders, rings, and light washes that used to be `text-primary` / `border-primary` / `ring-primary` / `bg-primary/10`:
+
+```css
+:root { --action-ink: var(--ink);   --ring: var(--ink); }
+.dark { --action-ink: var(--brand); --ring: var(--brand); }
+```
+
+Money-in figures use `--success` (emerald), not `--action-ink` and not `--primary`.
+
 ### Layer 3 — library aliases
 
 Keep every existing shadcn variable name; only change what it points at. **Do not repoint `--accent`** — shadcn uses it for hover washes. Map it to `--surface-2`.
@@ -168,7 +177,7 @@ Keep every existing shadcn variable name; only change what it points at. **Do no
 
   --border: var(--line);
   --input: var(--line-strong);
-  --ring: var(--accent);
+  --ring: var(--ink);                  /* light; .dark sets --ring: var(--brand) */
 }
 ```
 
@@ -188,6 +197,7 @@ Because `--primary-foreground` is now carbon, the `text-white` in `button.tsx` a
   --color-inverse-ink: var(--inverse-ink);
   --color-accent-brand: var(--accent);      /* name avoids the shadcn `accent` */
   --color-accent-ink: var(--accent-ink);
+  --color-action-ink: var(--action-ink);
   --color-alert: var(--alert);
   --color-success: var(--success);
   --font-display: var(--font-display);
