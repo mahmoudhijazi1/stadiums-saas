@@ -3661,3 +3661,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Solid `bg-primary` stays volt. Must not use `text-primary` for labels. Money-in must not import booking.
 
 **How to verify:** Light `/dev/palette` — computed `--action-ink` and `--ring` are `#111412`, `--primary` stays `#d7ff3f`. System theme flips when the OS scheme changes without reload. Login stays Arabic RTL and follows `.dark`.
+
+## Slot request opens a bottom sheet
+
+**When:** 2026-09-23
+
+**What:** Public and owner Book name/phone flow uses `BottomSheet` instead of `Dialog`. Same props, selection state, and form. Sheet visuals are the existing component, not restyled.
+
+**Why:** `ui-components.md` — a flow with inputs is a sheet. Structural move before the slot restyle, while the diff is only the wrapper.
+
+**Files:** `src/components/slot-picker.tsx`, `docs/MIGRATION.md`.
+
+**How it connects:** `SlotPicker` is shared by `(public)/slot-picker` and `owner/book`. Must not import booking or venue modules. Sheet restyle comes later in Phase 2.
+
+**How to verify:** Public `/` on a tenant host — tap an open hour. Name and phone slide up from the bottom; close clears the selection.

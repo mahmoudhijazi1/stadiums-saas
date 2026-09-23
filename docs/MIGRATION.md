@@ -29,7 +29,7 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 ## Deliberately left
 
 - Component restyles (Phase 2).
-- Slot request still in `Dialog` — structural move to sheet is the next commit.
+- Slot request (public and owner Book) opens `BottomSheet` instead of `Dialog`. Sheet chrome is unchanged; its restyle is later in Phase 2.
 - Expense category tiles (`money/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
 - Chart `--chart-1…5` and sidebar block — still primitives, no chart contract.
 - `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens.

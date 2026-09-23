@@ -8,12 +8,13 @@ import {
 } from "@/lib/request-fields";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  BottomSheet,
+  BottomSheetBody,
+  BottomSheetContent,
+  BottomSheetDescription,
+  BottomSheetHeader,
+  BottomSheetTitle,
+} from "@/components/ui/bottom-sheet";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,7 +144,7 @@ function SlotFace({
 
 /**
  * Compact time+price grid. Selection only — the Server Action is a prop.
- * Name/phone is a dialog so the 2-col grid does not shift. No booking /
+ * Name/phone is a bottom sheet so the 2-col grid does not shift. No booking /
  * access / venue types.
  */
 export function SlotPicker({
@@ -196,32 +197,34 @@ export function SlotPicker({
           </li>
         ))}
       </ul>
-      <Dialog
+      <BottomSheet
         open={picked !== null}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
         }}
       >
         {picked ? (
-          <DialogContent closeLabel={ui("dialog.close", locale)}>
-            <DialogHeader className="pe-8">
-              <DialogTitle className="sr-only">
+          <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
+            <BottomSheetHeader>
+              <BottomSheetTitle className="sr-only">
                 {`${picked.slot.startLocal} → ${picked.slot.endLocal}`}
-              </DialogTitle>
+              </BottomSheetTitle>
               <SlotFace slot={picked.slot} variant="idle" />
-              <DialogDescription>{picked.pitch.name}</DialogDescription>
-            </DialogHeader>
-            <RequestForm
-              pitchId={picked.pitch.id}
-              slot={picked.slot}
-              action={action}
-              hiddenFields={hiddenFields}
-              submitLabel={submitLabel}
-              locale={locale}
-            />
-          </DialogContent>
+              <BottomSheetDescription>{picked.pitch.name}</BottomSheetDescription>
+            </BottomSheetHeader>
+            <BottomSheetBody>
+              <RequestForm
+                pitchId={picked.pitch.id}
+                slot={picked.slot}
+                action={action}
+                hiddenFields={hiddenFields}
+                submitLabel={submitLabel}
+                locale={locale}
+              />
+            </BottomSheetBody>
+          </BottomSheetContent>
         ) : null}
-      </Dialog>
+      </BottomSheet>
     </>
   );
 }
