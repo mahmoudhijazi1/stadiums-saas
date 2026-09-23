@@ -3621,3 +3621,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/components/day-chips.tsx`.
 
 **How to verify:** Public `/` and `/owner/book` — second chip shows e.g. Wed / 23, not Tomorrow.
+
+## Drop in-progress slots from the grid
+
+**When:** 2026-09-23
+
+**What:** `dropEndedSlots` and `resolveOfferedSlot` now refuse slots whose **start** is `<= now` (was end-based). At 9:30 a 9:00–10:00 hour no longer appears or accepts Request/Book/Approve.
+
+**Why:** In-progress games were still listed because end was still after now.
+
+**Files:** `src/modules/venue/domain/availability.ts`, `src/modules/booking/domain/offered-slot.ts`, matching tests.
+
+**How to verify:** `npm test -- --testPathPatterns=availability|offered-slot`. Public/Book today mid-hour — only starts still in the future show.

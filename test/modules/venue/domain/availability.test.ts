@@ -179,10 +179,10 @@ describe("generateSlotsForDay", () => {
   });
 });
 
-function slotEnding(end: Date): Slot {
+function hourSlot(start: Date): Slot {
   return {
-    start: new Date(end.getTime() - 60 * 60_000),
-    end,
+    start,
+    end: new Date(start.getTime() + 60 * 60_000),
     priceUsd: new Decimal("30.00"),
     available: true,
   };
@@ -191,18 +191,24 @@ function slotEnding(end: Date): Slot {
 describe("dropEndedSlots", () => {
   const now = new Date("2026-09-12T17:00:00.000Z");
 
-  it("keeps a slot whose end is still after now", () => {
-    const later = slotEnding(new Date("2026-09-12T17:00:00.001Z"));
+  it("keeps a slot whose start is still after now", () => {
+    const later = hourSlot(new Date("2026-09-12T17:00:00.001Z"));
     expect(dropEndedSlots([later], now)).toEqual([later]);
   });
 
-  it("drops a slot that ends at now (same cutoff as booking.slot_ended)", () => {
-    const ending = slotEnding(now);
-    expect(dropEndedSlots([ending], now)).toEqual([]);
+  it("drops a slot that starts at now (same cutoff as booking.slot_ended)", () => {
+    const starting = hourSlot(now);
+    expect(dropEndedSlots([starting], now)).toEqual([]);
+  });
+
+  it("drops an in-progress slot (start before now, end after now)", () => {
+    const inProgress = hourSlot(new Date("2026-09-12T16:30:00.000Z"));
+    expect(inProgress.end.getTime()).toBeGreaterThan(now.getTime());
+    expect(dropEndedSlots([inProgress], now)).toEqual([]);
   });
 
   it("drops a slot that already ended", () => {
-    const ended = slotEnding(new Date("2026-09-12T16:59:59.999Z"));
+    const ended = hourSlot(new Date("2026-09-12T15:00:00.000Z"));
     expect(dropEndedSlots([ended], now)).toEqual([]);
   });
 
@@ -212,11 +218,11 @@ describe("dropEndedSlots", () => {
       SAT,
     );
     expect(generated).toHaveLength(3);
-    // Beirut UTC+3: 17:00 local = 14:00Z. Freeze 17:30 local → first slot gone.
+    // Beirut UTC+3: 17:00 local = 14:00Z. Freeze 17:30 local → 16:00 and 17:00 gone.
     const evening = new Date("2026-09-12T14:30:00.000Z");
     expect(
       dropEndedSlots(generated, evening).map((s) => beirutStamp(s.start).hm),
-    ).toEqual(["17:00", "18:00"]);
+    ).toEqual(["18:00"]);
   });
 });
 

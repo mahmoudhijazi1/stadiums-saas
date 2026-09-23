@@ -90,6 +90,22 @@ describe("resolveOfferedSlot", () => {
       }),
     ).toThrow("booking.slot_ended");
   });
+
+  it("fails when the slot has already started (in progress)", () => {
+    const slot = firstWedSlot();
+    const mid = new Date(slot.start.getTime() + 30 * 60_000);
+    expect(mid.getTime()).toBeLessThan(slot.end.getTime());
+    expect(() =>
+      resolveOfferedSlot({
+        config: evening,
+        localDate: WED,
+        timeZone: BEIRUT,
+        start: slot.start,
+        end: slot.end,
+        now: mid,
+      }),
+    ).toThrow("booking.slot_ended");
+  });
 });
 
 describe("overlaps", () => {

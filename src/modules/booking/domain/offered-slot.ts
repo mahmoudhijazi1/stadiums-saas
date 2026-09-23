@@ -9,7 +9,8 @@ import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
 export type UtcRange = { start: Date; end: Date };
 
 /**
- * Confirm this UTC window is a slot Venue would offer that day, and it has not ended.
+ * Confirm this UTC window is a slot Venue would offer that day, and its start
+ * is still in the future (same cutoff as dropEndedSlots / booking.slot_ended).
  * Price is copied from the engine — never trusted from the requester (DR-002 §2.18).
  * Pass APPROVED ranges as occupied so a taken hour fails (SPEC-05). Default [] = none taken.
  */
@@ -43,7 +44,7 @@ export function resolveOfferedSlot(input: {
     throw new DomainError("booking.slot_taken");
   }
 
-  if (offered.end.getTime() <= input.now.getTime()) {
+  if (offered.start.getTime() <= input.now.getTime()) {
     throw new DomainError("booking.slot_ended");
   }
 

@@ -62,10 +62,13 @@ export function generateSlotsForDay(input: {
   return slots;
 }
 
-/** Keep slots whose end is still after `now` (same cutoff as booking.slot_ended). */
+/**
+ * Keep slots whose start is still after `now` (same cutoff as booking.slot_ended).
+ * An in-progress hour (start ≤ now < end) is not bookable.
+ */
 export function dropEndedSlots(slots: Slot[], now: Date): Slot[] {
   const cutoff = now.getTime();
-  return slots.filter((slot) => slot.end.getTime() > cutoff);
+  return slots.filter((slot) => slot.start.getTime() > cutoff);
 }
 
 export function compareCivilDate(a: CivilDate, b: CivilDate): number {
