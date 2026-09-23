@@ -3689,3 +3689,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** next/font variables on `html`. Must not branch on lang in components. Plex Mono stays for codes.
 
 **How to verify:** `/owner/book` — body font Manrope; a slot time’s computed family is `\"Big Shoulders\"` and `document.fonts.check('700 16px \"Big Shoulders\"')` is true. English `tracking-tight` is negative; Arabic is `normal`.
+
+## Slot tile: inverse fill, until-word, muted duration
+
+**When:** 2026-09-23
+
+**What:** Slot presentation only. Idle tile is inverse in light and surface in dark. Selected tile is an accent fill with carbon ink. End time uses `public.until` (حتى / until). Duration is a surface-2 micro pill with muted ink. Unavailable is a stripe and not a button.
+
+**Why:** `ui-components.md` time slot. Volt duration was outranking the price. Arrow glyphs do not flip in RTL. Accent time stays on the dark tile only.
+
+**Files:** `src/components/slot-picker.tsx`, `src/lib/ui-copy.ts`, `src/app/globals.css` (`.fill-stripe`), `docs/MIGRATION.md`.
+
+**How it connects:** Shared by public hours and owner Book. No booking/venue imports. Passed state is not in the slot data. Sheet chrome is still unrestyled; the summary time uses ink because the sheet ground is surface.
+
+**How to verify:** `/owner/book` light and dark, Arabic and English. Time is the largest volt figure on a dark tile; price is second; `1h` is a muted pill; the end line says حتى or until.

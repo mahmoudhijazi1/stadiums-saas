@@ -6,7 +6,6 @@ import {
   publicRequestFieldErrors,
   type PublicRequestFieldErrors,
 } from "@/lib/request-fields";
-import { Badge } from "@/components/ui/badge";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -75,67 +74,64 @@ export function formatSlotDuration(startIso: string, endIso: string): string {
 function SlotFace({
   slot,
   variant,
+  locale,
+  onSurface = false,
 }: {
   slot: SlotPickerSlot;
   variant: "idle" | "selected" | "taken";
+  locale: UiLocale;
+  /** Sheet summary sits on surface. Accent time is only legal on the inverse tile. */
+  onSurface?: boolean;
 }) {
   const duration = formatSlotDuration(slot.startIso, slot.endIso);
   const selected = variant === "selected";
   const taken = variant === "taken";
+  const timeColour = selected
+    ? "text-accent-ink"
+    : taken
+      ? "text-ink-muted line-through"
+      : onSurface
+        ? "text-ink"
+        : "text-accent-brand";
+  const quiet = selected ? "text-accent-ink/70" : "text-ink-muted";
 
   return (
-    <span className="flex w-full min-w-0 items-stretch gap-2.5">
-      <span className="flex shrink-0 flex-col items-start justify-center gap-1">
+    <span className="flex w-full min-w-0 flex-col gap-3">
+      <span className="flex flex-col items-start gap-1">
         <LtrIsolate
           className={cn(
-            "whitespace-nowrap text-xl font-bold leading-none",
-            !taken && "transition-colors duration-200 ease-out",
-            selected ? "text-primary-foreground" : "text-card-foreground",
+            "font-display text-3xl leading-none font-extrabold tabular-nums",
+            timeColour,
           )}
         >
           {slot.startLocal}
         </LtrIsolate>
-        <LtrIsolate
-          className={cn(
-            "whitespace-nowrap text-xs font-normal",
-            !taken && "transition-colors duration-200 ease-out",
-            selected ? "text-primary-foreground/70" : "text-muted-foreground",
-          )}
-        >
-          {` → ${slot.endLocal}`}
-        </LtrIsolate>
+        <span className={cn("text-xs", quiet)}>
+          {ui("public.until", locale)}{" "}
+          <LtrIsolate className="font-display tabular-nums">
+            {slot.endLocal}
+          </LtrIsolate>
+        </span>
       </span>
-      <span
-        aria-hidden
-        className={cn(
-          "my-1 w-px shrink-0",
-          selected ? "bg-primary-foreground/40" : "bg-muted-foreground/40",
-        )}
-      />
-      <span className="flex min-w-0 flex-1 flex-col items-end justify-center gap-0.5">
+      <span className="flex items-end justify-between gap-2">
         <LtrIsolate
           className={cn(
-            "text-xs",
-            !taken && "transition-colors duration-200 ease-out",
-            selected ? "text-primary-foreground/70" : "text-muted-foreground",
+            "font-display text-xl leading-none font-extrabold tabular-nums",
+            selected ? "text-accent-ink" : "text-current",
           )}
         >
           {`$${slot.priceUsd}`}
         </LtrIsolate>
         {duration ? (
-          <LtrIsolate
+          <span
             className={cn(
-              "text-xs font-medium",
-              !taken && "transition-colors duration-200 ease-out",
-              selected
-                ? "text-primary-foreground"
-                : taken
-                  ? "text-muted-foreground"
-                  : "text-action-ink",
+              "rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold tracking-wide text-ink-muted",
             )}
           >
-            {duration}
-          </LtrIsolate>
+            <LtrIsolate className="font-display tabular-nums">
+              {duration}
+            </LtrIsolate>
+          </span>
         ) : null}
       </span>
     </span>
@@ -207,9 +203,9 @@ export function SlotPicker({
           <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
             <BottomSheetHeader>
               <BottomSheetTitle className="sr-only">
-                {`${picked.slot.startLocal} → ${picked.slot.endLocal}`}
+                {`${picked.slot.startLocal} ${ui("public.until", locale)} ${picked.slot.endLocal}`}
               </BottomSheetTitle>
-              <SlotFace slot={picked.slot} variant="idle" />
+              <SlotFace slot={picked.slot} variant="idle" locale={locale} onSurface />
               <BottomSheetDescription>{picked.pitch.name}</BottomSheetDescription>
             </BottomSheetHeader>
             <BottomSheetBody>
@@ -242,9 +238,12 @@ function SlotBlock({
 }) {
   if (!slot.available) {
     return (
-      <div className="flex min-h-20 w-full flex-col justify-center gap-1.5 rounded-xl border border-border bg-card px-3 py-3 text-start opacity-60">
-        <SlotFace slot={slot} variant="taken" />
-        <Badge variant="outline">{ui("public.taken", locale)}</Badge>
+      <div
+        className="fill-stripe flex min-h-28 w-full flex-col justify-center gap-2 rounded-[var(--radius-card)] px-3 py-3 text-start text-ink-muted"
+        aria-label={ui("public.taken", locale)}
+      >
+        <SlotFace slot={slot} variant="taken" locale={locale} />
+        <span className="text-xs font-semibold">{ui("public.taken", locale)}</span>
       </div>
     );
   }
@@ -255,15 +254,19 @@ function SlotBlock({
       onClick={onToggle}
       aria-pressed={isSelected}
       className={cn(
-        "flex min-h-20 w-full items-center rounded-xl bg-card px-3 py-3 text-start outline-none",
-        "border transition-[background-color,color,border-color] duration-200 ease-out",
-        "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "flex min-h-28 w-full flex-col rounded-[var(--radius-card)] px-3 py-3 text-start outline-none",
+        "transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none",
+        "focus-visible:outline-2 focus-visible:outline-offset-2",
         isSelected
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-muted-foreground/40",
+          ? "bg-accent-brand text-accent-ink focus-visible:outline-accent-ink"
+          : "bg-inverse text-inverse-ink focus-visible:outline-accent-brand dark:bg-surface dark:text-ink",
       )}
     >
-      <SlotFace slot={slot} variant={isSelected ? "selected" : "idle"} />
+      <SlotFace
+        slot={slot}
+        variant={isSelected ? "selected" : "idle"}
+        locale={locale}
+      />
     </button>
   );
 }

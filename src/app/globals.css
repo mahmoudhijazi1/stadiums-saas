@@ -366,7 +366,15 @@
   line-height: 1.45;
 }
 
-/* WebKit: unlayered so the thumb paints. Transparent border insets it. */
+.fill-stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--stripe-a),
+    var(--stripe-a) 6px,
+    var(--stripe-b) 6px,
+    var(--stripe-b) 12px
+  );
+}
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
