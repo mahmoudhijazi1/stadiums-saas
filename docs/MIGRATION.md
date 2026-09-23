@@ -32,6 +32,7 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 
 - Component restyles (Phase 2).
 - Day picker selected state is a full fill (`bg-selected` / `text-selected-ink`): carbon in light, volt in dark. No ring. Unselected is surface + line.
+- Empty state: dashed `line-strong` outline, panel radius, centred display title, muted sentence. No icon tile and no action — those need new props; existing callers only pass `title` and `next`.
 - Expense category tiles (`money/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
 - Chart `--chart-1…5` and sidebar block — still primitives, no chart contract.
 - `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens.

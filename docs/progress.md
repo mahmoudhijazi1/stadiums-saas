@@ -3717,3 +3717,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Shared by public `/` and owner Book. Links and the date query key are unchanged. Activity dots are not in the data.
 
 **How to verify:** `/owner/book` — light selected cell is carbon with off-white ink; dark selected cell is volt with carbon ink. No ring.
+
+## Empty state: dashed panel, display title
+
+**When:** 2026-09-23
+
+**What:** `EmptyState` sits on the page with a dashed `line-strong` outline and panel radius. Title is display; the sentence is muted ink. Props stay `title` and `next`.
+
+**Why:** `ui-components.md` empty state. A filled card was the old ground. Icon tile and optional action would be new props; callers do not pass them.
+
+**Files:** `src/components/ui/empty-state.tsx`, `docs/MIGRATION.md`.
+
+**How it connects:** Used by public hours, Book, Today, waitlist, money, and settings. No module imports.
+
+**How to verify:** `/owner/book` Pitch A3 — dashed outline, no fill, in light and dark, Arabic and English. Light border computes to `#D5D4CA`.
