@@ -3633,3 +3633,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/modules/venue/domain/availability.ts`, `src/modules/booking/domain/offered-slot.ts`, matching tests.
 
 **How to verify:** `npm test -- --testPathPatterns=availability|offered-slot`. Public/Book today mid-hour — only starts still in the future show.
+
+## Phase 1 — design-system token layer
+
+**When:** 2026-09-23
+
+**What:** Three-layer tokens in `globals.css` (primitives ? roles ? shadcn aliases), real light/dark (surfaces step up), `--brand` / `--success` split (volt vs emerald), `next-themes` toggle with no FOUC, Big Shoulders as `font-display`, `LtrIsolate` tabular display, palette page at `/dev/palette`, `MIGRATION.md` started.
+
+**Why:** `docs/theme.md` + `ui-foundations.md` — components must stop reading hex; accent collision documented (shadcn `--accent` stays wash; action colour is `--brand` / `primary` / `accent-brand`).
+
+**Files:** `src/app/globals.css`, `src/app/layout.tsx`, `src/components/theme-provider.tsx`, `src/components/theme-toggle.tsx`, `src/components/ui/sonner.tsx`, `src/components/ui/ltr-isolate.tsx`, `src/components/ui/button.tsx`, `src/components/ui/badge.tsx`, `src/lib/ui-copy.ts`, `src/app/dev/palette/page.tsx`, `docs/MIGRATION.md`.
+
+**How it connects:** Layout owns ThemeProvider + fonts. Components still use shadcn class names; role utilities are available for Phase 2. Must not import modules from `app/`. Tenant `brandHex` injection not shipped yet.
+
+**How to verify:** `http://ahmad.localhost:3000/dev/palette` — Light/Dark/System; selected is carbon in light, volt in dark; accent is volt both themes; success is emerald.

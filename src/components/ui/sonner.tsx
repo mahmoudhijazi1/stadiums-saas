@@ -9,12 +9,15 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
+  const { resolvedTheme } = useTheme()
+
   return (
     <Sonner
-      theme="light"
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
       className="toaster group"
       position="top-center"
       offset={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
