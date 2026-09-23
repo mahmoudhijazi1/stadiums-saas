@@ -57,18 +57,25 @@ export function DayChips({
                 aria-current={selected ? "date" : undefined}
                 className={dayChipClass(selected)}
               >
-                {offset === 0 ? (
-                  ui("public.today", locale)
-                ) : (
-                  <span className="flex flex-col items-center gap-0.5">
-                    <span className="leading-tight">
-                      {weekdayName(day, locale)}
-                    </span>
-                    <LtrIsolate className="text-sm font-semibold leading-none">
-                      {String(day.day)}
-                    </LtrIsolate>
+                <span className="flex flex-col items-center gap-0.5">
+                  <span
+                    className={
+                      selected ? "text-selected-ink" : "text-ink-muted"
+                    }
+                  >
+                    {offset === 0
+                      ? ui("public.today", locale)
+                      : weekdayName(day, locale)}
                   </span>
-                )}
+                  <LtrIsolate
+                    className={cn(
+                      "font-display text-sm leading-none font-extrabold tabular-nums",
+                      selected ? "text-selected-ink" : "text-ink",
+                    )}
+                  >
+                    {String(day.day)}
+                  </LtrIsolate>
+                </span>
               </Link>
             </li>
           );
@@ -91,10 +98,12 @@ export function DayChips({
 
 function dayChipClass(selected: boolean): string {
   return cn(
-    "flex h-14 w-full min-w-0 flex-col items-center justify-center rounded-xl border bg-card px-1 py-1.5 text-xs shadow-sm outline-none transition-all",
-    "hover:bg-accent/50 hover:border-action-ink/40",
-    "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
-    selected && "border-action-ink ring-2 ring-inset ring-action-ink",
+    "flex h-14 w-full min-w-0 flex-col items-center justify-center rounded-[var(--radius-md)] border px-1 py-1.5 text-xs outline-none",
+    "transition-[background-color,color,border-color] duration-150 ease-out motion-reduce:transition-none",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
+    selected
+      ? "border-transparent bg-selected text-selected-ink"
+      : "border-line bg-surface text-ink hover:bg-surface-2",
   );
 }
 

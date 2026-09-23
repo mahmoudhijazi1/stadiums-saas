@@ -3703,3 +3703,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Shared by public hours and owner Book. No booking/venue imports. Passed state is not in the slot data. Sheet chrome is still unrestyled; the summary time uses ink because the sheet ground is surface.
 
 **How to verify:** `/owner/book` light and dark, Arabic and English. Time is the largest volt figure on a dark tile; price is second; `1h` is a muted pill; the end line says حتى or until.
+
+## Day picker selected state is a fill
+
+**When:** 2026-09-23
+
+**What:** Selected day is `bg-selected` / `text-selected-ink` (carbon in light, volt in dark). Unselected is surface + line. No ring, no shadow. Today shows its date number. The calendar chip icon inherits the cell ink.
+
+**Why:** `ui-components.md` day picker. `42e555f` had moved the ring onto `action-ink`, which is still an outline, not a fill swap.
+
+**Files:** `src/components/day-chips.tsx`, `src/components/date-calendar-chip.tsx`, `docs/MIGRATION.md`.
+
+**How it connects:** Shared by public `/` and owner Book. Links and the date query key are unchanged. Activity dots are not in the data.
+
+**How to verify:** `/owner/book` — light selected cell is carbon with off-white ink; dark selected cell is volt with carbon ink. No ring.

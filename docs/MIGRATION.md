@@ -31,7 +31,7 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 ## Deliberately left
 
 - Component restyles (Phase 2).
-- Slot tiles: inverse in light, surface in dark; selected is an accent fill. Start time is accent on the idle tile only. End line uses `public.until` (حتى / until), not an arrow. Duration is a `surface-2` micro pill with muted ink. Unavailable is a stripe, not a button. Passed is not represented — slots only have `available`.
+- Day picker selected state is a full fill (`bg-selected` / `text-selected-ink`): carbon in light, volt in dark. No ring. Unselected is surface + line.
 - Expense category tiles (`money/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
 - Chart `--chart-1…5` and sidebar block — still primitives, no chart contract.
 - `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens.

@@ -77,7 +77,7 @@ export function DateCalendarChip({
           aria-pressed={isSelected}
           className={className}
         >
-          <CalendarIcon className="size-4 text-muted-foreground" />
+          <CalendarIcon className="size-4 text-current" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
