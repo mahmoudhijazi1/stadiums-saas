@@ -12,7 +12,6 @@ import {
   submitCollectPayment,
   submitRecordNoShow,
 } from "./actions";
-import { Badge } from "@/components/ui/badge";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -30,8 +29,19 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
+import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
-import { ChevronRight, CircleCheck, Clock, MapPin, MessageCircle, Phone } from "lucide-react";
+import {
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  CircleDollarSign,
+  Clock,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Radio,
+} from "lucide-react";
 
 export type UpcomingRowView = {
   id: string;
@@ -43,33 +53,60 @@ export type UpcomingRowView = {
   remainingUsd: string;
   priceUsd: string;
   status: UpcomingStatus;
+  display: CardDisplay;
+  displayAmountUsd: string;
   confirmWhatsAppHref: string | null;
   showCancel: boolean;
   showNoShow: boolean;
 };
 
-function StatusBadge({
-  status,
+function CardTrail({
+  display,
+  amountUsd,
   locale,
 }: {
-  status: UpcomingStatus;
+  display: CardDisplay;
+  amountUsd: string;
   locale: UiLocale;
 }) {
-  if (status === "due") {
-    return <Badge variant="outline">{ui("owner.due", locale)}</Badge>;
-  }
-  if (status === "paid") {
+  if (display.kind === "live") {
     return (
-      <Badge variant="outline" className="font-normal text-muted-foreground">
-        <CircleCheck aria-hidden className="size-3 text-success" />
-        {ui("owner.paid", locale)}
-      </Badge>
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
+        <Radio aria-hidden className="size-4 shrink-0" />
+        <span>{ui("owner.live", locale)}</span>
+        <span aria-hidden>·</span>
+        <LtrIsolate>{display.minutesLeft}</LtrIsolate>
+        <span>{ui("owner.minLeft", locale)}</span>
+      </span>
+    );
+  }
+  if (display.kind === "unpaid" || display.kind === "partial") {
+    return (
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-alert">
+        <CircleAlert aria-hidden className="size-4 shrink-0" />
+        <LtrIsolate>${amountUsd}</LtrIsolate>
+        <span>
+          {ui(
+            display.kind === "partial" ? "owner.leftShort" : "owner.dueShort",
+            locale,
+          )}
+        </span>
+      </span>
+    );
+  }
+  if (display.kind === "paid") {
+    return (
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
+        <CircleCheck aria-hidden className="size-4 shrink-0" />
+        <span>{ui("owner.paid", locale)}</span>
+      </span>
     );
   }
   return (
-    <Badge variant="outline" className="font-normal text-muted-foreground">
-      {ui("owner.upcomingTag", locale)}
-    </Badge>
+    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+      <CircleDollarSign aria-hidden className="size-4 shrink-0" />
+      <LtrIsolate>${amountUsd}</LtrIsolate>
+    </span>
   );
 }
 
@@ -226,6 +263,7 @@ export function UpcomingPanel({
             onOpen={openRowSheet}
             locale={locale}
             highlight={highlight}
+            mayCollect={mayCollect}
           />
         </>
       ) : null}
@@ -238,6 +276,7 @@ export function UpcomingPanel({
           onOpen={openRowSheet}
           locale={locale}
           highlight={highlight}
+          mayCollect={mayCollect}
         />
       ) : overdue.length === 0 ? (
         <EmptyState
@@ -266,6 +305,7 @@ export function UpcomingPanel({
               onOpen={openRowSheet}
               locale={locale}
               highlight={highlight}
+              mayCollect={mayCollect}
             />
           ) : null}
         </>
@@ -416,6 +456,7 @@ function UpcomingRows({
   onOpen,
   locale,
   highlight,
+  mayCollect,
 }: {
   rows: UpcomingRowView[];
   showDate: boolean;
@@ -423,6 +464,7 @@ function UpcomingRows({
   onOpen: (id: string) => void;
   locale: UiLocale;
   highlight?: string;
+  mayCollect: boolean;
 }) {
   return (
     <ul className="flex flex-col gap-2">
@@ -438,48 +480,70 @@ function UpcomingRows({
                 highlighted && !open && "bg-action-ink/10",
               )}
             >
-              <button
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={open}
-                onClick={() => onOpen(row.id)}
-                className={cn(
-                  "flex w-full items-start gap-3 px-4 py-3 text-start",
-                  "cursor-pointer outline-none transition-colors",
-                  "hover:bg-muted/60 active:bg-muted",
-                  "focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
-                )}
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <Clock
-                      aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground"
-                    />
-                    <LtrIsolate className="text-lg font-semibold leading-none">
-                      {row.timeRange}
-                    </LtrIsolate>
-                  </span>
-                  <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin aria-hidden className="size-4 shrink-0" />
-                      {row.pitchName}
+              <div className="flex w-full items-center gap-3 px-4 py-3">
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={open}
+                  onClick={() => onOpen(row.id)}
+                  className={cn(
+                    "flex min-w-0 flex-1 items-start gap-3 text-start",
+                    "cursor-pointer rounded-[var(--radius-control)] outline-none transition-colors",
+                    "hover:bg-muted/60 active:bg-muted",
+                    "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  )}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <Clock
+                        aria-hidden
+                        className="size-4 shrink-0 text-muted-foreground"
+                      />
+                      <LtrIsolate className="text-lg font-semibold leading-none whitespace-nowrap">
+                        {row.timeRange}
+                      </LtrIsolate>
                     </span>
-                    {showDate ? <span>{row.dateLabel}</span> : null}
+                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin aria-hidden className="size-4 shrink-0" />
+                        {row.pitchName}
+                      </span>
+                      {showDate ? <span>{row.dateLabel}</span> : null}
+                    </span>
+                    <span className="mt-1 block truncate text-sm text-muted-foreground">
+                      {row.requesterName}
+                    </span>
                   </span>
-                  <span className="mt-1 block truncate text-sm text-muted-foreground">
-                    {row.requesterName}
+                  <span className="flex shrink-0 flex-col items-end gap-1 self-center">
+                    <CardTrail
+                      display={row.display}
+                      amountUsd={row.displayAmountUsd}
+                      locale={locale}
+                    />
+                    {mayCollect &&
+                    (row.display.kind === "unpaid" ||
+                      row.display.kind === "partial") ? null : (
+                      <ChevronRight
+                        aria-hidden
+                        className="size-5 text-muted-foreground rtl:rotate-180"
+                      />
+                    )}
                   </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-1 self-center">
-                  <StatusBadge status={row.status} locale={locale} />
-                  <ChevronRight
-                    aria-hidden
-                    className="size-5 text-muted-foreground rtl:rotate-180"
-                  />
-                </span>
-                <span className="sr-only">{ui("owner.openBooking", locale)}</span>
-              </button>
+                  <span className="sr-only">{ui("owner.openBooking", locale)}</span>
+                </button>
+                {mayCollect &&
+                (row.display.kind === "unpaid" ||
+                  row.display.kind === "partial") ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="min-h-11 shrink-0"
+                    onClick={() => onOpen(row.id)}
+                  >
+                    {ui("owner.collect", locale)}
+                  </Button>
+                ) : null}
+              </div>
             </Card>
           </li>
         );

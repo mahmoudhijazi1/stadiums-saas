@@ -3801,3 +3801,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Sheets call `submitSetExchangeRate` and `submitSetTimeDisplay`. Pitch create/edit are unchanged aside from landing on the pitch list. No booking or payment rule changes. `getCurrentRate()` still returns the decimal.
 
 **How to verify:** Phone, Arabic, `/owner/more`. Business group shows the rate with separators. Update rate is a primary button. Language choices are العربية and English. The active tab is lime text, and only ＋ is a lime fill.
+
+## Today: request banner and card status
+
+**When:** 2026-09-23
+
+**What:** Today no longer lists pending cards. When there is at least one request, one row shows the count and the earliest time and opens Requests. Each confirmed card’s trailing state comes from `deriveCardDisplay` (before, live, unpaid, partial, paid). Ended unpaid and partial cards have Collect, which opens the existing collect sheet.
+
+**Why:** UX-01 Today. The helper uses instants, so a game that ends after midnight stays live until that end. Cancel, no-show, and collect rules are unchanged. Paid no-shows stay off Today (existing list filter).
+
+**Files:** `src/modules/booking/domain/card-display.ts`, `test/modules/booking/domain/card-display.test.ts`, `src/app/owner/today/lists.tsx`, `src/app/owner/today/upcoming-panel.tsx`, `src/lib/ui-copy.ts`.
+
+**How it connects:** Display only. Today still calls `listPendingRequests` and `listDueBookings`. Collect still uses `submitCollectPayment`. Requests keeps the full pending list.
+
+**How to verify:** Arabic, `/owner/today`. With a pending request, the banner is one row. A future game shows the price. An ended unpaid game shows the amount due and تحصيل. A paid approved game shows مدفوع. Jest: `card-display.test.ts`.
