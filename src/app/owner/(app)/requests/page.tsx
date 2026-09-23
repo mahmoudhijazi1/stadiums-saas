@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { PendingRequestList } from "@/app/owner/pending-list";
-import { TodayListsSkeleton } from "@/app/owner/today/skeleton";
+import { TodayListsSkeleton } from "@/app/owner/(app)/today/skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
 
 /**

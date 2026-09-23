@@ -1,7 +1,7 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { errorMessage } from "@/lib/error-messages";
 import { ui } from "@/lib/ui-copy";
-import { submitLogin } from "@/app/login/actions";
+import { submitLogin } from "@/app/owner/login/actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Card,
@@ -19,8 +19,11 @@ import { Container } from "@/components/ui/container";
  * Thin login route. No Prisma and no tenantId.
  * Tenant comes from the host subdomain.
  * Always Arabic RTL — no locale toggle on this screen (cookie EN must not flip it).
+ * Lives under /owner so the installed app stays inside the manifest scope.
  */
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+export default async function LoginPage({
+  searchParams,
+}: PageProps<"/owner/login">) {
   const tenant = await getCurrentTenant();
   const params = await searchParams;
   const errorKey = typeof params.error === "string" ? params.error : undefined;

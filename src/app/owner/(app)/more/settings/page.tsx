@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { requireOwnerMembership } from "@/app/owner/shared";
 
 /**
  * The settings monolith moved onto /owner/more.
@@ -8,6 +9,7 @@ import { redirect } from "next/navigation";
 export default async function OwnerSettingsPage({
   searchParams,
 }: PageProps<"/owner/more/settings">) {
+  await requireOwnerMembership();
   const params = await searchParams;
   const next = new URLSearchParams();
   for (const key of ["ok", "error"] as const) {

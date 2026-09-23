@@ -49,7 +49,7 @@ describe("resolveRequestHost", () => {
         "localhost:3000",
         null,
         null,
-        "http://ahmad.localhost:3000/login",
+        "http://ahmad.localhost:3000/owner/login",
       ),
     ).toBe("ahmad.localhost:3000");
   });

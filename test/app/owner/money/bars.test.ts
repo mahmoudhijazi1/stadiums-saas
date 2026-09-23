@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
-import { inOutBarPercents } from "@/app/owner/money/bars";
+import { inOutBarPercents } from "@/app/owner/(app)/money/bars";
 
 describe("inOutBarPercents", () => {
   it("scales the smaller total against the larger", () => {

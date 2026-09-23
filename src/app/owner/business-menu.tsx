@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
-import { submitLogout } from "@/app/login/actions";
+import { submitLogout } from "@/app/owner/login/actions";
 import { ShareCard } from "@/app/owner/share-card";
 import {
   BottomSheet,

@@ -7,7 +7,7 @@ import { useTheme } from "next-themes";
 import { ChevronRight } from "lucide-react";
 import { setUiLocale } from "@/app/locale-actions";
 import { ShareCard } from "@/app/owner/share-card";
-import { submitSetExchangeRate, submitSetTimeDisplay } from "@/app/owner/more/settings/actions";
+import { submitSetExchangeRate, submitSetTimeDisplay } from "@/app/owner/(app)/more/settings/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   BottomSheet,

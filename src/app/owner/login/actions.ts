@@ -36,7 +36,7 @@ export async function submitLogin(formData: FormData) {
     errorKey = await actionErrorKey(error, "submitLogin");
   }
   if (errorKey) {
-    redirect(`/login${loginQuery({ error: errorKey })}`);
+    redirect(`/owner/login${loginQuery({ error: errorKey })}`);
   }
   redirect("/owner/today");
 }
@@ -52,7 +52,7 @@ export async function submitLogout(_formData: FormData) {
     errorKey = await actionErrorKey(error, "submitLogout");
   }
   if (errorKey) {
-    redirect(`/login${loginQuery({ error: errorKey })}`);
+    redirect(`/owner/login${loginQuery({ error: errorKey })}`);
   }
-  redirect("/login");
+  redirect("/owner/login");
 }

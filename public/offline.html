@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>لا يوجد اتصال بالإنترنت</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f6f5ef;
+        color: #111412;
+        font-family: "Noto Naskh Arabic", "Noto Kufi Arabic", "Geeza Pro",
+          "SF Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+      }
+      main {
+        max-width: 24rem;
+        padding: 1.5rem;
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 1.7;
+      }
+      .en {
+        margin: 0 0 1rem;
+        direction: ltr;
+      }
+      p {
+        margin: 0 0 1.5rem;
+        line-height: 1.7;
+      }
+      button {
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.5rem 1.25rem;
+        border: 0;
+        border-radius: 999px;
+        background: #111412;
+        color: #f6f5ef;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>لا يوجد اتصال بالإنترنت</h1>
+      <p class="en" lang="en">No internet connection</p>
+      <p>ستظهر البيانات عند عودة الاتصال.</p>
+      <button type="button" onclick="location.reload()">
+        إعادة المحاولة / Retry
+      </button>
+    </main>
+  </body>
+</html>

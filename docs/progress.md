@@ -3815,3 +3815,45 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Display only. Today still calls `listPendingRequests` and `listDueBookings`. Collect still uses `submitCollectPayment`. Requests keeps the full pending list.
 
 **How to verify:** Arabic, `/owner/today`. With a pending request, the banner is one row. A future game shows the price. An ended unpaid game shows the amount due and تحصيل. A paid approved game shows مدفوع. Jest: `card-display.test.ts`.
+
+## Owner app installable as a PWA
+
+**When:** 2026-09-23
+
+**What:** Per-tenant web manifest at `/manifest.webmanifest`, placeholder icons, and a pass-through `public/sw.js` registered on `/owner`. The proxy matcher skips the manifest, the worker, icons, favicon, and apple-touch-icon.
+
+**Why:** Those URLs 404’d (manifest and worker as HTML). Icons did not exist. `start_url` has to stay on the tenant origin. The worker rules after “Only:” were not in the request, so the worker does not cache.
+
+**Files:** `src/app/manifest.ts`, `src/proxy.ts`, `src/app/layout.tsx`, `src/components/owner-service-worker.tsx`, `public/sw.js`, `public/icons/icon-192.png`, `public/icons/icon-512.png`, `public/icons/icon-512-maskable.png`.
+
+**How it connects:** Manifest reads the tenant name with `platformDb` from the host (`parseTenantSlug`). It does not use `getCurrentTenant` (that 404s without `x-tenant-slug`, and the matcher no longer sets that header on this URL). No owner page, domain, or application module changes. No new dependencies.
+
+**How to verify:** On `ahmad.localhost:3000`, `/manifest.webmanifest` is `application/manifest+json` with relative `start_url` `/owner/today` and scope `/owner/`, and the tenant name. `/sw.js` is `application/javascript`. The three icon URLs are `image/png` with no redirect. Open `/owner/today` while logged in and confirm the worker registers for scope `/owner/`.
+
+## PWA scope, offline page, and login path
+
+**When:** 2026-09-23
+
+**What:** `short_name` keeps whole words up to 12 characters (`Ahmad Stadium` → `Ahmad`). Login moved to `/owner/login`; `/login` is a 308. The owner shell does not guard that page. The worker precaches only `/offline.html` and serves it when a navigation fails. `/sw.js` is `Cache-Control: no-cache`.
+
+**Why:** A login URL outside `/owner/` leaves the installed app. Caching authenticated HTML would show stale money on a shared phone. The earlier worker had no cache rules.
+
+**Files:** `src/lib/pwa-short-name.ts`, `test/lib/pwa-short-name.test.ts`, `src/app/manifest.ts`, `src/app/owner/login/page.tsx`, `src/app/login/actions.ts`, `src/app/owner/shared.tsx`, `src/app/owner/layout.tsx`, `src/proxy.ts`, `next.config.ts`, `public/sw.js`, `public/offline.html`, `test/lib/tenant-slug.test.ts`. Deleted `src/app/login/page.tsx`.
+
+**How it connects:** `pwaShortName` is pure. Login still calls `submitLogin` and `getCurrentTenant`. `requireOwnerMembership` redirects to `/owner/login`. The layout skips that path via `x-pathname` from the proxy, so there is no loop and no tab bar. No domain or application module changes. The worker does not cache navigations, RSC, or actions.
+
+**How to verify:** Jest `pwa-short-name.test.ts`. Manifest `short_name` is `Ahmad`. `/login?error=access.invalid_login` is 308 to `/owner/login?error=access.invalid_login`. Logged-out `/owner/today` is 307 to `/owner/login`, and `/owner/login` is 200. `/sw.js` is `Cache-Control: no-cache`. DevTools: worker active, scope `/owner/`. Offline reload of `/owner/today` shows the offline page; Retry loads the app. Public `/` does not register the worker.
+
+## Owner shell route group
+
+**When:** 2026-09-23
+
+**What:** Shell routes live under `src/app/owner/(app)/`. Login stays at `src/app/owner/login` with no shell. `x-pathname` is gone. Each `(app)` page calls `requireOwnerMembership`; the layout does not redirect. Login actions moved to `src/app/owner/login/actions.ts`. Worker cache is `owner-shell-v2`, and a missing offline cache returns a 503 text response.
+
+**Why:** Local route-groups.md: a parenthesized folder is not part of the URL, and only routes inside it share that layout. The path header was only used to skip the shell on login.
+
+**Files:** `src/app/owner/(app)/` (layout and the former owner routes), `src/app/owner/login/page.tsx`, `src/app/owner/login/actions.ts`, `src/app/owner/business-menu.tsx`, `src/app/owner/pending-list.tsx`, `src/proxy.ts`, `public/sw.js`, `test/app/owner/money/bars.test.ts`. Deleted `src/app/login/`.
+
+**How it connects:** URLs are unchanged. The layout still reads membership for the tab bar via `getCurrentMembership` and skips the pending list when there is no session, so a logged-out page can redirect. No domain or application changes. `/login` still 308s to `/owner/login`.
+
+**How to verify:** `npx jest --watchAll=false` (250) and `npm run build`. Logged-out `/owner/today` is 307 to `/owner/login`. `/owner/login` is 200 without the shell. Build lists the same `/owner/*` routes.

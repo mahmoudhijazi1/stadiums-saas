@@ -9,11 +9,11 @@ import {
   formatLocalClockRange,
   type HourCycle,
 } from "@/app/owner/shared";
-import { formatSlotDateLabel } from "@/app/owner/today/date-label";
+import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
 import {
   submitApproveBooking,
   submitRejectBooking,
-} from "@/app/owner/today/actions";
+} from "@/app/owner/(app)/today/actions";
 import {
   Card,
   CardContent,

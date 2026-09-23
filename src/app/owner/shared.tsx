@@ -18,7 +18,7 @@ export function queryString(
 export async function requireOwnerMembership(): Promise<CurrentMembership> {
   const membership = await getCurrentMembership();
   if (!membership) {
-    redirect("/login");
+    redirect("/owner/login");
   }
   return membership;
 }
