@@ -14,7 +14,6 @@ export default async function OwnerMorePage() {
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.more", locale)}</h2>
       <ul className="flex flex-col gap-2">
         <li>
           <Link

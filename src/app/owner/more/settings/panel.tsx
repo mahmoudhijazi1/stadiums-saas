@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import type { UiLocale } from "@/lib/locale";
@@ -22,8 +23,8 @@ import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 /**
- * Exchange rate + time format + pitch list. OWNER sees set forms.
- * Staff see the current values, not the forms.
+ * Exchange rate + time format + pitch list. settings.manage sees the forms.
+ * Staff without the flag see the current values, not the forms.
  */
 export async function OwnerSettings({
   membership,
@@ -35,7 +36,7 @@ export async function OwnerSettings({
   const tenant = await getCurrentTenant();
   const rate = await getCurrentRate();
   const pitches = await listPitchSummaries();
-  const isOwner = membership.role === "OWNER";
+  const mayManageSettings = can(membership, SETTINGS_MANAGE);
   const timeDisplayLabel =
     tenant.timeDisplay === "h12"
       ? ui("owner.timeDisplayH12", locale)
@@ -57,7 +58,7 @@ export async function OwnerSettings({
               )}
             </CardDescription>
           </CardHeader>
-          {isOwner ? (
+          {mayManageSettings ? (
             <CardContent>
               <form
                 action={submitSetExchangeRate}
@@ -95,7 +96,7 @@ export async function OwnerSettings({
               <LtrIsolate>{timeDisplayLabel}</LtrIsolate>
             </CardDescription>
           </CardHeader>
-          {isOwner ? (
+          {mayManageSettings ? (
             <CardContent>
               <form
                 action={submitSetTimeDisplay}
@@ -136,7 +137,7 @@ export async function OwnerSettings({
           <h3 className="text-sm font-medium text-muted-foreground">
             {ui("owner.pitches", locale)}
           </h3>
-          {isOwner ? (
+          {mayManageSettings ? (
             <Button asChild variant="secondary" size="sm">
               <Link href="/owner/more/settings/pitches/new">
                 {ui("owner.pitchNew", locale)}
@@ -192,7 +193,7 @@ export async function OwnerSettings({
                       </span>
                     )}
                   </span>
-                  {isOwner ? (
+                  {mayManageSettings ? (
                     <ChevronRight
                       aria-hidden
                       className="size-5 shrink-0 text-muted-foreground rtl:rotate-180"
@@ -202,7 +203,7 @@ export async function OwnerSettings({
               );
               return (
                 <li key={pitch.id}>
-                  {isOwner ? (
+                  {mayManageSettings ? (
                     <Link
                       href={`/owner/more/settings/pitches/${pitch.id}`}
                       className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"

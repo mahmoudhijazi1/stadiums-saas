@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { scheduleFromHoursGroups } from "@/modules/venue/domain/daily-schedule";
 import type { LivePitchWindow } from "@/modules/venue/domain/hours-cover";
 import {
@@ -17,7 +18,7 @@ import type { PitchDraft } from "@/modules/venue/schemas/pitch-draft";
 const TIME_ZONE = "Asia/Beirut";
 
 /**
- * Update name + hours groups + day priceRules. OWNER only.
+ * Update name + hours groups + day priceRules. settings.manage (OWNER passes can()).
  * `liveBookings` come from Booking (`listLivePitchWindows`).
  * Authorize outside `$transaction`; find → classify → update run in one tx.
  */
@@ -28,7 +29,7 @@ export async function updatePitch(input: {
   now?: Date;
 }): Promise<void> {
   const membership = await getCurrentMembership();
-  if (!membership || membership.role !== "OWNER") {
+  if (!membership || !can(membership, SETTINGS_MANAGE)) {
     throw new DomainError("access.not_allowed");
   }
 

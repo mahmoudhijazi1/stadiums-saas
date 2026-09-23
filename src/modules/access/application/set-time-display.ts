@@ -7,18 +7,19 @@ import {
 import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import {
   findTenantSettingsById,
   updateTenantSettingsRow,
 } from "@/modules/access/infrastructure/tenants";
 
 /**
- * Persist owner clock preference on Tenant.settings. OWNER only.
- * Staff share the same clocks (tenant-level); they cannot write.
+ * Persist clock preference on Tenant.settings. settings.manage (OWNER passes can()).
+ * Staff share the same clocks (tenant-level); they cannot write without the flag.
  */
 export async function setTimeDisplay(timeDisplay: TimeDisplay): Promise<void> {
   const membership = await getCurrentMembership();
-  if (!membership || membership.role !== "OWNER") {
+  if (!membership || !can(membership, SETTINGS_MANAGE)) {
     throw new DomainError("access.not_allowed");
   }
 

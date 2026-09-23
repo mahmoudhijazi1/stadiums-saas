@@ -7,6 +7,7 @@ import {
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
   REPORTS_VIEW,
+  SETTINGS_MANAGE,
   can,
 } from "@/modules/access/domain/can";
 
@@ -146,6 +147,17 @@ describe("can", () => {
     expect(
       can({ role: "STAFF", permissions: { "bookings.cancel": true } }, BOOKINGS_NO_SHOW),
     ).toBe(false);
+  });
+
+  it("lets OWNER manage settings without a json flag", () => {
+    expect(can({ role: "OWNER", permissions: {} }, SETTINGS_MANAGE)).toBe(true);
+  });
+
+  it("lets STAFF manage settings only when the flag is strictly true", () => {
+    expect(can({ role: "STAFF", permissions: {} }, SETTINGS_MANAGE)).toBe(false);
+    expect(
+      can({ role: "STAFF", permissions: { "settings.manage": true } }, SETTINGS_MANAGE),
+    ).toBe(true);
   });
 });
 

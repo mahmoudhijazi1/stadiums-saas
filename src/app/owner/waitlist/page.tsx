@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { OwnerBackLink } from "@/app/owner/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { OwnerWaitlist } from "./list";
 import { WaitlistSkeleton } from "./skeleton";
@@ -11,6 +12,7 @@ export default async function OwnerWaitlistPage() {
 
   return (
     <section className="flex flex-col gap-4">
+      <OwnerBackLink href="/owner/today" locale={locale} />
       <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.waitlist", locale)}</h2>
       <Suspense fallback={<WaitlistSkeleton />}>
         <OwnerWaitlist locale={locale} />

@@ -5,6 +5,7 @@ export const BOOKINGS_NO_SHOW = "bookings.no_show";
 export const PAYMENTS_COLLECT = "payments.collect";
 export const EXPENSES_RECORD = "expenses.record";
 export const REPORTS_VIEW = "reports.view";
+export const SETTINGS_MANAGE = "settings.manage";
 
 export type Permission =
   | typeof BOOKINGS_APPROVE
@@ -13,7 +14,8 @@ export type Permission =
   | typeof BOOKINGS_NO_SHOW
   | typeof PAYMENTS_COLLECT
   | typeof EXPENSES_RECORD
-  | typeof REPORTS_VIEW;
+  | typeof REPORTS_VIEW
+  | typeof SETTINGS_MANAGE;
 
 export type MembershipLike = {
   role: "OWNER" | "STAFF";

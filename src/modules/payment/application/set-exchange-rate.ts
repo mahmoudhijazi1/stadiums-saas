@@ -5,15 +5,16 @@ import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { insertExchangeRate } from "@/modules/payment/infrastructure/rates";
 
 /**
- * Append a new rate. OWNER only this slice (staff with collect still cannot).
+ * Append a new rate. settings.manage (OWNER passes can()).
  * Single create — no interactive transaction (SPEC-06).
  */
 export async function setExchangeRate(lbpPerUsd: Decimal): Promise<void> {
   const membership = await getCurrentMembership();
-  if (!membership || membership.role !== "OWNER") {
+  if (!membership || !can(membership, SETTINGS_MANAGE)) {
     throw new DomainError("access.not_allowed");
   }
 

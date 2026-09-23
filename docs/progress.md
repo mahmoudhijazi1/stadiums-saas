@@ -3759,3 +3759,31 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Same `DayChips` on public hours and owner Book. No booking imports. Container width is unchanged.
 
 **How to verify:** `/owner/book` at 390 — header is a rounded inverse bar inset from the edges, today and the calendar are both visible, and the page does not scroll sideways. At 1280 the header is a square dark block and all seven days plus the calendar fit.
+
+## Owner shell (UX-01 slice 1)
+
+**When:** 2026-09-23
+
+**What:** Amended `docs/owner-ux.md` after the audit, then shipped the shell. The header keeps the floating bar below `lg` and the dark block at `lg`, and it stays put on scroll. Avatar and name open a business menu (public page, settings shortcut, account with language and log out). The offline pill shows "بدون اتصال" only while offline. Destinations are Today, Requests, a center ＋, Money, and More. At `lg` the ＋ is a primary button at the top of the rail. `/owner/book` and `/owner/waitlist` stay routes with a title and a back button. Tab roots have no large title. `settings.manage` gates settings forms; `OWNER` still passes `can()`.
+
+**Why:** UX-01, amended after audit. SPEC-14, session length, `recordNoShow`, `cancelBooking`, public `DayChips`, and cross-tenant membership were left alone.
+
+**Files:** `docs/owner-ux.md`, `docs/owner-ia.md`, `.cursor/rules/100-rtl-i18n.mdc`, `src/modules/access/domain/can.ts`, `src/app/owner/header.tsx`, `src/app/owner/business-menu.tsx`, `src/app/owner/offline-pill.tsx`, `src/app/owner/tab-bar.tsx`, `src/app/owner/layout.tsx`, `src/app/owner/requests/page.tsx`, `src/app/owner/pending-list.tsx`, `src/app/owner/back-link.tsx`, settings and pitch gates, `src/lib/ui-copy.ts`.
+
+**How it connects:** The shell calls `listPendingRequests` for the badge and reuses the pending list. It does not import payment or change booking mutations. Copy is `ui()` only. The ＋ sheet links to existing Book and Money screens. Search is a control with no results screen. Show QR reveals the public URL; there is no QR image library.
+
+**How to verify:** Phone, Arabic, `http://ahmad.localhost:3000/owner/today`. Header stays while scrolling. Menu has no switch-business. Language and log out are under Account. Bar is اليوم / الطلبات / تسجيل / المال / المزيد. ＋ opens حجز and مصروف. Requests is not a 404. Today still lists pending. Settings still open for the owner. `npm test` and `npm run build`.
+
+## Correction: theme toggle in the business menu
+
+**When:** 2026-09-23
+
+**What:** Light / dark / system sits under Account in the business menu, above the language toggle.
+
+**Why:** The control existed only on the palette page, so the owner shell had no way to change theme.
+
+**Files:** `src/app/owner/business-menu.tsx`, `src/components/theme-toggle.tsx`, `docs/owner-ux.md`.
+
+**How it connects:** Same `ThemeToggle` as the palette. It writes the `next-themes` choice. No module imports.
+
+**How to verify:** Open the business menu on `/owner/today`. فاتح / داكن / نظام switches the page. The choice survives a refresh.

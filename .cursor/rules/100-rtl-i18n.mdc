@@ -12,4 +12,4 @@ alwaysApply: false
   Directional utilities break the Arabic layout — this is a hard rule, not a preference.
 - Western digits (123) even in the Arabic UI.
 - Tenant-authored content (pitch names, product names) is shown exactly as written, never translated.
-- Verify the current next-intl API against its installed docs before writing i18n code.
+- Copy goes through `ui()` in `src/lib/ui-copy.ts`. `next-intl` is not installed (DR-005). Do not add it.

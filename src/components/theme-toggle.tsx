@@ -52,7 +52,7 @@ export function ThemeToggle({
             disabled={!mounted}
             onClick={() => setTheme(choice)}
             className={cn(
-              "min-h-11 min-w-11 rounded-[var(--radius-control)] px-3 text-sm font-medium outline-none",
+              "min-h-11 min-w-0 flex-1 rounded-[var(--radius-control)] px-3 text-sm font-medium outline-none",
               "transition-[background-color,color] duration-150 ease-out",
               "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "motion-reduce:transition-none",

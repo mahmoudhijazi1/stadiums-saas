@@ -3,17 +3,18 @@ import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { scheduleFromHoursGroups } from "@/modules/venue/domain/daily-schedule";
 import { insertPitch } from "@/modules/venue/infrastructure/pitches";
 import type { PitchDraft } from "@/modules/venue/schemas/pitch-draft";
 
 /**
- * Create a pitch from hours groups. OWNER only. No hours-cover
- * (there are no live bookings on a new pitch).
+ * Create a pitch from hours groups. settings.manage (OWNER passes can()).
+ * No hours-cover (there are no live bookings on a new pitch).
  */
 export async function createPitch(draft: PitchDraft): Promise<{ id: string }> {
   const membership = await getCurrentMembership();
-  if (!membership || membership.role !== "OWNER") {
+  if (!membership || !can(membership, SETTINGS_MANAGE)) {
     throw new DomainError("access.not_allowed");
   }
 

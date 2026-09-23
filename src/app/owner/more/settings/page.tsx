@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { OwnerBackLink } from "@/app/owner/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { OwnerSettings } from "./panel";
 import { SettingsSkeleton } from "./skeleton";
@@ -15,6 +16,7 @@ export default async function OwnerSettingsPage() {
 
   return (
     <section className="flex flex-col gap-4">
+      <OwnerBackLink href="/owner/more" locale={locale} />
       <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.settings", locale)}</h2>
       <Suspense fallback={<SettingsSkeleton />}>
         <OwnerSettings membership={membership} locale={locale} />

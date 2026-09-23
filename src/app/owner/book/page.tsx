@@ -12,6 +12,7 @@ import {
   queryString,
   requireOwnerMembership,
 } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/app/owner/back-link";
 import { DayChips } from "@/components/day-chips";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
@@ -39,6 +40,7 @@ export default async function OwnerBookPage({
 
   return (
     <section className="flex flex-col gap-4">
+      <OwnerBackLink href="/owner/today" locale={locale} />
       <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.bookHeading", locale)}</h2>
       <DayChips
         today={todayCivil}

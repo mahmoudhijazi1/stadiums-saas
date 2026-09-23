@@ -6,7 +6,6 @@ import {
 import { OwnerToday } from "./lists";
 import { TodayListsSkeleton } from "./skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
 
 export default async function OwnerTodayPage({
   searchParams,
@@ -20,7 +19,6 @@ export default async function OwnerTodayPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.homeHeading", locale)}</h2>
       <Suspense fallback={<TodayListsSkeleton />}>
         <OwnerToday
           membership={membership}

@@ -4,31 +4,33 @@ Living reference for `/owner` structure. **Update this file when tabs or routes 
 
 ---
 
-## Tabs (Phase 1)
+## Destinations (amended after the UX-01 audit)
 
-Five real routes behind a shared layout. Bottom tab bar is `<Link>` navigation (icon + label), not client state. **Do not add a sixth tab** when later products ship — they become rows inside More.
+UX-01 supersedes the earlier five tabs (Home, Book, Waitlist, Reports, More). Five destinations behind a shared layout: a floating bottom bar below `lg`, and a 240px start-side rail at `lg`. ＋ is a primary button (center of the bar, top of the rail), not a route. **Do not add a sixth destination** when later products ship — they become rows inside More.
 
-| Tab | URL | Contains | Does **not** contain |
+Tab root pages have no large title. Nested pages keep a title and a back button.
+
+| Destination | URL | Contains | Does **not** contain |
 |---|---|---|---|
-| Home | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact rows with chevron; tap opens a bottom sheet: time-dominant header, إبلاغ on the phone row, one remaining hero unless partial, one-tap Collect, mixed-currency behind دفع بعملتين); inline next 7 civil days; `?ok=approved&highlight=` rings the new row | Book date picker, waitlist, rate, period, expenses |
-| Book | `/owner/book` | Date picker + slot grid; create form in a dialog | Home lists, waitlist, Reports, Settings |
-| Waitlist | `/owner/waitlist` | Open slot-interest groups + WhatsApp notify | Rate, period, expenses, Book |
-| Reports | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense” | Exchange-rate **set** form, waitlist, Book, Home, Settings |
-| More | `/owner/more` | Hub list of destinations. Today: Settings | Tab content for Home / Book / Waitlist / Reports |
+| Today | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact rows with chevron; tap opens a bottom sheet: time-dominant header, إبلاغ on the phone row, one remaining hero unless partial, one-tap Collect, mixed-currency behind دفع بعملتين); inline next 7 civil days; `?ok=approved&highlight=` rings the new row | Book date picker, waitlist, rate, period, expenses |
+| Requests | `/owner/requests` | The same pending list as Today, until the Requests slice adds the notify sheet and reject reasons. Badge is the pending count. | Waitlist, rate, period, expenses |
+| ＋ | (sheet) | Booking → `/owner/book`. Expense → `/owner/money`. Hidden when the membership has neither `bookings.create` nor `expenses.record`. | A quick-booking form (later, after person search) |
+| Money | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense”. Label is المال / Money. | Exchange-rate **set** form, waitlist, Book, Settings |
+| More | `/owner/more` | Hub list of destinations. Today: Settings | Tab content for Today / Requests / Money |
+
+`/owner/book` and `/owner/waitlist` stay real routes. They are not destinations in the bar. Book keeps its date picker and slot grid. Waitlist keeps open slot-interest groups. Both keep a title and a back button.
 
 `/owner` itself has no UI: it redirects to `/owner/today`. Login lands on `/owner/today` (not `/owner`) so Server Action `redirect()` does not stack a second hop (`redirect.md`: actions **push** history). Tenant comes from the host (`ahmad.localhost` / subdomain), not `?tenant=`.
 
-Staff without `bookings.create`: Book tab is omitted. Hitting `/owner/book` directly shows an EmptyState, not slots.
+Staff without `bookings.create`: `/owner/book` shows an EmptyState, not slots. The ＋ row for Booking is hidden. Staff without `expenses.record`: the Expense row is hidden.
 
-Waitlist **tab label** is short (`owner.waitlistTab` = انتظار / Waitlist). The page heading stays the full `owner.waitlist` (قائمة الانتظار). Same pattern as Home (رئيسية vs الرئيسية).
-
-Do not grow a tab by stacking another product’s UI on it. If it is not in the “Contains” column, it belongs on another tab or a **More list row** (see Phase 2+).
+Do not grow a destination by stacking another product’s UI on it. If it is not in the “Contains” column, it belongs on another destination or a **More list row** (see Phase 2+).
 
 ---
 
 ## Reports vs Settings
 
-**Reports** (`/owner/money` — URL kept; label is تقارير / Reports):
+**Money** (`/owner/money` — URL kept; label is المال / Money):
 
 - Period summary: difference is the hero; In = Volt, Out = due-muted; CSS In/Out bars from the two totals (no library, no extra query). Default range is this Beirut calendar month when `from`/`to` are omitted
 - Period GET form (From/To/View/Display rate) collapsed behind “Change period”
@@ -37,9 +39,9 @@ Do not grow a tab by stacking another product’s UI on it. If it is not in the 
 
 **Settings** (`/owner/more/settings`):
 
-- Exchange rate: current value + OWNER-only set form (moved from Money). Staff see the current rate, not the form.
-- Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`; OWNER-only set form (card below Exchange rate). Owner Home / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
-- Pitch list + OWNER create/edit (name, repeatable hours groups, game length, default USD, day price overrides). Each hours row is weekday checkboxes + one open/close; a day belongs to at most one row; days in no row are closed. Writes go through `parseScheduleConfig` with `gapMinutes: 0`. `priceRules` are edited in place and survive a default-price or duration-only save. Pending-in-removed-hours still uses the confirm second-submit. Live APPROVED in a removed window refuses. Approve re-checks `resolveOfferedSlot` against current hours.
+- Exchange rate: current value + set form for `settings.manage` (moved from Money). Staff without the flag see the current rate, not the form. `OWNER` passes `can()` with no jsonb flag.
+- Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`; `settings.manage` set form (card below Exchange rate). Owner Today / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
+- Pitch list + create/edit for `settings.manage` (name, repeatable hours groups, game length, default USD, day price overrides). Each hours row is weekday checkboxes + one open/close; a day belongs to at most one row; days in no row are closed. Writes go through `parseScheduleConfig` with `gapMinutes: 0`. `priceRules` are edited in place and survive a default-price or duration-only save. Pending-in-removed-hours still uses the confirm second-submit. Live APPROVED in a removed window refuses. Approve re-checks `resolveOfferedSlot` against current hours.
 - Still deferred:
   - Company / stadium info and images — **Phase 2+**. More keys on the same `tenant.settings` jsonb (DR-002 §2.6); only `timeDisplay` is live today.
   - Staff permissions UI — flags already exist on membership jsonb (DR-003 / BR-98); there is no owner screen to edit them yet.
@@ -57,7 +59,7 @@ Do not grow a tab by stacking another product’s UI on it. If it is not in the 
 
 ## More is the standing home for later products
 
-The bottom bar does not change again after this restructure. New products are **list rows on More**, not new tabs:
+New products are **list rows on More**, not a sixth destination:
 
 | Concern | Where |
 |---|---|

@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { OwnerBackLink } from "@/app/owner/back-link";
 import { queryString, requireOwnerMembership } from "@/app/owner/shared";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
@@ -12,7 +13,7 @@ import {
 import { defaultHoursGroups } from "@/modules/venue/domain/daily-schedule";
 
 /**
- * Create pitch. OWNER only. Local Next page.md: searchParams is a Promise.
+ * Create pitch. settings.manage. Local Next page.md: searchParams is a Promise.
  */
 export default async function NewPitchPage({
   searchParams,
@@ -23,7 +24,7 @@ export default async function NewPitchPage({
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
 
-  if (membership.role !== "OWNER") {
+  if (!can(membership, SETTINGS_MANAGE)) {
     return (
       <EmptyState
         title={ui("empty.noPitchEdit", locale)}
@@ -34,12 +35,7 @@ export default async function NewPitchPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <Link
-        href="/owner/more/settings"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        {ui("owner.pitchBack", locale)}
-      </Link>
+      <OwnerBackLink href="/owner/more/settings" locale={locale} />
       <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.pitchNew", locale)}</h2>
       <PitchDraftForm
         locale={locale}
