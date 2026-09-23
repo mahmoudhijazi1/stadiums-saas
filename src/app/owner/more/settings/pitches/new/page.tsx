@@ -35,7 +35,7 @@ export default async function NewPitchPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <OwnerBackLink href="/owner/more/settings" locale={locale} />
+      <OwnerBackLink href="/owner/more/settings/pitches" locale={locale} />
       <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.pitchNew", locale)}</h2>
       <PitchDraftForm
         locale={locale}

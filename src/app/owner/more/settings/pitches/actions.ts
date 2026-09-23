@@ -45,7 +45,7 @@ export async function submitCreatePitch(formData: FormData) {
       error: errorKey,
     });
   }
-  redirectOwner("/owner/more/settings", formData, [], {
+  redirectOwner("/owner/more/settings/pitches", formData, [], {
     ok: "pitch_created",
   });
 }
@@ -79,7 +79,7 @@ export async function submitUpdatePitch(formData: FormData) {
       ...confirmQuery(errorKey),
     });
   }
-  redirectOwner("/owner/more/settings", formData, [], {
+  redirectOwner("/owner/more/settings/pitches", formData, [], {
     ok: "pitch_updated",
   });
 }

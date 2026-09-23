@@ -70,6 +70,20 @@ const ARABIC: Record<string, string> = {
   "owner.shareWhatsApp": "مشاركة عبر واتساب",
   "owner.account": "الحساب",
   "owner.back": "رجوع",
+  "owner.groupBusiness": "العمل",
+  "owner.groupPreferences": "التفضيلات",
+  "owner.bookingRules": "قواعد الحجز",
+  "owner.bookingRulesValue": "قبل الموعد",
+  "owner.bookingRulesBody": "يمكن إلغاء الحجز قبل بداية الموعد ما دام المبلغ مستحقاً. لا نافذة ساعات محفوظة بعد.",
+  "owner.updateRate": "تحديث السعر",
+  "owner.justNow": "الآن",
+  "owner.rateLastChanged": "آخر تغيير",
+  "owner.shareWa": "واتساب",
+  "owner.qrShort": "رمز",
+  "owner.copyShort": "نسخ",
+  "owner.appearance": "المظهر",
+  "owner.language": "اللغة",
+  "owner.identifier": "المعرّف",
   "owner.settings": "إعدادات",
   "owner.pending": "قيد الانتظار",
   "owner.confirmed": "مؤكد",
@@ -248,6 +262,20 @@ const ENGLISH: Record<string, string> = {
   "owner.shareWhatsApp": "Share on WhatsApp",
   "owner.account": "Account",
   "owner.back": "Back",
+  "owner.groupBusiness": "Business",
+  "owner.groupPreferences": "Preferences",
+  "owner.bookingRules": "Booking rules",
+  "owner.bookingRulesValue": "Before the slot",
+  "owner.bookingRulesBody": "A booking can be cancelled before it starts while money is still due. No hours window is stored yet.",
+  "owner.updateRate": "Update rate",
+  "owner.justNow": "Just now",
+  "owner.rateLastChanged": "Last changed",
+  "owner.shareWa": "WhatsApp",
+  "owner.qrShort": "QR",
+  "owner.copyShort": "Copy",
+  "owner.appearance": "Appearance",
+  "owner.language": "Language",
+  "owner.identifier": "Identifier",
   "owner.settings": "Settings",
   "owner.pending": "Pending",
   "owner.confirmed": "Confirmed",
@@ -431,4 +459,31 @@ export function lbpPerUsdLine(amount: string, locale: UiLocale = "ar"): string {
   return locale === "en"
     ? `${amount} LBP per USD`
     : `${amount} ليرة لكل دولار`;
+}
+
+/** Western thousands separator for a whole-number digit string. */
+export function groupedDigits(digits: string): string {
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Short relative past label. Counts are Western digits. */
+export function relativePastLabel(
+  at: Date,
+  now: Date,
+  locale: UiLocale = "ar",
+): string {
+  const minutes = Math.max(
+    0,
+    Math.floor((now.getTime() - at.getTime()) / 60000),
+  );
+  if (minutes < 1) return ui("owner.justNow", locale);
+  if (minutes < 60) {
+    return locale === "en" ? `${minutes} min ago` : `قبل ${minutes} د`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return locale === "en" ? `${hours} h ago` : `قبل ${hours} س`;
+  }
+  const days = Math.floor(hours / 24);
+  return locale === "en" ? `${days} d ago` : `قبل ${days} ي`;
 }

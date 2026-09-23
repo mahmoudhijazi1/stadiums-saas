@@ -5,15 +5,25 @@ import type { TenantTx } from "@/lib/db";
  * Latest LBP-per-USD for this tenant (append-only table; current = newest row).
  * Guard injects tenantId — do not pass it (DR-001).
  */
+export async function findLatestExchangeRateRow(
+  tx: TenantTx,
+): Promise<{ lbpPerUsd: Decimal; createdAt: Date } | null> {
+  const row = await tx.exchangeRate.findFirst({
+    orderBy: { createdAt: "desc" },
+    select: { lbpPerUsd: true, createdAt: true },
+  });
+  if (!row) return null;
+  return {
+    lbpPerUsd: new Decimal(row.lbpPerUsd.toString()),
+    createdAt: row.createdAt,
+  };
+}
+
 export async function findLatestExchangeRate(
   tx: TenantTx,
 ): Promise<Decimal | null> {
-  const row = await tx.exchangeRate.findFirst({
-    orderBy: { createdAt: "desc" },
-    select: { lbpPerUsd: true },
-  });
-  if (!row) return null;
-  return new Decimal(row.lbpPerUsd.toString());
+  const row = await findLatestExchangeRateRow(tx);
+  return row ? row.lbpPerUsd : null;
 }
 
 /**

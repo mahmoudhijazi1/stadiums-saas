@@ -1,33 +1,40 @@
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { requireOwnerMembership } from "@/app/owner/shared";
+import { MoreHub } from "./hub";
+import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
+import {
+  getCurrentRate,
+  getExchangeRateChangedAt,
+} from "@/modules/payment/application/get-current-rate";
+import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { getCurrentTenant } from "@/lib/tenant-context";
+import { groupedDigits, relativePastLabel } from "@/lib/ui-copy";
 
 /**
- * More hub. Destinations live here so the bottom bar stays five tabs.
- * Local Next page.md: searchParams is a Promise. link.md: href object.
+ * More hub. Old /owner/more/settings redirects here.
+ * Local Next page.md: this page has no searchParams.
  */
 export default async function OwnerMorePage() {
-  await requireOwnerMembership();
+  const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
+  const tenant = await getCurrentTenant();
+  const rate = await getCurrentRate();
+  const changedAt = await getExchangeRateChangedAt();
+  const pitches = await listPitchSummaries();
+  const digits = rate ? rate.toFixed(0) : null;
 
   return (
-    <section className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-2">
-        <li>
-          <Link
-            href="/owner/more/settings"
-            className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-medium outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            {ui("owner.settings", locale)}
-            <ChevronRight
-              aria-hidden
-              className="size-5 shrink-0 text-muted-foreground rtl:rotate-180"
-            />
-          </Link>
-        </li>
-      </ul>
-    </section>
+    <MoreHub
+      locale={locale}
+      mayManage={can(membership, SETTINGS_MANAGE)}
+      pitchCount={pitches.length}
+      rateDigits={digits}
+      rateGrouped={digits ? groupedDigits(digits) : null}
+      changedLabel={
+        changedAt ? relativePastLabel(changedAt, new Date(), locale) : null
+      }
+      timeDisplay={tenant.timeDisplay}
+      identifier={membership.identifier}
+    />
   );
 }

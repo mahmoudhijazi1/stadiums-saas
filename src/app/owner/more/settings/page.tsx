@@ -1,26 +1,20 @@
-import { Suspense } from "react";
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
-import { OwnerSettings } from "./panel";
-import { SettingsSkeleton } from "./skeleton";
-import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { redirect } from "next/navigation";
 
 /**
- * Settings. Rate set form lives here (was Money). No loading.tsx.
- * Local Next page.md: searchParams is a Promise.
+ * The settings monolith moved onto /owner/more.
+ * Keep ok/error so a rate or time save still shows its toast.
+ * Local Next redirect.md: redirect() throws. Do not catch it.
  */
-export default async function OwnerSettingsPage() {
-  const membership = await requireOwnerMembership();
-  const locale = await getUiLocale();
-
-  return (
-    <section className="flex flex-col gap-4">
-      <OwnerBackLink href="/owner/more" locale={locale} />
-      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.settings", locale)}</h2>
-      <Suspense fallback={<SettingsSkeleton />}>
-        <OwnerSettings membership={membership} locale={locale} />
-      </Suspense>
-    </section>
-  );
+export default async function OwnerSettingsPage({
+  searchParams,
+}: PageProps<"/owner/more/settings">) {
+  const params = await searchParams;
+  const next = new URLSearchParams();
+  for (const key of ["ok", "error"] as const) {
+    const value = params[key];
+    const text = Array.isArray(value) ? value[0] : value;
+    if (text) next.set(key, text);
+  }
+  const qs = next.toString();
+  redirect(qs ? `/owner/more?${qs}` : "/owner/more");
 }

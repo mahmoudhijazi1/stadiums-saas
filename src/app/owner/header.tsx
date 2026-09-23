@@ -14,11 +14,9 @@ import { Search } from "lucide-react";
 export function OwnerHeader({
   tenantName,
   locale,
-  showSettings,
 }: {
   tenantName: string;
   locale: UiLocale;
-  showSettings: boolean;
 }) {
   return (
     <header
@@ -36,11 +34,7 @@ export function OwnerHeader({
           "xl:max-w-6xl",
         )}
       >
-        <BusinessMenu
-          tenantName={tenantName}
-          locale={locale}
-          showSettings={showSettings}
-        />
+        <BusinessMenu tenantName={tenantName} locale={locale} />
         <button
           type="button"
           disabled

@@ -2,7 +2,7 @@ import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
-import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
+import { findLatestExchangeRateRow } from "@/modules/payment/infrastructure/rates";
 
 /**
  * Current LBP-per-USD for the URL tenant, or null if none set.
@@ -16,12 +16,35 @@ export async function getCurrentRate() {
   }
 
   try {
-    return await findLatestExchangeRate(db);
+    const row = await findLatestExchangeRateRow(db);
+    return row ? row.lbpPerUsd : null;
   } catch (error) {
     return await rethrowUnexpected(
       error,
       "Get current rate failed",
       "getCurrentRate",
+    );
+  }
+}
+
+/**
+ * When the current rate row was written. Null if none is set.
+ * Same read as getCurrentRate; the timestamp is display-only.
+ */
+export async function getExchangeRateChangedAt(): Promise<Date | null> {
+  const membership = await getCurrentMembership();
+  if (!membership) {
+    throw new DomainError("access.not_allowed");
+  }
+
+  try {
+    const row = await findLatestExchangeRateRow(db);
+    return row ? row.createdAt : null;
+  } catch (error) {
+    return await rethrowUnexpected(
+      error,
+      "Get exchange rate time failed",
+      "getExchangeRateChangedAt",
     );
   }
 }

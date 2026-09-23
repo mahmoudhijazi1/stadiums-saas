@@ -37,11 +37,12 @@ Do not grow a destination by stacking another product’s UI on it. If it is not
 - Recent expenses as compact rows (category icon, description, date, amount). Record form collapsed behind “Add expense”
 - `getCurrentRate()` is a **read** for the LBP display fallback only
 
-**Settings** (`/owner/more/settings`):
+**More** (`/owner/more`) is the settings hub. `/owner/more/settings` redirects here and keeps `ok` / `error`.
 
-- Exchange rate: current value + set form for `settings.manage` (moved from Money). Staff without the flag see the current rate, not the form. `OWNER` passes `can()` with no jsonb flag.
-- Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`; `settings.manage` set form (card below Exchange rate). Owner Today / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
-- Pitch list + create/edit for `settings.manage` (name, repeatable hours groups, game length, default USD, day price overrides). Each hours row is weekday checkboxes + one open/close; a day belongs to at most one row; days in no row are closed. Writes go through `parseScheduleConfig` with `gapMinutes: 0`. `priceRules` are edited in place and survive a default-price or duration-only save. Pending-in-removed-hours still uses the confirm second-submit. Live APPROVED in a removed window refuses. Approve re-checks `resolveOfferedSlot` against current hours.
+- Business rows (pitches, exchange rate, booking rules, public page) require `settings.manage`. `OWNER` passes `can()` with no jsonb flag.
+- Exchange rate sheet reuses `submitSetExchangeRate`. Time format sheet reuses `submitSetTimeDisplay` and saves on tap. Language and appearance save on tap. Booking rules (BR-27) are not stored, so that sheet does not write.
+- Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`. Owner Today / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
+- Pitch list is `/owner/more/settings/pitches`. Create/edit stay on the child routes (`settings.manage`). Each hours row is weekday checkboxes + one open/close; a day belongs to at most one row; days in no row are closed. Writes go through `parseScheduleConfig` with `gapMinutes: 0`. `priceRules` are edited in place and survive a default-price or duration-only save. Pending-in-removed-hours still uses the confirm second-submit. Live APPROVED in a removed window refuses. Approve re-checks `resolveOfferedSlot` against current hours.
 - Still deferred:
   - Company / stadium info and images — **Phase 2+**. More keys on the same `tenant.settings` jsonb (DR-002 §2.6); only `timeDisplay` is live today.
   - Staff permissions UI — flags already exist on membership jsonb (DR-003 / BR-98); there is no owner screen to edit them yet.

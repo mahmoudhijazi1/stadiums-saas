@@ -24,6 +24,7 @@ function BottomSheetContent({
   children,
   closeLabel,
   showCloseButton = true,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   closeLabel?: string
@@ -34,6 +35,14 @@ function BottomSheetContent({
       <DialogOverlay className="duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:animate-none" />
       <DialogPrimitive.Content
         data-slot="bottom-sheet-content"
+        tabIndex={-1}
+        onOpenAutoFocus={(event) => {
+          onOpenAutoFocus?.(event)
+          if (event.defaultPrevented) return
+          event.preventDefault()
+          const node = event.currentTarget
+          if (node instanceof HTMLElement) node.focus()
+        }}
         className={cn(
           "fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-lg flex-col overflow-hidden",
           "max-h-[min(92dvh,100%)] rounded-t-2xl border bg-card text-card-foreground outline-none",
@@ -55,7 +64,7 @@ function BottomSheetContent({
         {showCloseButton ? (
           <DialogPrimitive.Close
             data-slot="bottom-sheet-close"
-            className="absolute top-3 inset-e-3 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="absolute top-3 inset-e-3 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />
             <span className="sr-only">{closeLabel ?? "إغلاق"}</span>

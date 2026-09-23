@@ -5,7 +5,7 @@
 **Supersedes:** the previous bottom tab bar (Home, Book, Waitlist, Reports, More), and `docs/owner-ia.md` wherever they disagree. Update `owner-ia.md` in the shell slice so the living route list matches this file.
 **Governing rule:** RULE-12. Every owner-facing action must be faster than writing it on paper.
 
-**Amended after audit** (2026-09-23). Header content is this file; the bar stays floating below `lg` and a dark block at `lg`, and it never hides on scroll. The `lg` rail stays: same five destinations, with ＋ a primary button at the top of the rail. "Didn't happen" is No-show only (SPEC-14: money stays due, Collect still works; no waive; do not change `recordNoShow` or `cancelBooking`). Settings use `settings.manage` (`OWNER` already passes `can()`). Language lives under Account in the business menu. No "Switch business" and no cross-tenant membership query. Session length is unchanged here (a later access task: rolling 30 days). Copy goes through `ui()`. Cancel visibility uses `isPastUnpaidCancel` / `assertApprovedForCancel`. Edit / Move is out of scope. `deriveDisplayState` ships with Today. Person search ships with phone autocomplete; the header search screen is its own later slice. Outstanding-by-person and pitch activity ship with Money.
+**Amended after audit** (2026-09-23), then again the same day: the business sheet is a share card plus log out. Language, appearance, and settings live on More. Header content is this file; the bar stays floating below `lg` and a dark block at `lg`, and it never hides on scroll. The `lg` rail stays: same five destinations, with ＋ a primary button at the top of the rail. "Didn't happen" is No-show only (SPEC-14: money stays due, Collect still works; no waive; do not change `recordNoShow` or `cancelBooking`). Settings use `settings.manage` (`OWNER` already passes `can()`). Language and appearance live under Preferences on More. No "Switch business" and no cross-tenant membership query. Session length is unchanged here (a later access task: rolling 30 days). Copy goes through `ui()`. Cancel visibility uses `isPastUnpaidCancel` / `assertApprovedForCancel`. Edit / Move is out of scope. `deriveDisplayState` ships with Today. Person search ships with phone autocomplete; the header search screen is its own later slice. Outstanding-by-person and pitch activity ship with Money.
 
 ---
 
@@ -44,12 +44,15 @@ Everything else (setup, later phases) lives in **More**.
 | Search | end | The control sits in the header from the shell slice. The results screen (people and bookings by name or phone) is a later slice. Do not ship a fake results page in the shell. |
 | Offline pill | under header | Shows "بدون اتصال" **only** while offline. Invisible the rest of the time. |
 
-**Business menu contents:**
-- My public page: open, copy link, show QR, share to WhatsApp
-- Settings (shortcut; also in More). Hidden without `settings.manage`.
-- Account: theme (light / dark / system), language toggle, then log out
+**Business sheet (share card only):**
+- Avatar (initial on a colored circle) and the business name
+- Public link. Tap opens `/`. The URL is LTR-isolated.
+- One row of three buttons: **WhatsApp** (primary), **QR**, **Copy**
+- Log out
 
-There is no "Switch business". Do not query memberships across tenants.
+Settings, theme, and language are not in this sheet. They live on More (§8). There is no "Switch business". Do not query memberships across tenants.
+
+On open, focus the sheet container. Focus rings appear only on `:focus-visible`, so opening the sheet does not draw a ring.
 
 **Why this shape:**
 - Identity and business-level actions share one control (the workspace-menu pattern from Slack/Notion/Shopify mobile). One identity control, not two.
@@ -63,8 +66,9 @@ There is no "Switch business". Do not query memberships across tenants.
 | Notification bell | The Requests tab badge already does this. Two indicators for one thing split attention. |
 | Hamburger menu | The More tab is the menu. Two menus mean guessing which holds what. |
 | Page title | The active tab already says where he is. |
-| Language switch in the header | Lives under Account in the business menu. |
-| Exchange rate | Lives in Settings. Shown read-only inside the Collect sheet, where it matters (§6.1). |
+| Language switch in the header or business sheet | Lives on More, under Preferences. |
+| Theme toggle in the header or business sheet | Lives on More, under Preferences. |
+| Exchange rate | Lives on More. Shown read-only inside the Collect sheet, where it matters (§6.1). |
 | Separate profile avatar | Merged into the business menu. |
 
 **Header rules:**
@@ -73,7 +77,7 @@ There is no "Switch business". Do not query memberships across tenants.
 - Tap targets ≥ 44px.
 - Menus open as **bottom sheets**, not dropdowns. The thumb lives at the bottom of the screen.
 - Logical positioning only (`start` / `end`). In Arabic the name sits on the right automatically.
-- Staff see the same header. Menu items they lack permission for are hidden.
+- Staff see the same header and the same share card. Settings they lack permission for are hidden on More, not in this sheet.
 
 ### 2.2 Contextual sub-bar (per tab, sticky under the header)
 
@@ -102,6 +106,8 @@ Contextual controls belong to the tab's content, not the global header.
 3. **Reports → Money.** The owner thinks "money," not "reports." The tab also holds debts and expenses, which are not reports. The URL stays `/owner/money`.
 
 **At `lg` and up** the same five destinations are a start-side rail (right in Arabic). ＋ is a primary button at the **top** of the rail, then Today, Requests, Money, More. It is not a fifth equal nav row.
+
+Lime fill is reserved for the ＋ button. The active tab is a lime icon and label. It is not a filled pill.
 
 Tab root pages (Today, Requests, Money, More) have **no large page title**. The active destination already names the screen. Nested pages (Settings, pitch create/edit, and the Book and waitlist routes, which are no longer tabs) keep a title and a back button.
 
@@ -264,12 +270,34 @@ Outstanding-by-person and pitch activity ship with the Money slice, not the shel
 
 ## 8. More tab
 
-- Pitches (name, hours groups, slot length, pricing rules)
-- Business settings (cancellation window, approval required, WhatsApp number, **exchange rate + history**)
-- Public page (link, QR, share)
-- Staff *(later)*
-- Shop / Academy / Tournaments hubs *(as they arrive)*
-- Account / log out
+A grouped hub. Each row shows its current value on the trailing side and opens one bottom sheet with a single control. `/owner/more/settings` redirects to `/owner/more`. Pitch create and edit stay on their routes; the pitch list is the Pitches row.
+
+**Business** — hidden without `settings.manage` (`OWNER` already passes `can()`):
+
+| Row | Trailing value | Sheet |
+|---|---|---|
+| Pitches | count | Not a sheet. Opens the existing pitch list. |
+| Exchange rate | grouped integer, or unset | Current rate with a thousands separator. Field prefilled with the current integer (no separators, so the existing parser accepts it). Numeric keypad. "Last changed" as a relative time. Primary **Update rate**. The button stays a primary button. |
+| Booking rules | the rule in force | Cancellation window (BR-27) is not stored. The sheet states the rule the product already enforces (cancel only before the slot, while money is due). No new write. |
+| Public page | the link | Open, WhatsApp, QR, Copy. Same actions as the business sheet. |
+
+**Preferences** — save on tap (no confirm button):
+
+| Row | Trailing value | Sheet |
+|---|---|---|
+| Language | العربية / English (full names) | Those two names. Not the short "ع" / "EN" marks. |
+| Appearance | Light / Dark / System | The same three choices. |
+| Time format | the current example | 24-hour and 12-hour, each with an example clock. |
+
+**Account**
+
+| Row | Trailing value | Sheet |
+|---|---|---|
+| Identifier | the login identifier, LTR | The identifier. No editor. |
+
+Log out stays on the business sheet, not as a second copy here.
+
+Staff *(later)*. Shop / Academy / Tournaments hubs *(as they arrive)*.
 
 ---
 

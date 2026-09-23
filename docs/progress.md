@@ -3787,3 +3787,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Same `ThemeToggle` as the palette. It writes the `next-themes` choice. No module imports.
 
 **How to verify:** Open the business menu on `/owner/today`. فاتح / داكن / نظام switches the page. The choice survives a refresh.
+
+## More hub and share-card header
+
+**When:** 2026-09-23
+
+**What:** The business sheet is a share card (avatar, name, public link, WhatsApp / QR / Copy, log out). More is grouped rows. Business rows need `settings.manage`. Preferences save on tap. `/owner/more/settings` redirects to `/owner/more`. The active tab is lime text. Lime fill stays on ＋.
+
+**Why:** UX-01 §2.1 and §8, amended the same day. Exchange rate and time format still use the existing actions. Booking rules (BR-27) are not stored, so that sheet does not write.
+
+**Files:** `docs/owner-ux.md`, `docs/owner-ia.md`, `src/app/owner/business-menu.tsx`, `src/app/owner/share-card.tsx`, `src/app/owner/more/hub.tsx`, `src/app/owner/more/page.tsx`, `src/app/owner/more/settings/page.tsx`, `src/app/owner/more/settings/pitches/page.tsx`, `src/app/owner/tab-bar.tsx`, `src/components/ui/bottom-sheet.tsx`, `src/modules/payment/application/get-current-rate.ts`.
+
+**How it connects:** Sheets call `submitSetExchangeRate` and `submitSetTimeDisplay`. Pitch create/edit are unchanged aside from landing on the pitch list. No booking or payment rule changes. `getCurrentRate()` still returns the decimal.
+
+**How to verify:** Phone, Arabic, `/owner/more`. Business group shows the rate with separators. Update rate is a primary button. Language choices are العربية and English. The active tab is lime text, and only ＋ is a lime fill.

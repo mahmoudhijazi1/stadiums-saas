@@ -143,7 +143,7 @@ export function OwnerTabBar({
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
                   "lg:h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3",
                   selected
-                    ? "bg-accent-brand text-accent-ink"
+                    ? "text-accent-brand"
                     : "opacity-70 hover:opacity-100",
                 )}
               >
@@ -157,9 +157,7 @@ export function OwnerTabBar({
                     <span
                       className={cn(
                         "absolute -top-1.5 inset-e-[-0.65rem] min-w-4 rounded-full px-1 text-center text-[10px] leading-4 font-medium tabular-nums",
-                        selected
-                          ? "bg-accent-ink text-accent-brand"
-                          : "bg-accent-brand text-accent-ink",
+                        "bg-accent-brand text-accent-ink",
                       )}
                     >
                       {count > 9 ? "9+" : String(count)}
