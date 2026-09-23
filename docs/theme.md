@@ -247,10 +247,11 @@ Keep both Arabic faces exactly as they are. Add one display face for numbers onl
 
 | Variable | Family | Role |
 |---|---|---|
-| `--font-plex-arabic` | IBM Plex Sans Arabic | `ui` — body, labels, buttons, Arabic text |
-| `--font-kufi` | Noto Kufi Arabic | headings in Arabic |
-| `--font-display` | Big Shoulders Display (700–900), **fallback Noto Kufi then Plex** | `display` — times, prices, amounts, counts, Latin screen/section titles |
-| `--font-plex-mono` | IBM Plex Mono | keep for IDs, codes, phone numbers |
+| `--font-manrope` | Manrope (400–800), latin | Latin `ui` — body, labels, buttons |
+| `--font-plex-arabic` | IBM Plex Sans Arabic | Arabic `ui` fallback after Manrope |
+| `--font-kufi` | Noto Kufi Arabic | Arabic fallback for headings and display |
+| `--font-display` / `--font-heading` | Big Shoulders (700–900), then Kufi, then Plex Arabic | `display` and headings. Arabic words fall through to Kufi |
+| `--font-plex-mono` | IBM Plex Mono | IDs, codes, phone numbers |
 
 Big Shoulders has no Arabic subset, which is fine: it only ever sets Latin digits. Arabic words fall back to Kufi automatically through the stack.
 

@@ -15,7 +15,9 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 - `next-themes` ThemeProvider: light / dark / system, localStorage, no FOUC script.
 - `ThemeToggle` + `/dev/palette` preview page.
 - Fonts: IBM Plex Sans Arabic, Noto Kufi Arabic, Big Shoulders (`--font-big-shoulders` → `font-display`), IBM Plex Mono.
-- `LtrIsolate` uses `font-display tabular-nums` (was `font-mono`).
+- `LtrIsolate` uses `font-display tabular-nums`.
+- Latin UI face is Manrope (`--font-manrope`). `--font-sans` is Manrope, then Plex Arabic. `--font-heading` and `--font-display` are Big Shoulders, then Kufi, then Plex Arabic.
+- `:lang(ar)` loosens line-height, steps the text-xs/sm/base sizes, and forces `letter-spacing: normal` so tracking cannot break Arabic joining.
 - Viewport `themeColor` light `#F6F5EF` / dark `#111412`; `colorScheme: "light dark"`.
 - Sonner follows `resolvedTheme` (no hardcoded `theme="light"`).
 - Destructive button/badge text → `var(--destructive-foreground)` (coral needs carbon ink).

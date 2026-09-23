@@ -3,6 +3,7 @@ import {
   Big_Shoulders,
   IBM_Plex_Mono,
   IBM_Plex_Sans_Arabic,
+  Manrope,
   Noto_Kufi_Arabic,
 } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -34,6 +35,13 @@ const display = Big_Shoulders({
   variable: "--font-big-shoulders",
   display: "swap",
   fallback: ["Noto Kufi Arabic", "IBM Plex Sans Arabic", "sans-serif"],
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-manrope",
+  display: "swap",
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -68,7 +76,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={htmlLang(locale)}
       dir={htmlDir(locale)}
       suppressHydrationWarning
-      className={`${plexArabic.variable} ${kufi.variable} ${display.variable} ${plexMono.variable} h-full bg-background antialiased`}
+      className={`${manrope.variable} ${plexArabic.variable} ${kufi.variable} ${display.variable} ${plexMono.variable} h-full bg-background antialiased`}
     >
       <body className="min-h-svh flex flex-col">
         <ThemeProvider>

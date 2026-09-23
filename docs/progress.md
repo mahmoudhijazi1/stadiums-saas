@@ -3675,3 +3675,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** `SlotPicker` is shared by `(public)/slot-picker` and `owner/book`. Must not import booking or venue modules. Sheet restyle comes later in Phase 2.
 
 **How to verify:** Public `/` on a tenant host — tap an open hour. Name and phone slide up from the bottom; close clears the selection.
+
+## Typography roles: Manrope, stacks, Arabic scale
+
+**When:** 2026-09-23
+
+**What:** Manrope (400–800, latin) is `--font-manrope`. `font-sans` is Manrope then Plex Arabic. `font-heading` and `font-display` are Big Shoulders, then Kufi, then Plex Arabic. `:lang(ar)` sets looser line-height, steps text-xs/sm/base, and forces `letter-spacing: normal`. Root font-size is unchanged.
+
+**Why:** Latin UI needed its own face. Arabic must not be tracked (joining). Numbers stay in `dir=ltr` display islands.
+
+**Files:** `src/app/layout.tsx`, `src/app/globals.css`, `docs/theme.md`, `docs/MIGRATION.md`.
+
+**How it connects:** next/font variables on `html`. Must not branch on lang in components. Plex Mono stays for codes.
+
+**How to verify:** `/owner/book` — body font Manrope; a slot time’s computed family is `\"Big Shoulders\"` and `document.fonts.check('700 16px \"Big Shoulders\"')` is true. English `tracking-tight` is negative; Arabic is `normal`.

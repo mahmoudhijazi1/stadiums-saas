@@ -66,11 +66,12 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* next/font sets --font-big-shoulders; role utility is font-display */
+  /* Latin first, Arabic fallback. No lang() branching — missing glyphs fall through. */
+  --font-sans: var(--font-manrope), var(--font-plex-arabic), system-ui, sans-serif;
+  --font-heading: var(--font-big-shoulders), var(--font-kufi),
+    var(--font-plex-arabic), sans-serif;
   --font-display: var(--font-big-shoulders), var(--font-kufi),
     var(--font-plex-arabic), sans-serif;
-  --font-sans: var(--font-plex-arabic);
-  --font-heading: var(--font-kufi);
   --font-mono: var(--font-plex-mono);
 
   --radius-sm: calc(var(--radius) * 0.6);
@@ -332,10 +333,37 @@
   h1,
   h2,
   h3 {
-    /* Owner/public type scale: page = text-xl, brand/error = text-2xl;
-       section h3s add text-sm font-medium text-muted-foreground in JSX. */
-    font-family: var(--font-heading), var(--font-sans), sans-serif;
+    /* Heading role: Big Shoulders, then Kufi for Arabic words. */
+    font-family: var(--font-heading);
   }
+}
+
+/*
+  Arabic reading size. Unlayered so it beats @layer utilities.
+  Spacing stays on the root rem — do not set font-size on :root.
+  letter-spacing: normal cancels tracking-*, which breaks Arabic joining.
+  Latin numbers sit in dir="ltr" islands and are unaffected.
+*/
+:lang(ar) {
+  line-height: 1.7;
+  letter-spacing: normal;
+}
+:lang(ar) .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+:lang(ar) .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+:lang(ar) .text-base {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+}
+:lang(ar) h1,
+:lang(ar) h2,
+:lang(ar) h3 {
+  line-height: 1.45;
 }
 
 /* WebKit: unlayered so the thumb paints. Transparent border insets it. */
