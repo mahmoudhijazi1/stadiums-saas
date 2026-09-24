@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
-import { formatUsd, formatUsdMoney, isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
+import { formatUsd, formatUsdCompact, formatUsdMoney, isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
 
 describe("parseUsd / formatUsd", () => {
   it("parses a two-decimal string with Decimal, not a float", () => {
@@ -20,6 +20,15 @@ describe("parseUsd / formatUsd", () => {
     expect(normalizeUsdForm("30")).toBe("30.00");
     expect(normalizeUsdForm("30.00")).toBe("30.00");
     expect(normalizeUsdForm("30.0")).toBe("30.0");
+  });
+});
+
+describe("formatUsdCompact", () => {
+  it("drops cents on a whole dollar and keeps a non-zero fraction", () => {
+    expect(formatUsdCompact(new Decimal("30.00"))).toBe("30");
+    expect(formatUsdCompact(new Decimal("12.50"))).toBe("12.50");
+    expect(formatUsdCompact(new Decimal("0.00"))).toBe("0");
+    expect(formatUsd(new Decimal("30.00"))).toBe("30.00");
   });
 });
 

@@ -555,3 +555,132 @@ export async function listLiveWindowsOnPitch(
     status: row.status,
   }));
 }
+
+export type DayBookingStatus = "APPROVED" | "CANCELLED" | "NO_SHOW";
+
+export type DayBookingRow = {
+  id: string;
+  status: DayBookingStatus;
+  pitchName: string;
+  start: Date;
+  end: Date;
+  priceUsd: Decimal;
+  collectedUsd: Decimal;
+  requesterName: string;
+  requesterPhone: string;
+};
+
+type DayBookingSqlRow = {
+  id: string;
+  status: DayBookingStatus;
+  pitchName: string;
+  start: Date | string;
+  end: Date | string;
+  priceUsd: Decimal | string;
+  collectedUsd: Decimal | string | null;
+  requesterName: string;
+  requesterPhone: string;
+};
+
+function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
+  return {
+    id: row.id,
+    status: row.status,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    priceUsd: new Decimal(row.priceUsd.toString()),
+    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    requesterName: row.requesterName,
+    requesterPhone: row.requesterPhone,
+  };
+}
+
+/**
+ * APPROVED, CANCELLED, and NO_SHOW whose start falls in `[from, to)`.
+ * `from`/`to` are the Beirut civil day's UTC bounds. Collected USD is the
+ * sum of tenders, any collection date.
+ */
+export async function listBookingsForStartDay(
+  tx: TenantTx,
+  from: Date,
+  to: Date,
+): Promise<DayBookingRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<DayBookingSqlRow[]>`
+    SELECT
+      b.id,
+      b.status,
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."priceUsd",
+      COALESCE((
+        SELECT SUM(t."usdEquivalent")
+        FROM "Payment" pay
+        JOIN "PaymentTender" t ON t."paymentId" = pay.id
+        WHERE pay."tenantId" = b."tenantId"
+          AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+          AND pay."sourceId" = b.id
+      ), 0) AS "collectedUsd",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status IN (
+        'APPROVED'::"BookingStatus",
+        'CANCELLED'::"BookingStatus",
+        'NO_SHOW'::"BookingStatus"
+      )
+      AND lower(b.during) >= ${from}
+      AND lower(b.during) < ${to}
+    ORDER BY lower(b.during) ASC, b.id ASC
+  `;
+  return rows.map(mapDayBooking);
+}
+
+/**
+ * Ended APPROVED / NO_SHOW with money still due, oldest start first.
+ * `limit` includes one extra row so the caller can tell there is more.
+ */
+export async function listEndedWithRemaining(
+  tx: TenantTx,
+  now: Date,
+  limit: number,
+): Promise<DayBookingRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<DayBookingSqlRow[]>`
+    SELECT
+      b.id,
+      b.status,
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."priceUsd",
+      COALESCE(collected.usd, 0) AS "collectedUsd",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    JOIN LATERAL (
+      SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+      FROM "Payment" pay
+      JOIN "PaymentTender" t ON t."paymentId" = pay.id
+      WHERE pay."tenantId" = b."tenantId"
+        AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+        AND pay."sourceId" = b.id
+    ) collected ON true
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status IN ('APPROVED'::"BookingStatus", 'NO_SHOW'::"BookingStatus")
+      AND upper(b.during) <= ${now}
+      AND b."priceUsd" > collected.usd
+    ORDER BY lower(b.during) ASC, b.id ASC
+    LIMIT ${limit}
+  `;
+  return rows.map(mapDayBooking);
+}

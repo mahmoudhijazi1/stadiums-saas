@@ -24,6 +24,15 @@ export function formatUsd(amount: Decimal): string {
 }
 
 /**
+ * Day line and card trails. Whole dollars drop the cents (`30`).
+ * A non-zero fraction stays (`12.50`). Exact views keep `formatUsd`.
+ */
+export function formatUsdCompact(amount: Decimal): string {
+  const fixed = amount.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
+  return fixed.endsWith(".00") ? fixed.slice(0, -3) : fixed;
+}
+
+/**
  * Display USD with the sign outside the currency symbol.
  * `formatUsd(-40)` is "-40.00"; callers that do `$` + that get "$-40.00".
  * Use this for any signed UI amount (e.g. period net).

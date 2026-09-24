@@ -3857,3 +3857,45 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** URLs are unchanged. The layout still reads membership for the tab bar via `getCurrentMembership` and skips the pending list when there is no session, so a logged-out page can redirect. No domain or application changes. `/login` still 308s to `/owner/login`.
 
 **How to verify:** `npx jest --watchAll=false` (250) and `npm run build`. Logged-out `/owner/today` is 307 to `/owner/login`. `/owner/login` is 200 without the shell. Build lists the same `/owner/*` routes.
+
+## UX-02 slice 1 — a Beirut day on Today
+
+**When:** 2026-09-24
+
+**What:** `/owner/today?date=YYYY-MM-DD` opens one civil day. The strip steps with ‹ ›, shows اليوم when the day is not today, and leaves the calendar icon disabled. Past days have no limit. Future days stop at `OWNER_FUTURE_DAYS` (60). A bad date, or a date past that limit, opens today. The line under the strip is game count, USD collected, and USD still owed, from one aggregate. The list is APPROVED, CANCELLED, and NO_SHOW whose start falls on that day. On today only, للتحصيل lists up to five ended games that still have remaining (oldest first), then عرض الكل to Money. Cancelled cards are grey and struck. An unpaid no-show says لم يحضر and can still be collected. A paid no-show says مدفوع.
+
+**Why:** `docs/ux-02-history.md`, amended after audit the same day (D1–D4, D8, D10). A game stays on the Beirut day of its start, including a window that ends after midnight. Collected means payments on that day’s games, whatever day the money came in. Owed is what those games still have left.
+
+**Files:** `docs/ux-02-history.md`, `src/modules/booking/domain/start-day.ts`, `src/modules/booking/domain/card-display.ts`, `src/modules/booking/application/load-owner-day.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/prisma/migrations/20260924030000_booking_start_day_index/migration.sql`, `src/app/owner/(app)/today/page.tsx`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/day-strip.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/lib/ui-copy.ts`, `test/modules/booking/domain/start-day.test.ts`, `test/modules/booking/domain/card-display.test.ts`.
+
+**How it connects:** Today no longer calls `listDueBookings`. That function, the public day chips, and the approved-overlap exclusion are unchanged. Collect, cancel, and no-show rules are unchanged. Cancelled games are not in للتحصيل, because collect rejects them. The new index is `("tenantId", lower(during))`. Search, the month page, transaction rows, and actor columns are later slices.
+
+**How to verify:** `npx jest --watchAll=false` (258) and `npm run build`. Migration `20260924030000_booking_start_day_index` is applied. On the phone, open today, `?date=2026-09-23` (paid no-show and a cancelled game), a future `?date=`, and a date past 60 days (it opens today).
+
+## Today day line is summarizeDay
+
+**When:** 2026-09-24
+
+**What:** The day summary is `summarizeDay(rows, now)` in booking domain, over the rows the day list already loaded. Games are APPROVED only. No-shows are a count, shown when at least 1. Collected is USD on every status. Owed is remaining on ended APPROVED games plus remaining on no-shows. Expected is remaining on APPROVED games that have not ended, including one in progress. Zero owed, expected, and no-shows drop off the line. On today the date header is "اليوم · <date>". A cancelled card strikes only the time. The name, pitch, and ملغى stay grey, on the card surface.
+
+**Why:** UX-02 D8 correction the same day. The old aggregate counted cancelled games and treated all remaining as owed.
+
+**Files:** `src/modules/booking/domain/day-summary.ts`, `test/modules/booking/domain/day-summary.test.ts`, `src/modules/booking/application/load-owner-day.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/day-strip.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/lib/ui-copy.ts`, `docs/ux-02-history.md`.
+
+**How it connects:** `summarizeStartDay` is gone. Nothing else called it. `listBookingsForStartDay` and `listEndedWithRemaining` stay. No other screen changed. Money’s LBP toggle is untouched.
+
+**How to verify:** `npx jest --watchAll=false` (265) and `npm run build`. Arabic Today: an upcoming game shows متوقع and not مستحق. After that game ends unpaid, the same amount moves to مستحق. A cancelled paid game shows in محصّل only. A future day omits مستحق and متوقع.
+
+## Day line plurals and compact dollars
+
+**When:** 2026-09-24
+
+**What:** `plural()` in `src/lib` picks a counted-noun template with `Intl.PluralRules`. Game and no-show copy lives next to `ui()` with a form per category. The day line drops every zero money figure, including collected. An empty day says لا مباريات / No games. `formatUsdCompact` prints `$30` or `$12.50` on that line and on card trails. The collect sheet still uses `formatUsd`.
+
+**Why:** "2 مباريات" and "$30.00" were the wrong Arabic and the wrong precision for a glance.
+
+**Files:** `src/lib/plural.ts`, `src/lib/ui-copy.ts`, `src/lib/money.ts`, `src/app/owner/(app)/today/lists.tsx`, `test/lib/plural.test.ts`, `test/lib/money.test.ts`, `docs/ux-02-history.md`.
+
+**How it connects:** Display only. `summarizeDay` is unchanged. No other screen. Exact USD strings stay two decimals.
+
+**How to verify:** `npx jest --watchAll=false` and `npm run build`. Arabic: 1 game is مباراة واحدة, 2 is مباراتان, 3 is 3 مباريات, an empty future day is لا مباريات, and $12.50 keeps the cents.

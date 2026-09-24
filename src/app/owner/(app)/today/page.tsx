@@ -13,9 +13,12 @@ export default async function OwnerTodayPage({
   const params = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
-  const highlight = queryString(
-    (params as { highlight?: string | string[] }).highlight,
-  );
+  const query = params as {
+    highlight?: string | string[];
+    date?: string | string[];
+  };
+  const highlight = queryString(query.highlight);
+  const date = queryString(query.date);
 
   return (
     <section className="flex flex-col gap-4">
@@ -24,6 +27,7 @@ export default async function OwnerTodayPage({
           membership={membership}
           locale={locale}
           highlight={highlight}
+          date={date}
         />
       </Suspense>
     </section>

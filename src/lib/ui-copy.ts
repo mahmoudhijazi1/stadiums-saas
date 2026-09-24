@@ -1,4 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
+import { plural, type PluralForms } from "@/lib/plural";
 
 /**
  * Arabic chrome (DR-005). Keys, not sentences in JSX. Unknown key → the key
@@ -109,6 +110,18 @@ const ARABIC: Record<string, string> = {
   "owner.cancelConfirm": "تأكيد إلغاء الحجز",
   "owner.cancelBack": "تراجع",
   "owner.noShow": "لم يحضر",
+  "owner.toCollect": "للتحصيل",
+  "owner.seeAll": "عرض الكل",
+  "owner.prevDay": "اليوم السابق",
+  "owner.nextDay": "اليوم التالي",
+  "owner.monthCalendar": "الشهر",
+  "owner.gamesWord": "مباريات",
+  "owner.collectedWord": "محصّل",
+  "owner.owedWord": "مستحق",
+  "owner.expectedWord": "متوقع",
+  "owner.noShowCount": "لم يحضر",
+  "owner.noShowsCount": "لم يحضر",
+  "owner.cancelledShort": "ملغى",
   "owner.bookHeading": "احجز ساعة",
   "owner.showSlots": "عرض الساعات",
   "owner.book": "احجز",
@@ -307,6 +320,18 @@ const ENGLISH: Record<string, string> = {
   "owner.cancelConfirm": "Confirm cancel booking",
   "owner.cancelBack": "Never mind",
   "owner.noShow": "No-show",
+  "owner.toCollect": "To collect",
+  "owner.seeAll": "See all",
+  "owner.prevDay": "Previous day",
+  "owner.nextDay": "Next day",
+  "owner.monthCalendar": "Month",
+  "owner.gamesWord": "games",
+  "owner.collectedWord": "collected",
+  "owner.owedWord": "owed",
+  "owner.expectedWord": "expected",
+  "owner.noShowCount": "no-show",
+  "owner.noShowsCount": "no-shows",
+  "owner.cancelledShort": "Cancelled",
   "owner.bookHeading": "Book an hour",
   "owner.showSlots": "Show hours",
   "owner.book": "Book",
@@ -405,6 +430,54 @@ const ENGLISH: Record<string, string> = {
 export function ui(key: string, locale: UiLocale = "ar"): string {
   if (locale === "en") return ENGLISH[key] ?? ARABIC[key] ?? key;
   return ARABIC[key] ?? key;
+}
+
+/**
+ * Counted nouns. `{n}` is the number. Arabic has every PluralRules category.
+ * English has `one` and `other`; `zero` is optional for a count of 0.
+ */
+const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
+  "owner.games": {
+    ar: {
+      zero: "لا مباريات",
+      one: "مباراة واحدة",
+      two: "مباراتان",
+      few: "{n} مباريات",
+      many: "{n} مباراة",
+      other: "{n} مباراة",
+    },
+    en: {
+      zero: "No games",
+      one: "{n} game",
+      other: "{n} games",
+    },
+  },
+  "owner.noShows": {
+    ar: {
+      zero: "لا غيابات",
+      one: "غياب واحد",
+      two: "غيابان",
+      few: "{n} غيابات",
+      many: "{n} غياب",
+      other: "{n} غياب",
+    },
+    en: {
+      one: "{n} no-show",
+      other: "{n} no-shows",
+    },
+  },
+};
+
+export function countedForms(key: string, locale: UiLocale): PluralForms | undefined {
+  return COUNTED[key]?.[locale];
+}
+
+/** Counted noun for `locale`. Missing English forms fall back to Arabic rules. */
+export function uiCount(key: string, count: number, locale: UiLocale = "ar"): string {
+  const forms = COUNTED[key]?.[locale] ?? COUNTED[key]?.ar;
+  if (!forms) return String(count);
+  const rulesLocale = COUNTED[key]?.[locale] ? locale : "ar";
+  return plural(rulesLocale, count, forms);
 }
 
 /** Empty hours: closed / past date / today exhausted. */

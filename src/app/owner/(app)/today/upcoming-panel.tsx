@@ -1,10 +1,10 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, type Ref } from "react";
+import Link from "next/link";
 import type { UiLocale } from "@/lib/locale";
 import {
   collectUsdLabel,
-  overdueCount,
   ui,
 } from "@/lib/ui-copy";
 import {
@@ -69,6 +69,34 @@ function CardTrail({
   amountUsd: string;
   locale: UiLocale;
 }) {
+  if (display.kind === "no_show_unpaid") {
+    return (
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-alert">
+        <CircleAlert aria-hidden className="size-4 shrink-0" />
+        <span>{ui("owner.noShow", locale)}</span>
+        <span aria-hidden>·</span>
+        <LtrIsolate>${amountUsd}</LtrIsolate>
+        <span>{ui("owner.dueShort", locale)}</span>
+      </span>
+    );
+  }
+  if (display.kind === "no_show_paid") {
+    return (
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
+        <span>{ui("owner.noShow", locale)}</span>
+        <span aria-hidden>·</span>
+        <CircleCheck aria-hidden className="size-4 shrink-0 text-success" />
+        <span>{ui("owner.paid", locale)}</span>
+      </span>
+    );
+  }
+  if (display.kind === "cancelled") {
+    return (
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
+        <span>{ui("owner.cancelledShort", locale)}</span>
+      </span>
+    );
+  }
   if (display.kind === "live") {
     return (
       <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
@@ -186,18 +214,18 @@ function DueRemainingFigures({
 }
 
 export function UpcomingPanel({
-  overdue,
-  today,
-  later,
+  toCollect,
+  toCollectHasMore,
+  games,
   locale,
   mayCollect,
   mayCancel,
   mayNoShow,
   highlight,
 }: {
-  overdue: UpcomingRowView[];
-  today: UpcomingRowView[];
-  later: UpcomingRowView[];
+  toCollect: UpcomingRowView[];
+  toCollectHasMore: boolean;
+  games: UpcomingRowView[];
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
@@ -207,11 +235,8 @@ export function UpcomingPanel({
   const [openId, setOpenId] = useState<string | null>(null);
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [showComing, setShowComing] = useState(
-    () => Boolean(highlight && later.some((row) => row.id === highlight)),
-  );
   const openRow =
-    [...overdue, ...today, ...later].find((row) => row.id === openId) ?? null;
+    [...toCollect, ...games].find((row) => row.id === openId) ?? null;
   const sheetRow = openRow ?? heldRow;
   const confirmSubmitRef = useRef<HTMLButtonElement>(null);
   const cancelBookingRef = useRef<HTMLButtonElement>(null);
@@ -238,7 +263,7 @@ export function UpcomingPanel({
 
   function openRowSheet(id: string) {
     const row =
-      [...overdue, ...today, ...later].find((item) => item.id === id) ?? null;
+      [...toCollect, ...games].find((item) => item.id === id) ?? null;
     if (!row) return;
     setConfirmCancel(false);
     setHeldRow(row);
@@ -247,69 +272,49 @@ export function UpcomingPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-sm font-medium text-muted-foreground">
-        {ui("owner.upcoming", locale)}
-      </h3>
-
-      {overdue.length > 0 ? (
+      {toCollect.length > 0 ? (
         <>
-          <h4 className="text-sm font-medium text-muted-foreground">
-            {overdueCount(overdue.length, locale)}
-          </h4>
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {ui("owner.toCollect", locale)}
+          </h3>
           <UpcomingRows
-            rows={overdue}
+            rows={toCollect}
             showDate
             openId={openId}
             onOpen={openRowSheet}
             locale={locale}
             highlight={highlight}
             mayCollect={mayCollect}
+            rowKeyPrefix="collect"
           />
+          {toCollectHasMore ? (
+            <Link
+              href="/owner/money"
+              className="inline-flex min-h-11 items-center self-start text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              {ui("owner.seeAll", locale)}
+            </Link>
+          ) : null}
         </>
       ) : null}
 
-      {today.length > 0 ? (
+      {games.length > 0 ? (
         <UpcomingRows
-          rows={today}
+          rows={games}
           showDate={false}
           openId={openId}
           onOpen={openRowSheet}
           locale={locale}
           highlight={highlight}
           mayCollect={mayCollect}
+          rowKeyPrefix="day"
         />
-      ) : overdue.length === 0 ? (
+      ) : (
         <EmptyState
           title={ui("empty.confirmed", locale)}
           next={ui("empty.confirmedNext", locale)}
         />
-      ) : null}
-
-      {later.length > 0 ? (
-        <>
-          <Button
-            type="button"
-            variant="ghost"
-            className="self-start"
-            onClick={() => setShowComing((open) => !open)}
-          >
-            {showComing
-              ? ui("owner.hideComingDays", locale)
-              : ui("owner.showComingDays", locale)}
-          </Button>
-          {showComing ? (
-            <UpcomingRows
-              rows={later}
-              showDate
-              openId={openId}
-              onOpen={openRowSheet}
-              locale={locale}
-              highlight={highlight}
-              mayCollect={mayCollect}
-            />
-          ) : null}
-        </>
-      ) : null}
+      )}
 
       <BottomSheet
         open={openId !== null}
@@ -352,7 +357,7 @@ export function UpcomingPanel({
               </BottomSheetTitle>
               <BottomSheetDescription>
                 {sheetRow.pitchName}
-                {showDateFor(sheetRow, overdue, later)
+                {toCollect.some((item) => item.id === sheetRow.id)
                   ? ` · ${sheetRow.dateLabel}`
                   : null}
                 {" · "}
@@ -438,17 +443,6 @@ export function UpcomingPanel({
   );
 }
 
-function showDateFor(
-  row: UpcomingRowView,
-  overdue: UpcomingRowView[],
-  later: UpcomingRowView[],
-): boolean {
-  return (
-    overdue.some((item) => item.id === row.id) ||
-    later.some((item) => item.id === row.id)
-  );
-}
-
 function UpcomingRows({
   rows,
   showDate,
@@ -457,6 +451,7 @@ function UpcomingRows({
   locale,
   highlight,
   mayCollect,
+  rowKeyPrefix,
 }: {
   rows: UpcomingRowView[];
   showDate: boolean;
@@ -465,6 +460,7 @@ function UpcomingRows({
   locale: UiLocale;
   highlight?: string;
   mayCollect: boolean;
+  rowKeyPrefix: string;
 }) {
   return (
     <ul className="flex flex-col gap-2">
@@ -472,25 +468,24 @@ function UpcomingRows({
         const open = openId === row.id;
         const highlighted = highlight === row.id;
         return (
-          <li key={row.id} id={`booking-${row.id}`}>
+          <li key={`${rowKeyPrefix}-${row.id}`} id={`${rowKeyPrefix}-${row.id}`}>
             <Card
               className={cn(
-                "gap-0 py-0",
+                "gap-0 overflow-hidden py-0 shadow-none",
                 (open || highlighted) && "ring-2 ring-inset ring-action-ink",
                 highlighted && !open && "bg-action-ink/10",
               )}
             >
-              <div className="flex w-full items-center gap-3 px-4 py-3">
+              <div className="flex w-full items-center gap-3">
                 <button
                   type="button"
                   aria-haspopup="dialog"
                   aria-expanded={open}
                   onClick={() => onOpen(row.id)}
                   className={cn(
-                    "flex min-w-0 flex-1 items-start gap-3 text-start",
-                    "cursor-pointer rounded-[var(--radius-control)] outline-none transition-colors",
-                    "hover:bg-muted/60 active:bg-muted",
-                    "focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    "flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-start",
+                    "cursor-pointer bg-transparent outline-none",
+                    "focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
                   )}
                 >
                   <span className="min-w-0 flex-1">
@@ -499,7 +494,13 @@ function UpcomingRows({
                         aria-hidden
                         className="size-4 shrink-0 text-muted-foreground"
                       />
-                      <LtrIsolate className="text-lg font-semibold leading-none whitespace-nowrap">
+                      <LtrIsolate
+                        className={cn(
+                          "text-lg font-semibold leading-none whitespace-nowrap",
+                          row.display.kind === "cancelled" &&
+                            "text-muted-foreground line-through",
+                        )}
+                      >
                         {row.timeRange}
                       </LtrIsolate>
                     </span>
@@ -522,7 +523,8 @@ function UpcomingRows({
                     />
                     {mayCollect &&
                     (row.display.kind === "unpaid" ||
-                      row.display.kind === "partial") ? null : (
+                      row.display.kind === "partial" ||
+                      row.display.kind === "no_show_unpaid") ? null : (
                       <ChevronRight
                         aria-hidden
                         className="size-5 text-muted-foreground rtl:rotate-180"
@@ -533,11 +535,12 @@ function UpcomingRows({
                 </button>
                 {mayCollect &&
                 (row.display.kind === "unpaid" ||
-                  row.display.kind === "partial") ? (
+                  row.display.kind === "partial" ||
+                  row.display.kind === "no_show_unpaid") ? (
                   <Button
                     type="button"
                     size="sm"
-                    className="min-h-11 shrink-0"
+                    className="my-3 me-4 min-h-11 shrink-0"
                     onClick={() => onOpen(row.id)}
                   >
                     {ui("owner.collect", locale)}
@@ -570,7 +573,11 @@ function UpcomingRowActions({
   onCancelBooking: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
-  const canCollect = mayCollect && row.status !== "paid";
+  const canCollect =
+    mayCollect &&
+    row.display.kind !== "cancelled" &&
+    row.display.kind !== "no_show_paid" &&
+    row.status !== "paid";
 
   return (
     <>

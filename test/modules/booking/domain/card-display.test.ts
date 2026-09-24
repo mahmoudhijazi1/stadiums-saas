@@ -66,4 +66,43 @@ describe("deriveCardDisplay", () => {
       }).kind,
     ).toBe("paid");
   });
+
+  it("shows an unpaid no-show even if the clock would say live", () => {
+    expect(
+      deriveCardDisplay({
+        start,
+        end,
+        price,
+        remaining: new Decimal("10.00"),
+        now: new Date("2026-09-13T21:10:00.000Z"),
+        status: "NO_SHOW",
+      }).kind,
+    ).toBe("no_show_unpaid");
+  });
+
+  it("shows a paid no-show", () => {
+    expect(
+      deriveCardDisplay({
+        start,
+        end,
+        price,
+        remaining: new Decimal(0),
+        now: new Date("2026-09-13T22:00:00.000Z"),
+        status: "NO_SHOW",
+      }).kind,
+    ).toBe("no_show_paid");
+  });
+
+  it("shows cancelled instead of a clock state", () => {
+    expect(
+      deriveCardDisplay({
+        start,
+        end,
+        price,
+        remaining: price,
+        now: new Date("2026-09-13T19:00:00.000Z"),
+        status: "CANCELLED",
+      }).kind,
+    ).toBe("cancelled");
+  });
 });
