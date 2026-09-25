@@ -1,6 +1,7 @@
 import { UnexpectedError } from "@/lib/errors";
 import {
   formatLocalHm,
+  type ClockLocale,
   type HourCycle,
 } from "@/lib/format-local-hm";
 import { logger } from "@/lib/logger";
@@ -50,8 +51,9 @@ export async function getDayAvailability(input: {
   timeZone: string;
   now: Date;
   occupied?: OccupiedWindow[];
-  /** Owner Book + public hours. WhatsApp formatters omit → stay 24h. */
+  /** Owner Book, public hours, and WhatsApp share this clock. */
   hourCycle?: HourCycle;
+  locale?: ClockLocale;
 }): Promise<PitchDayAvailability[]> {
   try {
     const pitches = await listPitches();
@@ -96,8 +98,14 @@ export async function getDayAvailability(input: {
             slot.start,
             input.timeZone,
             input.hourCycle,
+            input.locale,
           ),
-          endLocal: formatLocalHm(slot.end, input.timeZone, input.hourCycle),
+          endLocal: formatLocalHm(
+            slot.end,
+            input.timeZone,
+            input.hourCycle,
+            input.locale,
+          ),
           priceUsd: formatUsd(slot.priceUsd),
           available: slot.available,
         })),

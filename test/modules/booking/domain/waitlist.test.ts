@@ -1,5 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { isWaitlistWindowOpen } from "@/modules/booking/domain/waitlist";
+import {
+  isWaitlistWindowOpen,
+  peopleWaitingOn,
+} from "@/modules/booking/domain/waitlist";
 
 const pitch = "pitch-1";
 const window = {
@@ -56,5 +59,28 @@ describe("isWaitlistWindowOpen", () => {
         now: new Date("2026-09-12T16:00:00.000Z"),
       }),
     ).toBe(false);
+  });
+});
+
+describe("peopleWaitingOn", () => {
+  const early = { personId: "early", name: "أحمد" };
+  const late = { personId: "late", name: "سامي" };
+  const groups = [
+    {
+      pitchId: pitch,
+      start: window.start,
+      end: window.end,
+      people: [early, late],
+    },
+  ];
+
+  it("keeps interest order and drops the person who cancelled", () => {
+    expect(peopleWaitingOn(groups, window, "early").map((row) => row.personId)).toEqual([
+      "late",
+    ]);
+  });
+
+  it("returns nobody when the open list has no group for that window", () => {
+    expect(peopleWaitingOn([], window, "early")).toEqual([]);
   });
 });

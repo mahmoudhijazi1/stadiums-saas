@@ -19,3 +19,23 @@ export function isWaitlistWindowOpen(input: {
       row.pitchId === input.window.pitchId && overlaps(row, input.window),
   );
 }
+
+/**
+ * People already on an open window, earliest interest first.
+ * The caller passes groups from `listOpenWaitlist` — this does not decide "open".
+ * The person who cancelled is left out.
+ */
+export function peopleWaitingOn<T extends { personId: string }>(
+  groups: Array<{ pitchId: string; start: Date; end: Date; people: T[] }>,
+  window: { pitchId: string; start: Date; end: Date },
+  excludePersonId: string,
+): T[] {
+  const group = groups.find(
+    (row) =>
+      row.pitchId === window.pitchId &&
+      row.start.getTime() === window.start.getTime() &&
+      row.end.getTime() === window.end.getTime(),
+  );
+  if (!group) return [];
+  return group.people.filter((person) => person.personId !== excludePersonId);
+}

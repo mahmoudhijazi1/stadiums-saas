@@ -6,6 +6,7 @@ import {
 } from "@/modules/venue/domain/availability";
 import { DateCalendarChip } from "@/components/date-calendar-chip";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
@@ -135,8 +136,10 @@ function parseCivilYmd(value: string): CivilDate | null {
 }
 
 function weekdayName(date: CivilDate, locale: UiLocale): string {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar", {
-    weekday: locale === "en" ? "short" : "long",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(date.year, date.month - 1, date.day, 12)));
+  return formatDisplayDate(
+    new Date(Date.UTC(date.year, date.month - 1, date.day, 12)),
+    locale,
+    { weekday: locale === "en" ? "short" : "long" },
+    "UTC",
+  );
 }

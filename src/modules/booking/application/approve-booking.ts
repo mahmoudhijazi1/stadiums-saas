@@ -8,13 +8,16 @@ import {
   can,
 } from "@/modules/access/domain/can";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
-import { rejectOverlappingPending } from "@/modules/booking/application/reject-overlapping-pending";
-import { assertPendingForDecision } from "@/modules/booking/domain/decision";
+import {
+  rejectOverlappingPending,
+  type AutoRejectedPerson,
+} from "@/modules/booking/application/reject-overlapping-pending";
 import { isExclusionViolation } from "@/modules/booking/domain/exclusion";
 import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
   findBookingForDecision,
   listApprovedRanges,
+  lockPitchForUpdate,
   setPendingStatus,
   type ApprovedRangeRow,
 } from "@/modules/booking/infrastructure/bookings";
@@ -44,21 +47,29 @@ export type ApproveBookingDeps = {
 export async function approveBooking(
   bookingId: string,
   deps: ApproveBookingDeps = {},
-): Promise<void> {
+): Promise<AutoRejectedPerson[]> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, BOOKINGS_APPROVE)) {
     throw new DomainError("access.not_allowed");
   }
 
   const listApproved = deps.listApprovedRanges ?? listApprovedRanges;
+  let rejected: AutoRejectedPerson[] = [];
 
   try {
     await db.$transaction(async (tx) => {
+      const loaded = await findBookingForDecision(tx, bookingId);
+      if (!loaded) {
+        throw new DomainError("booking.not_found");
+      }
+      await lockPitchForUpdate(tx, loaded.pitchId);
       const booking = await findBookingForDecision(tx, bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }
-      assertPendingForDecision(booking.status);
+      if (booking.status !== "PENDING") {
+        throw new DomainError("booking.no_longer_pending");
+      }
 
       const pitch = await findPitchById(tx, booking.pitchId);
       if (!pitch) {
@@ -78,7 +89,7 @@ export async function approveBooking(
 
       await setPendingStatus(tx, booking.id, "APPROVED");
 
-      await rejectOverlappingPending(tx, {
+      rejected = await rejectOverlappingPending(tx, {
         id: booking.id,
         pitchId: booking.pitchId,
         start: booking.start,
@@ -90,6 +101,7 @@ export async function approveBooking(
       useCase: "approveBooking",
       tenantId: await safeTenantId(),
     });
+    return rejected;
   } catch (error) {
     if (isExclusionViolation(error)) {
       logger.error("Approve collision", error, {
@@ -98,6 +110,6 @@ export async function approveBooking(
       });
       throw new DomainError("booking.slot_unavailable");
     }
-    await rethrowUnexpected(error, "Approve booking failed", "approveBooking");
+    return await rethrowUnexpected(error, "Approve booking failed", "approveBooking");
   }
 }

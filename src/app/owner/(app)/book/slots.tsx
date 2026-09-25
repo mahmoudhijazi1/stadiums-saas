@@ -26,6 +26,7 @@ export async function OwnerBookSlots({
     now: new Date(),
     occupied: await listApprovedOccupied(),
     hourCycle: tenant.timeDisplay,
+    locale,
   });
 
   if (pitches.length === 0) {

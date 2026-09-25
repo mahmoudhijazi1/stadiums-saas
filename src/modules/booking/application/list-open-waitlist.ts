@@ -1,6 +1,8 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { formatLocalHm } from "@/lib/format-local-hm";
+import { getUiLocale } from "@/lib/get-ui-locale";
 import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
@@ -22,6 +24,7 @@ export type WaitlistPerson = {
   name: string;
   phone: string;
   whatsAppHref: string | null;
+  createdAt: Date;
 };
 
 export type WaitlistGroup = {
@@ -29,7 +32,6 @@ export type WaitlistGroup = {
   pitchName: string;
   start: Date;
   end: Date;
-  message: string;
   people: WaitlistPerson[];
 };
 
@@ -48,6 +50,7 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
 
   try {
     const now = new Date();
+    const locale = await getUiLocale();
     const occupied = await listApprovedRanges(db);
     const interests = await listSlotInterestsWithPeople(db);
 
@@ -72,27 +75,33 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
       const groupKey = `${row.pitchId}|${row.start.getTime()}|${row.end.getTime()}`;
       let group = groups.get(groupKey);
       if (!group) {
-        const startLocal = formatLocalHm(row.start, TIME_ZONE);
-        const endLocal = formatLocalHm(row.end, TIME_ZONE);
         group = {
           pitchId: row.pitchId,
           pitchName: row.pitchName,
           start: row.start,
           end: row.end,
-          message: slotAvailableMessage({
-            stadiumName: tenant.name,
-            pitchName: row.pitchName,
-            startLocal,
-            endLocal,
-          }),
           people: [],
         };
         groups.set(groupKey, group);
       }
 
+      const day = formatDisplayDate(row.start, locale, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      });
       let href: string | null = null;
       try {
-        href = whatsAppHref(row.phone, group.message);
+        href = whatsAppHref(
+          row.phone,
+          slotAvailableMessage({
+            name: row.name,
+            time: formatLocalHm(row.start, TIME_ZONE, tenant.timeDisplay, locale),
+            day,
+            stadiumName: tenant.name,
+            locale,
+          }),
+        );
       } catch (error) {
         // RULE-9: keep the person row; DR-004: log side-effect failure.
         // info (not error): bad phone is expected data, not a system bug. No phone in log.
@@ -108,6 +117,7 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
         name: row.name,
         phone: row.phone,
         whatsAppHref: href,
+        createdAt: row.createdAt,
       });
     }
 

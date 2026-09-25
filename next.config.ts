@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         destination: "/owner/login",
         permanent: true,
       },
+      {
+        source: "/owner/waitlist",
+        destination: "/owner/requests",
+        permanent: true,
+      },
     ];
   },
   async headers() {

@@ -7,7 +7,10 @@ import {
   lbpPerUsdLine,
   overdueCount,
   pendingCount,
+  relativePastLabel,
   requestsCount,
+  cancelPolicyLine,
+  rejectReasonText,
   ui,
 } from "@/lib/ui-copy";
 
@@ -23,6 +26,8 @@ describe("ui", () => {
     expect(ui("owner.home", "en")).toBe("Home");
     expect(ui("owner.home")).toBe("رئيسية");
     expect(ui("owner.homeHeading")).toBe("الرئيسية");
+    expect(ui("owner.hourJustBooked")).toBe("تم حجز هذه الساعة للتو");
+    expect(ui("owner.hourJustBooked", "en")).toBe("This hour was just booked");
     expect(ui("owner.requests")).toBe("طلبات");
     expect(ui("owner.upcoming")).toBe("القادم");
     expect(ui("owner.upcomingTag")).toBe("قادم");
@@ -70,7 +75,9 @@ describe("ui", () => {
 describe("interpolated chrome", () => {
   it("uses Western digits and a Latin money amount", () => {
     expect(pendingCount(3)).toBe("قيد الانتظار · 3");
-    expect(requestsCount(2)).toBe("طلبات · 2");
+    expect(requestsCount(1)).toBe("طلب واحد");
+    expect(requestsCount(2)).toBe("طلبان");
+    expect(requestsCount(3)).toBe("3 طلبات");
     expect(overdueCount(1)).toBe("متأخر · 1");
     expect(confirmedCount(0)).toBe("مؤكد · 0");
     expect(collectUsdLabel("30.00")).toBe("تحصيل $30.00");
@@ -80,6 +87,43 @@ describe("interpolated chrome", () => {
     expect(lbpPerUsdLine("90000")).toBe("90000 ليرة لكل دولار");
     expect(pendingCount(3, "en")).toBe("Pending · 3");
     expect(lbpPerUsdLine("90000", "en")).toBe("90000 LBP per USD");
+  });
+});
+
+describe("relativePastLabel", () => {
+  const now = new Date("2026-09-25T12:00:00.000Z");
+
+  it("uses full words for minutes, hours, yesterday, and days", () => {
+    expect(relativePastLabel(new Date("2026-09-25T11:55:00.000Z"), now)).toBe(
+      "قبل 5 دقائق",
+    );
+    expect(relativePastLabel(new Date("2026-09-25T11:00:00.000Z"), now)).toBe(
+      "قبل ساعة",
+    );
+    expect(relativePastLabel(new Date("2026-09-25T10:00:00.000Z"), now)).toBe(
+      "قبل ساعتين",
+    );
+    expect(relativePastLabel(new Date("2026-09-25T09:00:00.000Z"), now)).toBe(
+      "قبل 3 ساعات",
+    );
+    expect(relativePastLabel(new Date("2026-09-24T12:00:00.000Z"), now)).toBe(
+      "أمس",
+    );
+    expect(relativePastLabel(new Date("2026-09-22T12:00:00.000Z"), now)).toBe(
+      "قبل 3 أيام",
+    );
+  });
+
+  it("uses English equivalents", () => {
+    expect(
+      relativePastLabel(new Date("2026-09-25T11:55:00.000Z"), now, "en"),
+    ).toBe("5 minutes ago");
+    expect(
+      relativePastLabel(new Date("2026-09-24T12:00:00.000Z"), now, "en"),
+    ).toBe("Yesterday");
+    expect(
+      relativePastLabel(new Date("2026-09-22T12:00:00.000Z"), now, "en"),
+    ).toBe("3 days ago");
   });
 });
 
@@ -97,5 +141,27 @@ describe("hoursEmptyState", () => {
       title: "No hours left today.",
       next: "Pick a coming day.",
     });
+  });
+});
+
+describe("cancelPolicyLine", () => {
+  it("states the window and the percent, and hides a zero fee", () => {
+    expect(cancelPolicyLine(24, 50)).toBe(
+      "الإلغاء قبل أقل من 24 ساعة من الموعد: رسوم 50% من السعر.",
+    );
+    expect(cancelPolicyLine(24, 50, "en")).toBe(
+      "Cancelling less than 24 hours before the game costs 50% of the price.",
+    );
+    expect(cancelPolicyLine(24, 0)).toBe("");
+  });
+});
+
+describe("rejectReasonText", () => {
+  it("uses the chip label, or the note for other", () => {
+    expect(rejectReasonText("slot_taken", "", "ar")).toBe("الساعة محجوزة");
+    expect(rejectReasonText("pitch_closed", "", "en")).toBe("Pitch closed");
+    expect(rejectReasonText("other", "  ملعب صغير  ")).toBe("ملعب صغير");
+    expect(rejectReasonText("other", "   ")).toBeNull();
+    expect(rejectReasonText("nope", "x")).toBeNull();
   });
 });

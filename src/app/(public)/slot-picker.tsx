@@ -12,10 +12,12 @@ export function PublicSlotPicker({
   pitches,
   dateValue,
   locale,
+  policyLine,
 }: {
   pitches: SlotPickerPitch[];
   dateValue: string;
   locale: UiLocale;
+  policyLine: string;
 }) {
   return (
     <SlotPicker
@@ -24,6 +26,7 @@ export function PublicSlotPicker({
       hiddenFields={{ date: dateValue }}
       submitLabel={ui("public.request", locale)}
       locale={locale}
+      policyLine={policyLine || null}
     />
   );
 }

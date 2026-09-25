@@ -37,6 +37,7 @@ const ARABIC: Record<string, string> = {
   "theme.system": "نظام",
   "public.errName": "أدخل الاسم.",
   "public.errPhone": "أدخل هاتفاً من 8 إلى 15 رقماً.",
+  "public.cancelPolicy": "الإلغاء قبل أقل من {hours} من الموعد: رسوم {percent}% من السعر.",
   "dialog.close": "إغلاق",
   "login.title": "تسجيل الدخول",
   "login.identifier": "المعرّف",
@@ -61,6 +62,17 @@ const ARABIC: Record<string, string> = {
   "owner.recordBooking": "حجز",
   "owner.expenseAction": "مصروف",
   "owner.search": "بحث",
+  "owner.searchPlaceholder": "اسم أو رقم",
+  "owner.searchHint": "اكتب اسماً أو رقماً",
+  "owner.searchEmpty": "لا أحد بهذا الاسم",
+  "owner.searchEmptyNext": "جرّب اسماً آخر أو أرقام الهاتف",
+  "owner.personGames": "المباريات",
+  "owner.noPersonGames": "لا مباريات بعد",
+  "owner.noPersonGamesNext": "مبارياته تظهر هنا",
+  "owner.loadMore": "عرض المزيد",
+  "owner.totalPaid": "المدفوع",
+  "owner.owesNow": "عليه الآن",
+  "owner.call": "اتصال",
   "owner.offline": "بدون اتصال",
   "owner.businessMenu": "قائمة العمل",
   "owner.publicPage": "صفحتي العامة",
@@ -99,7 +111,16 @@ const ARABIC: Record<string, string> = {
   "owner.remaining": "المتبقي",
   "owner.paid": "مدفوع",
   "owner.approve": "موافقة",
+  "owner.hourJustBooked": "تم حجز هذه الساعة للتو",
   "owner.reject": "رفض",
+  "owner.rejectSheet": "سبب الرفض",
+  "owner.rejectConfirm": "تأكيد الرفض",
+  "owner.rejectNote": "اكتب السبب",
+  "owner.rejectReason.slotTaken": "الساعة محجوزة",
+  "owner.rejectReason.pitchClosed": "الملعب مغلق",
+  "owner.rejectReason.other": "سبب آخر",
+  "owner.notifyConfirmed": "تم التأكيد",
+  "owner.notifySheet": "إبلاغ",
   "owner.collectMixed": "دفع بعملتين",
   "owner.hideCollectMixed": "إخفاء الدفع بعملتين",
   "owner.usd": "دولار",
@@ -107,6 +128,42 @@ const ARABIC: Record<string, string> = {
   "owner.lbp": "ليرة",
   "owner.cancel": "إلغاء الحجز",
   "owner.cancelHint": "ستُلغى الساعة وتصبح متاحة مجدداً.",
+  "owner.slotFree": "الساعة متاحة.",
+  "owner.noOneWaiting": "لا أحد ينتظر هذه الساعة.",
+  "owner.freeSlots": "ساعات متاحة فيها مهتمون",
+  "owner.waitingSince": "ينتظر منذ",
+  "owner.debtLead": "⚠ عليه",
+  "owner.debtReason.LATE_CANCELLATION_FEE": "رسوم إلغاء",
+  "owner.debtReason.NO_SHOW_FEE": "رسوم عدم الحضور",
+  "owner.debtReason.CANCELLATION_NO_FEE": "إلغاء",
+  "owner.debtReason.PARTIAL_GAME": "مباراة ناقصة",
+  "owner.debtReason.DISCOUNT": "خصم",
+  "owner.debtReason.WAIVER": "إعفاء",
+  "owner.debtReason.CORRECTION": "تصحيح",
+  "owner.yesterday": "أمس",
+  "owner.collectedKeptTail": " ويبقى محفوظاً",
+  "owner.notified": "تم الإبلاغ",
+  "owner.playerCancelled": "اللاعب ألغى",
+  "owner.ownerCancelled": "أنا ألغيت",
+  "owner.editFee": "تعديل",
+  "owner.waiveFee": "إعفاء",
+  "owner.feeWord": "الرسوم",
+  "owner.cancelledUnderHour": "ألغى قبل أقل من ساعة",
+  "owner.noShowFeeLine": "لم يحضر",
+  "owner.adjustDue": "تعديل المبلغ",
+  "owner.newDue": "المبلغ الجديد",
+  "owner.reasonDiscount": "خصم",
+  "owner.reasonPartial": "مباراة ناقصة",
+  "owner.reasonWaiver": "إعفاء",
+  "owner.reasonCorrection": "تصحيح",
+  "owner.noteOptional": "ملاحظة (اختياري)",
+  "owner.saveRules": "حفظ",
+  "owner.rulesTrailLead": "إلغاء",
+  "owner.cancelWindow": "مهلة الإلغاء (ساعات)",
+  "owner.lateFee": "رسوم الإلغاء المتأخر",
+  "owner.noShowFeeSetting": "رسوم عدم الحضور",
+  "owner.collectedPrefix": "تم تحصيل",
+  "owner.noRefundYet": "، لا يمكن الاسترداد بعد.",
   "owner.cancelConfirm": "تأكيد إلغاء الحجز",
   "owner.cancelBack": "تراجع",
   "owner.noShow": "لم يحضر",
@@ -247,6 +304,7 @@ const ENGLISH: Record<string, string> = {
   "theme.system": "System",
   "public.errName": "Enter a name.",
   "public.errPhone": "Enter a phone with 8–15 digits.",
+  "public.cancelPolicy": "Cancelling less than {hours} before the game costs {percent}% of the price.",
   "dialog.close": "Close",
   "login.title": "Log in",
   "login.identifier": "Identifier",
@@ -271,6 +329,17 @@ const ENGLISH: Record<string, string> = {
   "owner.recordBooking": "Booking",
   "owner.expenseAction": "Expense",
   "owner.search": "Search",
+  "owner.searchPlaceholder": "Name or number",
+  "owner.searchHint": "Type a name or a number",
+  "owner.searchEmpty": "No one matches",
+  "owner.searchEmptyNext": "Try another name or the phone digits",
+  "owner.personGames": "Games",
+  "owner.noPersonGames": "No games yet",
+  "owner.noPersonGamesNext": "Their games show here",
+  "owner.loadMore": "Load more",
+  "owner.totalPaid": "Paid",
+  "owner.owesNow": "Owes now",
+  "owner.call": "Call",
   "owner.offline": "Offline",
   "owner.businessMenu": "Business menu",
   "owner.publicPage": "My public page",
@@ -309,7 +378,16 @@ const ENGLISH: Record<string, string> = {
   "owner.remaining": "Remaining",
   "owner.paid": "Paid",
   "owner.approve": "Approve",
+  "owner.hourJustBooked": "This hour was just booked",
   "owner.reject": "Reject",
+  "owner.rejectSheet": "Reject reason",
+  "owner.rejectConfirm": "Confirm reject",
+  "owner.rejectNote": "Write the reason",
+  "owner.rejectReason.slotTaken": "Slot taken",
+  "owner.rejectReason.pitchClosed": "Pitch closed",
+  "owner.rejectReason.other": "Other reason",
+  "owner.notifyConfirmed": "Confirmed",
+  "owner.notifySheet": "Notify",
   "owner.collectMixed": "Pay in two currencies",
   "owner.hideCollectMixed": "Hide two-currency pay",
   "owner.usd": "USD",
@@ -317,6 +395,42 @@ const ENGLISH: Record<string, string> = {
   "owner.lbp": "LBP",
   "owner.cancel": "Cancel booking",
   "owner.cancelHint": "This hour will be freed and offered again.",
+  "owner.slotFree": "The slot is available.",
+  "owner.noOneWaiting": "No one is waiting for this slot.",
+  "owner.freeSlots": "Available slots with interested players",
+  "owner.waitingSince": "Waiting since",
+  "owner.debtLead": "⚠ Owes",
+  "owner.debtReason.LATE_CANCELLATION_FEE": "late cancellation",
+  "owner.debtReason.NO_SHOW_FEE": "no-show fee",
+  "owner.debtReason.CANCELLATION_NO_FEE": "cancellation",
+  "owner.debtReason.PARTIAL_GAME": "partial game",
+  "owner.debtReason.DISCOUNT": "discount",
+  "owner.debtReason.WAIVER": "waiver",
+  "owner.debtReason.CORRECTION": "correction",
+  "owner.yesterday": "Yesterday",
+  "owner.collectedKeptTail": " already collected is kept",
+  "owner.notified": "Notified",
+  "owner.playerCancelled": "Player cancelled",
+  "owner.ownerCancelled": "I cancelled",
+  "owner.editFee": "Edit",
+  "owner.waiveFee": "Waive",
+  "owner.feeWord": "Fee",
+  "owner.cancelledUnderHour": "Cancelled less than an hour before",
+  "owner.noShowFeeLine": "No-show",
+  "owner.adjustDue": "Adjust amount",
+  "owner.newDue": "New amount",
+  "owner.reasonDiscount": "Discount",
+  "owner.reasonPartial": "Partial game",
+  "owner.reasonWaiver": "Waive",
+  "owner.reasonCorrection": "Correction",
+  "owner.noteOptional": "Note (optional)",
+  "owner.saveRules": "Save",
+  "owner.rulesTrailLead": "Cancel",
+  "owner.cancelWindow": "Cancellation window (hours)",
+  "owner.lateFee": "Late cancellation fee",
+  "owner.noShowFeeSetting": "No-show fee",
+  "owner.collectedPrefix": "Already collected",
+  "owner.noRefundYet": ". Refunds are not supported yet.",
   "owner.cancelConfirm": "Confirm cancel booking",
   "owner.cancelBack": "Never mind",
   "owner.noShow": "No-show",
@@ -432,6 +546,25 @@ export function ui(key: string, locale: UiLocale = "ar"): string {
   return ARABIC[key] ?? key;
 }
 
+const REJECT_REASON_NOTE_MAX = 80;
+
+/**
+ * Chip label, or the free-text note for "other". Empty or too long → null.
+ * The note is not stored; it only fills the WhatsApp {reason}.
+ */
+export function rejectReasonText(
+  kind: string,
+  note: string,
+  locale: UiLocale = "ar",
+): string | null {
+  if (kind === "slot_taken") return ui("owner.rejectReason.slotTaken", locale);
+  if (kind === "pitch_closed") return ui("owner.rejectReason.pitchClosed", locale);
+  if (kind !== "other") return null;
+  const text = note.trim().replace(/\s+/g, " ");
+  if (!text || text.length > REJECT_REASON_NOTE_MAX) return null;
+  return text;
+}
+
 /**
  * Counted nouns. `{n}` is the number. Arabic has every PluralRules category.
  * English has `one` and `other`; `zero` is optional for a count of 0.
@@ -450,6 +583,98 @@ const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
       zero: "No games",
       one: "{n} game",
       other: "{n} games",
+    },
+  },
+  "owner.interested": {
+    ar: {
+      zero: "لا مهتمين",
+      one: "مهتم واحد",
+      two: "مهتمان",
+      few: "{n} مهتمين",
+      many: "{n} مهتماً",
+      other: "{n} مهتم",
+    },
+    en: {
+      one: "{n} person interested",
+      other: "{n} people interested",
+    },
+  },
+  "owner.hoursBefore": {
+    ar: {
+      one: "ألغى قبل ساعة",
+      two: "ألغى قبل ساعتين",
+      few: "ألغى قبل {n} ساعات",
+      many: "ألغى قبل {n} ساعة",
+      other: "ألغى قبل {n} ساعة",
+    },
+    en: {
+      one: "Cancelled {n} hour before",
+      other: "Cancelled {n} hours before",
+    },
+  },
+  "owner.ruleHours": {
+    ar: {
+      one: "ساعة",
+      two: "ساعتين",
+      few: "{n} ساعات",
+      many: "{n} ساعة",
+      other: "{n} ساعة",
+    },
+    en: {
+      one: "{n} hour",
+      other: "{n} hours",
+    },
+  },
+  "owner.requests": {
+    ar: {
+      zero: "لا طلبات",
+      one: "طلب واحد",
+      two: "طلبان",
+      few: "{n} طلبات",
+      many: "{n} طلباً",
+      other: "{n} طلب",
+    },
+    en: {
+      zero: "No requests",
+      one: "{n} request",
+      other: "{n} requests",
+    },
+  },
+  "owner.agoMinutes": {
+    ar: {
+      one: "قبل دقيقة",
+      two: "قبل دقيقتين",
+      few: "قبل {n} دقائق",
+      many: "قبل {n} دقيقة",
+      other: "قبل {n} دقيقة",
+    },
+    en: {
+      one: "{n} minute ago",
+      other: "{n} minutes ago",
+    },
+  },
+  "owner.agoHours": {
+    ar: {
+      one: "قبل ساعة",
+      two: "قبل ساعتين",
+      few: "قبل {n} ساعات",
+      many: "قبل {n} ساعة",
+      other: "قبل {n} ساعة",
+    },
+    en: {
+      one: "{n} hour ago",
+      other: "{n} hours ago",
+    },
+  },
+  "owner.agoDays": {
+    ar: {
+      two: "قبل يومين",
+      few: "قبل {n} أيام",
+      many: "قبل {n} يوماً",
+      other: "قبل {n} يوم",
+    },
+    en: {
+      other: "{n} days ago",
     },
   },
   "owner.noShows": {
@@ -508,9 +733,24 @@ export function pendingCount(n: number, locale: UiLocale = "ar"): string {
   return `${ui("owner.pending", locale)} · ${n}`;
 }
 
-/** Home Requests heading with a Western count. */
+/** Requests heading. Digits stay inside the phrase so the caller can isolate them. */
 export function requestsCount(n: number, locale: UiLocale = "ar"): string {
-  return `${ui("owner.requests", locale)} · ${n}`;
+  return uiCount("owner.requests", n, locale);
+}
+
+/**
+ * Public late-cancel line. Empty when the percent is 0.
+ * `{hours}` is the plural hour phrase ("24 ساعة").
+ */
+export function cancelPolicyLine(
+  hours: number,
+  percent: number,
+  locale: UiLocale = "ar",
+): string {
+  if (percent <= 0) return "";
+  return ui("public.cancelPolicy", locale)
+    .replace("{hours}", uiCount("owner.ruleHours", hours, locale))
+    .replace("{percent}", String(percent));
 }
 
 /** Confirmed heading with a Western count. */
@@ -551,7 +791,7 @@ export function groupedDigits(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-/** Short relative past label. Counts are Western digits. */
+/** Relative past label. Counts use the plural helper. Callers isolate the digits. */
 export function relativePastLabel(
   at: Date,
   now: Date,
@@ -562,13 +802,10 @@ export function relativePastLabel(
     Math.floor((now.getTime() - at.getTime()) / 60000),
   );
   if (minutes < 1) return ui("owner.justNow", locale);
-  if (minutes < 60) {
-    return locale === "en" ? `${minutes} min ago` : `قبل ${minutes} د`;
-  }
+  if (minutes < 60) return uiCount("owner.agoMinutes", minutes, locale);
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return locale === "en" ? `${hours} h ago` : `قبل ${hours} س`;
-  }
+  if (hours < 24) return uiCount("owner.agoHours", hours, locale);
   const days = Math.floor(hours / 24);
-  return locale === "en" ? `${days} d ago` : `قبل ${days} ي`;
+  if (days === 1) return ui("owner.yesterday", locale);
+  return uiCount("owner.agoDays", days, locale);
 }

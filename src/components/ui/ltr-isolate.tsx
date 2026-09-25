@@ -17,3 +17,15 @@ function LtrIsolate({ className, ...props }: ComponentProps<"bdi">) {
 }
 
 export { LtrIsolate }
+
+/** Wrap each digit run so Western numbers stay left-to-right inside Arabic. */
+export function IsolatedDigits({ text }: { text: string }) {
+  const parts = text.split(/(\d+%?)/)
+  return parts.map((part, index) =>
+    /^\d+%?$/.test(part) ? (
+      <LtrIsolate key={index}>{part}</LtrIsolate>
+    ) : (
+      <span key={index}>{part}</span>
+    ),
+  )
+}

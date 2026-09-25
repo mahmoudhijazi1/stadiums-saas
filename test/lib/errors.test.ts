@@ -23,6 +23,10 @@ describe("UnexpectedError", () => {
 
 describe("errorMessage", () => {
   it("returns catalog Arabic for a known key", () => {
+    expect(errorMessage("booking.no_longer_pending")).toBe("تم حجز هذه الساعة للتو");
+    expect(errorMessage("booking.no_longer_pending", "en")).toBe(
+      "This hour was just booked",
+    );
     expect(errorMessage("booking.slot_ended")).toBe("هذه الساعة انتهت.");
     expect(errorMessage("booking.cancel_past_unpaid")).toBe(
       "لا يمكن إلغاء مباراة مضت وما زال عليها مبلغ.",

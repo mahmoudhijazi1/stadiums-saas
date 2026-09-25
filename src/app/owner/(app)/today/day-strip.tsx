@@ -11,6 +11,7 @@ import {
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { formatDisplayDate } from "@/lib/format-display-date";
 
 export function OwnerDayStrip({
   day,
@@ -26,12 +27,12 @@ export function OwnerDayStrip({
   const last = addCalendarDays(today, OWNER_FUTURE_DAYS);
   const nextDisabled = compareCivilDate(nextDay, last) > 0;
   const isToday = compareCivilDate(day, today) === 0;
-  const label = new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "ar", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: OWNER_TIME_ZONE,
-  }).format(new Date(Date.UTC(day.year, day.month - 1, day.day, 12)));
+  const label = formatDisplayDate(
+    new Date(Date.UTC(day.year, day.month - 1, day.day, 12)),
+    locale,
+    { weekday: "short", day: "numeric", month: "short" },
+    OWNER_TIME_ZONE,
+  );
 
   return (
     <div className="flex items-center gap-2">

@@ -34,6 +34,9 @@ export default async function OwnerMorePage() {
         changedAt ? relativePastLabel(changedAt, new Date(), locale) : null
       }
       timeDisplay={tenant.timeDisplay}
+      cancellationWindowHours={tenant.cancellationWindowHours}
+      lateCancellationFeePercent={tenant.lateCancellationFeePercent}
+      noShowFeePercent={tenant.noShowFeePercent}
       identifier={membership.identifier}
     />
   );

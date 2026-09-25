@@ -1,19 +1,28 @@
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_APPROVE, can } from "@/modules/access/domain/can";
-import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
+import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
+import type { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { groupPendingBySlot } from "@/modules/booking/domain/home-inbox";
 import type { UiLocale } from "@/lib/locale";
-import { requestsCount, ui } from "@/lib/ui-copy";
-import { getCurrentTenant } from "@/lib/tenant-context";
+import { relativePastLabel, requestsCount, ui } from "@/lib/ui-copy";
+import { formatDisplayDate } from "@/lib/format-display-date";
+import {
+  interestsForGroup,
+  mergeByTime,
+} from "@/app/owner/(app)/requests/merge-slots";
+import {
+  CountedPhrase,
+  DebtNoticeLine,
+  NotifyPersonRow,
+  type DebtNotice,
+} from "@/app/owner/notify-list";
 import {
   formatLocalClockRange,
   type HourCycle,
 } from "@/app/owner/shared";
 import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
-import {
-  submitApproveBooking,
-  submitRejectBooking,
-} from "@/app/owner/(app)/today/actions";
+import { submitApproveBooking } from "@/app/owner/(app)/today/actions";
+import { RejectRequestButton } from "@/app/owner/(app)/requests/reject-sheet";
 import {
   Card,
   CardContent,
@@ -22,22 +31,30 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import Link from "next/link";
 import { Clock, MapPin, Phone } from "lucide-react";
 
+type PendingRequest = Awaited<ReturnType<typeof listPendingRequests>>[number];
+
 /**
- * Pending inbox shared by Today and /owner/requests until the Requests slice
- * owns notify and reject reasons. Approve still returns to Today.
+ * Pending inbox on Requests. Approve and Reject stay available.
+ * Debt is a warning on the row, loaded once for everyone on the screen.
  */
-export async function PendingRequestList({
+export function PendingRequestList({
   membership,
   locale,
+  hourCycle,
+  pending,
+  openWaitlist,
+  debts,
 }: {
   membership: CurrentMembership;
   locale: UiLocale;
+  hourCycle: HourCycle;
+  pending: PendingRequest[];
+  openWaitlist: WaitlistGroup[];
+  debts: Record<string, DebtNotice>;
 }) {
-  const tenant = await getCurrentTenant();
-  const hourCycle: HourCycle = tenant.timeDisplay;
-  const pending = await listPendingRequests();
   const groups = groupPendingBySlot(pending);
   const now = new Date();
   const mayDecide = can(membership, BOOKINGS_APPROVE);
@@ -45,7 +62,7 @@ export async function PendingRequestList({
   return (
     <>
       <h3 className="text-sm font-medium text-muted-foreground">
-        {requestsCount(pending.length, locale)}
+        <CountedPhrase text={requestsCount(pending.length, locale)} />
       </h3>
       {pending.length === 0 ? (
         <EmptyState
@@ -70,6 +87,7 @@ export async function PendingRequestList({
                         group.start,
                         group.end,
                         hourCycle,
+                        locale,
                       )}
                     </LtrIsolate>
                   </div>
@@ -82,36 +100,88 @@ export async function PendingRequestList({
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
-                  {group.requesters.map((row) => (
-                    <div
-                      key={row.id}
-                      className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <p className="text-sm font-medium">{row.requesterName}</p>
-                        <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Phone aria-hidden className="size-4 shrink-0" />
-                          <LtrIsolate>{row.requesterPhone}</LtrIsolate>
-                        </p>
-                      </div>
-                      {mayDecide ? (
-                        <div className="flex gap-2">
-                          <form action={submitApproveBooking} className="min-w-0 flex-1">
-                            <input type="hidden" name="bookingId" value={row.id} />
-                            <SubmitButton className="w-full">
-                              {ui("owner.approve", locale)}
-                            </SubmitButton>
-                          </form>
-                          <form action={submitRejectBooking} className="min-w-0 flex-1">
-                            <input type="hidden" name="bookingId" value={row.id} />
-                            <SubmitButton variant="outline" className="w-full">
-                              {ui("owner.reject", locale)}
-                            </SubmitButton>
-                          </form>
+                  {mergeByTime(
+                    group.requesters,
+                    interestsForGroup(group, openWaitlist),
+                  ).map((item) =>
+                    item.kind === "request" ? (
+                      <div
+                        key={item.request.id}
+                        className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <Link
+                            href={`/owner/people/${item.request.requesterPersonId}`}
+                            className="text-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                          >
+                            {item.request.requesterName}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">
+                            <CountedPhrase
+                              text={relativePastLabel(
+                                item.request.requestedAt,
+                                now,
+                                locale,
+                              )}
+                            />
+                          </p>
+                          {item.request.requesterPhone ? (
+                            <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <Phone aria-hidden className="size-4 shrink-0" />
+                              <LtrIsolate>{item.request.requesterPhone}</LtrIsolate>
+                            </p>
+                          ) : null}
+                          {debts[item.request.requesterPersonId] ? (
+                            <DebtNoticeLine
+                              notice={debts[item.request.requesterPersonId]}
+                              personId={item.request.requesterPersonId}
+                              locale={locale}
+                            />
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                  ))}
+                        {mayDecide ? (
+                          <div className="flex gap-2">
+                            <form action={submitApproveBooking} className="min-w-0 flex-1">
+                              <input type="hidden" name="bookingId" value={item.request.id} />
+                              <SubmitButton className="w-full">
+                                {ui("owner.approve", locale)}
+                              </SubmitButton>
+                            </form>
+                            <RejectRequestButton
+                              bookingId={item.request.id}
+                              name={item.request.requesterName}
+                              locale={locale}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div
+                        key={`interest-${item.interest.personId}`}
+                        className="border-t pt-3 first:border-t-0 first:pt-0"
+                      >
+                        <NotifyPersonRow
+                          person={{
+                            ...item.interest,
+                            debt: debts[item.interest.personId] ?? null,
+                          }}
+                          locale={locale}
+                          href={`/owner/people/${item.interest.personId}`}
+                          detail={
+                            <>
+                              {ui("owner.waitingSince", locale)}{" "}
+                              <LtrIsolate>
+                                {formatDisplayDate(item.interest.createdAt, locale, {
+                                  day: "numeric",
+                                  month: "long",
+                                })}
+                              </LtrIsolate>
+                            </>
+                          }
+                        />
+                      </div>
+                    ),
+                  )}
                 </CardContent>
               </Card>
             </li>

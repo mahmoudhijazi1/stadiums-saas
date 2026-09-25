@@ -1,15 +1,17 @@
 /**
  * Local wall-clock for a UTC instant in a named IANA zone.
- * Default hourCycle h23 → "16:00" (midnight "00", not "24").
- * Optional h12 → "4:00 PM" (Western digits + Latin AM/PM).
+ * Shared by the app and WhatsApp. h23 → "19:00" (midnight "00", not "24").
+ * h12 English → "7:00 PM". h12 Arabic → "7:00 مساءً". Western digits either way.
  */
 
 export type HourCycle = "h23" | "h12";
+export type ClockLocale = "ar" | "en";
 
 export function formatLocalHm(
   instant: Date,
   timeZone: string,
   hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
 ): string {
   if (hourCycle === "h12") {
     const dtf = new Intl.DateTimeFormat("en-GB", {
@@ -22,8 +24,13 @@ export function formatLocalHm(
     for (const part of dtf.formatToParts(instant)) {
       if (part.type !== "literal") map[part.type] = part.value;
     }
-    const period = (map.dayPeriod ?? "am").toUpperCase();
-    return `${map.hour ?? "0"}:${map.minute ?? "00"} ${period}`;
+    const hour = map.hour ?? "0";
+    const minute = map.minute ?? "00";
+    const pm = (map.dayPeriod ?? "am").toLowerCase() === "pm";
+    if (locale === "ar") {
+      return `${hour}:${minute} ${pm ? "مساءً" : "صباحاً"}`;
+    }
+    return `${hour}:${minute} ${pm ? "PM" : "AM"}`;
   }
 
   const dtf = new Intl.DateTimeFormat("en-GB", {

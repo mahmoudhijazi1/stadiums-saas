@@ -2,16 +2,26 @@
 
 import { useLayoutEffect, useRef, useState, type Ref } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
   collectUsdLabel,
   ui,
+  uiCount,
 } from "@/lib/ui-copy";
 import {
-  submitCancelBooking,
-  submitCollectPayment,
-  submitRecordNoShow,
-} from "./actions";
+  CountedPhrase,
+  InterestPanel,
+  NotifyPersonRow,
+  type NotifyPerson,
+} from "@/app/owner/notify-list";
+import type { OutcomeNotify } from "@/modules/booking/application/load-outcome-notify";
+import {
+  AdjustDueForm,
+  CancelDecisionForm,
+  NoShowDecisionForm,
+} from "./fee-forms";
+import { submitCollectPayment } from "./actions";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -48,17 +58,42 @@ export type UpcomingRowView = {
   pitchName: string;
   timeRange: string;
   dateLabel: string;
+  requesterPersonId: string;
   requesterName: string;
-  requesterPhone: string;
+  requesterPhone: string | null;
   remainingUsd: string;
   priceUsd: string;
+  interested: NotifyPerson[];
   status: UpcomingStatus;
   display: CardDisplay;
   displayAmountUsd: string;
   confirmWhatsAppHref: string | null;
   showCancel: boolean;
   showNoShow: boolean;
+  canAdjust: boolean;
+  hoursBefore: number;
+  playerFeeCompact: string | null;
+  playerFeeExact: string;
+  ownerFeeCompact: string | null;
+  ownerFeeExact: string;
+  noShowFeeCompact: string | null;
+  noShowFeeExact: string;
+  collectedExact: string;
+  collectedCompact: string;
+  stadiumName: string;
+  waDay: string;
+  waTime: string;
 };
+
+function owesCash(row: UpcomingRowView): boolean {
+  if (row.status === "paid") return false;
+  return (
+    row.display.kind === "unpaid" ||
+    row.display.kind === "partial" ||
+    row.display.kind === "no_show_unpaid" ||
+    row.display.kind === "cancelled"
+  );
+}
 
 function CardTrail({
   display,
@@ -213,6 +248,8 @@ function DueRemainingFigures({
   );
 }
 
+type SheetStep = "details" | "cancel" | "noshow" | "adjust";
+
 export function UpcomingPanel({
   toCollect,
   toCollectHasMore,
@@ -221,7 +258,10 @@ export function UpcomingPanel({
   mayCollect,
   mayCancel,
   mayNoShow,
+  mayAdjust,
   highlight,
+  saved,
+  date,
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
@@ -230,28 +270,44 @@ export function UpcomingPanel({
   mayCollect: boolean;
   mayCancel: boolean;
   mayNoShow: boolean;
+  mayAdjust: boolean;
   highlight?: string;
+  saved?: OutcomeNotify | null;
+  date?: string;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
-  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [sheetStep, setSheetStep] = useState<SheetStep>("details");
+  const [interestOpen, setInterestOpen] = useState(false);
   const openRow =
     [...toCollect, ...games].find((row) => row.id === openId) ?? null;
   const sheetRow = openRow ?? heldRow;
   const confirmSubmitRef = useRef<HTMLButtonElement>(null);
   const cancelBookingRef = useRef<HTMLButtonElement>(null);
   const pendingFocusRef = useRef<"confirm" | "cancel" | null>(null);
+  const savedOpenedRef = useRef(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   function closeSheet() {
     setOpenId(null);
+    setInterestOpen(false);
+    if (!saved) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("notify");
+    next.delete("bookingId");
+    next.delete("freed");
+    const qs = next.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  function setCancelStep(next: boolean) {
+  function moveStep(next: SheetStep) {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    pendingFocusRef.current = next ? "confirm" : "cancel";
-    setConfirmCancel(next);
+    pendingFocusRef.current = next === "details" ? "cancel" : "confirm";
+    setSheetStep(next);
   }
 
   useLayoutEffect(() => {
@@ -259,16 +315,40 @@ export function UpcomingPanel({
     pendingFocusRef.current = null;
     if (target === "confirm") confirmSubmitRef.current?.focus();
     if (target === "cancel") cancelBookingRef.current?.focus();
-  }, [confirmCancel]);
+  }, [sheetStep]);
 
   function openRowSheet(id: string) {
     const row =
       [...toCollect, ...games].find((item) => item.id === id) ?? null;
     if (!row) return;
-    setConfirmCancel(false);
+    setSheetStep("details");
+    setInterestOpen(false);
     setHeldRow(row);
     setOpenId(id);
   }
+
+  function openInterestSheet(id: string) {
+    const row =
+      [...toCollect, ...games].find((item) => item.id === id) ?? null;
+    if (!row || row.interested.length === 0) return;
+    setSheetStep("details");
+    setInterestOpen(true);
+    setHeldRow(row);
+    setOpenId(id);
+  }
+
+  useLayoutEffect(() => {
+    if (!saved || savedOpenedRef.current) return;
+    const row =
+      [...toCollect, ...games].find((item) => item.id === saved.bookingId) ??
+      null;
+    if (!row) return;
+    savedOpenedRef.current = true;
+    setSheetStep("details");
+    setInterestOpen(true);
+    setHeldRow(row);
+    setOpenId(saved.bookingId);
+  }, [saved, toCollect, games]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -282,6 +362,7 @@ export function UpcomingPanel({
             showDate
             openId={openId}
             onOpen={openRowSheet}
+            onOpenInterests={openInterestSheet}
             locale={locale}
             highlight={highlight}
             mayCollect={mayCollect}
@@ -304,6 +385,7 @@ export function UpcomingPanel({
           showDate={false}
           openId={openId}
           onOpen={openRowSheet}
+          onOpenInterests={openInterestSheet}
           locale={locale}
           highlight={highlight}
           mayCollect={mayCollect}
@@ -327,8 +409,8 @@ export function UpcomingPanel({
             <BottomSheetHeader>
               <BottomSheetTitle
                 aria-label={
-                  confirmCancel
-                    ? ui("owner.cancel", locale)
+                  sheetStep !== "details"
+                    ? stepTitle(sheetStep, locale)
                     : sheetRow.timeRange
                 }
               >
@@ -336,18 +418,18 @@ export function UpcomingPanel({
                   <span
                     className={cn(
                       "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-                      confirmCancel ? "opacity-100" : "opacity-0",
+                      sheetStep !== "details" ? "opacity-100" : "opacity-0",
                     )}
-                    aria-hidden={!confirmCancel}
+                    aria-hidden={sheetStep === "details"}
                   >
-                    {ui("owner.cancel", locale)}
+                    {stepTitle(sheetStep, locale)}
                   </span>
                   <span
                     className={cn(
                       "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-                      confirmCancel ? "opacity-0" : "opacity-100",
+                      sheetStep !== "details" ? "opacity-0" : "opacity-100",
                     )}
-                    aria-hidden={confirmCancel}
+                    aria-hidden={sheetStep !== "details"}
                   >
                     <LtrIsolate className="text-xl font-bold leading-none">
                       {sheetRow.timeRange}
@@ -361,15 +443,51 @@ export function UpcomingPanel({
                   ? ` · ${sheetRow.dateLabel}`
                   : null}
                 {" · "}
-                {sheetRow.requesterName}
+                <Link
+                  href={`/owner/people/${sheetRow.requesterPersonId}`}
+                  className="underline-offset-2 hover:underline"
+                >
+                  {sheetRow.requesterName}
+                </Link>
               </BottomSheetDescription>
             </BottomSheetHeader>
+            {interestOpen ? (
+              <BottomSheetBody className="flex flex-col gap-4 pb-4">
+                {saved?.bookingId === sheetRow.id ? (
+                  <NotifyPersonRow
+                    person={{
+                      personId: saved.personId,
+                      name: saved.name,
+                      phone: saved.phone,
+                      whatsAppHref: saved.whatsAppHref,
+                      message: saved.message,
+                      statusLabel: saved.statusLabel,
+                    }}
+                    locale={locale}
+                    href={`/owner/people/${saved.personId}`}
+                  />
+                ) : null}
+                {sheetRow.interested.length > 0 &&
+                (saved?.bookingId !== sheetRow.id ||
+                  saved.kind === "cancelled") ? (
+                  <InterestPanel
+                    people={sheetRow.interested}
+                    locale={locale}
+                    timeRange={sheetRow.timeRange}
+                    pitchName={sheetRow.pitchName}
+                  />
+                ) : null}
+              </BottomSheetBody>
+            ) : (
+              <>
             <div className="flex flex-col gap-2 px-4 pt-2">
-              <p className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                <Phone aria-hidden className="size-3.5 shrink-0" />
-                <LtrIsolate>{sheetRow.requesterPhone}</LtrIsolate>
-              </p>
-              {sheetRow.confirmWhatsAppHref ? (
+              {sheetRow.requesterPhone ? (
+                <p className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                  <Phone aria-hidden className="size-3.5 shrink-0" />
+                  <LtrIsolate>{sheetRow.requesterPhone}</LtrIsolate>
+                </p>
+              ) : null}
+              {sheetStep === "details" && sheetRow.confirmWhatsAppHref ? (
                 <Button variant="outline" className="w-full" asChild>
                   <a
                     href={sheetRow.confirmWhatsAppHref}
@@ -383,16 +501,16 @@ export function UpcomingPanel({
               ) : null}
             </div>
             <BottomSheetStage
-              stage={confirmCancel ? "confirm" : "details"}
+              stage={sheetStep !== "details" ? "confirm" : "details"}
               active={openId !== null}
             >
               <BottomSheetBody
                 className={cn(
                   "flex flex-col gap-4 pb-4 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-                  confirmCancel &&
+                  sheetStep !== "details" &&
                     "pointer-events-none absolute inset-x-0 top-0 opacity-0",
                 )}
-                inert={confirmCancel ? true : undefined}
+                inert={sheetStep !== "details" ? true : undefined}
               >
                 <UpcomingRowActions
                   key={`${sheetRow.id}:${sheetRow.remainingUsd}`}
@@ -401,41 +519,54 @@ export function UpcomingPanel({
                   mayCollect={mayCollect}
                   mayCancel={mayCancel}
                   mayNoShow={mayNoShow}
+                  mayAdjust={mayAdjust}
                   cancelRef={cancelBookingRef}
-                  onCancelBooking={() => setCancelStep(true)}
+                  onCancelBooking={() => moveStep("cancel")}
+                  onNoShow={() => moveStep("noshow")}
+                  onAdjust={() => moveStep("adjust")}
                 />
               </BottomSheetBody>
               <BottomSheetBody
                 className={cn(
                   "flex flex-none flex-col gap-3 overflow-hidden pb-4 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-                  !confirmCancel &&
+                  sheetStep === "details" &&
                     "pointer-events-none absolute inset-x-0 top-0 opacity-0",
                 )}
-                inert={!confirmCancel ? true : undefined}
+                inert={sheetStep === "details" ? true : undefined}
               >
-                <p className="text-sm text-muted-foreground">
-                  {ui("owner.cancelHint", locale)}
-                </p>
-                <form action={submitCancelBooking}>
-                  <input type="hidden" name="bookingId" value={sheetRow.id} />
-                  <SubmitButton
-                    ref={confirmSubmitRef}
-                    variant="destructive"
-                    className="w-full"
-                  >
-                    {ui("owner.cancelConfirm", locale)}
-                  </SubmitButton>
-                </form>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => setCancelStep(false)}
-                >
-                  {ui("owner.cancelBack", locale)}
-                </Button>
+                {sheetStep === "cancel" ? (
+                  <CancelDecisionForm
+                    row={sheetRow}
+                    locale={locale}
+                    date={date}
+                    mayAdjust={mayAdjust}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
+                {sheetStep === "noshow" ? (
+                  <NoShowDecisionForm
+                    row={sheetRow}
+                    locale={locale}
+                    date={date}
+                    mayAdjust={mayAdjust}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
+                {sheetStep === "adjust" ? (
+                  <AdjustDueForm
+                    row={sheetRow}
+                    locale={locale}
+                    date={date}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
               </BottomSheetBody>
             </BottomSheetStage>
+              </>
+            )}
           </BottomSheetContent>
         ) : null}
       </BottomSheet>
@@ -443,11 +574,18 @@ export function UpcomingPanel({
   );
 }
 
+function stepTitle(step: SheetStep, locale: UiLocale): string {
+  if (step === "noshow") return ui("owner.noShow", locale);
+  if (step === "adjust") return ui("owner.adjustDue", locale);
+  return ui("owner.cancel", locale);
+}
+
 function UpcomingRows({
   rows,
   showDate,
   openId,
   onOpen,
+  onOpenInterests,
   locale,
   highlight,
   mayCollect,
@@ -457,6 +595,7 @@ function UpcomingRows({
   showDate: boolean;
   openId: string | null;
   onOpen: (id: string) => void;
+  onOpenInterests: (id: string) => void;
   locale: UiLocale;
   highlight?: string;
   mayCollect: boolean;
@@ -476,19 +615,18 @@ function UpcomingRows({
                 highlighted && !open && "bg-action-ink/10",
               )}
             >
-              <div className="flex w-full items-center gap-3">
-                <button
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-expanded={open}
-                  onClick={() => onOpen(row.id)}
-                  className={cn(
-                    "flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-start",
-                    "cursor-pointer bg-transparent outline-none",
-                    "focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
-                  )}
-                >
-                  <span className="min-w-0 flex-1">
+              <div className="flex w-full items-center">
+                <div className="min-w-0 flex-1 px-4 py-3">
+                  <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={open}
+                    onClick={() => onOpen(row.id)}
+                    className={cn(
+                      "w-full cursor-pointer bg-transparent text-start outline-none",
+                      "focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
+                    )}
+                  >
                     <span className="flex items-center gap-2">
                       <Clock
                         aria-hidden
@@ -511,32 +649,53 @@ function UpcomingRows({
                       </span>
                       {showDate ? <span>{row.dateLabel}</span> : null}
                     </span>
-                    <span className="mt-1 block truncate text-sm text-muted-foreground">
-                      {row.requesterName}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 flex-col items-end gap-1 self-center">
+                    <span className="sr-only">{ui("owner.openBooking", locale)}</span>
+                  </button>
+                  <Link
+                    href={`/owner/people/${row.requesterPersonId}`}
+                    className="mt-1 block min-h-11 truncate py-2 text-sm text-muted-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    {row.requesterName}
+                  </Link>
+                  {row.interested.length > 0 ? (
+                    <button
+                      type="button"
+                      className="mt-1 inline-flex min-h-11 items-center rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                      onClick={() => onOpenInterests(row.id)}
+                    >
+                      <CountedPhrase
+                        text={uiCount(
+                          "owner.interested",
+                          row.interested.length,
+                          locale,
+                        )}
+                      />
+                    </button>
+                  ) : null}
+                </div>
+                <button
+                  type="button"
+                  aria-label={ui("owner.openBooking", locale)}
+                  aria-haspopup="dialog"
+                  aria-expanded={open}
+                  onClick={() => onOpen(row.id)}
+                  className="flex shrink-0 cursor-pointer flex-col items-end gap-1 self-stretch bg-transparent px-4 outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
+                >
+                  <span className="my-auto flex flex-col items-end gap-1">
                     <CardTrail
                       display={row.display}
                       amountUsd={row.displayAmountUsd}
                       locale={locale}
                     />
-                    {mayCollect &&
-                    (row.display.kind === "unpaid" ||
-                      row.display.kind === "partial" ||
-                      row.display.kind === "no_show_unpaid") ? null : (
+                {mayCollect && owesCash(row) ? null : (
                       <ChevronRight
                         aria-hidden
                         className="size-5 text-muted-foreground rtl:rotate-180"
                       />
                     )}
                   </span>
-                  <span className="sr-only">{ui("owner.openBooking", locale)}</span>
                 </button>
-                {mayCollect &&
-                (row.display.kind === "unpaid" ||
-                  row.display.kind === "partial" ||
-                  row.display.kind === "no_show_unpaid") ? (
+                {mayCollect && owesCash(row) ? (
                   <Button
                     type="button"
                     size="sm"
@@ -561,23 +720,25 @@ function UpcomingRowActions({
   mayCollect,
   mayCancel,
   mayNoShow,
+  mayAdjust,
   cancelRef,
   onCancelBooking,
+  onNoShow,
+  onAdjust,
 }: {
   row: UpcomingRowView;
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
   mayNoShow: boolean;
+  mayAdjust: boolean;
   cancelRef: Ref<HTMLButtonElement>;
   onCancelBooking: () => void;
+  onNoShow: () => void;
+  onAdjust: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
-  const canCollect =
-    mayCollect &&
-    row.display.kind !== "cancelled" &&
-    row.display.kind !== "no_show_paid" &&
-    row.status !== "paid";
+  const canCollect = mayCollect && owesCash(row);
 
   return (
     <>
@@ -648,13 +809,15 @@ function UpcomingRowActions({
             ) : null}
           </>
         ) : null}
+        {mayAdjust && row.canAdjust ? (
+          <Button type="button" variant="outline" className="w-full" onClick={onAdjust}>
+            {ui("owner.adjustDue", locale)}
+          </Button>
+        ) : null}
         {mayNoShow && row.showNoShow ? (
-          <form action={submitRecordNoShow}>
-            <input type="hidden" name="bookingId" value={row.id} />
-            <SubmitButton variant="outline" className="w-full">
-              {ui("owner.noShow", locale)}
-            </SubmitButton>
-          </form>
+          <Button type="button" variant="outline" className="w-full" onClick={onNoShow}>
+            {ui("owner.noShow", locale)}
+          </Button>
         ) : null}
       </div>
       {mayCancel && row.showCancel ? (

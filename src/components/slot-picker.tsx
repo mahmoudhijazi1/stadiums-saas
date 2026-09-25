@@ -21,6 +21,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
 import { hoursEmptyState, ui } from "@/lib/ui-copy";
+import { IsolatedDigits } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 
 export type SlotPickerSlot = {
@@ -145,12 +146,15 @@ export function SlotPicker({
   hiddenFields,
   submitLabel,
   locale = "ar",
+  policyLine = null,
 }: {
   pitches: SlotPickerPitch[];
   action: (formData: FormData) => void | Promise<void>;
   hiddenFields: Record<string, string>;
   submitLabel: string;
   locale?: UiLocale;
+  /** Late-cancel policy. Public page only, and only when the percent is above 0. */
+  policyLine?: string | null;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const picked = findSelected(pitches, selected);
@@ -212,6 +216,7 @@ export function SlotPicker({
                 hiddenFields={hiddenFields}
                 submitLabel={submitLabel}
                 locale={locale}
+                policyLine={policyLine}
               />
             </BottomSheetBody>
           </BottomSheetContent>
@@ -274,6 +279,7 @@ function RequestForm({
   hiddenFields,
   submitLabel,
   locale,
+  policyLine,
 }: {
   pitchId: string;
   slot: SlotPickerSlot;
@@ -281,6 +287,7 @@ function RequestForm({
   hiddenFields: Record<string, string>;
   submitLabel: string;
   locale: UiLocale;
+  policyLine: string | null;
 }) {
   const [fieldErrors, setFieldErrors] = useState<PublicRequestFieldErrors>({});
   const nameErrorId = `name-err-${slot.startIso}`;
@@ -361,6 +368,11 @@ function RequestForm({
           </p>
         ) : null}
       </div>
+      {policyLine ? (
+        <p className="text-sm text-muted-foreground">
+          <IsolatedDigits text={policyLine} />
+        </p>
+      ) : null}
       <SubmitButton className="w-full">{submitLabel}</SubmitButton>
     </form>
   );

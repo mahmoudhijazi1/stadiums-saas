@@ -18,4 +18,14 @@ describe("formatLocalHm", () => {
     const instant = new Date("2026-10-05T13:00:00.000Z");
     expect(formatLocalHm(instant, "Asia/Beirut", "h12")).toBe("4:00 PM");
   });
+
+  it("formats h12 Arabic as صباحاً or مساءً and keeps 24-hour plain", () => {
+    const evening = new Date("2026-10-05T16:00:00.000Z");
+    expect(formatLocalHm(evening, "Asia/Beirut", "h12", "ar")).toBe("7:00 مساءً");
+    expect(formatLocalHm(evening, "Asia/Beirut", "h12", "en")).toBe("7:00 PM");
+    expect(formatLocalHm(evening, "Asia/Beirut", "h23", "ar")).toBe("19:00");
+    const morning = new Date("2026-10-05T04:00:00.000Z");
+    expect(formatLocalHm(morning, "Asia/Beirut", "h12", "ar")).toBe("7:00 صباحاً");
+    expect(formatLocalHm(morning, "Asia/Beirut", "h12", "en")).toBe("7:00 AM");
+  });
 });

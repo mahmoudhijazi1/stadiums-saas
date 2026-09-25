@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BusinessMenu } from "@/app/owner/business-menu";
 import { OfflinePill } from "@/app/owner/offline-pill";
 import type { UiLocale } from "@/lib/locale";
@@ -9,7 +10,7 @@ import { Search } from "lucide-react";
  * Below lg: a floating inverse bar, inset like the bottom nav.
  * At lg: a full-width dark block on the content column.
  * Sticky. It does not hide on scroll.
- * Search is a visible control; the results screen is a later slice.
+ * Search opens /owner/search.
  */
 export function OwnerHeader({
   tenantName,
@@ -35,14 +36,13 @@ export function OwnerHeader({
         )}
       >
         <BusinessMenu tenantName={tenantName} locale={locale} />
-        <button
-          type="button"
-          disabled
+        <Link
+          href="/owner/search"
           aria-label={ui("owner.search", locale)}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-inverse-ink opacity-80 dark:lg:text-ink"
+          className="grid size-11 shrink-0 place-items-center rounded-full text-inverse-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:lg:text-ink"
         >
           <Search aria-hidden className="size-5" />
-        </button>
+        </Link>
       </div>
       <OfflinePill locale={locale} />
     </header>

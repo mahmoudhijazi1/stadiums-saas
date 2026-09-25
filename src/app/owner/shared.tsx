@@ -3,11 +3,12 @@ import { getCurrentMembership } from "@/modules/access/application/get-current-m
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   formatLocalHm,
+  type ClockLocale,
   type HourCycle,
 } from "@/lib/format-local-hm";
 
 export const OWNER_TIME_ZONE = "Asia/Beirut";
-export type { HourCycle };
+export type { ClockLocale, HourCycle };
 
 export function queryString(
   value: string | string[] | undefined,
@@ -27,8 +28,9 @@ export function formatLocalRange(
   start: Date,
   end: Date,
   hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
 ): string {
-  return `${formatLocalClock(start, hourCycle)}–${formatLocalClock(end, hourCycle)} (${OWNER_TIME_ZONE})`;
+  return `${formatLocalClock(start, hourCycle, locale)}–${formatLocalClock(end, hourCycle, locale)} (${OWNER_TIME_ZONE})`;
 }
 
 /** Time range without the zone name (Home compact rows). */
@@ -36,13 +38,15 @@ export function formatLocalClockRange(
   start: Date,
   end: Date,
   hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
 ): string {
-  return `${formatLocalClock(start, hourCycle)}–${formatLocalClock(end, hourCycle)}`;
+  return `${formatLocalClock(start, hourCycle, locale)}–${formatLocalClock(end, hourCycle, locale)}`;
 }
 
 export function formatLocalClock(
   value: Date,
   hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
 ): string {
-  return formatLocalHm(value, OWNER_TIME_ZONE, hourCycle);
+  return formatLocalHm(value, OWNER_TIME_ZONE, hourCycle, locale);
 }

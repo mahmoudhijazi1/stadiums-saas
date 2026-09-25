@@ -7,7 +7,12 @@ import { useTheme } from "next-themes";
 import { ChevronRight } from "lucide-react";
 import { setUiLocale } from "@/app/locale-actions";
 import { ShareCard } from "@/app/owner/share-card";
-import { submitSetExchangeRate, submitSetTimeDisplay } from "@/app/owner/(app)/more/settings/actions";
+import {
+  submitSetBookingRules,
+  submitSetExchangeRate,
+  submitSetTimeDisplay,
+} from "@/app/owner/(app)/more/settings/actions";
+import { CountedPhrase } from "@/app/owner/notify-list";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   BottomSheet,
@@ -26,7 +31,7 @@ import {
   type UiLocale,
 } from "@/lib/locale";
 import type { TimeDisplay } from "@/lib/tenant-settings";
-import { ui } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/ui-copy";
 import { cn } from "cn";
 
 type SheetId =
@@ -56,6 +61,40 @@ function RowValue({ children }: { children: ReactNode }) {
   );
 }
 
+function PercentField({
+  name,
+  label,
+  current,
+}: {
+  name: string;
+  label: string;
+  current: number;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-sm font-medium">{label}</legend>
+      <div className="flex gap-2">
+        {([0, 50, 100] as const).map((percent) => (
+          <label
+            key={percent}
+            className="flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border has-[:checked]:bg-selected has-[:checked]:text-selected-ink"
+          >
+            <input
+              type="radio"
+              name={name}
+              value={String(percent)}
+              defaultChecked={current === percent}
+              className="sr-only"
+              required
+            />
+            <LtrIsolate>{percent}%</LtrIsolate>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 function AppearanceValue({ locale }: { locale: UiLocale }) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -82,6 +121,9 @@ export function MoreHub({
   rateGrouped,
   changedLabel,
   timeDisplay,
+  cancellationWindowHours,
+  lateCancellationFeePercent,
+  noShowFeePercent,
   identifier,
 }: {
   locale: UiLocale;
@@ -91,6 +133,9 @@ export function MoreHub({
   rateGrouped: string | null;
   changedLabel: string | null;
   timeDisplay: TimeDisplay;
+  cancellationWindowHours: number;
+  lateCancellationFeePercent: number;
+  noShowFeePercent: number;
   identifier: string;
 }) {
   const router = useRouter();
@@ -149,7 +194,14 @@ export function MoreHub({
             <li className="border-b">
               <button type="button" className={rowClass} onClick={() => setSheet("rules")}>
                 <span className="font-medium">{ui("owner.bookingRules", locale)}</span>
-                <RowValue>{ui("owner.bookingRulesValue", locale)}</RowValue>
+                <RowValue>
+                  {ui("owner.rulesTrailLead", locale)}{" "}
+                  <CountedPhrase
+                    text={uiCount("owner.ruleHours", cancellationWindowHours, locale)}
+                  />
+                  {" · "}
+                  <LtrIsolate>{lateCancellationFeePercent}%</LtrIsolate>
+                </RowValue>
               </button>
             </li>
             <li>
@@ -233,7 +285,7 @@ export function MoreHub({
                   <p className="text-sm text-muted-foreground">
                     {ui("owner.rateLastChanged", locale)}
                     {" · "}
-                    <LtrIsolate>{changedLabel}</LtrIsolate>
+                    <CountedPhrase text={changedLabel} />
                   </p>
                 ) : null}
                 <form action={submitSetExchangeRate} className="flex flex-col gap-4">
@@ -264,7 +316,36 @@ export function MoreHub({
                 <BottomSheetTitle>{ui("owner.bookingRules", locale)}</BottomSheetTitle>
               </BottomSheetHeader>
               <BottomSheetBody>
-                <p className="text-sm">{ui("owner.bookingRulesBody", locale)}</p>
+                <form action={submitSetBookingRules} className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="cancellationWindowHours">
+                      {ui("owner.cancelWindow", locale)}
+                    </Label>
+                    <Input
+                      id="cancellationWindowHours"
+                      dir="ltr"
+                      type="text"
+                      name="cancellationWindowHours"
+                      required
+                      inputMode="numeric"
+                      defaultValue={String(cancellationWindowHours)}
+                      className="font-mono"
+                    />
+                  </div>
+                  <PercentField
+                    name="lateCancellationFeePercent"
+                    label={ui("owner.lateFee", locale)}
+                    current={lateCancellationFeePercent}
+                  />
+                  <PercentField
+                    name="noShowFeePercent"
+                    label={ui("owner.noShowFeeSetting", locale)}
+                    current={noShowFeePercent}
+                  />
+                  <SubmitButton className="w-full">
+                    {ui("owner.saveRules", locale)}
+                  </SubmitButton>
+                </form>
               </BottomSheetBody>
             </>
           ) : null}

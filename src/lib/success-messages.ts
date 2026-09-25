@@ -10,6 +10,7 @@ const ARABIC: Record<string, string> = {
   collected: "تم التحصيل.",
   booked: "تم الحجز.",
   cancelled: "تم الإلغاء.",
+  slot_empty: "لا أحد ينتظر هذه الساعة.",
   no_show: "سُجّل عدم الحضور.",
   rate_set: "تم تعيين السعر.",
   time_display_set: "تم حفظ عرض الوقت.",
@@ -17,6 +18,8 @@ const ARABIC: Record<string, string> = {
   requested: "وصل الطلب.",
   pitch_created: "أُضيف الملعب.",
   pitch_updated: "حُفظ الملعب.",
+  rules_saved: "حُفظت قواعد الحجز.",
+  due_adjusted: "عُدّل المبلغ.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -25,6 +28,7 @@ const ENGLISH: Record<string, string> = {
   collected: "Collected.",
   booked: "Booked.",
   cancelled: "Cancelled.",
+  slot_empty: "No one is waiting for this slot.",
   no_show: "Marked as no-show.",
   rate_set: "Rate set.",
   time_display_set: "Time format saved.",
@@ -32,6 +36,8 @@ const ENGLISH: Record<string, string> = {
   requested: "Request received.",
   pitch_created: "Pitch added.",
   pitch_updated: "Pitch saved.",
+  rules_saved: "Booking rules saved.",
+  due_adjusted: "Amount adjusted.",
 };
 
 const GENERIC_AR = "تم.";

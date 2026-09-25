@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@/app/generated/prisma/client";
 import type { BookingStatus } from "@/app/generated/prisma/enums";
 import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
@@ -29,7 +30,10 @@ async function insertBookingDuring(
   const price = formatUsd(input.priceUsd);
 
   await tx.$executeRaw`
-    INSERT INTO "Booking" ("id", "tenantId", "pitchId", "during", "status", "source", "priceUsd")
+    INSERT INTO "Booking" (
+      "id", "tenantId", "pitchId", "during", "status", "source",
+      "priceUsd", "amountDueUsd", "collectionMode"
+    )
     VALUES (
       ${id},
       ${tenantId},
@@ -37,7 +41,9 @@ async function insertBookingDuring(
       tstzrange(${input.start}, ${input.end}, '[)'),
       ${status}::"BookingStatus",
       ${source}::"BookingSource",
-      ${price}::decimal
+      ${price}::decimal,
+      ${price}::decimal,
+      'WHOLE'::"CollectionMode"
     )
   `;
 
@@ -54,6 +60,26 @@ export async function insertPendingPublicBooking(
   input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
 ): Promise<string> {
   return insertBookingDuring(tx, input, "PENDING", "PUBLIC");
+}
+
+/**
+ * Serialize approved writes on one pitch (BR-24).
+ * The second transaction waits here instead of deadlocking on the other booking row.
+ * Raw SQL includes tenantId — the extension does not stamp $queryRaw.
+ */
+export async function lockPitchForUpdate(
+  tx: TenantTx,
+  pitchId: string,
+): Promise<void> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "Pitch"
+    WHERE id = ${pitchId} AND "tenantId" = ${tenantId}
+    FOR UPDATE
+  `;
+  if (!rows[0]) {
+    throw new DomainError("booking.pitch_not_found");
+  }
 }
 
 /**
@@ -95,8 +121,9 @@ export type PendingBookingRow = {
   start: Date;
   end: Date;
   requestedAt: Date;
+  requesterPersonId: string;
   requesterName: string;
-  requesterPhone: string;
+  requesterPhone: string | null;
 };
 
 type PendingSqlRow = {
@@ -106,8 +133,9 @@ type PendingSqlRow = {
   start: Date | string;
   end: Date | string;
   requestedAt: Date | string;
+  requesterPersonId: string;
   requesterName: string;
-  requesterPhone: string;
+  requesterPhone: string | null;
 };
 
 /**
@@ -127,6 +155,7 @@ export async function listPendingBookings(
       lower(b.during) AS start,
       upper(b.during) AS end,
       b."requestedAt",
+      per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
     FROM "Booking" b
@@ -145,6 +174,7 @@ export async function listPendingBookings(
     start: asDate(row.start),
     end: asDate(row.end),
     requestedAt: asDate(row.requestedAt),
+    requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
   }));
@@ -157,6 +187,8 @@ export type BookingForDecision = {
   start: Date;
   end: Date;
   priceUsd: Decimal;
+  amountDueUsd: Decimal;
+  collectionMode: "WHOLE" | "PER_PLAYER";
 };
 
 type BookingSqlRow = {
@@ -166,6 +198,8 @@ type BookingSqlRow = {
   start: Date | string;
   end: Date | string;
   priceUsd: Decimal | string;
+  amountDueUsd: Decimal | string;
+  collectionMode: "WHOLE" | "PER_PLAYER";
 };
 
 /**
@@ -183,7 +217,9 @@ export async function findBookingForDecision(
       status,
       lower(during) AS start,
       upper(during) AS end,
-      "priceUsd"
+      "priceUsd",
+      "amountDueUsd",
+      "collectionMode"::text AS "collectionMode"
     FROM "Booking"
     WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
   `;
@@ -196,6 +232,164 @@ export async function findBookingForDecision(
     start: asDate(row.start),
     end: asDate(row.end),
     priceUsd: new Decimal(row.priceUsd.toString()),
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    collectionMode: row.collectionMode,
+  };
+}
+
+export type BookingRequesterRow = {
+  id: string;
+  status: BookingStatus;
+  pitchId: string;
+  pitchName: string;
+  start: Date;
+  end: Date;
+  requesterPersonId: string;
+  requesterName: string;
+  requesterPhone: string | null;
+};
+
+type BookingRequesterSqlRow = {
+  id: string;
+  status: BookingStatus;
+  pitchId: string;
+  pitchName: string;
+  start: Date | string;
+  end: Date | string;
+  requesterPersonId: string;
+  requesterName: string;
+  requesterPhone: string | null;
+};
+
+/**
+ * One booking plus its requester, any status. Missing → null.
+ */
+export async function findBookingRequester(
+  tx: TenantTx,
+  bookingId: string,
+): Promise<BookingRequesterRow | null> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<BookingRequesterSqlRow[]>`
+    SELECT
+      b.id,
+      b.status::text AS status,
+      b."pitchId",
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      per.id AS "requesterPersonId",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    WHERE b.id = ${bookingId} AND b."tenantId" = ${tenantId}
+  `;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    status: row.status,
+    pitchId: row.pitchId,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    requesterPersonId: row.requesterPersonId,
+    requesterName: row.requesterName,
+    requesterPhone: row.requesterPhone,
+  };
+}
+
+export type BookingFeeState = {
+  id: string;
+  status: BookingStatus;
+  pitchName: string;
+  start: Date;
+  amountDueUsd: Decimal;
+  collectedUsd: Decimal;
+  requesterPersonId: string;
+  requesterName: string;
+  requesterPhone: string | null;
+  dueNote: string | null;
+  dueToUsd: Decimal | null;
+};
+
+type BookingFeeSqlRow = {
+  id: string;
+  status: BookingStatus;
+  pitchName: string;
+  start: Date | string;
+  amountDueUsd: Decimal | string;
+  collectedUsd: Decimal | string | null;
+  requesterPersonId: string;
+  requesterName: string;
+  requesterPhone: string | null;
+  dueNote: string | null;
+  dueToUsd: Decimal | string | null;
+};
+
+/**
+ * Saved due, collected, and the latest due-change note. Used to build a
+ * WhatsApp body after cancel, no-show, or adjust — not from the form.
+ */
+export async function findBookingFeeState(
+  tx: TenantTx,
+  bookingId: string,
+): Promise<BookingFeeState | null> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<BookingFeeSqlRow[]>`
+    SELECT
+      b.id,
+      b.status::text AS status,
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      b."amountDueUsd",
+      COALESCE(collected.usd, 0) AS "collectedUsd",
+      per.id AS "requesterPersonId",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone",
+      latest.note AS "dueNote",
+      latest."toUsd" AS "dueToUsd"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+      FROM "Payment" pay
+      JOIN "PaymentTender" t ON t."paymentId" = pay.id
+      WHERE pay."tenantId" = b."tenantId"
+        AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+        AND pay."sourceId" = b.id
+    ) collected ON true
+    LEFT JOIN LATERAL (
+      SELECT d.note, d."toUsd"
+      FROM "BookingDueChange" d
+      WHERE d."tenantId" = b."tenantId"
+        AND d."bookingId" = b.id
+      ORDER BY d."createdAt" DESC
+      LIMIT 1
+    ) latest ON true
+    WHERE b.id = ${bookingId} AND b."tenantId" = ${tenantId}
+  `;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    id: row.id,
+    status: row.status,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    requesterPersonId: row.requesterPersonId,
+    requesterName: row.requesterName,
+    requesterPhone: row.requesterPhone,
+    dueNote: row.dueNote,
+    dueToUsd:
+      row.dueToUsd === null || row.dueToUsd === undefined
+        ? null
+        : new Decimal(row.dueToUsd.toString()),
   };
 }
 
@@ -292,6 +486,58 @@ export async function setApprovedNoShow(
 }
 
 /**
+ * Write Booking.amountDueUsd. A later change of collection mode, participants,
+ * or participant dues must call this in the same transaction (SPEC-15).
+ */
+export async function setBookingAmountDue(
+  tx: TenantTx,
+  bookingId: string,
+  amountDueUsd: Decimal,
+): Promise<void> {
+  const result = await tx.booking.updateMany({
+    where: { id: bookingId },
+    data: { amountDueUsd: formatUsd(amountDueUsd) },
+  });
+  if (result.count !== 1) {
+    throw new DomainError("booking.not_found");
+  }
+}
+
+/**
+ * Append one due change. tenantId is stamped by the extension.
+ * Written in the same transaction as Booking.amountDueUsd.
+ */
+export async function insertBookingDueChange(
+  tx: TenantTx,
+  input: {
+    bookingId: string;
+    fromUsd: Decimal;
+    toUsd: Decimal;
+    reason:
+      | "LATE_CANCELLATION_FEE"
+      | "NO_SHOW_FEE"
+      | "CANCELLATION_NO_FEE"
+      | "PARTIAL_GAME"
+      | "DISCOUNT"
+      | "WAIVER"
+      | "CORRECTION";
+    note: string | null;
+    actorMembershipId: string;
+  },
+): Promise<void> {
+  await tx.bookingDueChange.create({
+    data: {
+      bookingId: input.bookingId,
+      fromUsd: formatUsd(input.fromUsd),
+      toUsd: formatUsd(input.toUsd),
+      reason: input.reason,
+      note: input.note,
+      actorMembershipId: input.actorMembershipId,
+    } as Parameters<typeof tx.bookingDueChange.create>[0]["data"],
+  });
+}
+
+/**
  * Requester person on this booking (for slot_interests). Guard scopes the participant.
  */
 export async function findRequesterPersonId(
@@ -384,7 +630,7 @@ export async function listSlotInterestsWithPeople(
   }));
 }
 
-export type HomeCollectStatus = "APPROVED" | "NO_SHOW";
+export type HomeCollectStatus = "APPROVED" | "NO_SHOW" | "CANCELLED";
 
 export type ApprovedCollectRow = {
   id: string;
@@ -393,6 +639,7 @@ export type ApprovedCollectRow = {
   start: Date;
   end: Date;
   priceUsd: Decimal;
+  amountDueUsd: Decimal;
   requesterName: string;
   requesterPhone: string;
 };
@@ -404,6 +651,7 @@ type ApprovedCollectSqlRow = {
   start: Date | string;
   end: Date | string;
   priceUsd: Decimal | string;
+  amountDueUsd: Decimal | string;
   requesterName: string;
   requesterPhone: string;
 };
@@ -422,12 +670,13 @@ function mapApprovedCollect(
     start: asDate(row.start),
     end: asDate(row.end),
     priceUsd: new Decimal(row.priceUsd.toString()),
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
   }));
 }
 
-/** APPROVED / NO_SHOW whose slot starts in `[from, to)` (UTC). */
+/** APPROVED / NO_SHOW / CANCELLED whose slot starts in `[from, to)` (UTC). */
 export async function listApprovedBookingsInRange(
   tx: TenantTx,
   from: Date,
@@ -442,6 +691,7 @@ export async function listApprovedBookingsInRange(
       lower(b.during) AS start,
       upper(b.during) AS end,
       b."priceUsd",
+      b."amountDueUsd",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
     FROM "Booking" b
@@ -449,7 +699,11 @@ export async function listApprovedBookingsInRange(
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
     JOIN "Person" per ON per.id = bp."personId"
     WHERE b."tenantId" = ${tenantId}
-      AND b.status IN ('APPROVED'::"BookingStatus", 'NO_SHOW'::"BookingStatus")
+      AND b.status IN (
+        'APPROVED'::"BookingStatus",
+        'NO_SHOW'::"BookingStatus",
+        'CANCELLED'::"BookingStatus"
+      )
       AND lower(b.during) >= ${from}
       AND lower(b.during) < ${to}
     ORDER BY lower(b.during) ASC
@@ -457,7 +711,7 @@ export async function listApprovedBookingsInRange(
   return mapApprovedCollect(rows);
 }
 
-/** APPROVED / NO_SHOW whose slot started before `before` (UTC). */
+/** APPROVED / NO_SHOW / CANCELLED whose slot started before `before` (UTC). */
 export async function listApprovedBookingsStartingBefore(
   tx: TenantTx,
   before: Date,
@@ -471,6 +725,7 @@ export async function listApprovedBookingsStartingBefore(
       lower(b.during) AS start,
       upper(b.during) AS end,
       b."priceUsd",
+      b."amountDueUsd",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
     FROM "Booking" b
@@ -478,7 +733,11 @@ export async function listApprovedBookingsStartingBefore(
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
     JOIN "Person" per ON per.id = bp."personId"
     WHERE b."tenantId" = ${tenantId}
-      AND b.status IN ('APPROVED'::"BookingStatus", 'NO_SHOW'::"BookingStatus")
+      AND b.status IN (
+        'APPROVED'::"BookingStatus",
+        'NO_SHOW'::"BookingStatus",
+        'CANCELLED'::"BookingStatus"
+      )
       AND lower(b.during) < ${before}
     ORDER BY lower(b.during) ASC
   `;
@@ -489,12 +748,14 @@ export type BookingForCollect = {
   id: string;
   status: BookingStatus;
   priceUsd: Decimal;
+  amountDueUsd: Decimal;
 };
 
 type BookingCollectSqlRow = {
   id: string;
   status: BookingStatus;
   priceUsd: Decimal | string;
+  amountDueUsd: Decimal | string;
 };
 
 /**
@@ -506,7 +767,7 @@ export async function findBookingForCollect(
 ): Promise<BookingForCollect | null> {
   const tenantId = await getCurrentTenantId();
   const rows = await tx.$queryRaw<BookingCollectSqlRow[]>`
-    SELECT id, status, "priceUsd"
+    SELECT id, status, "priceUsd", "amountDueUsd"
     FROM "Booking"
     WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
   `;
@@ -516,6 +777,7 @@ export async function findBookingForCollect(
     id: row.id,
     status: row.status,
     priceUsd: new Decimal(row.priceUsd.toString()),
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
   };
 }
 
@@ -561,36 +823,48 @@ export type DayBookingStatus = "APPROVED" | "CANCELLED" | "NO_SHOW";
 export type DayBookingRow = {
   id: string;
   status: DayBookingStatus;
+  pitchId: string;
   pitchName: string;
   start: Date;
   end: Date;
   priceUsd: Decimal;
+  amountDueUsd: Decimal;
   collectedUsd: Decimal;
+  collectionMode: "WHOLE" | "PER_PLAYER";
+  requesterPersonId: string;
   requesterName: string;
-  requesterPhone: string;
+  requesterPhone: string | null;
 };
 
 type DayBookingSqlRow = {
   id: string;
   status: DayBookingStatus;
+  pitchId: string;
   pitchName: string;
   start: Date | string;
   end: Date | string;
   priceUsd: Decimal | string;
+  amountDueUsd: Decimal | string;
   collectedUsd: Decimal | string | null;
+  collectionMode: "WHOLE" | "PER_PLAYER";
+  requesterPersonId: string;
   requesterName: string;
-  requesterPhone: string;
+  requesterPhone: string | null;
 };
 
 function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
   return {
     id: row.id,
     status: row.status,
+    pitchId: row.pitchId,
     pitchName: row.pitchName,
     start: asDate(row.start),
     end: asDate(row.end),
     priceUsd: new Decimal(row.priceUsd.toString()),
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    collectionMode: row.collectionMode,
+    requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
   };
@@ -611,10 +885,13 @@ export async function listBookingsForStartDay(
     SELECT
       b.id,
       b.status,
+      b."pitchId",
       p.name AS "pitchName",
       lower(b.during) AS start,
       upper(b.during) AS end,
       b."priceUsd",
+      b."amountDueUsd",
+      b."collectionMode"::text AS "collectionMode",
       COALESCE((
         SELECT SUM(t."usdEquivalent")
         FROM "Payment" pay
@@ -623,6 +900,7 @@ export async function listBookingsForStartDay(
           AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
           AND pay."sourceId" = b.id
       ), 0) AS "collectedUsd",
+      per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
     FROM "Booking" b
@@ -643,7 +921,8 @@ export async function listBookingsForStartDay(
 }
 
 /**
- * Ended APPROVED / NO_SHOW with money still due, oldest start first.
+ * Owed bookings, oldest start first. Same split as classifyDue:
+ * ended APPROVED, any NO_SHOW, any CANCELLED, each with due above collected.
  * `limit` includes one extra row so the caller can tell there is more.
  */
 export async function listEndedWithRemaining(
@@ -656,11 +935,15 @@ export async function listEndedWithRemaining(
     SELECT
       b.id,
       b.status,
+      b."pitchId",
       p.name AS "pitchName",
       lower(b.during) AS start,
       upper(b.during) AS end,
       b."priceUsd",
+      b."amountDueUsd",
+      b."collectionMode"::text AS "collectionMode",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
     FROM "Booking" b
@@ -676,11 +959,318 @@ export async function listEndedWithRemaining(
         AND pay."sourceId" = b.id
     ) collected ON true
     WHERE b."tenantId" = ${tenantId}
-      AND b.status IN ('APPROVED'::"BookingStatus", 'NO_SHOW'::"BookingStatus")
-      AND upper(b.during) <= ${now}
-      AND b."priceUsd" > collected.usd
+      AND b."amountDueUsd" > collected.usd
+      AND (
+        (
+          b.status = 'APPROVED'::"BookingStatus"
+          AND upper(b.during) <= ${now}
+        )
+        OR b.status IN (
+          'NO_SHOW'::"BookingStatus",
+          'CANCELLED'::"BookingStatus"
+        )
+      )
     ORDER BY lower(b.during) ASC, b.id ASC
     LIMIT ${limit}
   `;
   return rows.map(mapDayBooking);
+}
+
+export type PersonHistoryRow = {
+  id: string;
+  status: DayBookingStatus;
+  pitchName: string;
+  start: Date;
+  end: Date;
+  priceUsd: Decimal;
+  amountDueUsd: Decimal;
+  collectedUsd: Decimal;
+  collectionMode: "WHOLE" | "PER_PLAYER";
+  isRequester: boolean;
+  participantDueUsd: Decimal;
+  allocatedUsd: Decimal;
+};
+
+type PersonHistorySqlRow = {
+  id: string;
+  status: DayBookingStatus;
+  pitchName: string;
+  start: Date | string;
+  end: Date | string;
+  priceUsd: Decimal | string;
+  amountDueUsd: Decimal | string;
+  collectedUsd: Decimal | string | null;
+  collectionMode: "WHOLE" | "PER_PLAYER";
+  isRequester: boolean;
+  participantDueUsd: Decimal | string;
+  allocatedUsd: Decimal | string | null;
+};
+
+function mapPersonHistory(row: PersonHistorySqlRow): PersonHistoryRow {
+  return {
+    id: row.id,
+    status: row.status,
+    pitchName: row.pitchName,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    priceUsd: new Decimal(row.priceUsd.toString()),
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    collectionMode: row.collectionMode,
+    isRequester: row.isRequester,
+    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
+    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
+  };
+}
+
+/**
+ * Participations for one person, newest start first.
+ * Keyset is (lower(during), booking id). `limit` includes one extra row.
+ */
+export async function listPersonBookingRows(
+  tx: TenantTx,
+  personId: string,
+  cursor: { start: Date; id: string } | null,
+  limit: number,
+): Promise<PersonHistoryRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = cursor
+    ? await tx.$queryRaw<PersonHistorySqlRow[]>`
+        SELECT
+          b.id,
+          b.status,
+          p.name AS "pitchName",
+          lower(b.during) AS start,
+          upper(b.during) AS end,
+          b."priceUsd",
+          b."amountDueUsd",
+          b."collectionMode"::text AS "collectionMode",
+          bp."isRequester",
+          bp."amountDueUsd" AS "participantDueUsd",
+          COALESCE(collected.usd, 0) AS "collectedUsd",
+          COALESCE(alloc.usd, 0) AS "allocatedUsd"
+        FROM "BookingParticipant" bp
+        JOIN "Booking" b ON b.id = bp."bookingId"
+        JOIN "Pitch" p ON p.id = b."pitchId"
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+          FROM "Payment" pay
+          JOIN "PaymentTender" t ON t."paymentId" = pay.id
+          WHERE pay."tenantId" = b."tenantId"
+            AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+            AND pay."sourceId" = b.id
+        ) collected ON true
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+          FROM "PaymentAllocation" a
+          WHERE a."tenantId" = bp."tenantId"
+            AND a."participantId" = bp.id
+        ) alloc ON true
+        WHERE bp."tenantId" = ${tenantId}
+          AND bp."personId" = ${personId}
+          AND b.status IN (
+            'APPROVED'::"BookingStatus",
+            'CANCELLED'::"BookingStatus",
+            'NO_SHOW'::"BookingStatus"
+          )
+          AND (
+            lower(b.during) < ${cursor.start}
+            OR (lower(b.during) = ${cursor.start} AND b.id < ${cursor.id})
+          )
+        ORDER BY lower(b.during) DESC, b.id DESC
+        LIMIT ${limit}
+      `
+    : await tx.$queryRaw<PersonHistorySqlRow[]>`
+        SELECT
+          b.id,
+          b.status,
+          p.name AS "pitchName",
+          lower(b.during) AS start,
+          upper(b.during) AS end,
+          b."priceUsd",
+          b."amountDueUsd",
+          b."collectionMode"::text AS "collectionMode",
+          bp."isRequester",
+          bp."amountDueUsd" AS "participantDueUsd",
+          COALESCE(collected.usd, 0) AS "collectedUsd",
+          COALESCE(alloc.usd, 0) AS "allocatedUsd"
+        FROM "BookingParticipant" bp
+        JOIN "Booking" b ON b.id = bp."bookingId"
+        JOIN "Pitch" p ON p.id = b."pitchId"
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+          FROM "Payment" pay
+          JOIN "PaymentTender" t ON t."paymentId" = pay.id
+          WHERE pay."tenantId" = b."tenantId"
+            AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+            AND pay."sourceId" = b.id
+        ) collected ON true
+        LEFT JOIN LATERAL (
+          SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+          FROM "PaymentAllocation" a
+          WHERE a."tenantId" = bp."tenantId"
+            AND a."participantId" = bp.id
+        ) alloc ON true
+        WHERE bp."tenantId" = ${tenantId}
+          AND bp."personId" = ${personId}
+          AND b.status IN (
+            'APPROVED'::"BookingStatus",
+            'CANCELLED'::"BookingStatus",
+            'NO_SHOW'::"BookingStatus"
+          )
+        ORDER BY lower(b.during) DESC, b.id DESC
+        LIMIT ${limit}
+      `;
+  return rows.map(mapPersonHistory);
+}
+
+/** Every participation used by person stats. One query, folded in domain. */
+export async function listPersonStatRows(
+  tx: TenantTx,
+  personId: string,
+): Promise<PersonHistoryRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<PersonHistorySqlRow[]>`
+    SELECT
+      b.id,
+      b.status,
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."priceUsd",
+      b."amountDueUsd",
+      b."collectionMode"::text AS "collectionMode",
+      bp."isRequester",
+      bp."amountDueUsd" AS "participantDueUsd",
+      COALESCE(collected.usd, 0) AS "collectedUsd",
+      COALESCE(alloc.usd, 0) AS "allocatedUsd"
+    FROM "BookingParticipant" bp
+    JOIN "Booking" b ON b.id = bp."bookingId"
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+      FROM "Payment" pay
+      JOIN "PaymentTender" t ON t."paymentId" = pay.id
+      WHERE pay."tenantId" = b."tenantId"
+        AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+        AND pay."sourceId" = b.id
+    ) collected ON true
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      FROM "PaymentAllocation" a
+      WHERE a."tenantId" = bp."tenantId"
+        AND a."participantId" = bp.id
+    ) alloc ON true
+    WHERE bp."tenantId" = ${tenantId}
+      AND bp."personId" = ${personId}
+      AND b.status IN (
+        'APPROVED'::"BookingStatus",
+        'CANCELLED'::"BookingStatus",
+        'NO_SHOW'::"BookingStatus"
+      )
+  `;
+  return rows.map(mapPersonHistory);
+}
+
+export type DebtParticipationSqlRow = {
+  personId: string;
+  bookingId: string;
+  status: "APPROVED" | "CANCELLED" | "NO_SHOW";
+  start: Date;
+  end: Date;
+  collectionMode: "WHOLE" | "PER_PLAYER";
+  isRequester: boolean;
+  amountDueUsd: Decimal;
+  collectedUsd: Decimal;
+  participantDueUsd: Decimal;
+  allocatedUsd: Decimal;
+  reason: string | null;
+};
+
+type DebtParticipationRaw = {
+  personId: string;
+  bookingId: string;
+  status: "APPROVED" | "CANCELLED" | "NO_SHOW";
+  start: Date | string;
+  end: Date | string;
+  collectionMode: "WHOLE" | "PER_PLAYER";
+  isRequester: boolean;
+  amountDueUsd: Decimal | string;
+  collectedUsd: Decimal | string | null;
+  participantDueUsd: Decimal | string;
+  allocatedUsd: Decimal | string | null;
+  reason: string | null;
+};
+
+/**
+ * Participations for many people, one query. Latest due-change reason rides along.
+ * Caller passes the person ids on this screen. Empty list does not hit the database.
+ */
+export async function listDebtParticipations(
+  tx: TenantTx,
+  personIds: string[],
+): Promise<DebtParticipationSqlRow[]> {
+  if (personIds.length === 0) return [];
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<DebtParticipationRaw[]>`
+    SELECT
+      bp."personId",
+      b.id AS "bookingId",
+      b.status::text AS status,
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."collectionMode"::text AS "collectionMode",
+      bp."isRequester",
+      b."amountDueUsd",
+      bp."amountDueUsd" AS "participantDueUsd",
+      COALESCE(collected.usd, 0) AS "collectedUsd",
+      COALESCE(alloc.usd, 0) AS "allocatedUsd",
+      latest.reason::text AS reason
+    FROM "BookingParticipant" bp
+    JOIN "Booking" b ON b.id = bp."bookingId"
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+      FROM "Payment" pay
+      JOIN "PaymentTender" t ON t."paymentId" = pay.id
+      WHERE pay."tenantId" = b."tenantId"
+        AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+        AND pay."sourceId" = b.id
+    ) collected ON true
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      FROM "PaymentAllocation" a
+      WHERE a."tenantId" = bp."tenantId"
+        AND a."participantId" = bp.id
+    ) alloc ON true
+    LEFT JOIN LATERAL (
+      SELECT d.reason
+      FROM "BookingDueChange" d
+      WHERE d."tenantId" = b."tenantId"
+        AND d."bookingId" = b.id
+      ORDER BY d."createdAt" DESC
+      LIMIT 1
+    ) latest ON true
+    WHERE bp."tenantId" = ${tenantId}
+      AND bp."personId" IN (${Prisma.join(personIds)})
+      AND bp."personId" IS NOT NULL
+      AND b.status IN (
+        'APPROVED'::"BookingStatus",
+        'CANCELLED'::"BookingStatus",
+        'NO_SHOW'::"BookingStatus"
+      )
+  `;
+  return rows.map((row) => ({
+    personId: row.personId,
+    bookingId: row.bookingId,
+    status: row.status,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    collectionMode: row.collectionMode,
+    isRequester: row.isRequester,
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
+    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
+    reason: row.reason,
+  }));
 }

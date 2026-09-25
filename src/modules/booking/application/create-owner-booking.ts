@@ -12,6 +12,7 @@ import {
   insertApprovedOwnerBooking,
   insertRequesterParticipant,
   listApprovedRanges,
+  lockPitchForUpdate,
 } from "@/modules/booking/infrastructure/bookings";
 import type { OwnerCreateBooking } from "@/modules/booking/schemas/owner-create-booking";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
@@ -24,7 +25,7 @@ const TIME_ZONE = "Asia/Beirut";
 /**
  * Phone-call booking: APPROVED immediately (BR-14). Auth before $transaction.
  * Price from Venue. Overlapping PUBLIC PENDING rejected like approve.
- * Does not collect.
+ * Does not collect. Pitch row lock serializes approved writes (BR-24).
  */
 export async function createOwnerBooking(
   input: OwnerCreateBooking,
@@ -36,6 +37,7 @@ export async function createOwnerBooking(
 
   try {
     const bookingId = await db.$transaction(async (tx) => {
+      await lockPitchForUpdate(tx, input.pitchId);
       const pitch = await findPitchById(tx, input.pitchId);
       if (!pitch) {
         throw new DomainError("booking.pitch_not_found");

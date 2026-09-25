@@ -12,7 +12,7 @@ import {
   assertCanCollect,
   assertHasDue,
   freezeTenders,
-  remainingDue,
+  bookingRemaining,
   type TenderDraft,
 } from "@/modules/payment/domain/collect";
 import { recordPayment } from "@/modules/payment/application/record-payment";
@@ -21,7 +21,8 @@ import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { findBookingForCollect } from "@/modules/booking/infrastructure/bookings";
 
 /**
- * Collect cash on an APPROVED or NO_SHOW booking. Auth before $transaction.
+ * Collect cash on an APPROVED, NO_SHOW, or CANCELLED booking with remaining > 0.
+ * Auth before $transaction.
  * recordPayment writes payment + tenders + ledger IN inside this tx (DR-002 §2.21).
  */
 export async function collectBookingPayment(input: {
@@ -43,7 +44,7 @@ export async function collectBookingPayment(input: {
 
       const rate = await findLatestExchangeRate(tx);
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
-      const remaining = remainingDue(booking.priceUsd, collected);
+      const remaining = bookingRemaining(booking.amountDueUsd, collected);
       assertHasDue(remaining);
 
       const frozen = freezeTenders(input.tenders, rate);
@@ -52,7 +53,7 @@ export async function collectBookingPayment(input: {
         direction: "IN",
         sourceType: "BOOKING",
         sourceId: booking.id,
-        amountDueUsd: booking.priceUsd,
+        amountDueUsd: booking.amountDueUsd,
         tenders: frozen,
       });
     });

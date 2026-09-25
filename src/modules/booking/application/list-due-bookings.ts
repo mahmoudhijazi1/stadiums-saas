@@ -1,12 +1,14 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { formatLocalHm } from "@/lib/format-local-hm";
+import { getUiLocale } from "@/lib/get-ui-locale";
 import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
-import { remainingDue } from "@/modules/payment/domain/collect";
+import { bookingRemaining } from "@/modules/payment/domain/collect";
 import { sumCollectedUsdBySourceIds } from "@/modules/payment/infrastructure/payments";
 import {
   listApprovedBookingsInRange,
@@ -14,6 +16,7 @@ import {
   type ApprovedCollectRow,
   type HomeCollectStatus,
 } from "@/modules/booking/infrastructure/bookings";
+import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { partitionHomeConfirmed } from "@/modules/booking/domain/home-inbox";
 import {
   addCalendarDays,
@@ -54,6 +57,7 @@ export type HomeConfirmedLists = {
  * payment tables. Paid today/later stay so Cancel is reachable (SPEC-10).
  * Paid-before-today is omitted; unpaid-before-today is overdue.
  * Unpaid NO_SHOW stays (Collect); paid NO_SHOW is omitted (SPEC-14).
+ * CANCELLED stays only when classifyDue says owed (remaining > 0).
  * Confirm wa.me is APPROVED-only (BR-71); built here, not a Server Action.
  */
 export async function listDueBookings(): Promise<HomeConfirmedLists> {
@@ -84,6 +88,7 @@ export async function listDueBookings(): Promise<HomeConfirmedLists> {
       "BOOKING",
       [...windowRows, ...pastRows].map((row) => row.id),
     );
+    const locale = await getUiLocale();
 
     const withRemaining = [...pastRows, ...windowRows].map((row) =>
       toDueBooking(
@@ -91,11 +96,22 @@ export async function listDueBookings(): Promise<HomeConfirmedLists> {
         collected.get(row.id) ?? new Decimal(0),
         tenant.name,
         tenant.id,
+        locale,
+        tenant.timeDisplay,
       ),
     );
-    const visible = withRemaining.filter(
-      (row) => row.status === "APPROVED" || row.remaining.gt(0),
-    );
+    const visible = withRemaining.filter((row) => {
+      if (row.status === "APPROVED") return true;
+      return (
+        classifyDue({
+          status: row.status,
+          start: row.start,
+          end: row.end,
+          remaining: row.remaining,
+          now,
+        }) === "owed"
+      );
+    });
 
     return partitionHomeConfirmed(visible, now, TIME_ZONE);
   } catch (error) {
@@ -112,6 +128,8 @@ function toDueBooking(
   collectedUsd: Decimal,
   stadiumName: string,
   tenantId: string,
+  locale: "ar" | "en",
+  hourCycle: "h23" | "h12",
 ): DueBooking {
   return {
     id: row.id,
@@ -120,12 +138,12 @@ function toDueBooking(
     start: row.start,
     end: row.end,
     priceUsd: row.priceUsd,
-    remaining: remainingDue(row.priceUsd, collectedUsd),
+    remaining: bookingRemaining(row.amountDueUsd, collectedUsd),
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
     confirmWhatsAppHref:
       row.status === "APPROVED"
-        ? confirmHref(row, stadiumName, tenantId)
+        ? confirmHref(row, stadiumName, tenantId, locale, hourCycle)
         : null,
   };
 }
@@ -138,15 +156,23 @@ function confirmHref(
   row: ApprovedCollectRow,
   stadiumName: string,
   tenantId: string,
+  locale: "ar" | "en",
+  hourCycle: "h23" | "h12",
 ): string | null {
   try {
     return whatsAppHref(
       row.requesterPhone,
       bookingConfirmedMessage({
+        name: row.requesterName,
         stadiumName,
+        day: formatDisplayDate(row.start, locale, {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+        time: formatLocalHm(row.start, TIME_ZONE, hourCycle, locale),
         pitchName: row.pitchName,
-        startLocal: formatLocalHm(row.start, TIME_ZONE),
-        endLocal: formatLocalHm(row.end, TIME_ZONE),
+        locale,
       }),
     );
   } catch (error) {
