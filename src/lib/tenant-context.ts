@@ -14,6 +14,9 @@ export type CurrentTenant = {
   name: string;
   /** Owner + public UI clocks. WhatsApp formatters ignore this and use h23. */
   timeDisplay: TimeDisplay;
+  cancellationWindowHours: number;
+  lateCancellationFeePercent: number;
+  noShowFeePercent: number;
 };
 
 /**
@@ -50,6 +53,9 @@ async function loadTenant(): Promise<CurrentTenant> {
     slug: tenant.slug,
     name: tenant.name,
     timeDisplay: settings.timeDisplay,
+    cancellationWindowHours: settings.cancellationWindowHours,
+    lateCancellationFeePercent: settings.lateCancellationFeePercent,
+    noShowFeePercent: settings.noShowFeePercent,
   };
 }
 

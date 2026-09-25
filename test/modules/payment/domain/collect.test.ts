@@ -4,7 +4,10 @@ import {
   assertCanCollect,
   assertHasDue,
   freezeTenders,
+  bookingRemaining,
+  participantRemaining,
   remainingDue,
+  unassignedUsd,
   usdEquivalent,
 } from "@/modules/payment/domain/collect";
 
@@ -56,20 +59,37 @@ describe("remainingDue / collect gates", () => {
     ).toBe(true);
   });
 
+  it("keeps booking, participant, and unassigned remainders unclamped", () => {
+    expect(
+      bookingRemaining(new Decimal("30.00"), new Decimal("20.00")).equals("10.00"),
+    ).toBe(true);
+    expect(
+      bookingRemaining(new Decimal("30.00"), new Decimal("40.00")).equals("-10.00"),
+    ).toBe(true);
+    expect(
+      participantRemaining(new Decimal("4.29"), new Decimal("4.00")).equals("0.29"),
+    ).toBe(true);
+    expect(
+      unassignedUsd(new Decimal("30.00"), new Decimal("12.00")).equals("18.00"),
+    ).toBe(true);
+  });
+
   it("refuses when nothing is due", () => {
     expect(() => assertHasDue(new Decimal("0"))).toThrow("payment.nothing_due");
     expect(() => assertHasDue(new Decimal("-1"))).toThrow("payment.nothing_due");
   });
 
-  it("allows APPROVED or NO_SHOW to be collected", () => {
+  it("allows APPROVED, NO_SHOW, or CANCELLED to be collected", () => {
     expect(() => assertCanCollect("APPROVED")).not.toThrow();
     expect(() => assertCanCollect("NO_SHOW")).not.toThrow();
+    expect(() => assertCanCollect("CANCELLED")).not.toThrow();
     expect(() => assertCanCollect("PENDING")).toThrow(
       "payment.collect_unapproved",
     );
-    expect(() => assertCanCollect("CANCELLED")).toThrow(
-      "payment.collect_unapproved",
-    );
+  });
+
+  it("still refuses a cancelled booking once nothing remains", () => {
+    expect(() => assertHasDue(new Decimal("0"))).toThrow("payment.nothing_due");
   });
 });
 

@@ -5,6 +5,7 @@ import { readSessionCookie } from "@/modules/access/infrastructure/session-cooki
 import { findSessionById } from "@/modules/access/infrastructure/sessions";
 
 export type CurrentMembership = {
+  membershipId: string;
   userId: string;
   identifier: string;
   role: MembershipRole;
@@ -30,6 +31,7 @@ export const getCurrentMembership = cache(
     if (!membership) return null;
 
     return {
+      membershipId: membership.id,
       userId: membership.user.id,
       identifier: membership.user.identifier,
       role: membership.role,

@@ -30,8 +30,10 @@ model Tenant {
   exchangeRates       ExchangeRate[]
   payments            Payment[]
   paymentTenders      PaymentTender[]
+  paymentAllocations  PaymentAllocation[]
   ledgerEntries       LedgerEntry[]
   expenses            Expense[]
+  bookingDueChanges   BookingDueChange[]
 }
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
@@ -55,15 +57,20 @@ model Person {
   id                  String               @id @default(cuid())
   tenantId            String
   name                String
-  phone               String
+  /// Null until a phone is known. Prisma cannot declare a partial unique index.
+  /// SQL: unique ("tenantId", "phone") WHERE "phone" IS NOT NULL
+  /// — index Person_tenantId_phone_key in 20260924060000_per_player_foundation.
+  phone               String?
+  /// Folded by normalizeName on every create. Backfill is in the migration SQL.
+  searchName          String
   createdAt           DateTime             @default(now())
   tenant              Tenant               @relation(fields: [tenantId], references: [id])
   bookingParticipants BookingParticipant[]
   userPersonLinks     UserPersonLink[]
   slotInterests       SlotInterest[]
 
-  @@unique([tenantId, phone])
   @@index([tenantId])
+  @@index([tenantId, searchName])
 }
 
 /// A pitch + a UTC window. People attach through BookingParticipant, not here (DR-002 §2.9).
@@ -75,12 +82,18 @@ model Booking {
   during       Unsupported("tstzrange")
   status       BookingStatus
   source       BookingSource
+  /// WHOLE puts the booking remaining on the requester. PER_PLAYER is later (SPEC-15).
+  collectionMode CollectionMode         @default(WHOLE)
   /// Snapshot of the slot price at request time (DR-002 §2.18). Never a float.
   priceUsd     Decimal                  @db.Decimal(12, 2)
+  /// What collection still uses. Starts equal to priceUsd. Independent after a split (SPEC-15).
+  /// CHECK ("amountDueUsd" >= 0) is SQL-only (Booking_amountDueUsd_nonneg).
+  amountDueUsd Decimal                  @db.Decimal(12, 2)
   requestedAt  DateTime                 @default(now())
   tenant       Tenant                   @relation(fields: [tenantId], references: [id])
   pitch        Pitch                    @relation(fields: [pitchId], references: [id])
   participants BookingParticipant[]
+  dueChanges   BookingDueChange[]
 
   @@index([tenantId])
 }
@@ -90,15 +103,31 @@ model BookingParticipant {
   id           String    @id @default(cuid())
   tenantId     String
   bookingId    String
-  personId     String
+  /// Null while a per-player slot has no person yet. Callers that pass a phone still set it.
+  /// A requester cannot be null:
+  /// CHECK ("isRequester" = false OR "personId" IS NOT NULL) is SQL-only
+  /// (BookingParticipant_requester_has_person).
+  personId     String?
+  /// CHECK ("amountDueUsd" >= 0) is SQL-only (BookingParticipant_amountDueUsd_nonneg).
   amountDueUsd Decimal   @db.Decimal(12, 2)
-  paidAt       DateTime?
+  /// 1-based share order for an even split. Null on WHOLE.
+  /// At most one row per booking when set: partial unique
+  /// BookingParticipant_bookingId_slotNumber_not_null_key
+  /// ("bookingId", "slotNumber") WHERE "slotNumber" IS NOT NULL.
+  /// Prisma cannot declare that WHERE. The plain index is @@index below.
+  slotNumber   Int?
+  /// At most one true row per booking. Enforced by SQL partial unique
+  /// BookingParticipant_one_requester_idx ("bookingId") WHERE "isRequester" = true.
+  /// Prisma cannot declare that WHERE.
   isRequester  Boolean
   tenant       Tenant    @relation(fields: [tenantId], references: [id])
   booking      Booking   @relation(fields: [bookingId], references: [id])
-  person       Person    @relation(fields: [personId], references: [id])
+  person       Person?   @relation(fields: [personId], references: [id])
+  allocations  PaymentAllocation[]
 
   @@index([tenantId])
+  @@index([tenantId, personId])
+  @@index([bookingId, slotNumber])
 }
 
 /// Waitlist window (DR-002 §2.13). Written on auto-reject (SPEC-05). No UI this slice.
@@ -131,6 +160,42 @@ enum BookingSource {
   PUBLIC
 }
 
+/// How a booking's USD due is owed (SPEC-15). Existing rows are WHOLE.
+enum CollectionMode {
+  WHOLE
+  PER_PLAYER
+}
+
+/// Why Booking.amountDueUsd changed (SPEC-16). Append-only.
+enum BookingDueReason {
+  LATE_CANCELLATION_FEE
+  NO_SHOW_FEE
+  CANCELLATION_NO_FEE
+  PARTIAL_GAME
+  DISCOUNT
+  WAIVER
+  CORRECTION
+}
+
+/// One change of what is collectible. Never updated or deleted.
+/// CHECK ("fromUsd" >= 0 AND "toUsd" >= 0) is SQL-only (BookingDueChange_usd_nonneg).
+model BookingDueChange {
+  id                String           @id @default(cuid())
+  tenantId          String
+  bookingId         String
+  fromUsd           Decimal          @db.Decimal(12, 2)
+  toUsd             Decimal          @db.Decimal(12, 2)
+  reason            BookingDueReason
+  note              String?
+  actorMembershipId String
+  createdAt         DateTime         @default(now())
+  tenant            Tenant           @relation(fields: [tenantId], references: [id])
+  booking           Booking          @relation(fields: [bookingId], references: [id])
+  actorMembership   Membership       @relation(fields: [actorMembershipId], references: [id])
+
+  @@index([tenantId, bookingId])
+}
+
 /// Login account. No tenantId — memberships attach a user to a stadium (DR-003 §3).
 model User {
   id            String           @id @default(cuid())
@@ -153,6 +218,7 @@ model Membership {
   createdAt   DateTime       @default(now())
   tenant      Tenant         @relation(fields: [tenantId], references: [id])
   user        User           @relation(fields: [userId], references: [id])
+  dueChanges  BookingDueChange[]
 
   @@unique([tenantId, userId])
   @@index([tenantId])
@@ -210,14 +276,33 @@ model Payment {
   tenantId     String
   sourceType   PaymentSourceType
   sourceId     String
-  /// Booking: game price snapshot. Expense: this payment’s USD-equivalent sum (SPEC-06 / SPEC-07).
+  /// Booking: Booking.amountDueUsd at collection. Expense: this payment’s USD-equivalent sum (SPEC-06 / SPEC-07).
   amountDueUsd Decimal           @db.Decimal(12, 2)
   createdAt    DateTime          @default(now())
-  tenant       Tenant            @relation(fields: [tenantId], references: [id])
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
   tenders      PaymentTender[]
+  allocations  PaymentAllocation[]
 
   @@index([tenantId])
   @@index([sourceType, sourceId])
+}
+
+/// USD from one payment assigned to one participant. No person column on Payment (DR-002 §2.14).
+/// CHECK ("amountUsd" > 0) is SQL-only (PaymentAllocation_amountUsd_positive).
+model PaymentAllocation {
+  id            String             @id @default(cuid())
+  tenantId      String
+  paymentId     String
+  participantId String
+  amountUsd     Decimal            @db.Decimal(12, 2)
+  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  payment       Payment            @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  participant   BookingParticipant @relation(fields: [participantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@index([participantId])
+  @@unique([paymentId, participantId])
 }
 
 /// One cash part of a payment. amount is Decimal(18,2); domain enforces USD cents vs integer LBP (SPEC-06).

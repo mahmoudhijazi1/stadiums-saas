@@ -7,6 +7,7 @@ export async function findMembershipForUser(userId: string) {
   return db.membership.findFirst({
     where: { userId },
     select: {
+      id: true,
       role: true,
       permissions: true,
       user: { select: { id: true, identifier: true } },

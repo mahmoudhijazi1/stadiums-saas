@@ -11,11 +11,11 @@ const zero = new Decimal("0.00");
 function row(
   partial: Pick<DaySummaryRow, "status" | "start" | "end"> & {
     collectedUsd?: Decimal;
-    priceUsd?: Decimal;
+    amountDueUsd?: Decimal;
   },
 ): DaySummaryRow {
   return {
-    priceUsd: price,
+    amountDueUsd: price,
     collectedUsd: zero,
     ...partial,
   };
@@ -24,7 +24,7 @@ function row(
 describe("summarizeDay", () => {
   const now = new Date("2026-09-24T12:00:00.000Z");
 
-  it("excludes a cancelled game from games, owed, and expected", () => {
+  it("counts a cancelled remainder as owed, not as a game", () => {
     const summary = summarizeDay(
       [
         row({
@@ -39,7 +39,7 @@ describe("summarizeDay", () => {
     expect(summary.games).toBe(0);
     expect(summary.noShows).toBe(0);
     expect(summary.collectedUsd.toFixed(2)).toBe("0.00");
-    expect(summary.owedUsd.toFixed(2)).toBe("0.00");
+    expect(summary.owedUsd.toFixed(2)).toBe("30.00");
     expect(summary.expectedUsd.toFixed(2)).toBe("0.00");
   });
 

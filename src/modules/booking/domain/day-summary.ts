@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { classifyDue } from "@/modules/booking/domain/classify-due";
 
 export type DaySummaryStatus = "APPROVED" | "CANCELLED" | "NO_SHOW";
 
@@ -7,7 +8,7 @@ export type DaySummaryRow = {
   status: DaySummaryStatus;
   start: Date;
   end: Date;
-  priceUsd: Decimal;
+  amountDueUsd: Decimal;
   collectedUsd: Decimal;
 };
 
@@ -17,12 +18,9 @@ export type DaySummary = {
   noShows: number;
   /** USD collected on every row, including cancelled and no-show. */
   collectedUsd: Decimal;
-  /** Remaining on ended APPROVED games, plus remaining on no-shows. */
+  /** classifyDue "owed" on these rows. */
   owedUsd: Decimal;
-  /**
-   * Remaining on APPROVED games that have not ended.
-   * In progress (start <= now < end) stays here until the end.
-   */
+  /** classifyDue "expected" on these rows. */
   expectedUsd: Decimal;
 };
 
@@ -30,7 +28,6 @@ export type DaySummary = {
  * Day line for Today. Uses the rows the day list already loaded.
  */
 export function summarizeDay(rows: DaySummaryRow[], now: Date): DaySummary {
-  const nowMs = now.getTime();
   let games = 0;
   let noShows = 0;
   let collectedUsd = new Decimal(0);
@@ -39,21 +36,19 @@ export function summarizeDay(rows: DaySummaryRow[], now: Date): DaySummary {
 
   for (const row of rows) {
     collectedUsd = collectedUsd.plus(row.collectedUsd);
-    const remaining = Decimal.max(row.priceUsd.minus(row.collectedUsd), 0);
+    if (row.status === "NO_SHOW") noShows += 1;
+    if (row.status === "APPROVED") games += 1;
 
-    if (row.status === "NO_SHOW") {
-      noShows += 1;
-      owedUsd = owedUsd.plus(remaining);
-      continue;
-    }
-    if (row.status !== "APPROVED") continue;
-
-    games += 1;
-    if (row.end.getTime() <= nowMs) {
-      owedUsd = owedUsd.plus(remaining);
-    } else {
-      expectedUsd = expectedUsd.plus(remaining);
-    }
+    const remaining = Decimal.max(row.amountDueUsd.minus(row.collectedUsd), 0);
+    const kind = classifyDue({
+      status: row.status,
+      start: row.start,
+      end: row.end,
+      remaining,
+      now,
+    });
+    if (kind === "owed") owedUsd = owedUsd.plus(remaining);
+    if (kind === "expected") expectedUsd = expectedUsd.plus(remaining);
   }
 
   return { games, noShows, collectedUsd, owedUsd, expectedUsd };

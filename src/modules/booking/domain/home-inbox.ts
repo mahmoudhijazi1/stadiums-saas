@@ -13,7 +13,7 @@ export type PendingLike = {
   end: Date;
   requestedAt: Date;
   requesterName: string;
-  requesterPhone: string;
+  requesterPhone: string | null;
 };
 
 export type PendingSlotGroup<T extends PendingLike = PendingLike> = {

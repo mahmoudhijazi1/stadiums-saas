@@ -3,6 +3,7 @@ import {
   BOOKINGS_APPROVE,
   BOOKINGS_CANCEL,
   BOOKINGS_CREATE,
+  BOOKINGS_ADJUST_DUE,
   BOOKINGS_NO_SHOW,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
@@ -146,6 +147,20 @@ describe("can", () => {
   it("does not treat bookings.cancel as bookings.no_show", () => {
     expect(
       can({ role: "STAFF", permissions: { "bookings.cancel": true } }, BOOKINGS_NO_SHOW),
+    ).toBe(false);
+  });
+
+  it("lets OWNER adjust a due without a json flag", () => {
+    expect(can({ role: "OWNER", permissions: {} }, BOOKINGS_ADJUST_DUE)).toBe(true);
+  });
+
+  it("does not let STAFF adjust a due by default", () => {
+    expect(can({ role: "STAFF", permissions: {} }, BOOKINGS_ADJUST_DUE)).toBe(false);
+    expect(
+      can(
+        { role: "STAFF", permissions: { "bookings.cancel": true, "bookings.no_show": true } },
+        BOOKINGS_ADJUST_DUE,
+      ),
     ).toBe(false);
   });
 

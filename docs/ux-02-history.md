@@ -15,6 +15,7 @@
 - **D7.** Ledger keyset is `(occurredAt, id)`, not `createdAt`.
 - **D8.** Day summary "collected" is payments for that day's games, any collection date. "Owed" is remaining on those games.
 - **D8 correction (2026-09-24).** The day line is `summarizeDay` over the rows the day list already loaded. Games are APPROVED only. No-shows are a separate count. Owed is remaining on ended APPROVED games plus remaining on no-shows. Expected is remaining on APPROVED games that have not ended, including one in progress. Cancelled money still counts as collected. Zero owed, expected, and no-shows are omitted.
+- **SPEC-16 supersedes “a cancellation is not a debt”.** A cancelled booking with remaining above zero is owed, through the same `classifyDue` rule. Collected cash on that game still counts as collected. The due-change backfill sets older cancelled dues down to what was already collected, so those rows show no debt.
 - **D9.** Transaction rows are USD plus the recorded tenders. The Money summary LBP toggle stays.
 - **D10.** Indexes: `("tenantId", lower(during))`, `BookingParticipant ("tenantId", "personId")`, ledger `("tenantId", "occurredAt", "id")`. Each ships in the slice that first needs it.
 - **D11.** Actor FKs are `ON DELETE RESTRICT`. Slice 5 fixes `seed.ts` delete order. No `deactivatedAt` yet.

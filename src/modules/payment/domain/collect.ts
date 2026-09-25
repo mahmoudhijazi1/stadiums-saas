@@ -40,19 +40,41 @@ export function usdEquivalent(input: {
 }
 
 /**
- * What is still owed on the game (DR-002 §2.11). Never a JS float.
+ * Booking remaining. Same subtract as remainingDue. No clamp, so an overpay stays negative.
  */
-export function remainingDue(priceUsd: Decimal, collectedUsd: Decimal): Decimal {
-  return priceUsd.minus(collectedUsd);
+export function bookingRemaining(amountDueUsd: Decimal, collectedUsd: Decimal): Decimal {
+  return amountDueUsd.minus(collectedUsd);
 }
 
 /**
- * APPROVED or NO_SHOW may take cash (SPEC-06 + SPEC-14 / BR-49).
- * Payment does not import Booking — the status is a string the use case
- * already loaded.
+ * One participant's remaining after allocations. No clamp.
+ */
+export function participantRemaining(dueUsd: Decimal, allocatedUsd: Decimal): Decimal {
+  return dueUsd.minus(allocatedUsd);
+}
+
+/**
+ * Collected USD that is not yet assigned to a participant.
+ */
+export function unassignedUsd(collectedUsd: Decimal, allocatedUsd: Decimal): Decimal {
+  return collectedUsd.minus(allocatedUsd);
+}
+
+/**
+ * What is still owed on the game (DR-002 §2.11). Never a JS float.
+ * Prefer bookingRemaining(amountDueUsd, collectedUsd) at call sites.
+ */
+export function remainingDue(priceUsd: Decimal, collectedUsd: Decimal): Decimal {
+  return bookingRemaining(priceUsd, collectedUsd);
+}
+
+/**
+ * APPROVED, NO_SHOW, or CANCELLED may take cash (SPEC-06, SPEC-14, RULE-9).
+ * Remaining above zero is `assertHasDue`. Payment does not import Booking —
+ * the status is a string the use case already loaded.
  */
 export function assertCanCollect(status: string): void {
-  if (status !== "APPROVED" && status !== "NO_SHOW") {
+  if (status !== "APPROVED" && status !== "NO_SHOW" && status !== "CANCELLED") {
     throw new DomainError("payment.collect_unapproved");
   }
 }
