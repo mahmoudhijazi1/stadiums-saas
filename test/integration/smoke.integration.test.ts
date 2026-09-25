@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, afterAll } from "@jest/globals";
+import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
 import { seedMinimalFixture } from "./fixtures";
 import { platformDb } from "@/lib/platform-db";
-import { prismaBase } from "@/lib/prisma-base";
 
 /**
  * Phase 0 smoke: stadiums_test is migrated, truncate works, fixture inserts stick.
@@ -14,7 +14,7 @@ describe("integration harness smoke", () => {
 
   afterAll(async () => {
     await truncateAll();
-    await prismaBase.$disconnect();
+    await finishIntegrationFile();
   });
 
   it("connects to stadiums_test and has the exclusion constraint", async () => {

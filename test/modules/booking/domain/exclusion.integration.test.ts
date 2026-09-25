@@ -7,11 +7,11 @@ import {
 } from "@jest/globals";
 import Decimal from "decimal.js";
 import db from "@/lib/db";
-import { prismaBase } from "@/lib/prisma-base";
 import { DomainError } from "@/lib/errors";
 import { isExclusionViolation } from "@/modules/booking/domain/exclusion";
 import { insertApprovedOwnerBooking } from "@/modules/booking/infrastructure/bookings";
 import { clearRequestStubs, setTenantSlug } from "../../../integration/request-stubs";
+import { finishIntegrationFile } from "../../../integration/teardown";
 import { truncateAll } from "../../../integration/truncate";
 import { seedMinimalFixture, type TestFixture } from "../../../integration/fixtures";
 
@@ -29,7 +29,7 @@ describe("isExclusionViolation (real Postgres 23P01)", () => {
 
   afterAll(async () => {
     await truncateAll();
-    await prismaBase.$disconnect();
+    await finishIntegrationFile();
   });
 
   it("returns true for a real Booking_approved_during_excl violation", async () => {

@@ -13,8 +13,12 @@ import pg from "pg";
  */
 const globalForPrisma = globalThis as unknown as {
   stadiumPg?: { pool: pg.Pool };
+  prismaPool?: pg.Pool;
   prismaBaseSingle?: PrismaClient;
 };
+
+/** Module-local handle. A per-file Jest realm can drop globalThis between files. */
+let activePool: pg.Pool | undefined;
 
 function createPrismaBase() {
   const max = Number(process.env.PG_POOL_MAX ?? "10");
@@ -22,13 +26,47 @@ function createPrismaBase() {
     connectionString: process.env.DATABASE_URL,
     max: Number.isFinite(max) && max > 0 ? max : 10,
   });
+  activePool = pool;
+  globalForPrisma.prismaPool = pool;
   return new PrismaClient({ adapter: new PrismaPg(pool) });
 }
 
-/** Cached client from before the last `prisma generate` has no new delegates (e.g. expense). */
+/** Close the pg pool. Prisma $disconnect leaves an external pool open. */
+export async function endPrismaPool(): Promise<void> {
+  const pool = activePool ?? globalForPrisma.prismaPool;
+  activePool = undefined;
+  globalForPrisma.prismaPool = undefined;
+  if (!pool) return;
+  await pool.end();
+}
+
+type RuntimeField = { name: string };
+
+/**
+ * Cached client from before the last `prisma generate`.
+ * A new model (expense) or a new column (Person.searchName) means drop it.
+ */
 function isCurrentGeneratedClient(client: PrismaClient): boolean {
-  return typeof (client as { expense?: { findMany?: unknown } }).expense?.findMany ===
+  const hasExpense =
+    typeof (client as { expense?: { findMany?: unknown } }).expense?.findMany ===
     "function";
+  if (!hasExpense) return false;
+
+  const person = (
+    client as {
+      _runtimeDataModel?: {
+        models?: { Person?: { fields?: RuntimeField[] } };
+      };
+    }
+  )._runtimeDataModel?.models?.Person;
+  if (person?.fields?.some((field) => field.name === "searchName") !== true) {
+    return false;
+  }
+
+  return (
+    typeof (client as { bookingDueChange?: { create?: unknown } }).bookingDueChange
+      ?.create === "function"
+  );
 }
 
 function getPrismaBase(): PrismaClient {

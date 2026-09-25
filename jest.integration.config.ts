@@ -13,9 +13,6 @@ const custom: Config = {
   setupFiles: ["<rootDir>/test/integration/setup-env.ts"],
   setupFilesAfterEnv: ["<rootDir>/test/integration/setup-mocks.ts"],
   testTimeout: 30_000,
-  // pg pool on prismaBase stays open; integration suites disconnect in afterAll
-  // but Jest still waits — forceExit keeps CI/local runs from hanging.
-  forceExit: true,
 };
 
 /**

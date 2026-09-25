@@ -6,7 +6,6 @@ import {
   afterAll,
 } from "@jest/globals";
 import db from "@/lib/db";
-import { prismaBase } from "@/lib/prisma-base";
 import { platformDb } from "@/lib/platform-db";
 import { DomainError } from "@/lib/errors";
 import { requestPublicSlot } from "@/modules/booking/application/request-public-slot";
@@ -21,6 +20,7 @@ import {
   setSessionCookie,
   setTenantSlug,
 } from "./request-stubs";
+import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
 import { seedTwoTenants, type TestFixture } from "./fixtures";
 
@@ -49,7 +49,7 @@ describe("tenant isolation (RULE-7)", () => {
 
   afterAll(async () => {
     await truncateAll();
-    await prismaBase.$disconnect();
+    await finishIntegrationFile();
   });
 
   it("findUnique-style: other-tenant pitch id returns null under A", async () => {

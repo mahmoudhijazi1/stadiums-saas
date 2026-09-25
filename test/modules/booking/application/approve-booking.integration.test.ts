@@ -8,7 +8,6 @@ import {
 } from "@jest/globals";
 import Decimal from "decimal.js";
 import db from "@/lib/db";
-import { prismaBase } from "@/lib/prisma-base";
 import { platformDb } from "@/lib/platform-db";
 import { DomainError } from "@/lib/errors";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
@@ -22,6 +21,7 @@ import {
   setSessionCookie,
   setTenantSlug,
 } from "../../../integration/request-stubs";
+import { finishIntegrationFile } from "../../../integration/teardown";
 import { truncateAll } from "../../../integration/truncate";
 import {
   seedMinimalFixture,
@@ -81,7 +81,7 @@ describe("approveBooking (integration)", () => {
 
   afterAll(async () => {
     await truncateAll();
-    await prismaBase.$disconnect();
+    await finishIntegrationFile();
   });
 
   it("approves a PENDING request and rejects an overlapping PENDING", async () => {

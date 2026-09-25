@@ -3899,3 +3899,209 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Display only. `summarizeDay` is unchanged. No other screen. Exact USD strings stay two decimals.
 
 **How to verify:** `npx jest --watchAll=false` and `npm run build`. Arabic: 1 game is مباراة واحدة, 2 is مباراتان, 3 is 3 مباريات, an empty future day is لا مباريات, and $12.50 keeps the cents.
+
+## SPEC-15 slice 1 — amount due on the booking
+
+**When:** 2026-09-24
+
+**What:** Booking gains `collectionMode` (default WHOLE) and `amountDueUsd`, backfilled from `priceUsd`. Remaining, card paid-state, day owed/expected, collect, and cancel use `amountDueUsd`. `priceUsd` stays the agreed price on the card. `splitEvenly`, `personOwedOnBooking`, and the three USD remainders are pure. `setBookingAmountDue` is the later write path and nothing calls it yet. Migration `20260924060000_per_player_foundation` is written and not applied.
+
+**Why:** SPEC-15 slice 1. DR-002 §2.11 and §2.14: the due can leave the price, and a payment still has no participant column. SPEC-03 / SPEC-06 / SPEC-14 stay WHOLE. Screens must show the same numbers while `amountDueUsd` equals `priceUsd`.
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20260924060000_per_player_foundation/migration.sql`, `src/modules/payment/domain/collect.ts`, `src/modules/booking/domain/split-evenly.ts`, `src/modules/booking/domain/person-owed.ts`, `src/modules/booking/domain/day-summary.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/collect-booking-payment.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/list-due-bookings.ts`, `src/modules/booking/application/load-owner-day.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/lib/error-messages.ts`, and the new Jest files next to the domain helpers.
+
+**How it connects:** `bookingRemaining` lives in payment domain (same subtract as `remainingDue`; payment does not learn WHOLE vs PER_PLAYER). `splitEvenly` and `personOwedOnBooking` live in booking domain (slot order and requester). `people` is unchanged. The exclusion constraint is unchanged. Per-player mode, naming, and allocations are later slices. Prisma cannot declare `WHERE`, so the phone unique and the one-requester unique are SQL comments in the schema, not `@@unique`.
+
+**How to verify:** `npx jest --watchAll=false` (277) and `npm run build`. Do not open Today until `npx prisma migrate deploy --config prisma7.config.ts` — the new column is not on `stadiums_dev` yet. Duplicate requester rows were 0. No booking has a partial collection.
+
+## SPEC-15 slice 1 migration applied
+
+**When:** 2026-09-24
+
+**What:** The same migration `20260924060000_per_player_foundation` gained slot indexes, non-negative due checks, a requester-must-have-person check, and a unique `(paymentId, participantId)` on `PaymentAllocation`. It was applied to `stadiums_dev`. Existing rows that would break those checks: 0 negative `priceUsd`, 0 negative participant `amountDueUsd`, 0 requesters with a null person. Guards raise if that is not true.
+
+**Why:** Review additions on slice 1. Prisma still cannot declare `WHERE` or `CHECK`, so those stay in SQL. `@@index([bookingId, slotNumber])` and `@@unique([paymentId, participantId])` match the indexes Prisma can express.
+
+**Files:** `src/prisma/migrations/20260924060000_per_player_foundation/migration.sql`, `src/prisma/schema.prisma`.
+
+**How it connects:** Exclusion constraint unchanged. For slice 2, `collectBookingPayment` must assert that every allocated participant belongs to the booking the payment is for. `Payment.sourceId` has no foreign key, so the database cannot enforce that.
+
+**How to verify:** On `ahmad.localhost`, Today (24 Sep) is مباراة واحدة · $30 متوقع. Hussein’s sheet is المتبقي $30.00 and تحصيل $30.00. 23 Sep is لا مباريات · غياب واحد · $30 محصّل. Mahmoud’s sheet is مستحق $30.00 and المتبقي $0.00, card لم يحضر · مدفوع. سامي is ملغى.
+
+## UX-02 slice 2 — person page and search
+
+**When:** 2026-09-24
+
+**What:** `/owner/people/[personId]` shows the name, the phone when it exists, and stats: games played, no-shows, total paid, owes now. Owes now is the sum of `personOwedOnBooking` on APPROVED and NO_SHOW participations. The games list is every participation, newest first, 20 per page, keyset `(lower(during), booking id)`. Header search is `/owner/search`. Names on Today and Requests link with the person id from the query. `Person.searchName` is backfilled in the migration SQL with the same fold as `normalizeName`.
+
+**Why:** UX-02 §4 as amended (D5). SPEC-15 §2.3 is the owes rule, so the person page does not use the booking price. `people` does not import `booking`; the page calls both. Search orders by folded name. Sorting by latest booking would make `people` read `Booking`.
+
+**Files:** `src/modules/people/domain/normalize-name.ts`, `src/modules/people/infrastructure/persons.ts`, `src/modules/people/application/get-person.ts`, `src/modules/people/application/search-people.ts`, `src/modules/booking/domain/person-owed.ts`, `src/modules/booking/domain/person-stats.ts`, `src/modules/booking/application/get-person-booking-stats.ts`, `src/modules/booking/application/list-person-bookings.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/prisma/migrations/20260924070000_person_search_name/migration.sql`, `src/prisma/schema.prisma`, `src/app/owner/(app)/people/[personId]/`, `src/app/owner/(app)/search/`, `src/app/owner/header.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/app/owner/pending-list.tsx`, `src/lib/ui-copy.ts`.
+
+**How it connects:** `createPerson` writes `searchName`. There is no rename yet. A missing person on this tenant is 404. Logged-in membership may open the page, same as Today. Who-owes is still later. For SPEC-15 slice 2, collect must still assert each allocated participant belongs to `Payment.sourceId`'s booking.
+
+**How to verify:** `npx jest --watchAll=false` (282) and `npm run build`. Migration applied on `stadiums_dev`. Search احمد finds أحمد. Phone `78862587` finds Mahmoud Hijazi.
+
+## Stale Prisma client after searchName
+
+**When:** 2026-09-24
+
+**What:** Creating an owner booking for a new person failed with `Unknown argument searchName` on `person.create`. The generated client on disk already had the field. The running `npm run dev` still held the client from before `prisma generate`. `isCurrentGeneratedClient` now also requires `Person.searchName` on `_runtimeDataModel`, and the dev server was restarted.
+
+**Why:** `globalThis.prismaBaseSingle` survives for the life of the process. The old check only looked for `expense.findMany`, so a client from before the search column stayed in use.
+
+**Files:** `src/lib/prisma-base.ts`.
+
+**How it connects:** `createPerson` still writes `searchName` via `normalizeName`. No schema or migration change. A generate that adds a column still needs a process restart; the check only drops a cached client when this module loads again.
+
+**How to verify:** On `ahmad.localhost`, create a booking for a new name and phone. The person row should save. `/owner/today` without a session redirects to `/owner/login`.
+
+## UX-02 fixes — one due rule and Levantine dates
+
+**When:** 2026-09-24
+
+**What:** `classifyDue` decides owed, expected, or none. `summarizeDay` and person stats both use it. Owes now is owed only; expected shows beside it when it is above zero. Calendar dates go through `formatDisplayDate` (`ar-LB` / `en`, Western digits). Person stats and game rows use `formatUsdCompact`. Owed amounts use `text-alert`, the same token as Today cards.
+
+**Why:** UX-02 follow-up after slice 2. An upcoming game was counted as owed on the person page and expected on the day line. Arabic dates used `ar`, which prints سبتمبر.
+
+**Files:** `src/modules/booking/domain/classify-due.ts`, `src/modules/booking/domain/day-summary.ts`, `src/modules/booking/domain/person-stats.ts`, `src/lib/format-display-date.ts`, `src/app/owner/(app)/today/date-label.ts`, `src/app/owner/(app)/today/day-strip.tsx`, `src/components/day-chips.tsx`, `src/app/owner/(app)/people/[personId]/stats.tsx`, `src/app/owner/(app)/people/[personId]/games.tsx`.
+
+**How it connects:** Person remaining still comes from `personOwedOnBooking`. Cancelled remainder is none in this step and owed after SPEC-16 slice 1. `people` still does not import `booking`.
+
+**How to verify:** `npx jest --watchAll=false` (291) and `npm run build`. Hussein's page shows $0 · $30 متوقع and 24 أيلول. أحمد's games show أيلول. Today header is اليوم · الخميس، 24 أيلول.
+
+## SPEC-16 slice 1 — due changes, unapplied
+
+**When:** 2026-09-24
+
+**What:** `BookingDueChange` migration is written and not applied. Settings gain `cancellationWindowHours` (24), `lateCancellationFeePercent` (0), and `noShowFeePercent` (100) with Zod defaults, so existing jsonb parses. `suggestFee`, `assertAdjustDue`, and `adjustBookingDue` are in. Cancel and no-show take a fee and write the due change in the same transaction as the status. `bookings.adjust_due` is OWNER yes, STAFF no. `classifyDue` treats a cancelled remainder as owed.
+
+**Why:** SPEC-16 slice 1. The fee is a change of `amountDueUsd`, logged with a reason. The ledger stays cash-only.
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20260924080000_booking_due_change/migration.sql`, `src/lib/tenant-settings.ts`, `src/lib/db.ts`, `src/modules/booking/domain/suggest-fee.ts`, `src/modules/booking/domain/adjust-due.ts`, `src/modules/booking/domain/classify-due.ts`, `src/modules/booking/application/adjust-booking-due.ts`, `src/modules/booking/application/write-due-change.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/record-no-show.ts`, `src/modules/access/domain/can.ts`.
+
+**How it connects:** Do not apply the migration until it is approved. Until then, cancelled rows still have `amountDueUsd = priceUsd`, and the new classify rule would show them as owed. Collect still refuses CANCELLED. `Payment.sourceId` still has no foreign key.
+
+**How to verify:** `npx jest --watchAll=false` (308) and `npm run build`. Migration file is not in `_prisma_migrations`. Two CANCELLED bookings, both collected 0, would go from amountDueUsd 30.00 to 0.00.
+
+## SPEC-16 review fixes, migration applied, waitlist after cancel
+
+**When:** 2026-09-25
+
+**What:** Collect allows CANCELLED when remaining is above zero. To collect and `listDueBookings` include a cancelled remainder only when `classifyDue` says owed. Cancel and no-show omit the fee from the form; the use case uses the suggestion, then `confirmedFee` keeps the due at least at what was collected and logs `CANCELLATION_NO_FEE` when nothing above collected is charged. `suggestFee` uses `amountDueUsd`. Migration `20260924080000_booking_due_change` is applied. After a cancel, the same sheet lists open interests for that pitch and window (earliest first, excluding the person who cancelled) via `listOpenWaitlist`. A future cancelled card shows an interested-count chip. Requests shows "ساعات فاضية فيها مهتمون" under pending, hidden when that list is empty.
+
+**Why:** Review of SPEC-16 slice 1 (RULE-9, never below collected) and UX-01 §6.3. SPEC-16 supersedes "a cancellation is not a debt" in `docs/ux-02-history.md`.
+
+**Files:** `src/modules/payment/domain/collect.ts`, `src/modules/booking/domain/suggest-fee.ts`, `src/modules/booking/domain/waitlist.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/record-no-show.ts`, `src/modules/booking/application/list-due-bookings.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/owner/notify-list.tsx`, `src/app/owner/(app)/requests/free-slots.tsx`, `src/app/owner/(app)/requests/free-slot-list.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `docs/ux-02-history.md`.
+
+**How it connects:** `peopleWaitingOn` only filters groups `listOpenWaitlist` already marked open. Open means the window has not ended and no APPROVED range overlaps that pitch. A new APPROVED booking closes the window, so the chip and the Requests section drop it. `/owner/waitlist` (`page.tsx`, `list.tsx`, `skeleton.tsx`) is still a route and is not in the tab bar. `people` still does not import `booking`.
+
+**How to verify:** `npx jest --watchAll=false` (314) and `npm run build`. `npx prisma migrate deploy --config prisma7.config.ts` applied `20260924080000`. 23 أيلول and 24 أيلول show the old cancelled cards as ملغى with no مستحق on the day line. Cancelling Saturday 4:00–5:00 after approving لينا listed أحمد then كريم, chip مهتمان. Rebooking that hour removed it from ساعات فاضية فيها مهتمون.
+
+## SPEC-16 slice 2 — cancel, no-show, adjust, booking rules
+
+**When:** 2026-09-25
+
+**What:** Owner UI for SPEC-16 §5.1, §5.2, §5.3, and §5.7. The cancel sheet asks اللاعب ألغى or أنا ألغيت, then shows the server-side `suggestFee` line with تعديل and إعفاء only when `bookings.adjust_due` is on. The fee is posted only after edit or waive. The no-show sheet uses the same line (`noShowFeePercent` of the current due). Adjust amount, for an owed or expected WHOLE booking, posts `adjustBookingDue` and blocks a new due below what was collected with "تم تحصيل $X، لا يمكن الاسترداد بعد." More → قواعد الحجز saves the window and the 0/50/100 percents through `setBookingRules` (`settings.manage`). `/owner/waitlist` is a 308 to `/owner/requests`. App copy "فاضية" is now "متاحة".
+
+**Why:** SPEC-16 slice 2. Slice 3 (request warning, public policy line, WhatsApp fee text) is not in this step. Domain files were not changed.
+
+**Files:** `next.config.ts`, `src/lib/ui-copy.ts`, `src/lib/tenant-settings.ts`, `src/lib/tenant-context.ts`, `src/lib/success-messages.ts`, `src/lib/error-messages.ts`, `src/modules/access/application/set-booking-rules.ts`, `src/modules/booking/schemas/adjust-due-form.ts`, `src/app/owner/(app)/more/hub.tsx`, `src/app/owner/(app)/more/page.tsx`, `src/app/owner/(app)/more/settings/actions.ts`, `src/app/owner/(app)/today/actions.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/fee-forms.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/load-owner-day.ts`. Deleted `src/app/owner/(app)/waitlist/`.
+
+**How it connects:** Display calls `suggestFee` and `classifyDue`. Confirm still goes through `cancelBooking`, `recordNoShow`, and `adjustBookingDue`. A missing fee means the use case applies the suggestion and `confirmedFee` will not drop the due below collected. `people` still does not import `booking`. WhatsApp copy stays colloquial and is not this slice.
+
+**How to verify:** `npx jest --watchAll=false` (317) and `npm run build`. `GET /owner/waitlist` is 308 to `/owner/requests`. Arabic sheets: player cancel inside 24 hours shows ألغى قبل 15 ساعة · الرسوم $20 on a $40 game after rules are 24 / 50 / 100; أنا ألغيت hides the line when nothing was collected; إعفاء shows $0; no-show on a $30 game shows لم يحضر · الرسوم $30; adjust to $5 after $10 collected shows تم تحصيل $10، لا يمكن الاسترداد بعد.
+
+## Requests — interests in the slot, full time-ago, collected kept
+
+**When:** 2026-09-25
+
+**What:** A Requests group that already has pending requests also shows open interests on the same pitch when the windows overlap. Interests and requests are one list, earliest first (interest `createdAt`, request `requestedAt`). An interest row is the name, ينتظر منذ plus the date, and the existing notify control. Approve and Reject stay on request rows. ساعات متاحة فيها مهتمون lists only open interests with no overlapping pending request. The heading is the plural helper (طلب واحد / طلبان / 3 طلبات) with the digits isolated; the Today pending banner uses the same phrase. Time-ago is قبل 5 دقائق, قبل ساعة, قبل ساعتين, قبل 3 ساعات, أمس, قبل 3 أيام, and the English forms. On cancel and no-show, when something was collected and the owner waives or edits the fee to no more than that, the sheet adds تم تحصيل $X ويبقى محفوظاً under the fee line.
+
+**Why:** Requests tab fix. No domain change.
+
+**Files:** `src/app/owner/(app)/requests/merge-slots.ts`, `src/app/owner/(app)/requests/free-slots.tsx`, `src/app/owner/pending-list.tsx`, `src/app/owner/notify-list.tsx`, `src/app/owner/(app)/today/fee-forms.tsx`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/more/hub.tsx`, `src/lib/ui-copy.ts`, `src/modules/booking/application/list-open-waitlist.ts`, `test/app/owner/merge-slots.test.ts`, `test/lib/ui-copy.test.ts`.
+
+**How it connects:** Overlap is `overlaps()` from `offered-slot` in the app layer. `groupPendingBySlot` and `waitlist.ts` are unchanged. `listOpenWaitlist` now returns `createdAt`; the SQL already selected it. The heading counts pending rows only. The kept line is display-only: waive still posts `feeUsd` 0.00, and `confirmedFee` will not drop the due below collected. `people` still does not import `booking`. WhatsApp `slotAvailableMessage` is unchanged. `pendingCount`, `confirmedCount`, and `overdueCount` still return an unused "label · n" string and are not rendered.
+
+**How to verify:** `npx jest --watchAll=false` (323) and `npm run build`. Arabic Requests: Saturday 9:00–10:00 shows player-y (ينتظر منذ 25 أيلول, إبلاغ) above player-z (قبل … دقيقة, موافقة/رفض) under طلب واحد. Saturday 7:00–8:00 is only under ساعات متاحة فيها مهتمون. Waive on رامي shows تم تحصيل $10 ويبقى محفوظاً under الرسوم $0. That confirm was reverted: رامي is APPROVED, amountDueUsd 40.00, and the $10 payment remains.
+
+## SPEC-16 slice 3 — debt warning, public policy, WhatsApp
+
+**When:** 2026-09-25
+
+**What:** Requests shows a debt warning on a pending row and on an interest row when `classifyDue` says owed and `personOwedOnBooking` puts the remainder on that person. The line is ⚠ عليه, the compact total, the latest owed reason, and that booking's start date. Tapping it opens the person page. Approve and Reject stay as they were. One `listDebtParticipations` query covers every person on the pending list and the open-interest section. The public request sheet shows the cancellation policy only when `lateCancellationFeePercent` is above 0, with the window and percent from tenant settings. WhatsApp Arabic bodies are Lebanese. The cancel sheet picks the player/no-fee, player/with-fee, or owner template from the initiator and the fee on screen.
+
+**Why:** SPEC-16 §5.4–§5.6. App labels stay standard Arabic. The warning never blocks a decision.
+
+**Files:** `src/modules/booking/domain/debt-warning.ts`, `src/modules/booking/application/list-debt-warnings.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/domain/person-stats.ts`, `src/modules/notification/domain/whatsapp-link.ts`, `src/app/owner/(app)/requests/inbox.tsx`, `src/app/owner/(app)/requests/page.tsx`, `src/app/owner/(app)/requests/free-slots.tsx`, `src/app/owner/pending-list.tsx`, `src/app/owner/notify-list.tsx`, `src/app/owner/(app)/today/fee-forms.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/people/[personId]/stats.tsx`, `src/app/(public)/hours.tsx`, `src/app/(public)/slot-picker.tsx`, `src/components/slot-picker.tsx`, `src/components/ui/ltr-isolate.tsx`, `src/lib/ui-copy.ts`, `src/modules/booking/application/list-open-waitlist.ts`, `src/modules/booking/application/load-owner-day.ts`, `src/modules/booking/application/list-due-bookings.ts`.
+
+**How it connects:** The fold is `debtWarnings`. The query is infrastructure. `people` still does not import `booking`. Expected games are not owed. The note is the owed booking with the latest start; the reason is that booking's latest `BookingDueChange`, or omitted when there is none. `IsolatedDigits` keeps a trailing `%` inside the same LTR isolate as the digits. WhatsApp times stay `h23`. English WhatsApp bodies are parallels of the same placeholders; the live templates were Arabic only. `bookingRejectedMessage` is tested and has no send button (no reject-reason chips). No-show has no WhatsApp template. Confirm, slot-available, payment reminder, and the three cancel templates are wired.
+
+**How to verify:** `npx jest --watchAll=false` (329) and `npm run build`. Arabic Requests: رامي's Saturday 8:00 PM request shows ⚠ عليه $10 · رسوم إلغاء، الجمعة، 25 أيلول with موافقة and رفض. هدى's Saturday 7:00 PM interest shows ⚠ عليه $20 · رسوم إلغاء، الجمعة، 25 أيلول. The public sheet says الإلغاء قبل أقل من 24 ساعة من الموعد: رسوم 50% من السعر. Player cancel inside the window shows مرحبا هدى، انلغى حجزك يوم الجمعة، 25 أيلول الساعة 19:00. رسوم الإلغاء $20. Rules stay 24 / 50 / 100. رامي's Friday 5:00 PM is CANCELLED with $10 collected and $10 still owed, plus the Saturday request. هدى's Friday 6:00 PM is CANCELLED with a $20 fee and $0 collected. A Friday 7:00 PM booking made only to open that message was then cancelled by the owner with no fee.
+
+## Messaging gaps — reject chips, approve notify, no-show, shared clock
+
+**When:** 2026-09-25
+
+**What:** رفض opens a reason sheet (الساعة محجوزة / الملعب مغلق / سبب آخر, plus English Slot taken / Pitch closed / Other reason). Confirm still calls `rejectBooking(bookingId)` with no reason stored, then the notify list uses the rejected template with `{reason}` from the chip, or the free-text note for سبب آخر. موافقة now opens the same notify list: the requester on the confirmed template, then every sibling auto-rejected in that approve, on the rejected template with reason الساعة محجوزة. The no-show sheet shows an optional إبلاغ عبر واتساب row. With a fee: مرحبا {name}، ما إجيت على حجزك يوم {day} الساعة {time}. رسوم عدم الحضور {fee}. With waive or a zero fee: the same line ending نشوفك المرة الجاي! English parallels exist. Every WhatsApp clock and the app clocks that have a locale go through `formatLocalHm` and the tenant `timeDisplay`: 12-hour Arabic is 7:00 مساءً / 7:00 صباحاً, 12-hour English is 7:00 PM / 7:00 AM, 24-hour is 19:00.
+
+**Why:** UX-01 §4.2–§4.3. Correction to the slice 3 chapter above: the rejected template now has a sender, no-show now has templates, and WhatsApp times follow `timeDisplay` instead of a hardcoded 24-hour clock.
+
+**What existed:** Approve redirected to `/owner/today?ok=approved&highlight=` (a row ring only). The details sheet had one إبلاغ عبر واتساب for the confirmed booking. Auto-rejected siblings became slot interests and were not listed. Reject posted immediately, with no chips and no notify list. The no-show sheet had the fee line and confirm, and no message. WhatsApp times were `h23` while the app clock used `timeDisplay`.
+
+**Files:** `src/lib/format-local-hm.ts`, `src/app/owner/shared.tsx`, `src/modules/venue/application/get-day-availability.ts`, `src/modules/notification/domain/whatsapp-link.ts`, `src/lib/ui-copy.ts`, `src/modules/booking/application/approve-booking.ts`, `src/modules/booking/application/reject-overlapping-pending.ts`, `src/modules/booking/application/load-decision-notify.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/owner/(app)/today/actions.ts`, `src/app/owner/(app)/today/fee-forms.tsx`, `src/app/owner/(app)/requests/reject-sheet.tsx`, `src/app/owner/(app)/requests/decision-notify.tsx`, `src/app/owner/(app)/requests/inbox.tsx`, `src/app/owner/(app)/requests/page.tsx`, `src/app/owner/notify-list.tsx`, `src/app/owner/pending-list.tsx`, `src/modules/booking/application/list-open-waitlist.ts`, `src/modules/booking/application/load-owner-day.ts`, `src/modules/booking/application/list-due-bookings.ts`, `test/lib/format-local-hm.test.ts`, `test/modules/notification/domain/whatsapp-link.test.ts`, `test/lib/ui-copy.test.ts`.
+
+**How it connects:** `rejectBooking` is unchanged. The reason lives only in the notify query and the message. `approveBooking` returns the people rejected in that transaction; the page reloads them from slot interests on that window and drops ids that are not interests there. `people` still does not import `booking`. `formatLocalHm` defaults locale to `en`, so callers that omit it keep Latin AM/PM. Notifications stay after the transaction.
+
+**How to verify:** `npx jest --watchAll=false` (332) and `npm run build`. Arabic, tenant `h12`. Reject ندى (Saturday 5:00–6:00 PM, chip الساعة محجوزة): مرحبا ندى، للأسف ما منقدر نأكدلك حجز السبت، 26 أيلول الساعة 5:00 مساءً (الساعة محجوزة). إذا بدك وقت تاني، شوف الساعات المتاحة: http://ahmad.localhost:3000/ Approve ليلى (Saturday 6:00–7:00 PM) lists ليلى تم التأكيد (… الساعة 6:00 مساءً … منشوفك!) then سامي and كريم on the rejected template with (الساعة محجوزة). Hussein's Thursday 7:00–8:00 PM no-show sheet, not confirmed: مرحبا Hussein، ما إجيت على حجزك يوم الخميس، 24 أيلول الساعة 7:00 مساءً. رسوم عدم الحضور $30. Left in the database: ندى REJECTED, ليلى APPROVED, سامي and كريم REJECTED with slot interests. Hussein is still APPROVED and paid.
+
+## Notify after commit, bidi isolates
+
+**When:** 2026-09-25
+
+**What:** A WhatsApp send control is offered only after the action is saved, and that body is rebuilt from the saved due and status. Cancel and no-show keep a live preview while the fee is edited, with no send button. After confirm, Today opens a send row from the saved fee (`notify=cancelled` or `notify=no_show`). Cancel then lists interested people on that window when there are any. Adjust amount (`notify=due`) offers an optional payment-reminder row with the saved remaining. Every placeholder in a WhatsApp body (name, stadium, pitch, day, time, amount, link, reason) is wrapped in U+2068 … U+2069.
+
+**Why:** The preview can describe a fee that is not the one that gets stored. The send must match the row that was written. Isolates keep `$10`, a Latin name, and the clock in order inside an Arabic sentence.
+
+**What already sent only after a save:** Reject has no send on the reason sheet. The notify list opens only after `rejectBooking`, and only if the status is REJECTED. The reason is still not a column, so that phrase is the chip from the confirm, not a live unsaved field. Approve's notify list is after approve. The details إبلاغ عبر واتساب is only for an APPROVED booking. Interest and waitlist إبلاغ describe a slot that is already free. The person-page reminder uses saved debt. The share card sends the public link, not a booking outcome.
+
+**Files:** `src/modules/notification/domain/whatsapp-link.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/load-outcome-notify.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/owner/(app)/today/actions.ts`, `src/app/owner/(app)/today/fee-forms.tsx`, `src/app/owner/(app)/today/page.tsx`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `test/modules/notification/domain/whatsapp-link.test.ts`.
+
+**How it connects:** `people` does not import `booking`. Cancel stores `PLAYER` or `OWNER` on the due-change note, including when the due does not change, so the later message can tell the owner template from the player template. The fee in that message is the saved `toUsd`. No-show uses the saved `amountDueUsd`. Adjust uses `amountDueUsd` minus collected. Notifications stay after the transaction.
+
+**How to verify:** `npx jest --watchAll=false` (333) and `npm run build`. Arabic cancel for ِali, Friday 10:00–11:00 PM, fee edited to 10.00: the sheet shows the preview and تأكيد إلغاء الحجز, and no إبلاغ. After confirm the send row is مرحبا ِali، انلغى حجزك يوم الجمعة، 25 أيلول الساعة 10:00 مساءً. رسوم الإلغاء $10. That hour had no one waiting, so the interested list is absent. The booking is CANCELLED with due $10. Jest asserts U+2068 around `ali`, `$10`, and `10:00 مساءً` in the Arabic player-fee body.
+
+## Message endings, name cleanup, booking/money integration
+
+**When:** 2026-09-25
+
+**What:** Auto-rejected siblings (after an approval) use the rejected WhatsApp template ending in " إذا فضيت الساعة منخبرك." / " We'll tell you if it frees up." Manual reject from the chip sheet still ends with the public-hours link. Confirmed Arabic is "تأكد حجزك في {stadium}". `cleanPersonName` trims, collapses inner spaces, and strips leading combining marks only; `createPerson` stores that string and folds `searchName` from it. Integration scenarios cover approve-and-interest, a concurrent APPROVED insert collision, owner price, late player cancel, owner cancel of a paid game, mixed-currency collect, collecting a cancel fee, no-show then waiver, due below collected, tenant isolation, and a midnight-crossing game. One helper checks ledger vs tenders, latest due-change vs `amountDueUsd`, no overlapping APPROVED rows, and day-summary vs person stats.
+
+**Why:** Sibling copy should say we will tell them if the hour frees, not send them to the public hours. A leading kasra was being stored on the display name. The booking and money rules need a real Postgres run, separate from the unit suite and from `stadiums_dev`.
+
+**Public link:** Built from the request headers in `publicPageUrl` (`load-decision-notify.ts` and the same helper in `load-outcome-notify.ts`): `x-forwarded-host` else `host`, `x-forwarded-proto` else `http`. There is no configured base URL. `https://<tenant>.lebstads.com/` appears when the proxy sets those headers to that host.
+
+**Existing leading mark (not modified):** Person `cmug5scit0005vkl2stcom97d` on tenant `ahmad`, name starts with U+0650 (Arabic kasra) then `ali`. There is no person rename. `findOrCreatePerson` does not overwrite a stored name. A future rename must call `cleanPersonName`.
+
+**Concurrency note:** Two `approveBooking` calls on overlapping pendings deadlock (each rejects the other's row, Prisma P2034). The scenario runs two `createOwnerBooking` calls. Both read an empty occupied list (optional `listApprovedRanges` seam, same idea as approve), then both insert APPROVED. The loser fails with `23P01` / `Booking_approved_during_excl`, mapped to `booking.slot_unavailable`. Exactly one APPROVED row remains. Omitting the seam leaves production owner-create unchanged.
+
+**Files:** `src/modules/notification/domain/whatsapp-link.ts`, `src/modules/booking/application/load-decision-notify.ts`, `src/modules/people/domain/clean-person-name.ts`, `src/modules/people/infrastructure/persons.ts`, `src/modules/booking/application/create-owner-booking.ts`, `test/modules/notification/domain/whatsapp-link.test.ts`, `test/modules/people/domain/clean-person-name.test.ts`, `test/integration/truncate.ts`, `test/integration/invariants.ts`, `test/integration/booking-money.integration.test.ts`.
+
+**How it connects:** `people` does not import `booking`. Notifications stay after the transaction. Tenant and membership in tests are the existing request stubs (`x-tenant-slug`, `stadium_session`) plus `clearReactCache` when the slug changes. No production ALS was added. The integration database is `stadiums_test` via `DATABASE_URL_TEST`, never `stadiums_dev`. `npm test` stays unit-only.
+
+**How to verify:** `npx jest --watchAll=false` (338). `npm run test:integration` (migrate deploy on `stadiums_test`, then 5 suites, 22 tests). Jest: `"\u0650ali"` → `ali`, `"  أحمد   علي "` → `أحمد علي`, interior Arabic marks kept.
+
+## Pitch lock, public link domain, integration exit
+
+**When:** 2026-09-25
+
+**What:** `approveBooking`, `createOwnerBooking`, `cancelBooking`, and `recordNoShow` lock the pitch row (`SELECT ... FOR UPDATE`) at the start of the transaction so approved writes on one pitch run one at a time. If the request is no longer PENDING when the lock is acquired, approve throws `booking.no_longer_pending` (`تم حجز هذه الساعة للتو` / `This hour was just booked`). The exclusion constraint stays; `23P01` still maps to `booking.slot_unavailable`. The owner-create occupied-list test callback is gone. The approve race is two `approveBooking` calls, ten times: one APPROVED, the other REJECTED with a slot interest, the loser gets `booking.no_longer_pending`, no P2034. A raw overlapping APPROVED insert still raises 23P01. Message links are `${APP_PROTOCOL}://${slug}.${APP_BASE_DOMAIN}/` (protocol defaults to https). Each integration file disconnects the Prisma client and ends its pg pool. `forceExit` is off.
+
+**Why:** Two approves used to deadlock because each tried to reject the other's row. The pitch lock makes the second wait until the first has committed the reject. Public links must not depend on proxy headers. Jest was staying open because `$disconnect` does not end an external pg pool, and each test file has its own pool.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/approve-booking.ts`, `src/modules/booking/application/create-owner-booking.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/record-no-show.ts`, `src/lib/public-page-url.ts`, `src/lib/ui-copy.ts`, `src/lib/error-messages.ts`, `src/lib/prisma-base.ts`, `src/modules/booking/application/load-decision-notify.ts`, `src/modules/booking/application/load-outcome-notify.ts`, `.env.example`, `jest.integration.config.ts`, `test/integration/teardown.ts`, `test/integration/booking-money.integration.test.ts`, and the other integration `afterAll` hooks, `test/lib/public-page-url.test.ts`, `test/lib/ui-copy.test.ts`, `test/lib/errors.test.ts`.
+
+**How it connects:** `people` does not import `booking`. The pitch lock is raw SQL with `tenantId` (the extension does not stamp `$queryRaw`). Notifications stay after the transaction. Local `.env` sets `APP_BASE_DOMAIN=localhost:3000` and `APP_PROTOCOL=http`. Production sets `APP_BASE_DOMAIN=lebstads.com` and can omit the protocol.
+
+**How to verify:** `npx jest --watchAll=false` (341), `npm run build`, `npm run test:integration` (5 suites, 23 tests, no force-exit warning).
