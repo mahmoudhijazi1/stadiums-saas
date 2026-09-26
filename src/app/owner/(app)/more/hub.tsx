@@ -12,7 +12,7 @@ import {
   submitSetExchangeRate,
   submitSetTimeDisplay,
 } from "@/app/owner/(app)/more/settings/actions";
-import { CountedPhrase } from "@/app/owner/notify-list";
+import { CountedPhrase, RelativeWhen } from "@/app/owner/notify-list";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   BottomSheet,
@@ -285,7 +285,7 @@ export function MoreHub({
                   <p className="text-sm text-muted-foreground">
                     {ui("owner.rateLastChanged", locale)}
                     {" · "}
-                    <CountedPhrase text={changedLabel} />
+                    <RelativeWhen text={changedLabel} />
                   </p>
                 ) : null}
                 <form action={submitSetExchangeRate} className="flex flex-col gap-4">

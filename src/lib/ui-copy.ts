@@ -791,21 +791,3 @@ export function groupedDigits(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-/** Relative past label. Counts use the plural helper. Callers isolate the digits. */
-export function relativePastLabel(
-  at: Date,
-  now: Date,
-  locale: UiLocale = "ar",
-): string {
-  const minutes = Math.max(
-    0,
-    Math.floor((now.getTime() - at.getTime()) / 60000),
-  );
-  if (minutes < 1) return ui("owner.justNow", locale);
-  if (minutes < 60) return uiCount("owner.agoMinutes", minutes, locale);
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return uiCount("owner.agoHours", hours, locale);
-  const days = Math.floor(hours / 24);
-  if (days === 1) return ui("owner.yesterday", locale);
-  return uiCount("owner.agoDays", days, locale);
-}

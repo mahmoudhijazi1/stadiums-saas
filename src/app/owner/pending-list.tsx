@@ -4,7 +4,8 @@ import type { WaitlistGroup } from "@/modules/booking/application/list-open-wait
 import type { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { groupPendingBySlot } from "@/modules/booking/domain/home-inbox";
 import type { UiLocale } from "@/lib/locale";
-import { relativePastLabel, requestsCount, ui } from "@/lib/ui-copy";
+import { requestsCount, ui } from "@/lib/ui-copy";
+import { formatRelativeTime } from "@/lib/format-relative-time";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import {
   interestsForGroup,
@@ -14,6 +15,7 @@ import {
   CountedPhrase,
   DebtNoticeLine,
   NotifyPersonRow,
+  RelativeWhen,
   type DebtNotice,
 } from "@/app/owner/notify-list";
 import {
@@ -118,11 +120,15 @@ export function PendingRequestList({
                             {item.request.requesterName}
                           </Link>
                           <p className="text-sm text-muted-foreground">
-                            <CountedPhrase
-                              text={relativePastLabel(
+                            <RelativeWhen
+                              text={formatRelativeTime(
                                 item.request.requestedAt,
                                 now,
-                                locale,
+                                {
+                                  locale,
+                                  timeZone: "Asia/Beirut",
+                                  timeDisplay: hourCycle,
+                                },
                               )}
                             />
                           </p>

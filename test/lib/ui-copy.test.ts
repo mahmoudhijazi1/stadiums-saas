@@ -7,7 +7,6 @@ import {
   lbpPerUsdLine,
   overdueCount,
   pendingCount,
-  relativePastLabel,
   requestsCount,
   cancelPolicyLine,
   rejectReasonText,
@@ -87,43 +86,6 @@ describe("interpolated chrome", () => {
     expect(lbpPerUsdLine("90000")).toBe("90000 ليرة لكل دولار");
     expect(pendingCount(3, "en")).toBe("Pending · 3");
     expect(lbpPerUsdLine("90000", "en")).toBe("90000 LBP per USD");
-  });
-});
-
-describe("relativePastLabel", () => {
-  const now = new Date("2026-09-25T12:00:00.000Z");
-
-  it("uses full words for minutes, hours, yesterday, and days", () => {
-    expect(relativePastLabel(new Date("2026-09-25T11:55:00.000Z"), now)).toBe(
-      "قبل 5 دقائق",
-    );
-    expect(relativePastLabel(new Date("2026-09-25T11:00:00.000Z"), now)).toBe(
-      "قبل ساعة",
-    );
-    expect(relativePastLabel(new Date("2026-09-25T10:00:00.000Z"), now)).toBe(
-      "قبل ساعتين",
-    );
-    expect(relativePastLabel(new Date("2026-09-25T09:00:00.000Z"), now)).toBe(
-      "قبل 3 ساعات",
-    );
-    expect(relativePastLabel(new Date("2026-09-24T12:00:00.000Z"), now)).toBe(
-      "أمس",
-    );
-    expect(relativePastLabel(new Date("2026-09-22T12:00:00.000Z"), now)).toBe(
-      "قبل 3 أيام",
-    );
-  });
-
-  it("uses English equivalents", () => {
-    expect(
-      relativePastLabel(new Date("2026-09-25T11:55:00.000Z"), now, "en"),
-    ).toBe("5 minutes ago");
-    expect(
-      relativePastLabel(new Date("2026-09-24T12:00:00.000Z"), now, "en"),
-    ).toBe("Yesterday");
-    expect(
-      relativePastLabel(new Date("2026-09-22T12:00:00.000Z"), now, "en"),
-    ).toBe("3 days ago");
   });
 });
 

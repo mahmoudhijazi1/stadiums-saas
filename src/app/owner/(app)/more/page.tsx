@@ -8,7 +8,8 @@ import {
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { groupedDigits, relativePastLabel } from "@/lib/ui-copy";
+import { formatRelativeTime } from "@/lib/format-relative-time";
+import { groupedDigits } from "@/lib/ui-copy";
 
 /**
  * More hub. Old /owner/more/settings redirects here.
@@ -31,7 +32,13 @@ export default async function OwnerMorePage() {
       rateDigits={digits}
       rateGrouped={digits ? groupedDigits(digits) : null}
       changedLabel={
-        changedAt ? relativePastLabel(changedAt, new Date(), locale) : null
+        changedAt
+          ? formatRelativeTime(changedAt, new Date(), {
+              locale,
+              timeZone: "Asia/Beirut",
+              timeDisplay: tenant.timeDisplay,
+            })
+          : null
       }
       timeDisplay={tenant.timeDisplay}
       cancellationWindowHours={tenant.cancellationWindowHours}

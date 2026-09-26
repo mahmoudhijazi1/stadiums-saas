@@ -4119,3 +4119,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Display only. WhatsApp still uses a single `formatLocalHm` clock. `people` does not import `booking`.
 
 **How to verify:** `npx jest --watchAll=false` (346), `npm run test:integration` (5 suites, 23 tests), `npm run build`.
+
+## Precise relative time
+
+**When:** 2026-09-26
+
+**What:** `formatRelativeTime` labels a timestamp against now in Asia/Beirut. Under a minute, or in the future, is "الآن" / "Just now". 1–59 minutes uses the plural helper ("قبل دقيقة", "قبل دقيقتين", "قبل 3 دقائق", "قبل 11 دقيقة"), and that minutes phrase wins even across midnight. One hour or more on the same Beirut day is "اليوم {time}". The previous civil day is "أمس {time}". Two to six civil days is the weekday plus the time. Older is the day and Levantine month ("17 أيلول"). The clock follows the tenant `timeDisplay`. Requests and the exchange-rate line use it. `relativePastLabel` is gone.
+
+**Why:** "قبل 3 ساعات" and "قبل 3 أيام" hid the actual hour, and a request just after midnight looked like yesterday while it was still twenty minutes old.
+
+**Files:** `src/lib/format-relative-time.ts`, `src/lib/ui-copy.ts`, `src/app/owner/pending-list.tsx`, `src/app/owner/notify-list.tsx`, `src/app/owner/(app)/more/page.tsx`, `src/app/owner/(app)/more/hub.tsx`, `test/lib/format-relative-time.test.ts`, `test/lib/ui-copy.test.ts`.
+
+**How it connects:** Display only. Civil days come from `Intl` in Asia/Beirut, so the October fall-back does not shrink two civil days into one. `people` does not import `booking`.
+
+**How to verify:** `npx jest --watchAll=false` (370), `npm run test:integration` (5 suites, 23 tests), `npm run build`.

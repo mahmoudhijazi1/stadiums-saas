@@ -6,7 +6,12 @@ import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { Button } from "@/components/ui/button";
-import { ClockRangeText, IsolatedDigits, LtrIsolate } from "@/components/ui/ltr-isolate";
+import {
+  ClockRangeText,
+  ClockText,
+  IsolatedDigits,
+  LtrIsolate,
+} from "@/components/ui/ltr-isolate";
 
 export type DebtNotice = {
   totalCompact: string;
@@ -23,6 +28,22 @@ export type NotifyPerson = {
   message?: string | null;
   statusLabel?: string | null;
 };
+
+const CLOCK_AT_END = /^(.*?)(\d{1,2}:\d{2}(?: (?:مساءً|صباحاً|AM|PM))?)$/;
+
+/** A relative-time phrase. Minute counts isolate their digits; a clock stays LTR. */
+export function RelativeWhen({ text }: { text: string }) {
+  const clock = text.match(CLOCK_AT_END);
+  if (clock?.[2]) {
+    return (
+      <>
+        {clock[1]}
+        <ClockText text={clock[2]} />
+      </>
+    );
+  }
+  return <CountedPhrase text={text} />;
+}
 
 /** Isolate the digits inside a counted phrase such as "3 مهتمين". */
 export function CountedPhrase({ text }: { text: string }) {
