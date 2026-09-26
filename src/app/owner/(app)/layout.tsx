@@ -8,6 +8,8 @@ import {
 } from "@/modules/access/domain/can";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { actionablePending } from "@/modules/booking/domain/expired-request";
+import { latestRequestedAtIso } from "@/modules/booking/domain/live-queue";
+import { LiveQueue } from "@/app/owner/live-queue";
 import { OwnerHeader } from "@/app/owner/header";
 import { OwnerTabBar } from "@/app/owner/tab-bar";
 import { Container } from "@/components/ui/container";
@@ -32,16 +34,23 @@ export default async function OwnerLayout({
   const showBooking = membership ? can(membership, BOOKINGS_CREATE) : false;
   const showExpense = membership ? can(membership, EXPENSES_RECORD) : false;
   const pending = membership ? await listPendingRequests() : [];
+  const actionable = actionablePending(pending, new Date());
   const locale = await getUiLocale();
 
   return (
+    <LiveQueue
+      initial={{
+        pendingCount: actionable.length,
+        latestRequestedAt: latestRequestedAtIso(actionable),
+      }}
+    >
     <div className="flex min-h-dvh w-full flex-col lg:flex-row lg:items-start">
       <Suspense fallback={null}>
         <FlashToast locale={locale} />
       </Suspense>
       <OwnerTabBar
         locale={locale}
-        pendingCount={actionablePending(pending, new Date()).length}
+        pendingCount={actionable.length}
         showBooking={showBooking}
         showExpense={showExpense}
       />
@@ -50,5 +59,6 @@ export default async function OwnerLayout({
         <Container className="flex flex-1 flex-col gap-8 py-6">{children}</Container>
       </main>
     </div>
+    </LiveQueue>
   );
 }

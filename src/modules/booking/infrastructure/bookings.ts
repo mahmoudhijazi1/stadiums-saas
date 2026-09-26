@@ -180,6 +180,35 @@ export async function listPendingBookings(
   }));
 }
 
+/**
+ * One read for the live badge: actionable PENDING only (slot start still ahead).
+ * tenantId is in the SQL — the extension does not stamp $queryRaw.
+ */
+export async function countActionablePending(
+  tx: TenantTx,
+  now: Date,
+): Promise<{ pendingCount: number; latestRequestedAt: Date | null }> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<
+    { pendingCount: bigint; latestRequestedAt: Date | null }[]
+  >`
+    SELECT
+      COUNT(*)::bigint AS "pendingCount",
+      MAX(b."requestedAt") AS "latestRequestedAt"
+    FROM "Booking" b
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status = 'PENDING'::"BookingStatus"
+      AND lower(b.during) > ${now}
+  `;
+  const row = rows[0];
+  return {
+    pendingCount: Number(row?.pendingCount ?? 0),
+    latestRequestedAt: row?.latestRequestedAt
+      ? asDate(row.latestRequestedAt)
+      : null,
+  };
+}
+
 export type BookingForDecision = {
   id: string;
   pitchId: string;

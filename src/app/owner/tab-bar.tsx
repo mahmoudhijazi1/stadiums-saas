@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ui } from "@/lib/ui-copy";
+import { useLiveQueue } from "@/app/owner/live-queue";
 import type { UiLocale } from "@/lib/locale";
 import { cn } from "cn";
 import {
@@ -55,7 +56,9 @@ export function OwnerTabBar({
   showExpense: boolean;
 }) {
   const pathname = usePathname();
+  const live = useLiveQueue();
   const showRecord = showBooking || showExpense;
+  const badgeCount = live?.pendingCount ?? pendingCount;
   const [recordOpen, setRecordOpen] = useState(false);
 
   const links: NavLink[] = [
@@ -72,7 +75,7 @@ export function OwnerTabBar({
       labelKey: "owner.requestsTab",
       Icon: Bell,
       order: "order-2 lg:order-3",
-      badge: pendingCount,
+      badge: badgeCount,
     },
     {
       kind: "link",

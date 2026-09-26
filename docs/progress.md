@@ -4149,3 +4149,19 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** `people` does not import `booking`. Notifications stay after the decision. The badge count is `actionablePending`, the same split the integration test asserts.
 
 **How to verify:** `npx jest --watchAll=false` (379), `npm run test:integration` (5 suites, 24 tests), `npm run build`.
+
+## Live request badge
+
+**When:** 2026-09-26
+
+**What:** The owner shell polls `GET /owner/requests/live` every 20 seconds while the tab is visible, and again as soon as the page becomes visible or the window focuses. The response is `{ pendingCount, latestRequestedAt }` for actionable (not missed) requests, one query. A change updates the tab badge and the Today banner count, and calls `router.refresh()` so Requests and Today render again from the server. If a bottom sheet is open, the refresh waits until it closes. `navigator.setAppBadge` is used when it exists, and cleared at zero. Two failed polls in a row slow the interval to 60 seconds; a success returns it to 20.
+
+**Why:** The badge and the Requests list were server renders. Nothing asked the server again until the owner navigated or reloaded, so a public request sat unseen on an open tab.
+
+**How the data was loaded:** `OwnerLayout` calls `listPendingRequests()` and passes the actionable length to `OwnerTabBar`. The Requests page calls `listPendingRequests()` again inside `RequestsInbox`. Both run only when that server render happens. There was no poll and no client cache invalidation.
+
+**Files:** `src/modules/booking/domain/live-queue.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/get-live-queue.ts`, `src/app/owner/(app)/requests/live/route.ts`, `src/app/owner/live-queue.tsx`, `src/app/owner/(app)/layout.tsx`, `src/app/owner/tab-bar.tsx`, `src/app/owner/(app)/today/lists.tsx`, `test/modules/booking/domain/live-queue.test.ts`.
+
+**How it connects:** The route is tenant-scoped through the existing request tenant and requires a membership. `people` does not import `booking`. The poll does not run while `document.visibilityState` is hidden.
+
+**How to verify:** `npx jest --watchAll=false` (383), `npm run test:integration` (5 suites, 24 tests), `npm run build`. A public request shows on the owner's Requests tab within 20 seconds without a manual reload.
