@@ -6,7 +6,7 @@ import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { Button } from "@/components/ui/button";
-import { IsolatedDigits, LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText, IsolatedDigits, LtrIsolate } from "@/components/ui/ltr-isolate";
 
 export type DebtNotice = {
   totalCompact: string;
@@ -187,7 +187,7 @@ export function InterestPanel({
       </p>
       {timeRange ? (
         <p className="text-sm text-muted-foreground">
-          <LtrIsolate>{timeRange}</LtrIsolate>
+          <ClockRangeText text={timeRange} />
           {pitchName ? ` · ${pitchName}` : null}
         </p>
       ) : null}

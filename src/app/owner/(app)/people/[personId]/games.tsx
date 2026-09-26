@@ -8,7 +8,7 @@ import { formatDisplayDate } from "@/lib/format-display-date";
 import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { formatUsdCompact } from "@/lib/money";
 import Decimal from "decimal.js";
@@ -75,9 +75,10 @@ export async function PersonGames({
               <li key={row.id}>
                 <Card className="gap-1 px-4 py-3 shadow-none">
                   <div className="flex items-baseline justify-between gap-3">
-                    <LtrIsolate className="text-sm font-semibold">
-                      {formatLocalClockRange(row.start, row.end, hourCycle, locale)}
-                    </LtrIsolate>
+                    <ClockRangeText
+                      text={formatLocalClockRange(row.start, row.end, hourCycle, locale)}
+                      className="text-sm font-semibold"
+                    />
                     <LtrIsolate
                       className={
                         owed

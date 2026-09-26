@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import Link from "next/link";
 import { Clock, MapPin, Phone } from "lucide-react";
 
@@ -82,14 +82,15 @@ export function PendingRequestList({
                       aria-hidden
                       className="size-4 shrink-0 text-muted-foreground"
                     />
-                    <LtrIsolate className="text-lg font-semibold leading-none">
-                      {formatLocalClockRange(
+                    <ClockRangeText
+                      text={formatLocalClockRange(
                         group.start,
                         group.end,
                         hourCycle,
                         locale,
                       )}
-                    </LtrIsolate>
+                      className="text-lg font-semibold leading-none"
+                    />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">

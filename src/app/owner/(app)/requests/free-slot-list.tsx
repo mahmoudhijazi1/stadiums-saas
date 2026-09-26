@@ -11,7 +11,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Card } from "@/components/ui/card";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText } from "@/components/ui/ltr-isolate";
 import {
   CountedPhrase,
   InterestPanel,
@@ -51,9 +51,10 @@ export function FreeSlotList({
                 className="flex w-full cursor-pointer flex-col items-start gap-1 px-4 py-3 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
                 onClick={() => setOpenKey(group.key)}
               >
-                <LtrIsolate className="text-lg font-semibold leading-none">
-                  {group.timeRange}
-                </LtrIsolate>
+                <ClockRangeText
+                  text={group.timeRange}
+                  className="text-lg font-semibold leading-none"
+                />
                 <span className="text-sm text-muted-foreground">
                   {group.pitchName}
                   <span aria-hidden> · </span>
@@ -76,9 +77,10 @@ export function FreeSlotList({
           <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
             <BottomSheetHeader>
               <BottomSheetTitle>
-                <LtrIsolate className="text-xl font-bold leading-none">
-                  {open.timeRange}
-                </LtrIsolate>
+                <ClockRangeText
+                  text={open.timeRange}
+                  className="text-xl font-bold leading-none"
+                />
               </BottomSheetTitle>
             </BottomSheetHeader>
             <BottomSheetBody>

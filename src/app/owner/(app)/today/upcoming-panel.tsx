@@ -37,7 +37,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
@@ -431,9 +431,10 @@ export function UpcomingPanel({
                     )}
                     aria-hidden={sheetStep !== "details"}
                   >
-                    <LtrIsolate className="text-xl font-bold leading-none">
-                      {sheetRow.timeRange}
-                    </LtrIsolate>
+                    <ClockRangeText
+                      text={sheetRow.timeRange}
+                      className="text-xl font-bold leading-none"
+                    />
                   </span>
                 </span>
               </BottomSheetTitle>
@@ -632,15 +633,14 @@ function UpcomingRows({
                         aria-hidden
                         className="size-4 shrink-0 text-muted-foreground"
                       />
-                      <LtrIsolate
+                      <ClockRangeText
+                        text={row.timeRange}
                         className={cn(
                           "text-lg font-semibold leading-none whitespace-nowrap",
                           row.display.kind === "cancelled" &&
                             "text-muted-foreground line-through",
                         )}
-                      >
-                        {row.timeRange}
-                      </LtrIsolate>
+                      />
                     </span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">

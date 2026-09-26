@@ -17,8 +17,9 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText, ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { clockRangeFromLocals } from "@/lib/format-local-hm";
 import type { UiLocale } from "@/lib/locale";
 import { hoursEmptyState, ui } from "@/lib/ui-copy";
 import { IsolatedDigits } from "@/components/ui/ltr-isolate";
@@ -99,19 +100,19 @@ function SlotFace({
   return (
     <span className="flex h-full min-h-0 w-full flex-col justify-between">
       <span className="flex flex-col">
-        <LtrIsolate
+        <ClockText
+          text={slot.startLocal}
           className={cn(
             "font-display text-3xl leading-[0.9] font-extrabold tabular-nums",
             timeColour,
           )}
-        >
-          {slot.startLocal}
-        </LtrIsolate>
+        />
         <span className={cn("text-xs", quiet)}>
           {ui("public.until", locale)}{" "}
-          <LtrIsolate className="font-display tabular-nums">
-            {slot.endLocal}
-          </LtrIsolate>
+          <ClockText
+            text={slot.endLocal}
+            className="font-display tabular-nums"
+          />
         </span>
       </span>
       <span className="flex items-center justify-between gap-2">
@@ -203,7 +204,12 @@ export function SlotPicker({
           <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
             <BottomSheetHeader>
               <BottomSheetTitle className="sr-only">
-                {`${picked.slot.startLocal} ${ui("public.until", locale)} ${picked.slot.endLocal}`}
+                <ClockRangeText
+                  text={clockRangeFromLocals(
+                    picked.slot.startLocal,
+                    picked.slot.endLocal,
+                  )}
+                />
               </BottomSheetTitle>
               <SlotFace slot={picked.slot} variant="idle" locale={locale} onSurface />
               <BottomSheetDescription>{picked.pitch.name}</BottomSheetDescription>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
+  formatClockRangeText,
   formatLocalHm,
   type ClockLocale,
   type HourCycle,
@@ -30,7 +31,14 @@ export function formatLocalRange(
   hourCycle: HourCycle = "h23",
   locale: ClockLocale = "en",
 ): string {
-  return `${formatLocalClock(start, hourCycle, locale)}–${formatLocalClock(end, hourCycle, locale)} (${OWNER_TIME_ZONE})`;
+  const range = formatClockRangeText(
+    start,
+    end,
+    OWNER_TIME_ZONE,
+    hourCycle,
+    locale,
+  );
+  return `${range} (${OWNER_TIME_ZONE})`;
 }
 
 /** Time range without the zone name (Home compact rows). */
@@ -40,7 +48,7 @@ export function formatLocalClockRange(
   hourCycle: HourCycle = "h23",
   locale: ClockLocale = "en",
 ): string {
-  return `${formatLocalClock(start, hourCycle, locale)}–${formatLocalClock(end, hourCycle, locale)}`;
+  return formatClockRangeText(start, end, OWNER_TIME_ZONE, hourCycle, locale);
 }
 
 export function formatLocalClock(

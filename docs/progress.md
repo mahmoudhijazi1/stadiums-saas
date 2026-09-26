@@ -4105,3 +4105,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** `people` does not import `booking`. The pitch lock is raw SQL with `tenantId` (the extension does not stamp `$queryRaw`). Notifications stay after the transaction. Local `.env` sets `APP_BASE_DOMAIN=localhost:3000` and `APP_PROTOCOL=http`. Production sets `APP_BASE_DOMAIN=lebstads.com` and can omit the protocol.
 
 **How to verify:** `npx jest --watchAll=false` (341), `npm run build`, `npm run test:integration` (5 suites, 23 tests, no force-exit warning).
+
+## Time ranges stay left-to-right
+
+**When:** 2026-09-26
+
+**What:** A clock range is "7:00–8:00 م" (or "7:00–8:00 PM", or "19:00–20:00" when the tenant uses 24-hour time). The digits and the dash sit in one LTR isolate. The period marker sits outside it. Noon-crossing ranges keep both markers, each clock in its own isolate, inside one left-to-right run. Cards, requests, free-slot sheets, the Today sheet, the person games list, the public slot sheet, and the Today requests banner use that.
+
+**Why:** "7:00 مساءً–8:00 مساءً" inside one isolate painted the clocks backwards in Arabic.
+
+**Files:** `src/lib/format-local-hm.ts`, `src/components/ui/ltr-isolate.tsx`, `src/app/owner/shared.tsx`, `src/app/owner/pending-list.tsx`, `src/app/owner/notify-list.tsx`, `src/app/owner/(app)/requests/free-slot-list.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/people/[personId]/games.tsx`, `src/components/slot-picker.tsx`, `test/lib/format-local-hm.test.ts`.
+
+**How it connects:** Display only. WhatsApp still uses a single `formatLocalHm` clock. `people` does not import `booking`.
+
+**How to verify:** `npx jest --watchAll=false` (346), `npm run test:integration` (5 suites, 23 tests), `npm run build`.

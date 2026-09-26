@@ -35,7 +35,7 @@ import {
 import { upcomingStatus } from "@/modules/booking/domain/home-inbox";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import { isPastUnpaidCancel, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
 
 export async function OwnerToday({
   membership,
@@ -86,9 +86,7 @@ export async function OwnerToday({
           <span className="min-w-0 flex-1">
             <CountedPhrase text={uiCount("owner.requests", pending.length, locale)} />
             <span aria-hidden> · </span>
-            <LtrIsolate>
-              {formatLocalClock(earliest.start, hourCycle, locale)}
-            </LtrIsolate>
+            <ClockText text={formatLocalClock(earliest.start, hourCycle, locale)} />
           </span>
           <ChevronRight
             aria-hidden
