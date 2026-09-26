@@ -7,6 +7,7 @@ import {
   can,
 } from "@/modules/access/domain/can";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
+import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { OwnerHeader } from "@/app/owner/header";
 import { OwnerTabBar } from "@/app/owner/tab-bar";
 import { Container } from "@/components/ui/container";
@@ -40,7 +41,7 @@ export default async function OwnerLayout({
       </Suspense>
       <OwnerTabBar
         locale={locale}
-        pendingCount={pending.length}
+        pendingCount={actionablePending(pending, new Date()).length}
         showBooking={showBooking}
         showExpense={showExpense}
       />

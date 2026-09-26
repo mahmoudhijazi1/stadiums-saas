@@ -15,6 +15,7 @@ import {
 } from "@/modules/booking/infrastructure/bookings";
 import {
   bookingConfirmedMessage,
+  bookingMissedMessage,
   bookingRejectedMessage,
   whatsAppHref,
 } from "@/modules/notification/domain/whatsapp-link";
@@ -36,7 +37,7 @@ export type DecisionNotifyRow = {
  */
 export async function loadDecisionNotify(input: {
   bookingId: string;
-  kind: "approved" | "rejected";
+  kind: "approved" | "rejected" | "dismissed";
   reason?: string;
   siblingIds?: string[];
 }): Promise<DecisionNotifyRow[]> {
@@ -51,7 +52,12 @@ export async function loadDecisionNotify(input: {
     const booking = await findBookingRequester(db, input.bookingId);
     if (!booking) return [];
     if (input.kind === "approved" && booking.status !== "APPROVED") return [];
-    if (input.kind === "rejected" && booking.status !== "REJECTED") return [];
+    if (
+      (input.kind === "rejected" || input.kind === "dismissed") &&
+      booking.status !== "REJECTED"
+    ) {
+      return [];
+    }
 
     const locale = await getUiLocale();
     const day = formatDisplayDate(booking.start, locale, {
@@ -67,6 +73,27 @@ export async function loadDecisionNotify(input: {
     );
     const link = publicPageUrl(tenant.slug);
     const slotTaken = ui("owner.rejectReason.slotTaken", locale);
+
+    if (input.kind === "dismissed") {
+      return [
+        toRow(
+          {
+            personId: booking.requesterPersonId,
+            name: booking.requesterName,
+            phone: booking.requesterPhone,
+          },
+          bookingMissedMessage({
+            name: booking.requesterName,
+            day,
+            time,
+            link,
+            locale,
+          }),
+          ui("owner.dismiss", locale),
+          tenant.id,
+        ),
+      ];
+    }
 
     if (input.kind === "rejected") {
       const reason = cleanReason(input.reason);

@@ -7,6 +7,7 @@ import { normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { adjustBookingDue } from "@/modules/booking/application/adjust-booking-due";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
+import { dismissMissedRequests } from "@/modules/booking/application/dismiss-missed-requests";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
@@ -35,7 +36,9 @@ export async function submitApproveBooking(formData: FormData) {
       bookingId: field(formData, "bookingId"),
     });
     bookingId = parsed.bookingId;
-    const rejected = await approveBooking(parsed.bookingId);
+    const rejected = await approveBooking(parsed.bookingId, {
+      allowStarted: field(formData, "allowStarted") === "1",
+    });
     siblings = rejected.map((person) => person.personId).join(",");
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitApproveBooking");
@@ -79,6 +82,40 @@ export async function submitRejectBooking(formData: FormData) {
     bookingId,
     reason,
   });
+}
+
+export async function submitDismissBooking(formData: FormData) {
+  let errorKey: string | undefined;
+  let bookingId = "";
+  try {
+    const parsed = parseBookingDecision({
+      bookingId: field(formData, "bookingId"),
+    });
+    bookingId = parsed.bookingId;
+    await rejectBooking(parsed.bookingId);
+  } catch (error) {
+    errorKey = await actionErrorKey(error, "submitDismissBooking");
+  }
+  if (errorKey) {
+    redirectOwner("/owner/requests", formData, [], { error: errorKey });
+  }
+  redirectOwner("/owner/requests", formData, [], {
+    notify: "dismissed",
+    bookingId,
+  });
+}
+
+export async function submitDismissMissed(formData: FormData) {
+  let errorKey: string | undefined;
+  try {
+    await dismissMissedRequests();
+  } catch (error) {
+    errorKey = await actionErrorKey(error, "submitDismissMissed");
+  }
+  if (errorKey) {
+    redirectOwner("/owner/requests", formData, [], { error: errorKey });
+  }
+  redirectOwner("/owner/requests", formData, []);
 }
 
 export async function submitCancelBooking(formData: FormData) {

@@ -8,6 +8,7 @@ import {
 } from "@/modules/booking/application/load-owner-day";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
+import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { suggestFee } from "@/modules/booking/domain/suggest-fee";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
@@ -56,8 +57,10 @@ export async function OwnerToday({
   const hourCycle: HourCycle = tenant.timeDisplay;
   const ownerDay = await loadOwnerDay(date);
   const openWaitlist = await listOpenWaitlist();
-  const pending = ownerDay.isToday ? await listPendingRequests() : [];
   const now = new Date();
+  const pending = ownerDay.isToday
+    ? actionablePending(await listPendingRequests(), now)
+    : [];
   const mayCollect = can(membership, PAYMENTS_COLLECT);
   const mayCancel = can(membership, BOOKINGS_CANCEL);
   const mayNoShow = can(membership, BOOKINGS_NO_SHOW);

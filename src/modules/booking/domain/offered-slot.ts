@@ -22,6 +22,8 @@ export function resolveOfferedSlot(input: {
   end: Date;
   now: Date;
   occupied?: UtcRange[];
+  /** "They played" on a missed request. Skips the future-start check only. */
+  allowStarted?: boolean;
 }): { start: Date; end: Date; priceUsd: Decimal } {
   const slots = generateSlotsForDay({
     config: input.config,
@@ -44,7 +46,7 @@ export function resolveOfferedSlot(input: {
     throw new DomainError("booking.slot_taken");
   }
 
-  if (offered.start.getTime() <= input.now.getTime()) {
+  if (!input.allowStarted && offered.start.getTime() <= input.now.getTime()) {
     throw new DomainError("booking.slot_ended");
   }
 

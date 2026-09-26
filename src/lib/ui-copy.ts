@@ -111,6 +111,9 @@ const ARABIC: Record<string, string> = {
   "owner.remaining": "المتبقي",
   "owner.paid": "مدفوع",
   "owner.approve": "موافقة",
+  "owner.theyPlayed": "لعبوا فعلاً",
+  "owner.dismiss": "تجاهل",
+  "owner.dismissAll": "تجاهل الكل",
   "owner.hourJustBooked": "تم حجز هذه الساعة للتو",
   "owner.reject": "رفض",
   "owner.rejectSheet": "سبب الرفض",
@@ -378,6 +381,9 @@ const ENGLISH: Record<string, string> = {
   "owner.remaining": "Remaining",
   "owner.paid": "Paid",
   "owner.approve": "Approve",
+  "owner.theyPlayed": "They played",
+  "owner.dismiss": "Dismiss",
+  "owner.dismissAll": "Dismiss all",
   "owner.hourJustBooked": "This hour was just booked",
   "owner.reject": "Reject",
   "owner.rejectSheet": "Reject reason",
@@ -640,6 +646,19 @@ const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
       other: "{n} requests",
     },
   },
+  "owner.spanMinutes": {
+    ar: {
+      one: "دقيقة",
+      two: "دقيقتين",
+      few: "{n} دقائق",
+      many: "{n} دقيقة",
+      other: "{n} دقيقة",
+    },
+    en: {
+      one: "{n} minute",
+      other: "{n} minutes",
+    },
+  },
   "owner.agoMinutes": {
     ar: {
       one: "قبل دقيقة",
@@ -736,6 +755,17 @@ export function pendingCount(n: number, locale: UiLocale = "ar"): string {
 /** Requests heading. Digits stay inside the phrase so the caller can isolate them. */
 export function requestsCount(n: number, locale: UiLocale = "ar"): string {
   return uiCount("owner.requests", n, locale);
+}
+
+/** Collapsed missed-request heading. Digits stay in the phrase. */
+export function missedRequestsCount(n: number, locale: UiLocale = "ar"): string {
+  return locale === "en" ? `Missed requests (${n})` : `طلبات فائتة (${n})`;
+}
+
+/** Amber line for a future request starting within 2 hours. */
+export function startsInLabel(minutes: number, locale: UiLocale = "ar"): string {
+  const span = uiCount("owner.spanMinutes", minutes, locale);
+  return locale === "en" ? `Starts in ${span}` : `يبدأ بعد ${span}`;
 }
 
 /**

@@ -75,6 +75,23 @@ export function bookingRejectedMessage(input: {
   return `مرحبا ${embed(input.name)}، للأسف ما منقدر نأكدلك حجز ${embed(input.day)} الساعة ${embed(input.time)}${reason}. إذا بدك وقت تاني، شوف الساعات المتاحة: ${embed(input.link)}`;
 }
 
+/**
+ * Missed request, dismissed. No rejection reason.
+ * Arabic is the Lebanese line the owner can send as-is.
+ */
+export function bookingMissedMessage(input: {
+  name: string;
+  day: string;
+  time: string;
+  link: string;
+  locale?: MessageLocale;
+}): string {
+  if (input.locale === "en") {
+    return `Hello ${embed(input.name)}, we missed your request for ${embed(input.day)} at ${embed(input.time)}. To book again: ${embed(input.link)}`;
+  }
+  return `مرحبا ${embed(input.name)}، للأسف فاتنا طلبك ليوم ${embed(input.day)} الساعة ${embed(input.time)}. إذا بدك تحجز من جديد: ${embed(input.link)}`;
+}
+
 /** Player cancelled, no fee. */
 export function bookingCancelledByPlayerMessage(input: {
   name: string;

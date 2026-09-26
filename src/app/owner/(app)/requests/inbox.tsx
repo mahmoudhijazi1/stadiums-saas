@@ -2,7 +2,11 @@ import type { CurrentMembership } from "@/modules/access/application/get-current
 import { listDebtWarnings } from "@/modules/booking/application/list-debt-warnings";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
-import { PendingRequestList } from "@/app/owner/pending-list";
+import { MissedRequestSection, PendingRequestList } from "@/app/owner/pending-list";
+import {
+  actionablePending,
+  missedPending,
+} from "@/modules/booking/domain/expired-request";
 import type { DebtNotice } from "@/app/owner/notify-list";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import type { UiLocale } from "@/lib/locale";
@@ -29,7 +33,7 @@ export async function RequestsInbox({
 }: {
   membership: CurrentMembership;
   locale: UiLocale;
-  notify?: "approved" | "rejected";
+  notify?: "approved" | "rejected" | "dismissed";
   bookingId?: string;
   reason?: string;
   siblings?: string;
@@ -40,6 +44,9 @@ export async function RequestsInbox({
     listPendingRequests(),
     listOpenWaitlist(),
   ]);
+  const now = new Date();
+  const queue = actionablePending(pending, now);
+  const missed = missedPending(pending, now);
   const personIds = [
     ...pending.map((row) => row.requesterPersonId),
     ...openWaitlist.flatMap((group) => group.people.map((person) => person.personId)),
@@ -79,16 +86,23 @@ export async function RequestsInbox({
         membership={membership}
         locale={locale}
         hourCycle={hourCycle}
-        pending={pending}
+        pending={queue}
         openWaitlist={openWaitlist}
         debts={debts}
+        showEmpty={missed.length === 0}
       />
       <FreeSlots
         locale={locale}
         hourCycle={hourCycle}
-        pending={pending}
+        pending={queue}
         openWaitlist={openWaitlist}
         debts={debts}
+      />
+      <MissedRequestSection
+        membership={membership}
+        locale={locale}
+        hourCycle={hourCycle}
+        missed={missed}
       />
     </>
   );

@@ -106,6 +106,20 @@ describe("resolveOfferedSlot", () => {
       }),
     ).toThrow("booking.slot_ended");
   });
+
+  it("allows a started slot only when allowStarted is set", () => {
+    const slot = firstWedSlot();
+    const matched = resolveOfferedSlot({
+      config: evening,
+      localDate: WED,
+      timeZone: BEIRUT,
+      start: slot.start,
+      end: slot.end,
+      now: slot.end,
+      allowStarted: true,
+    });
+    expect(matched.start.getTime()).toBe(slot.start.getTime());
+  });
 });
 
 describe("overlaps", () => {
@@ -171,6 +185,22 @@ describe("resolveOfferedSlot occupied", () => {
         start: slot.start,
         end: slot.end,
         now: new Date(slot.start.getTime() - 60_000),
+        occupied: [{ start: slot.start, end: slot.end }],
+      }),
+    ).toThrow("booking.slot_taken");
+  });
+
+  it("still rejects a taken hour when allowStarted is set", () => {
+    const slot = firstWedSlot();
+    expect(() =>
+      resolveOfferedSlot({
+        config: evening,
+        localDate: WED,
+        timeZone: BEIRUT,
+        start: slot.start,
+        end: slot.end,
+        now: slot.end,
+        allowStarted: true,
         occupied: [{ start: slot.start, end: slot.end }],
       }),
     ).toThrow("booking.slot_taken");

@@ -22,7 +22,13 @@ export default async function OwnerRequestsPage({
         <RequestsInbox
           membership={membership}
           locale={locale}
-          notify={notify === "approved" || notify === "rejected" ? notify : undefined}
+          notify={
+            notify === "approved" ||
+            notify === "rejected" ||
+            notify === "dismissed"
+              ? notify
+              : undefined
+          }
           bookingId={queryString(params.bookingId)}
           reason={queryString(params.reason)}
           siblings={queryString(params.siblings)}

@@ -37,6 +37,11 @@ export type ApproveBookingDeps = {
     tx: TenantTx,
     pitchId?: string,
   ) => Promise<ApprovedRangeRow[]>;
+  /**
+   * Missed-request "They played". A started or ended slot may be approved
+   * only when this is set. The exclusion constraint and the pitch lock stay.
+   */
+  allowStarted?: boolean;
 };
 
 /**
@@ -85,6 +90,7 @@ export async function approveBooking(
         end: booking.end,
         now: new Date(),
         occupied: approved.map((row) => ({ start: row.start, end: row.end })),
+        allowStarted: deps.allowStarted === true,
       });
 
       await setPendingStatus(tx, booking.id, "APPROVED");

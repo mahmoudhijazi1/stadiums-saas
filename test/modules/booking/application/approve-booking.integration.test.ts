@@ -11,6 +11,13 @@ import db from "@/lib/db";
 import { platformDb } from "@/lib/platform-db";
 import { DomainError } from "@/lib/errors";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
+import { dismissMissedRequests } from "@/modules/booking/application/dismiss-missed-requests";
+import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
+import { rejectBooking } from "@/modules/booking/application/reject-booking";
+import {
+  actionablePending,
+  missedPending,
+} from "@/modules/booking/domain/expired-request";
 import {
   insertPendingPublicBooking,
   insertRequesterParticipant,
@@ -168,5 +175,72 @@ describe("approveBooking (integration)", () => {
 
     spy.mockRestore();
     expect(await bookingStatus(bookingId)).toBe("APPROVED");
+  });
+
+  it("approves a missed request only via They played, and dismiss never counts it", async () => {
+    const past = {
+      start: new Date("2026-09-21T13:00:00.000Z"),
+      end: new Date("2026-09-21T14:00:00.000Z"),
+    };
+    const playedId = await insertPendingWithRequester(
+      fixture,
+      past,
+      "0311111001",
+      "Played",
+    );
+    const dismissId = await insertPendingWithRequester(
+      fixture,
+      {
+        start: new Date("2026-09-21T14:00:00.000Z"),
+        end: new Date("2026-09-21T15:00:00.000Z"),
+      },
+      "0311111002",
+      "Dismiss",
+    );
+    const futureId = await insertPendingWithRequester(
+      fixture,
+      { start, end },
+      "0311111003",
+      "Future",
+    );
+
+    let blocked: unknown;
+    try {
+      await approveBooking(playedId);
+    } catch (error) {
+      blocked = error;
+    }
+    expect(blocked).toBeInstanceOf(DomainError);
+    expect((blocked as DomainError).key).toBe("booking.slot_ended");
+    expect(await bookingStatus(playedId)).toBe("PENDING");
+
+    await approveBooking(playedId, { allowStarted: true });
+    expect(await bookingStatus(playedId)).toBe("APPROVED");
+
+    await rejectBooking(dismissId);
+    expect(await bookingStatus(dismissId)).toBe("REJECTED");
+
+    const afterOne = await listPendingRequests();
+    expect(actionablePending(afterOne, new Date()).map((row) => row.id)).toEqual([
+      futureId,
+    ]);
+    expect(missedPending(afterOne, new Date())).toEqual([]);
+
+    const anotherMissed = await insertPendingWithRequester(
+      fixture,
+      {
+        start: new Date("2026-09-22T13:00:00.000Z"),
+        end: new Date("2026-09-22T14:00:00.000Z"),
+      },
+      "0311111004",
+      "Also missed",
+    );
+    await dismissMissedRequests();
+    expect(await bookingStatus(anotherMissed)).toBe("REJECTED");
+    expect(await bookingStatus(futureId)).toBe("PENDING");
+
+    const left = await listPendingRequests();
+    expect(actionablePending(left, new Date())).toHaveLength(1);
+    expect(missedPending(left, new Date())).toHaveLength(0);
   });
 });

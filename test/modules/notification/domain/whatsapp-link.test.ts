@@ -4,6 +4,7 @@ import {
   bookingCancelledByPlayerFeeMessage,
   bookingCancelledByPlayerMessage,
   bookingConfirmedMessage,
+  bookingMissedMessage,
   bookingNoShowFeeMessage,
   bookingNoShowMessage,
   bookingRejectedMessage,
@@ -71,6 +72,21 @@ describe("bookingConfirmedMessage", () => {
       }),
     ).toBe(
       `مرحبا ${embed("أحمد")}، تأكد حجزك في ${embed("Ahmad Stadium")} يوم ${embed("الجمعة")} الساعة ${embed("21:00")} على ${embed("Pitch 1")}. منشوفك!`,
+    );
+  });
+});
+
+describe("bookingMissedMessage", () => {
+  it("uses the Lebanese missed-request line and embeds the link", () => {
+    expect(
+      bookingMissedMessage({
+        name: "أحمد",
+        day: "الاثنين، 21 أيلول",
+        time: "4:00 مساءً",
+        link: "http://ahmad.localhost:3000/",
+      }),
+    ).toBe(
+      `مرحبا ${embed("أحمد")}، للأسف فاتنا طلبك ليوم ${embed("الاثنين، 21 أيلول")} الساعة ${embed("4:00 مساءً")}. إذا بدك تحجز من جديد: ${embed("http://ahmad.localhost:3000/")}`,
     );
   });
 });

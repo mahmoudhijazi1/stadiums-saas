@@ -4133,3 +4133,19 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Display only. Civil days come from `Intl` in Asia/Beirut, so the October fall-back does not shrink two civil days into one. `people` does not import `booking`.
 
 **How to verify:** `npx jest --watchAll=false` (370), `npm run test:integration` (5 suites, 23 tests), `npm run build`.
+
+## Missed requests
+
+**When:** 2026-09-26
+
+**What:** A PENDING request is missed when its slot start is now or earlier. That is derived, not stored. Missed rows leave the Requests queue, the tab badge, the Today banner, and the heading count. They sit in a collapsed "طلبات فائتة (N)" section. "لعبوا فعلاً" approves through `approveBooking` with `allowStarted`, which is the only path that skips the future-start check. The pitch lock and the exclusion constraint stay. "تجاهل" sets REJECTED with no reason and offers the missed WhatsApp line. "تجاهل الكل" rejects every missed request and leaves future ones. A future request starting within two hours shows an amber "يبدأ بعد X".
+
+**Why:** A request for an hour that already started was still in the queue and the badge, and Approve refused it as `booking.slot_ended`.
+
+**Dismiss status:** REJECTED with no stored reason. Booking has no reason column; a manual reject already stores nothing, and the message is only the optional WhatsApp row. A new status would need a migration and a new branch in every status check, and would not make the message clearer.
+
+**Files:** `src/modules/booking/domain/expired-request.ts`, `src/modules/booking/domain/offered-slot.ts`, `src/modules/booking/application/approve-booking.ts`, `src/modules/booking/application/dismiss-missed-requests.ts`, `src/modules/booking/application/load-decision-notify.ts`, `src/modules/notification/domain/whatsapp-link.ts`, `src/lib/ui-copy.ts`, `src/app/owner/pending-list.tsx`, `src/app/owner/(app)/requests/inbox.tsx`, `src/app/owner/(app)/requests/page.tsx`, `src/app/owner/(app)/layout.tsx`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/actions.ts`, and the matching tests.
+
+**How it connects:** `people` does not import `booking`. Notifications stay after the decision. The badge count is `actionablePending`, the same split the integration test asserts.
+
+**How to verify:** `npx jest --watchAll=false` (379), `npm run test:integration` (5 suites, 24 tests), `npm run build`.
