@@ -155,7 +155,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     await assertMoneyInvariants([]);
   });
 
-  it("leaves earlier whole-game payments Unassigned and still takes a slot's cash", async () => {
+  it("leaves earlier whole-game payments Unassigned and never charges a slot twice for them", async () => {
     const bookingId = await ownerBooking("03222005", 3);
     await collectBookingPayment({
       bookingId,
@@ -165,17 +165,86 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     await switchToPerPlayer({ bookingId, count: 10 });
     expect((await allocatedUsd(bookingId)).equals(0)).toBe(true);
 
+    // Unassigned $30 already covers the booking: a slot tap and pay-all take nothing
+    // (audit §3.6; supersedes "a slot checks only its own remaining").
     const [, second] = await slotsOf(bookingId);
-    await collectSlotPayment({ bookingId, participantId: second!.id });
+    await expect(
+      collectSlotPayment({ bookingId, participantId: second!.id }),
+    ).rejects.toMatchObject({ key: "payment.nothing_due" });
+    await expect(collectAllRemaining({ bookingId })).rejects.toMatchObject({
+      key: "payment.nothing_due",
+    });
 
-    const collected = await collectedUsd(bookingId);
-    const allocated = await allocatedUsd(bookingId);
-    expect(collected.equals("33.00")).toBe(true);
-    expect(allocated.equals("3.00")).toBe(true);
-    expect(collected.minus(allocated).equals("30.00")).toBe(true);
+    expect((await collectedUsd(bookingId)).equals("30.00")).toBe(true);
+    expect((await allocatedUsd(bookingId)).equals(0)).toBe(true);
     const day = await ownerDayFor(bookingId);
     expect(day?.unassignedUsd.equals("30.00")).toBe(true);
-    expect(day?.remaining.equals("-3.00")).toBe(true);
+    expect(day?.remaining.equals("0.00")).toBe(true);
+    await assertMoneyInvariants([]);
+  });
+
+  it("audit probe: $10 before the split and 2 slots paid, pay-all takes exactly the $14 owed", async () => {
+    const bookingId = await ownerBooking("03222021", 3);
+    await collectBookingPayment({
+      bookingId,
+      tenders: [{ currency: "USD", amount: new Decimal("10.00") }],
+    });
+    await switchToPerPlayer({ bookingId, count: 10 });
+    const slots = await slotsOf(bookingId);
+    await collectSlotPayment({ bookingId, participantId: slots[1]!.id });
+    await collectSlotPayment({ bookingId, participantId: slots[2]!.id });
+
+    await collectAllRemaining({ bookingId });
+
+    const payments = await platformDb.payment.findMany({
+      where: { sourceId: bookingId },
+      include: { tenders: true, allocations: true },
+      orderBy: { createdAt: "asc" },
+    });
+    const last = payments.find((payment) => payment.allocations.length > 1)!;
+    expect(money(last.tenders[0]?.usdEquivalent).equals("14.00")).toBe(true);
+    // Slots 1, 4, 5, 6 in full, slot 7 partial; 8–10 stay unpaid, covered by Unassigned.
+    const bySlot = new Map(slots.map((slot) => [slot.id, slot.slotNumber]));
+    expect(
+      last.allocations
+        .map((row) => [bySlot.get(row.participantId), money(row.amountUsd).toFixed(2)])
+        .sort((a, b) => Number(a[0]) - Number(b[0])),
+    ).toEqual([
+      [1, "3.00"],
+      [4, "3.00"],
+      [5, "3.00"],
+      [6, "3.00"],
+      [7, "2.00"],
+    ]);
+    expect((await collectedUsd(bookingId)).equals("30.00")).toBe(true);
+    expect((await allocatedUsd(bookingId)).equals("20.00")).toBe(true);
+    const day = await ownerDayFor(bookingId);
+    expect(day?.remaining.equals("0.00")).toBe(true);
+    expect(day?.unassignedUsd.equals("10.00")).toBe(true);
+
+    // Nothing is owed any more: every remaining tap is refused.
+    await expect(
+      collectSlotPayment({ bookingId, participantId: slots[7]!.id }),
+    ).rejects.toMatchObject({ key: "payment.nothing_due" });
+    await expect(collectAllRemaining({ bookingId })).rejects.toMatchObject({
+      key: "payment.nothing_due",
+    });
+    await assertMoneyInvariants([]);
+  });
+
+  it("charges a single slot only what the booking still owes (partial tap)", async () => {
+    const bookingId = await ownerBooking("03222022", 3);
+    await collectBookingPayment({
+      bookingId,
+      tenders: [{ currency: "USD", amount: new Decimal("28.50") }],
+    });
+    await switchToPerPlayer({ bookingId, count: 10 });
+    const [first] = await slotsOf(bookingId);
+
+    await collectSlotPayment({ bookingId, participantId: first!.id });
+
+    expect((await collectedUsd(bookingId)).equals("30.00")).toBe(true);
+    expect((await allocatedUsd(bookingId)).equals("1.50")).toBe(true);
     await assertMoneyInvariants([]);
   });
 

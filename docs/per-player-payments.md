@@ -2,7 +2,7 @@
 
 **Living doc.** It describes what the code does now (SPEC-15 slices 1–2). Update it in the same change whenever split, slot pay, cancel or no-show behavior changes. The design history stays in [SPEC-15](./specs/SPEC-15-per-player-payments.md), which is historical and is not rewritten. Where this page and the SPEC differ, **this page describes the code** and the difference is listed in section 9.
 
-Last checked against the code: 2026-09-30 (slice 2 plus the cancel and no-show collapse).
+Last checked against the code: 2026-09-30 (slice 2, the cancel and no-show collapse, and the charge cap from the production audit §3.6).
 
 ---
 
@@ -71,16 +71,26 @@ Needs `bookings.adjust_due`. Allowed only while there are **zero allocations** (
 The button is disabled once any slot has been paid.
 
 ### Pay one slot (one tap)
-Needs `payments.collect`. Pays that slot's remaining, in USD.
+Needs `payments.collect`. Pays that slot's remaining in USD, **capped at what the booking still owes** (see "The charge cap" below).
 
 - One payment, one USD tender, one ledger IN, one allocation. All in one transaction.
 - The booking row is **locked** and the slot remaining is **recomputed after the lock**. Two taps on the same slot at once pay it once; the second gets `payment.nothing_due`.
 - Works on APPROVED bookings only (`payment.collect_unapproved` otherwise). Cancel and no-show collapse a per-player booking to Whole first, so a per-player booking is never in another status.
-- **Only the slot's own remaining is checked, not the booking's.** If the booking is already overpaid (for example a fully paid whole game that was then split), a slot can still take cash. Warn, never block the owner from taking money (RULE-9). The extra shows as a negative booking remaining and the slot is still credited.
+- If money already collected (Unassigned) covers the booking, the slot shows **Covered by earlier payment** and has no Pay button; the server refuses with `payment.nothing_due`. If the booking owes less than the slot's remaining, the button shows the smaller amount and the tap charges only that (the slot stays partly unpaid, covered by Unassigned).
 - There is no undo and no refund in this slice. A mistaken tap stays.
 
 ### Booker pays all remaining
-Needs `payments.collect`. One payment covering every unpaid slot, with one allocation per slot. The button shows the total. If nothing is unpaid: `payment.nothing_due`.
+Needs `payments.collect`. One payment, allocated to the unpaid slots **in slot order up to what the booking still owes**; the last slot may be partial. The button shows that capped total, from the same function the server charges with. If the booking owes nothing: `payment.nothing_due`, and the button is hidden.
+
+### The charge cap
+`planSlotCharge` (`src/modules/booking/domain/slot-charge.ts`) decides every per-player charge, on the server and for the button labels:
+
+- cap = booking remaining = `amountDueUsd` minus **everything** collected, Unassigned included;
+- pay-all charges min(sum of unpaid slot remainings, cap), filling slots in order;
+- one tap charges min(that slot's remaining, cap);
+- cap ≤ 0 means nothing is charged (`payment.nothing_due`); the slot is "covered".
+
+Unassigned stays Unassigned: nothing is moved onto slots (that is slice 5). This supersedes the earlier rule "a slot checks only its own remaining", which took the same cash twice when Unassigned existed (production audit §3.6: $10 before the split plus two paid slots, and pay-all charged $24 where $14 was owed).
 
 ### Whole-game collect on a per-player booking
 Refused: `booking.collect_per_player` ("This booking is split per player. Record payment per player."). The whole-game forms are hidden in the sheet. This stops a payment from landing with no slot.
@@ -137,6 +147,7 @@ Slot names: slot 1 shows the requester's name. Other slots show "Player N" until
 | May switch / may pay a slot | `src/modules/booking/domain/switch-mode.ts` |
 | Switch use cases | `src/modules/booking/application/switch-collection-mode.ts` |
 | Slot pay, pay-all | `src/modules/booking/application/collect-player-payment.ts` |
+| Charge cap (pay-all, one tap, button totals, covered state) | `src/modules/booking/domain/slot-charge.ts` (`planSlotCharge`, `slotPayState`) |
 | Cancel and no-show (collapse) | `src/modules/booking/application/cancel-booking.ts`, `record-no-show.ts`, `collapseToWhole` in `infrastructure/bookings.ts` |
 | Whole-collect guard | `src/modules/booking/application/collect-booking-payment.ts` |
 | Due-change guard (`due_whole_only`) | `src/modules/booking/domain/adjust-due.ts`, `application/write-due-change.ts` |
@@ -150,8 +161,8 @@ Module rule: Booking may import Payment. Payment never imports Booking, so `inse
 
 ## 8. How it is tested
 
-- Unit: `build-slots`, `switch-mode`, `split-evenly`, `person-owed`.
-- Integration (`per-player.integration.test.ts`, real Postgres): the split and its refusals, rollback when a slot insert fails, one tap writes one payment/tender/ledger/allocation, the concurrent double tap, pay-all, Unassigned and overpaid, whole-collect refusal, switching back, allocation tenant scoping, cancel with payments, cancel with an edited fee, cancel with nothing paid, no-show at the default fee, no-show with an edited fee, no-show waived.
+- Unit: `build-slots`, `switch-mode`, `split-evenly`, `person-owed`, `slot-charge` (the audit case, the cap, partial last slot, covered).
+- Integration (`per-player.integration.test.ts`, real Postgres): the split and its refusals, rollback when a slot insert fails, one tap writes one payment/tender/ledger/allocation, the concurrent double tap, pay-all, Unassigned covering the slots (no second charge), pay-all capped at the booking remaining with a partial last slot, a partial single tap, whole-collect refusal, switching back, allocation tenant scoping, cancel with payments, cancel with an edited fee, cancel with nothing paid, no-show at the default fee, no-show with an edited fee, no-show waived.
 - **Not covered by any test:** the sheet itself (there is no browser or React test setup), the 401/refresh behavior, a cancel or no-show racing a slot tap (the row lock is in place but not exercised).
 
 ## 9. Gaps and differences from the SPEC
@@ -174,6 +185,8 @@ No open decisions. The earlier gaps (no-show with a different fee refused, cance
 
 **Half paid, the booker covers the rest.** Five taps, then "Booker pays all remaining $15.00": one payment of $15.00 with five allocations.
 
-**Owner took $30 from the booker, then decides to split.** Switch to per player: collected $30, allocated $0, Unassigned $30, booking remaining $0. Slots still show unpaid. Tapping Pay on a slot is allowed (the booking becomes overpaid by that amount, Unassigned stays $30). This is why the switch is only offered while cash is owed.
+**Owner took $30 from the booker, then decides to split.** Switch to per player: collected $30, allocated $0, Unassigned $30, booking remaining $0. Every slot shows "Covered by earlier payment" and pay-all is hidden. Nothing more can be charged. (The switch is only offered while cash is owed anyway.)
+
+**$10 paid before the split, two players paid.** Due $30, collected $16, Unassigned $10, remaining $14. Pay-all shows and charges $14: slots 1, 4, 5 and 6 get $3, slot 7 gets $2. Slots 8–10 are then covered.
 
 **They cancel or no-show after paying part.** See section 5: the booking collapses to Whole, the fee logic runs on what was collected, attribution is dropped.

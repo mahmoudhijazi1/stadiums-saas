@@ -1,4 +1,3 @@
-import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -6,15 +5,19 @@ import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
+import { planSlotCharge } from "@/modules/booking/domain/slot-charge";
 import { assertCanPaySlot } from "@/modules/booking/domain/switch-mode";
 import {
   findBookingForUpdate,
   listSlotsForBookings,
 } from "@/modules/booking/infrastructure/bookings";
 import { recordPayment } from "@/modules/payment/application/record-payment";
-import { freezeTenders, participantRemaining } from "@/modules/payment/domain/collect";
+import { freezeTenders } from "@/modules/payment/domain/collect";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
-import { insertAllocations } from "@/modules/payment/infrastructure/payments";
+import {
+  insertAllocations,
+  sumCollectedUsd,
+} from "@/modules/payment/infrastructure/payments";
 
 async function requireCollector() {
   const membership = await getCurrentMembership();
@@ -24,11 +27,11 @@ async function requireCollector() {
 }
 
 /**
- * Pay the chosen slots' full remaining in USD cash: one payment, one tender, one ledger
- * row and one allocation per slot, all in this transaction (DR-002 §2.21).
- * The booking row is locked first and remaining is recomputed after the lock, so a
- * double tap finds the slot already paid. Only the slots' own remaining is checked,
- * never the booking remaining (RULE-9, P3).
+ * Pay the chosen slots in USD cash: one payment, one tender, one ledger row and one
+ * allocation per slot, all in this transaction (DR-002 §2.21).
+ * The booking row is locked first and everything is recomputed after the lock, so a
+ * double tap finds the slot already paid. The charge is `planSlotCharge`: never more
+ * than the booking still owes, Unassigned included (P3, audit §3.6).
  */
 async function payRemaining(input: {
   bookingId: string;
@@ -45,22 +48,21 @@ async function payRemaining(input: {
       throw new DomainError("booking.not_found");
     }
 
-    const owing = chosen
-      .map((slot) => ({
-        participantId: slot.participantId,
-        remaining: participantRemaining(slot.dueUsd, slot.paidUsd),
-      }))
-      .filter((slot) => slot.remaining.gt(0));
-    const total = owing.reduce((sum, slot) => sum.plus(slot.remaining), new Decimal(0));
+    const charge = planSlotCharge({
+      amountDueUsd: booking.amountDueUsd,
+      collectedUsd: await sumCollectedUsd(tx, "BOOKING", booking.id),
+      slots: chosen,
+      target: "ALL_UNPAID",
+    });
 
     assertCanPaySlot({
       status: booking.status,
       collectionMode: booking.collectionMode,
-      slotRemainingUsd: total,
+      chargeUsd: charge.totalUsd,
     });
 
     const rate = await findLatestExchangeRate(tx);
-    const tenders = freezeTenders([{ currency: "USD", amount: total }], rate);
+    const tenders = freezeTenders([{ currency: "USD", amount: charge.totalUsd }], rate);
     const paymentId = await recordPayment(tx, {
       direction: "IN",
       sourceType: "BOOKING",
@@ -68,19 +70,12 @@ async function payRemaining(input: {
       amountDueUsd: booking.amountDueUsd,
       tenders,
     });
-    await insertAllocations(
-      tx,
-      paymentId,
-      owing.map((slot) => ({
-        participantId: slot.participantId,
-        amountUsd: slot.remaining,
-      })),
-    );
+    await insertAllocations(tx, paymentId, charge.allocations);
     return paymentId;
   });
 }
 
-/** One tap: this player paid his remaining in USD. */
+/** One tap: this player paid his remaining in USD, capped at what the booking owes. */
 export async function collectSlotPayment(input: {
   bookingId: string;
   participantId: string;
@@ -100,7 +95,7 @@ export async function collectSlotPayment(input: {
   }
 }
 
-/** Booker pays all remaining: every unpaid slot, one payment. */
+/** Booker pays all remaining: unpaid slots in order up to what the booking owes, one payment. */
 export async function collectAllRemaining(input: {
   bookingId: string;
 }): Promise<void> {

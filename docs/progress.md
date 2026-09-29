@@ -4301,3 +4301,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Booking still imports Payment only through `sumCollectedUsd` / `recordPayment`; Payment does not import Booking. No schema change. The exclusion constraint and the pitch lock are unchanged.
 
 **How to verify:** `npm test` (59 suites, 407 tests), `npm run test:integration` (7 suites, 47 tests), `npm run build`. The new race file runs each pair ten times on real connections: R1 double collect, R2 owner cancel × collect, R3 adjust × collect, R4 waived no-show × collect, R9 split × whole collect (order proven with `xmin`), plus adjust refused on PENDING and REJECTED. With the two use-case changes reverted, all six fail. The audit's integrity SQL rerun on fresh probe data: 0 due changes below what was collected at that moment (was 24), per-booking ledger = tenders, no orphans.
+
+## Per-player charges capped at what the booking owes
+
+**When:** 2026-09-30
+
+**What:** Fix 2 of the booking and payments production audit (§3.6, punch list #2).
+- New pure `planSlotCharge` in `booking/domain/slot-charge.ts`. The cap is the booking remaining: `amountDueUsd` minus everything collected, Unassigned included. Pay-all charges min(sum of unpaid slot remainings, cap) and fills unpaid slots in slot order, the last possibly partial. One tap charges min(slot remaining, cap). Cap ≤ 0 charges nothing.
+- `collectSlotPayment` / `collectAllRemaining` charge exactly that plan, after the booking row lock. `assertCanPaySlot` now takes the capped charge (`payment.nothing_due` when it is zero).
+- The sheet uses the same function, not a copy: `lists.tsx` builds the pay-all total with `planSlotCharge` and each slot's state with `slotPayState`. A slot the booking no longer owes for shows "مغطّى بدفعة سابقة" / "Covered by earlier payment" and has no Pay button. A partial tap shows its amount. Pay-all is hidden when it would charge nothing.
+- Unassigned stays Unassigned. Moving it onto slots is slice 5.
+
+**Why:** Pay-all and the slot tap looked only at slot remainings, so money paid before the split was charged again. The audit probe: due $30, $10 whole-game before the split, two slots paid, pay-all took $24 where $14 was owed. This supersedes the slice 2 rule "only the slot's own remaining is checked" (it predates knowing about the double charge). SPEC-15 P3 already said excess stays Unassigned. Whole-game overpay (SPEC-06) is unchanged.
+
+**Files:** `src/modules/booking/domain/slot-charge.ts` (new), `src/modules/booking/domain/switch-mode.ts`, `src/modules/booking/application/collect-player-payment.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/per-player-collect.tsx`, `src/lib/ui-copy.ts`, `test/modules/booking/domain/slot-charge.test.ts` (new), `test/modules/booking/domain/switch-mode.test.ts`, `test/integration/per-player.integration.test.ts`, `docs/per-player-payments.md`.
+
+**How it connects:** Booking domain only; Payment still does not import Booking (`insertAllocations` receives the plan's ids and amounts). `app/` calls the domain function for display; the server recomputes it under the lock. SPEC-15 is historical and was not edited; `per-player-payments.md` describes the new rule.
+
+**How to verify:** `npm test` (60 suites, 417 tests), `npm run test:integration` (7 suites, 49 tests), `npm run build`. New integration cases: the audit probe (pay-all charges exactly $14, slots 1/4/5/6 get $3 and slot 7 gets $2, collected = due = $30, later taps refused), a fully paid booking split then tapped (refused, covered), and a partial single tap ($1.50). All three fail on the old code. The audit's integrity SQL on fresh probe data: no overpaid per-player booking, allocations ≤ tenders per payment, no orphans. Not exercised: the sheet in a browser.

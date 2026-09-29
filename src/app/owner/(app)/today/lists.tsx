@@ -11,6 +11,7 @@ import { listPendingRequests } from "@/modules/booking/application/list-pending-
 import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { suggestFee } from "@/modules/booking/domain/suggest-fee";
+import { planSlotCharge, slotPayState } from "@/modules/booking/domain/slot-charge";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import type { DaySummary } from "@/modules/booking/domain/day-summary";
@@ -272,22 +273,35 @@ function toUpcomingViews(
         mode: row.collectionMode,
         canSplit: row.status === "APPROVED" && row.amountDueUsd.gt(0),
         defaultPlayerCount: row.pitchDefaultPlayerCount,
-        slots: row.slots.map((slot) => ({
-          participantId: slot.participantId,
-          slotNumber: slot.slotNumber,
-          name: slot.name,
-          dueUsd: formatUsd(slot.dueUsd),
-          remainingUsd: formatUsd(slot.remainingUsd),
-          paid: slot.remainingUsd.lte(0),
-        })),
+        slots: row.slots.map((slot) => {
+          const state = slotPayState({
+            amountDueUsd: row.amountDueUsd,
+            collectedUsd: row.collectedUsd,
+            slots: row.slots,
+            participantId: slot.participantId,
+          });
+          return {
+            participantId: slot.participantId,
+            slotNumber: slot.slotNumber,
+            name: slot.name,
+            dueUsd: formatUsd(slot.dueUsd),
+            remainingUsd: formatUsd(slot.remainingUsd),
+            paid: state.kind === "paid",
+            state: state.kind,
+            chargeUsd: state.kind === "pay" ? formatUsd(state.chargeUsd) : null,
+            partial: state.kind === "pay" && state.partial,
+          };
+        }),
         unassignedUsd: formatUsd(row.unassignedUsd),
         hasAllocations: row.slots.some((slot) => slot.paidUsd.gt(0)),
+        // Same function the server charges with: never more than the booking owes.
         unpaidTotalUsd: formatUsd(
-          row.slots.reduce(
-            (sum, slot) =>
-              slot.remainingUsd.gt(0) ? sum.plus(slot.remainingUsd) : sum,
-            new Decimal(0),
-          ),
+          planSlotCharge({
+            amountDueUsd: row.amountDueUsd,
+            collectedUsd: row.collectedUsd,
+            slots: row.slots,
+            target: "ALL_UNPAID",
+          }).totalUsd,
         ),
       },
       canAdjust:
