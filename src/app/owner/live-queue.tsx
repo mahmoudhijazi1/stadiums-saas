@@ -13,6 +13,7 @@ import { CountedPhrase } from "@/app/owner/notify-list";
 import {
   liveQueueChanged,
   nextPollDelayMs,
+  reconcileAfterRefresh,
   type LiveQueueSnapshot,
 } from "@/modules/booking/domain/live-queue";
 import type { UiLocale } from "@/lib/locale";
@@ -54,10 +55,32 @@ export function LiveQueue({
   const snapshotRef = useRef(initial);
   const refreshWaiting = useRef(false);
 
+  // A refresh we started, waiting for its render. router.refresh() returns
+  // void, so the next new `initial` object is how we see it land.
+  const awaitingRender = useRef(false);
+  const reconcileAttempts = useRef(0);
+
   useEffect(() => {
+    if (awaitingRender.current) {
+      awaitingRender.current = false;
+      const action = reconcileAfterRefresh(
+        initial,
+        snapshotRef.current,
+        reconcileAttempts.current,
+      );
+      if (action === "retry") {
+        // The render is behind the poll. Keep the poll's snapshot, ask again.
+        reconcileAttempts.current += 1;
+        awaitingRender.current = true;
+        router.refresh();
+        return;
+      }
+      reconcileAttempts.current = 0;
+      if (action === "accept") return;
+    }
     snapshotRef.current = initial;
     setSnapshot(initial);
-  }, [initial.pendingCount, initial.latestRequestedAt]);
+  }, [initial, router]);
 
   useEffect(() => {
     applyAppBadge(snapshotRef.current.pendingCount);
@@ -74,10 +97,16 @@ export function LiveQueue({
       );
     }
 
+    function startRefresh() {
+      reconcileAttempts.current = 0;
+      awaitingRender.current = true;
+      router.refresh();
+    }
+
     function flushRefresh() {
       if (!refreshWaiting.current || sheetOpen()) return;
       refreshWaiting.current = false;
-      router.refresh();
+      startRefresh();
     }
 
     async function tick() {
@@ -106,7 +135,7 @@ export function LiveQueue({
           snapshotRef.current = next;
           setSnapshot(next);
           if (sheetOpen()) refreshWaiting.current = true;
-          else router.refresh();
+          else startRefresh();
         }
       } catch {
         failures += 1;

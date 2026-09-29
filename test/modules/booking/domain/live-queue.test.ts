@@ -3,6 +3,7 @@ import {
   latestRequestedAtIso,
   liveQueueChanged,
   nextPollDelayMs,
+  reconcileAfterRefresh,
 } from "@/modules/booking/domain/live-queue";
 
 const empty = { pendingCount: 0, latestRequestedAt: null };
@@ -47,5 +48,29 @@ describe("latestRequestedAtIso", () => {
       ]),
     ).toBe("2026-09-26T03:00:00.000Z");
     expect(latestRequestedAtIso([])).toBeNull();
+  });
+});
+
+describe("reconcileAfterRefresh", () => {
+  const stale = { pendingCount: 1, latestRequestedAt: one.latestRequestedAt };
+  const seen = { pendingCount: 2, latestRequestedAt: "2026-09-26T02:05:00.000Z" };
+
+  it("accepts a render that matches the poll", () => {
+    expect(reconcileAfterRefresh(seen, { ...seen }, 0)).toBe("accept");
+  });
+
+  it("retries when the render is behind what the poll saw", () => {
+    expect(reconcileAfterRefresh(stale, seen, 0)).toBe("retry");
+    expect(reconcileAfterRefresh(stale, seen, 1)).toBe("retry");
+  });
+
+  it("gives up after the retry budget so it cannot loop", () => {
+    expect(reconcileAfterRefresh(stale, seen, 2)).toBe("give-up");
+    expect(reconcileAfterRefresh(stale, seen, 1, 1)).toBe("give-up");
+  });
+
+  it("catches a same-count render with an older request time", () => {
+    const older = { pendingCount: 2, latestRequestedAt: one.latestRequestedAt };
+    expect(reconcileAfterRefresh(older, seen, 0)).toBe("retry");
   });
 });
