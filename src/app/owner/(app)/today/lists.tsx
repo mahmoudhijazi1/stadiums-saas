@@ -10,7 +10,11 @@ import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitli
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
-import { suggestFee } from "@/modules/booking/domain/suggest-fee";
+import {
+  confirmedFee,
+  ownerInitiatorLowersFee,
+  suggestFee,
+} from "@/modules/booking/domain/suggest-fee";
 import { planSlotCharge, slotPayState } from "@/modules/booking/domain/slot-charge";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
@@ -312,6 +316,15 @@ function toUpcomingViews(
       playerFeeExact: formatUsd(playerFee.feeUsd),
       ownerFeeCompact: feeCompact(ownerFee.feeUsd, row.collectedUsd),
       ownerFeeExact: formatUsd(ownerFee.feeUsd),
+      ownerCancelLowersFee: ownerInitiatorLowersFee({
+        policy,
+        booking,
+        now,
+        resultingFeeUsd: confirmedFee({
+          suggestion: ownerFee,
+          collectedUsd: row.collectedUsd,
+        }).feeUsd,
+      }),
       noShowFeeCompact: feeCompact(noShowFee.feeUsd, row.collectedUsd),
       noShowFeeExact: formatUsd(noShowFee.feeUsd),
       collectedExact: formatUsd(row.collectedUsd),

@@ -4319,3 +4319,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Booking domain only; Payment still does not import Booking (`insertAllocations` receives the plan's ids and amounts). `app/` calls the domain function for display; the server recomputes it under the lock. SPEC-15 is historical and was not edited; `per-player-payments.md` describes the new rule.
 
 **How to verify:** `npm test` (60 suites, 417 tests), `npm run test:integration` (7 suites, 49 tests), `npm run build`. New integration cases: the audit probe (pay-all charges exactly $14, slots 1/4/5/6 get $3 and slot 7 gets $2, collected = due = $30, later taps refused), a fully paid booking split then tapped (refused, covered), and a partial single tap ($1.50). All three fail on the old code. The audit's integrity SQL on fresh probe data: no overpaid per-player booking, allocations ≤ tenders per payment, no orphans. Not exercised: the sheet in a browser.
+
+## Staff cannot drop a fee by choosing "I cancelled"
+
+**When:** 2026-09-30
+
+**What:** Fix 3 of the booking and payments production audit (§1.5, §4, punch list #3).
+- New pure `ownerInitiatorLowersFee` in `booking/domain/suggest-fee.ts`: true when the PLAYER-initiated suggestion for this booking is higher than what the OWNER path would store (after the clamp to collected).
+- `cancelBooking` refuses `initiator = OWNER` with `access.not_allowed` when that is true and the member lacks `bookings.adjust_due`. The existing edit/waive check is unchanged.
+- The cancel sheet hides "أنا ألغيت" / "I cancelled" for members without `adjust_due` when choosing it would lower the fee (`ownerCancelLowersFee` on the row, from the same domain function). It stays visible when it changes nothing: outside the window, a 0% policy, or when collected money already keeps the fee at the player amount.
+- New STAFF integration suite covering every guarded booking/payment use case, each refused without its flag (and writing nothing) and allowed with it: approve, owner-create, cancel (suggested, edited, waived, "I cancelled" that lowers the fee, "I cancelled" that does not), no-show (suggested, edited), adjust, split, whole collect, slot pay.
+
+**Why:** SPEC-16 §6: staff with `bookings.cancel` may accept the suggested fee but may not Edit or Waive. The initiator is chosen by the caller and the OWNER suggestion is always $0, so picking it was a waiver without the permission (audit probe: staff with only `bookings.cancel` cancelled a late booking with due $0 instead of $15).
+
+**Files:** `src/modules/booking/domain/suggest-fee.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/app/owner/(app)/today/fee-forms.tsx`, `test/modules/booking/domain/suggest-fee.test.ts`, `test/integration/staff-permissions.integration.test.ts` (new).
+
+**How it connects:** Authorization stays in the use case (DR-003); the sheet only hides what the server would refuse. No new permission flag, no schema change. `app/` imports the booking domain function; the domain imports nothing new.
+
+**How to verify:** `npm test` (60 suites, 421 tests), `npm run test:integration` (8 suites, 62 tests), `npm run build`. With the `cancelBooking` change reverted, only the "I cancelled that drops a late fee" case fails; the other twelve pin guards that already held. Not exercised: the sheet in a browser.

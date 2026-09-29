@@ -14,6 +14,7 @@ import {
 } from "@/modules/booking/domain/decision";
 import {
   confirmedFee,
+  ownerInitiatorLowersFee,
   suggestFee,
   type FeeInitiator,
 } from "@/modules/booking/domain/suggest-fee";
@@ -94,6 +95,19 @@ export async function cancelBooking(input: {
         collectedUsd: collected,
         feeUsd: input.feeUsd,
       });
+      // Picking "I cancelled" must not become a way around adjust_due.
+      if (
+        input.initiator === "OWNER" &&
+        !can(membership, BOOKINGS_ADJUST_DUE) &&
+        ownerInitiatorLowersFee({
+          policy: settings,
+          booking: { amountDueUsd: booking.amountDueUsd, start: booking.start },
+          now,
+          resultingFeeUsd: confirmed.feeUsd,
+        })
+      ) {
+        throw new DomainError("access.not_allowed");
+      }
       // A per-player booking collapses to WHOLE here, allocations included, so the
       // fee logic below runs unchanged on the booking's total collected.
       let collectionMode = booking.collectionMode;

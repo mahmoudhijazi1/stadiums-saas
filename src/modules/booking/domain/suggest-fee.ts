@@ -81,6 +81,22 @@ export function confirmedFee(input: {
   };
 }
 
+/**
+ * "I cancelled" (OWNER) suggests no fee, so choosing it instead of "Player cancelled"
+ * is itself a waiver when the player path would charge more. The caller then needs
+ * bookings.adjust_due, like an Edit or Waive (SPEC-16 §6, audit §1.5).
+ * `resultingFeeUsd` is what the owner path would actually store (after the clamp).
+ */
+export function ownerInitiatorLowersFee(input: {
+  policy: FeePolicy;
+  booking: { amountDueUsd: Decimal; start: Date };
+  now: Date;
+  resultingFeeUsd: Decimal;
+}): boolean {
+  const player = suggestFee(input.policy, input.booking, input.now, "PLAYER");
+  return player.feeUsd.gt(input.resultingFeeUsd);
+}
+
 /** Log reason when the owner confirms a fee. Waive is 0 against a non-zero suggestion. */
 export function reasonForConfirmedFee(
   suggestion: FeeSuggestion,

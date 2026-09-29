@@ -85,13 +85,15 @@ export function CancelDecisionForm({
         onChange={() => choose("PLAYER")}
         label={ui("owner.playerCancelled", locale)}
       />
-      <Choice
-        name="initiator"
-        value="OWNER"
-        checked={initiator === "OWNER"}
-        onChange={() => choose("OWNER")}
-        label={ui("owner.ownerCancelled", locale)}
-      />
+      {mayAdjust || !row.ownerCancelLowersFee ? (
+        <Choice
+          name="initiator"
+          value="OWNER"
+          checked={initiator === "OWNER"}
+          onChange={() => choose("OWNER")}
+          label={ui("owner.ownerCancelled", locale)}
+        />
+      ) : null}
       <FeeLine
         locale={locale}
         compact={mode === "waive" ? "0" : compact}
