@@ -28,8 +28,8 @@ describe("errorMessage", () => {
       "This hour was just booked",
     );
     expect(errorMessage("booking.slot_ended")).toBe("هذه الساعة انتهت.");
-    expect(errorMessage("booking.cancel_past_unpaid")).toBe(
-      "لا يمكن إلغاء مباراة مضت وما زال عليها مبلغ.",
+    expect(errorMessage("booking.cancel_started")).toBe(
+      "لا يمكن إلغاء مباراة بدأت. إذا لم تحدث، سجّل «لم يحضر».",
     );
     expect(errorMessage("venue.hours_approved")).toBe(
       "لا يمكن تقليص الساعات: هناك حجز مؤكد في الوقت المحذوف.",
@@ -38,8 +38,8 @@ describe("errorMessage", () => {
 
   it("returns catalog English when locale is en", () => {
     expect(errorMessage("booking.slot_ended", "en")).toBe("That hour has ended.");
-    expect(errorMessage("booking.cancel_past_unpaid", "en")).toBe(
-      "Cannot cancel a game that has started while money is still owed.",
+    expect(errorMessage("booking.cancel_started", "en")).toBe(
+      "A game that has started can't be cancelled. If it didn't happen, record a no-show.",
     );
     expect(errorMessage("venue.hours_day_overlap", "en")).toBe(
       "A day cannot be in two hours groups.",

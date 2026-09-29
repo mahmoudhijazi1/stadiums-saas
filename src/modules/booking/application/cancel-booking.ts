@@ -10,7 +10,7 @@ import { findTenantSettingsById } from "@/modules/access/infrastructure/tenants"
 import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, can } from "@/modules/access/domain/can";
 import {
   assertApprovedForCancel,
-  assertNotPastUnpaidCancel,
+  assertCancelWindowOpen,
 } from "@/modules/booking/domain/decision";
 import {
   confirmedFee,
@@ -26,7 +26,6 @@ import {
   lockPitchForUpdate,
   setApprovedCancelled,
 } from "@/modules/booking/infrastructure/bookings";
-import { bookingRemaining } from "@/modules/payment/domain/collect";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { writeDueIfChanged } from "@/modules/booking/application/write-due-change";
 
@@ -74,11 +73,7 @@ export async function cancelBooking(input: {
       assertApprovedForCancel(booking.status);
 
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
-      assertNotPastUnpaidCancel({
-        start: booking.start,
-        remaining: bookingRemaining(booking.amountDueUsd, collected),
-        now,
-      });
+      assertCancelWindowOpen({ start: booking.start, now });
 
       const suggestion = suggestFee(
         settings,

@@ -169,7 +169,7 @@ Bookings are how we win the customer. **The academy is the real business.** This
 
 | ID | Requirement | Phase |
 |---|---|---|
-| BR-26 | The owner can cancel a confirmed booking at any time. | 1 |
+| BR-26 | The owner can cancel a confirmed booking at any time. *(Interpreted as "any time before the game starts" from 2026-09-30: after the start, use no-show, BR-22. See [progress.md](../progress.md) "Cancel only before the game starts".)* | 1 |
 | BR-27 | Each stadium has its own cancellation policy — a number of hours before the game after which a player may no longer cancel (e.g. 24 hours). The owner sets this value. | 1 |
 | BR-28 | The cancellation rule applies identically everywhere it appears in the system. | 1 |
 | BR-29 | When a booking is cancelled, the freed slot shows the people who had previously shown interest in it. | 1 |

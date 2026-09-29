@@ -1,12 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
-import Decimal from "decimal.js";
 import {
   assertApprovedForCancel,
   assertApprovedForNoShow,
   assertEndedForNoShow,
-  assertNotPastUnpaidCancel,
+  assertCancelWindowOpen,
   assertPendingForDecision,
-  isPastUnpaidCancel,
+  isCancelWindowClosed,
 } from "@/modules/booking/domain/decision";
 
 describe("assertPendingForDecision", () => {
@@ -41,52 +40,31 @@ describe("assertApprovedForCancel", () => {
 
 const START = new Date("2026-09-13T13:00:00.000Z");
 
-describe("isPastUnpaidCancel", () => {
-  it("is true when start has passed and remaining is positive", () => {
-    expect(
-      isPastUnpaidCancel(
-        START,
-        new Decimal("10.00"),
-        new Date("2026-09-13T13:00:00.000Z"),
-      ),
-    ).toBe(true);
+describe("isCancelWindowClosed", () => {
+  it("is true from the start instant on", () => {
+    expect(isCancelWindowClosed(START, new Date("2026-09-13T13:00:00.000Z"))).toBe(true);
   });
 
-  it("is false when the slot has not started", () => {
-    expect(
-      isPastUnpaidCancel(
-        START,
-        new Decimal("30.00"),
-        new Date("2026-09-13T12:59:59.000Z"),
-      ),
-    ).toBe(false);
+  it("is true while live and after the game ended", () => {
+    expect(isCancelWindowClosed(START, new Date("2026-09-13T13:30:00.000Z"))).toBe(true);
+    expect(isCancelWindowClosed(START, new Date("2026-09-13T15:00:00.000Z"))).toBe(true);
   });
 
-  it("is false when remaining is zero even after start", () => {
-    expect(
-      isPastUnpaidCancel(START, new Decimal(0), new Date("2026-09-13T14:00:00.000Z")),
-    ).toBe(false);
+  it("is false before the game starts", () => {
+    expect(isCancelWindowClosed(START, new Date("2026-09-13T12:59:59.000Z"))).toBe(false);
   });
 });
 
-describe("assertNotPastUnpaidCancel", () => {
-  it("refuses past unpaid", () => {
+describe("assertCancelWindowOpen", () => {
+  it("refuses a game that has started, whatever was paid", () => {
     expect(() =>
-      assertNotPastUnpaidCancel({
-        start: START,
-        remaining: new Decimal("10.00"),
-        now: new Date("2026-09-13T13:01:00.000Z"),
-      }),
-    ).toThrow("booking.cancel_past_unpaid");
+      assertCancelWindowOpen({ start: START, now: new Date("2026-09-13T13:01:00.000Z") }),
+    ).toThrow("booking.cancel_started");
   });
 
-  it("allows future unpaid", () => {
+  it("allows a game that has not started", () => {
     expect(() =>
-      assertNotPastUnpaidCancel({
-        start: START,
-        remaining: new Decimal("30.00"),
-        now: new Date("2026-09-13T12:00:00.000Z"),
-      }),
+      assertCancelWindowOpen({ start: START, now: new Date("2026-09-13T12:00:00.000Z") }),
     ).not.toThrow();
   });
 });

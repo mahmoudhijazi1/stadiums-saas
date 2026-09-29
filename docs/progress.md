@@ -4268,3 +4268,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Commits:** the code in one commit, the docs (`per-player-payments.md`, `NOW.md`, `README.md`, `owner-ux.md`, the SPEC-15 banner, `progress.md`) in a second.
 
 **How it connects:** see the two slice 2 entries above for files and module rules. Living reference: `docs/per-player-payments.md`.
+
+## Cancel only before the game starts
+
+**When:** 2026-09-30
+
+**What:** Cancel is now offered and accepted only while the game has not started, paid or not. `isPastUnpaidCancel(start, remaining, now)` (start passed and money owed) is replaced by `isCancelWindowClosed(start, now)`. `assertNotPastUnpaidCancel` becomes `assertCancelWindowOpen`, and the error key `booking.cancel_past_unpaid` becomes `booking.cancel_started` ("A game that has started can't be cancelled. If it didn't happen, record a no-show.", with Arabic). Call sites: `showCancel` in `today/lists.tsx` and `cancelBooking`. BR-26 "at any time" is read as "any time before the game starts".
+
+**Why:** A game that ended and was fully paid still showed Cancel. The old guard only stopped an unpaid started game from dropping a debt (BR-49). Cancelling a played, paid game only flips the status: the fee is clamped to what was collected and no refund exists. BR-22 and DR-002 keep "did not happen" as a separate no-show status, and SPEC-14 and SPEC-16 §4.4 already direct the owner to No-show after the start. Live and ended paid games no longer offer Cancel.
+
+**Consequences:** cancel can no longer reach the per-player collapse in the UI (splitting is only offered after the game ends). The collapse code stays, tested, for when early splitting is allowed. Known gap, out of scope: no clean path for "it rained, refund or waive a prepaid game" after the start (Adjust cannot go below collected, refunds are out); possibly a no-show variant with a $0 default suggestion later.
+
+**Files:** `src/modules/booking/domain/decision.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/lib/error-messages.ts`, `test/modules/booking/domain/decision.test.ts`, `test/lib/errors.test.ts`, `test/integration/booking-money.integration.test.ts` (ended paid and ended unpaid cancels refused), `docs/owner-ux.md`, `docs/requirements/brd.md` (BR-26 note), `docs/per-player-payments.md`, `docs/NOW.md`. Older guides that mention `isPastUnpaidCancel` (`mentor-defense-backend.md`, `engineering-audit.md`) are historical and were not edited.
+
+**How to verify:** `npm test` (58 suites, 402 tests), `npm run test:integration` (6 suites, 41 tests), `npm run build`. In the app, an ended fully paid game no longer shows Cancel; an upcoming game still does.

@@ -1,4 +1,3 @@
-import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 
 /**
@@ -19,6 +18,8 @@ export function assertPendingForDecision(status: BookingStatusLike): void {
 
 /**
  * Only APPROVED may be cancelled (BR-26). Domain, not Prisma.
+ * BR-26 "at any time" is read as "any time before the game starts":
+ * see isCancelWindowClosed.
  */
 export function assertApprovedForCancel(status: BookingStatusLike): void {
   if (status !== "APPROVED") {
@@ -26,22 +27,17 @@ export function assertApprovedForCancel(status: BookingStatusLike): void {
   }
 }
 
-/** Past + still owed: Cancel would drop BR-49 debt. Future or remaining 0 is fine. */
-export function isPastUnpaidCancel(
-  start: Date,
-  remaining: Decimal,
-  now: Date,
-): boolean {
-  return start.getTime() <= now.getTime() && remaining.gt(0);
+/**
+ * Cancel means the game will not happen, so it ends when the game starts, paid or
+ * not. After that the owner records a no-show if it did not happen (BR-22).
+ */
+export function isCancelWindowClosed(start: Date, now: Date): boolean {
+  return start.getTime() <= now.getTime();
 }
 
-export function assertNotPastUnpaidCancel(input: {
-  start: Date;
-  remaining: Decimal;
-  now: Date;
-}): void {
-  if (isPastUnpaidCancel(input.start, input.remaining, input.now)) {
-    throw new DomainError("booking.cancel_past_unpaid");
+export function assertCancelWindowOpen(input: { start: Date; now: Date }): void {
+  if (isCancelWindowClosed(input.start, input.now)) {
+    throw new DomainError("booking.cancel_started");
   }
 }
 

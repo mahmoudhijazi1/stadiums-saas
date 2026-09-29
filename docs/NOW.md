@@ -37,7 +37,11 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no group pa
 
 ## What’s next
 
-**Product, next up:** SPEC-15 slices 3–5 (pay together + mixed currency, naming unpaid slots + due editing, assign Unassigned + "Same as last time"). Cancel and no-show on a per-player booking collapse it to whole. Per-player split is offered only after the game has ended (intentional for now), so in the UI the collapse runs mainly on no-show; cancel reaches it only for a fully paid game. Details in [per-player-payments.md](./per-player-payments.md).
+**Rule, 2026-09-30:** Cancel is offered only **before the game starts**, paid or not. BR-26 "at any time" is read as "any time before the game starts". After the start, No-show is the way to say it did not happen (BR-22).
+
+**Known gap:** there is no clean path today for an owner-initiated "it rained, refund or waive a prepaid game" once the game has started. Cancel is closed after the start, Adjust amount cannot go below what was collected, and refunds are out of scope. Revisit later, possibly as a no-show variant with a $0 default fee suggestion rather than by touching cancel.
+
+**Product, next up:** SPEC-15 slices 3–5 (pay together + mixed currency, naming unpaid slots + due editing, assign Unassigned + "Same as last time"). Cancel and no-show on a per-player booking collapse it to whole. Per-player split is offered only after the game has ended (intentional for now), so in the UI the collapse runs on no-show only; cancel can no longer reach it (see the cancel rule below). Details in [per-player-payments.md](./per-player-payments.md).
 
 **Product, not started:** UX-02 slices 3–5 — Money → Transactions, month overview, booking-sheet timeline (actor columns).
 

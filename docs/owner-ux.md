@@ -156,7 +156,7 @@ The single place for everything about one booking.
 - Payment progress (due / paid / remaining, in USD)
 - Actions: **Collect**, **Cancel**, **Didn't happen**, **Notify**
 - Edit / Move is out of scope. Do not put it on the sheet.
-- Actions are shown or hidden by permission and by the domain rules the mutation already uses: `isPastUnpaidCancel` and `assertApprovedForCancel` (there is no `canCancel`)
+- Actions are shown or hidden by permission and by the domain rules the mutation already uses: `isCancelWindowClosed` and `assertApprovedForCancel` (there is no `canCancel`). **Cancel is offered only before the game starts, paid or not** (2026-09-30; replaces `isPastUnpaidCancel`). After the start, the way to say a game did not happen is No-show (BR-22); a game that happened and was paid has no Cancel
 
 ---
 
@@ -278,7 +278,7 @@ A grouped hub. Each row shows its current value on the trailing side and opens o
 |---|---|---|
 | Pitches | count | Not a sheet. Opens the existing pitch list. |
 | Exchange rate | grouped integer, or unset | Current rate with a thousands separator. Field prefilled with the current integer (no separators, so the existing parser accepts it). Numeric keypad. "Last changed" as a relative time. Primary **Update rate**. The button stays a primary button. |
-| Booking rules | the rule in force | Cancellation window (BR-27) is not stored. The sheet states the rule the product already enforces (cancel only before the slot, while money is due). No new write. |
+| Booking rules | the rule in force | Cancellation window (BR-27) is not stored. The sheet states the rule the product already enforces (cancel only before the slot, paid or not). No new write. |
 | Public page | the link | Open, WhatsApp, QR, Copy. Same actions as the business sheet. |
 
 **Preferences** — save on tap (no confirm button):

@@ -35,7 +35,7 @@ import {
 } from "@/modules/booking/application/load-outcome-notify";
 import { upcomingStatus } from "@/modules/booking/domain/home-inbox";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
-import { isPastUnpaidCancel, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
+import { isCancelWindowClosed, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
 import { ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { LiveRequestCount } from "@/app/owner/live-queue";
 
@@ -264,7 +264,7 @@ function toUpcomingViews(
       confirmWhatsAppHref: row.confirmWhatsAppHref,
       showCancel:
         row.status === "APPROVED" &&
-        !isPastUnpaidCancel(row.start, row.remaining, now),
+        !isCancelWindowClosed(row.start, now),
       showNoShow:
         row.status === "APPROVED" && isNoShowWindowEnded(row.end, now),
       perPlayer: {

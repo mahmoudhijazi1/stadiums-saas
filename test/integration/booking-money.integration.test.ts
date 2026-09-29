@@ -326,6 +326,44 @@ describe("booking and money", () => {
     await assertMoneyInvariants([person.id]);
   });
 
+  it("refuses to cancel a game that has started, fully paid or not", async () => {
+    const slot = await eveningSlot(fixture.pitchId, -2);
+    const seed = async (phone: string, offsetMinutes: number) =>
+      db.$transaction(async (tx) => {
+        const person = await findOrCreatePerson(tx, { name: "سلوى", phone });
+        const start = new Date(slot.startAt.getTime() + offsetMinutes * 60_000);
+        const end = new Date(slot.endAt.getTime() + offsetMinutes * 60_000);
+        const id = await insertApprovedOwnerBooking(tx, {
+          pitchId: fixture.pitchId,
+          start,
+          end,
+          priceUsd: new Decimal("30.00"),
+        });
+        await insertRequesterParticipant(tx, {
+          bookingId: id,
+          personId: person.id,
+          amountDueUsd: new Decimal("30.00"),
+        });
+        return id;
+      });
+    const paidId = await seed("03111031", 0);
+    const unpaidId = await seed("03111032", 120);
+    await collectBookingPayment({
+      bookingId: paidId,
+      tenders: [{ currency: "USD", amount: new Decimal("30.00") }],
+    });
+
+    for (const bookingId of [paidId, unpaidId]) {
+      await expect(cancelBooking({ bookingId, initiator: "OWNER" })).rejects.toMatchObject({
+        key: "booking.cancel_started",
+      });
+      const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
+      expect(booking.status).toBe("APPROVED");
+    }
+    expect((await collectedUsd(paidId)).equals("30.00")).toBe(true);
+    expect(await platformDb.bookingDueChange.count({ where: { bookingId: paidId } })).toBe(0);
+  });
+
   it("collects USD and LBP at a frozen rate as one ledger IN", async () => {
     const slot = await eveningSlot(fixture.pitchId, 3);
     const { bookingId } = await createOwnerBooking({

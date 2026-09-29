@@ -13,7 +13,7 @@ const ARABIC: Record<string, string> = {
   "booking.pending_only": "يمكن الموافقة على طلب معلّق أو رفضه فقط.",
   "booking.no_longer_pending": "تم حجز هذه الساعة للتو",
   "booking.confirmed_only": "يمكن إلغاء حجز مؤكد فقط.",
-  "booking.cancel_past_unpaid": "لا يمكن إلغاء مباراة مضت وما زال عليها مبلغ.",
+  "booking.cancel_started": "لا يمكن إلغاء مباراة بدأت. إذا لم تحدث، سجّل «لم يحضر».",
   "booking.no_show_only_approved": "يمكن تسجيل عدم الحضور لحجز مؤكد فقط.",
   "booking.no_show_not_ended":
     "يمكن تسجيل عدم الحضور بعد انتهاء الساعة فقط.",
@@ -59,8 +59,8 @@ const ENGLISH: Record<string, string> = {
   "booking.pending_only": "Only a pending request can be approved or rejected.",
   "booking.no_longer_pending": "This hour was just booked",
   "booking.confirmed_only": "Only a confirmed booking can be cancelled.",
-  "booking.cancel_past_unpaid":
-    "Cannot cancel a game that has started while money is still owed.",
+  "booking.cancel_started":
+    "A game that has started can't be cancelled. If it didn't happen, record a no-show.",
   "booking.no_show_only_approved":
     "Only a confirmed booking can be marked no-show.",
   "booking.no_show_not_ended":
