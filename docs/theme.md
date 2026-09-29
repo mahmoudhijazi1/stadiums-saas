@@ -243,6 +243,8 @@ Rules that keep this cheap:
 
 ## 3. Fonts
 
+> **Source of truth:** [MIGRATION.md](./MIGRATION.md) for shipped font stacks (`--font-sans` = Manrope → Plex Arabic; `--font-heading` / `--font-display` = Big Shoulders → Kufi → Plex Arabic). The `@theme` font lines in §1 (`--font-sans: plex-arabic`, `--font-heading: kufi`) are stale.
+
 Keep both Arabic faces exactly as they are. Add one display face for numbers only.
 
 | Variable | Family | Role |

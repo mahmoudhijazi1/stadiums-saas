@@ -1,5 +1,7 @@
 # SPEC-16: Due Adjustments — Cancellation Fees, No-Show Fees, Waivers
 
+> **Status:** slices 1–3 shipped 2026-09-24 → 2026-09-25. Complete.
+
 **Type:** Build spec + UX decisions
 **Depends on:** SPEC-14 (no-show), SPEC-15 (per-player foundation: `Booking.amountDueUsd`), UX-01 §6, UX-02.
 **Governing rules:** RULE-9 (never blocked from taking money), RULE-10 (the system may warn, never obstruct), RULE-12 (faster than paper).

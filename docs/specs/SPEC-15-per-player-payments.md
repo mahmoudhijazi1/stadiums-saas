@@ -1,5 +1,7 @@
 # SPEC: Per-Player Payments (BR-41 to BR-49)
 
+> **Status:** slice 1 shipped 2026-09-24 (foundation, no UI). Slices 2–5 not started; settle §4 P1–P5 first.
+
 **Type:** Build spec + UX decisions. Number it in sequence with the existing SPEC files.
 **Depends on:** DR-002 (data model), SPEC-03, SPEC-06, SPEC-14, UX-01 §6.1, UX-02.
 **Governing rule:** RULE-12. Collecting from ten players must be faster than paper.

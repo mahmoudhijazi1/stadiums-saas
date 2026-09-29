@@ -4,7 +4,17 @@
 
 ## Status
 
-SPEC-01…14 are shipped on `main`: multi-tenant proxy → Prisma tenant guard (with RULE-7 isolation integration tests), public PENDING slot request, owner Today / Book / Waitlist / Money / Settings (Arabic-first + cookie EN/ع on public and owner), cash collect / expense / ledger period, no-show, waitlist WhatsApp prepare links. That is the scoped product slice — **not** full Phase 1 BRD (no per-player split, pitch blocks, subscriptions, etc.). Honest line for a paying owner: pilot-with-supervision, not production-ready — see the MVP readiness audit.
+SPEC-01…14 are shipped on `main`: multi-tenant proxy → Prisma tenant guard (with RULE-7 isolation integration tests), public PENDING slot request, owner Today / Book / Waitlist / Money / Settings (Arabic-first + cookie EN/ع on public and owner), cash collect / expense / ledger period, no-show, waitlist WhatsApp prepare links.
+
+Shipped since (details and dates in `progress.md`):
+
+- **UX-01** ([owner-ux.md](./owner-ux.md)) — shell (header, business sheet, offline pill, Today / Requests / ＋ / Money / More, `lg` rail), More hub, Today request banner and card states, Requests tab (slot interests, reject chips, approve notify sheet, missed requests, "starts soon" flag, precise relative time, live badge with 20s poll).
+- **UX-02** ([ux-02-history.md](./ux-02-history.md)) slices 1–2 — Beirut day navigation + `summarizeDay` line; person page + header search results.
+- **SPEC-15** slice 1 — per-player foundation: `collectionMode`, `Booking.amountDueUsd` (backfilled), pure `splitEvenly` / `personOwedOnBooking`, every remaining/owed read switched to `amountDueUsd`. No visible UI change.
+- **SPEC-16** slices 1–3 — `BookingDueChange` log + `adjustDue`, fee suggestions from tenant policy, cancel / no-show / adjust sheets and Booking rules settings, request-card debt warning, public policy line, WhatsApp fee text.
+- **Design system** ([MIGRATION.md](./MIGRATION.md)) — token layer, typography, responsive shell. Component restyles still open there.
+
+That is still the scoped product slice — **not** full Phase 1 BRD (no per-player collect UI, pitch blocks, subscriptions, etc.). Honest line for a paying owner: pilot-with-supervision, not production-ready — see the MVP readiness audit.
 
 ## Start here by topic
 
@@ -13,7 +23,9 @@ SPEC-01…14 are shipped on `main`: multi-tenant proxy → Prisma tenant guard (
 | Product rules / phases | [requirements/brd.md](./requirements/brd.md) |
 | Why architecture | [decisions/](./decisions/) (esp. DR-001, DR-002) |
 | How a slice was built | [specs/SPEC-NN](./specs/) (historical — do not rewrite bodies) |
+| Owner UX structure (wins on conflict) | [owner-ux.md](./owner-ux.md) (UX-01), [ux-02-history.md](./ux-02-history.md) (UX-02) |
 | Owner tabs / routes | [owner-ia.md](./owner-ia.md) |
+| Visual design | [ui-foundations.md](./ui-foundations.md), [ui-components.md](./ui-components.md), [theme.md](./theme.md), [MIGRATION.md](./MIGRATION.md) |
 | Current file tree | [guides/folder-structure.md](./guides/folder-structure.md) |
 | Module roles + request walks | [guides/module-map-and-request-walkthroughs.md](./guides/module-map-and-request-walkthroughs.md) |
 | Mentor oral map | [guides/mentor-defense-backend.md](./guides/mentor-defense-backend.md) |
@@ -23,6 +35,10 @@ SPEC-01…14 are shipped on `main`: multi-tenant proxy → Prisma tenant guard (
 | Launch gaps / ordered backlog | [guides/mvp-readiness-audit.md](./guides/mvp-readiness-audit.md) (dated; read the banner) |
 
 ## What’s next
+
+**Product, next up:** SPEC-15 slices 2–5 (per-player collect UI). Not started. Settle open decisions P1–P5 in [SPEC-15 §4](./specs/SPEC-15-per-player-payments.md) first.
+
+**Product, not started:** UX-02 slices 3–5 — Money → Transactions, month overview, booking-sheet timeline (actor columns).
 
 Remaining **MVP audit P0** (isolation proof is done):
 

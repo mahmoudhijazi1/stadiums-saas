@@ -14,6 +14,8 @@ docs/
   README.md                 ← this catalog
   progress.md               ← append-only journey log
   owner-ia.md               ← living owner tab/route map
+  owner-ux.md, ux-02-history.md  ← UX-01 / UX-02 records
+  ui-*.md, theme.md, MIGRATION.md ← design system
   decisions/                ← why (historical DRs — do not rewrite bodies)
   specs/                    ← what to build (historical SPECs)
   guides/                   ← how we work + audits
@@ -47,7 +49,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [DR-004 — Error handling (logs vs owner screens)](./decisions/DR-004-error-handling.md)
 - [DR-005 — Arabic-first UI (RTL + copy, no locale URL)](./decisions/DR-005-arabic-rtl.md)
 
-### Specs (all SPEC-01…14 implemented — historical build records)
+### Specs (SPEC-01…14 implemented; SPEC-15/16 status in each file's banner)
 - [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md)
 - [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md)
 - [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md)
@@ -62,6 +64,18 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [SPEC-12 — Error handling](./specs/SPEC-12-error-handling.md)
 - [SPEC-13 — Arabic-first UI](./specs/SPEC-13-arabic-rtl.md)
 - [SPEC-14 — Record a no-show](./specs/SPEC-14-no-show.md)
+- [SPEC-15 — Per-player payments](./specs/SPEC-15-per-player-payments.md)
+- [SPEC-16 — Due adjustments (fees, waivers)](./specs/SPEC-16-due-adjustments.md)
+
+### UX records
+- [UX-01 — Owner interface structure](./owner-ux.md) (supersedes `owner-ia.md` where they disagree)
+- [UX-02 — History](./ux-02-history.md)
+
+### Design system
+- [UI foundations](./ui-foundations.md) — roles and rules
+- [UI components](./ui-components.md) — per-component contracts
+- [Theme](./theme.md) — concrete token values
+- [Design-system migration log](./MIGRATION.md) — what has been converted (source of truth for fonts)
 
 ### Living guides & maps
 - [Progress & learning log](./progress.md)
