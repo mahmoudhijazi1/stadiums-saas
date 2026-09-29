@@ -70,6 +70,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 ### UX records
 - [UX-01 — Owner interface structure](./owner-ux.md) (supersedes `owner-ia.md` where they disagree)
 - [UX-02 — History](./ux-02-history.md)
+- [Per-player payments (living, as built)](./per-player-payments.md) — split, slot pay, cancel and no-show rules, known gaps
 
 ### Design system
 - [UI foundations](./ui-foundations.md) — roles and rules

@@ -1,6 +1,6 @@
 # SPEC: Per-Player Payments (BR-41 to BR-49)
 
-> **Status:** slice 1 shipped 2026-09-24 (foundation, no UI). Slices 2–5 not started; settle §4 P1–P5 first.
+> **Status:** slice 1 shipped 2026-09-24 (foundation, no UI). Slice 2 shipped 2026-09-29 with P1–P5 at their defaults (per-player mode, slots, one-tap USD pay, booker pays all). Slices 3–5 not started. **Current behavior and known gaps: [per-player-payments.md](../per-player-payments.md).**
 
 **Type:** Build spec + UX decisions. Number it in sequence with the existing SPEC files.
 **Depends on:** DR-002 (data model), SPEC-03, SPEC-06, SPEC-14, UX-01 §6.1, UX-02.

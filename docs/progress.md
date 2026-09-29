@@ -4197,3 +4197,74 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** `reconcileAfterRefresh` is a pure domain function with no imports beyond its own types. The client component calls it. Nothing new imports `booking` from `people` or the reverse, and the route and query are unchanged.
 
 **How to verify:** `npm test` (387 tests; 4 new `reconcileAfterRefresh` cases: match, retry, give-up, same count with an older timestamp) and `npm run build`, both run after each fix. Not tested: the component wiring (`awaitingRender`, the effect, the `router.refresh` call) and the 401 redirect, because this Jest setup is node-only with no React Testing Library. Neither was exercised in a browser. `npm run test:integration` was not run, since nothing here touches transactions, money or isolation.
+
+## SPEC-15 slice 2: per-player mode, slots, one-tap collect
+
+**When:** 2026-09-29
+
+**What:** A booking can switch Whole game to Per player and back, and cash is taken per slot.
+- `Pitch.defaultPlayerCount` (INT NOT NULL DEFAULT 10, CHECK 1..30) is a pitch setting on the create/edit form.
+- `buildSlots(amountDueUsd, count, requesterPersonId)` gives 1..30 slots from `splitEvenly` (exact cents, P1). Slot 1 is the requester; the rest have no person.
+- `switchToPerPlayer({ bookingId, count })` needs `bookings.adjust_due`, runs in one transaction and only from an APPROVED WHOLE booking with a due above zero and no allocations. CANCELLED and NO_SHOW get `booking.switch_fee_booking`. Payments already taken stay Unassigned (nothing is auto-allocated). `amountDueUsd` does not change, so no `BookingDueChange` row is written.
+- `switchToWhole({ bookingId })` only while there are zero allocations. It deletes the unnamed slots and puts the whole due back on the requester row.
+- `collectSlotPayment` (one tap) and `collectAllRemaining` (booker pays all) take USD only. Each writes one payment, one USD tender, one ledger IN and the allocations in one transaction. The booking row is locked (`FOR UPDATE`) and the slot remaining is recomputed after the lock, so a double tap gets `payment.nothing_due`. Only the slot's own remaining is checked, never the booking remaining (P3, RULE-9).
+- Sheet: mode switch, count input, slot list (due / paid), Pay per slot, Booker pays all remaining, Unassigned line, "N of M paid". The per-player actions do not redirect and call `revalidatePath("/owner/today")`, so the sheet stays open across taps. The whole-game forms are hidden while a booking is per player, and `collectBookingPayment` refuses a per-player booking (`booking.collect_per_player`).
+
+**Why:** SPEC-15 section 3 and slice 2, with P1 to P5 at the spec defaults (RULE-12: ten payers must be faster than paper). Unassigned is not re-assigned here (slice 5).
+
+**Found while building:**
+- `PaymentAllocation` was missing from `TENANT_SCOPED_MODELS` in `src/lib/db.ts` (slice 1 gap). The extension would not have stamped `tenantId` on create or scoped reads. Added, with an isolation test.
+- Cancel and no-show on a per-player booking, checked by integration test: `writeDueIfChanged` does refuse a fee different from the due (`booking.due_whole_only`), so an owner cancel (fee 0) on a per-player booking is refused and the booking stays APPROVED. A no-show at the default fee (= the due) succeeds and leaves the booking NO_SHOW + PER_PLAYER. Because the whole-game collect is closed on per-player bookings, slot pay was opened to APPROVED, NO_SHOW and CANCELLED (same rule as `assertCanCollect`) so that fee can be collected.
+- Open, not fixed: the Cancel button still shows on a per-player booking and the owner gets the error. Going back to whole first works only while there are no allocations, so a per-player booking with payments cannot be cancelled. Needs a decision.
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20260929120000_pitch_default_player_count/`, `src/lib/db.ts`, `src/lib/error-messages.ts`, `src/lib/ui-copy.ts`, `src/modules/booking/domain/build-slots.ts`, `src/modules/booking/domain/switch-mode.ts`, `src/modules/booking/schemas/per-player.ts`, `src/modules/booking/application/switch-collection-mode.ts`, `src/modules/booking/application/collect-player-payment.ts`, `src/modules/booking/application/collect-booking-payment.ts`, `src/modules/booking/application/load-owner-day.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/modules/payment/infrastructure/payments.ts` (`insertAllocations`), `src/modules/venue/*` (pitch draft, create, update, editor, infrastructure), `src/app/owner/(app)/today/{actions,lists,upcoming-panel,per-player-collect}.tsx`, `src/app/owner/(app)/more/settings/pitches/*`, and the matching tests.
+
+**How it connects:** Booking imports Payment (`recordPayment`, `freezeTenders`, `assertCanCollect`); Payment never imports Booking and `insertAllocations` only sees ids. The use case that starts the action owns `$transaction`, authorizes before it, and touches no `platformDb` inside it. Venue does not import Booking.
+
+**How to verify:** `npm test` (58 suites, 402 tests; new: `build-slots`, `switch-mode`), `npm run test:integration` (6 suites, 36 tests; new file `per-player.integration.test.ts`: 12 cases covering the switch and its refusals, rollback, one-tap and pay-all writes, the concurrent double tap, Unassigned and overpaid, allocation tenant scoping, cancel and no-show), `npm run build`. Not verified in a browser: that the sheet stays open and updates after a non-redirect action plus `revalidatePath`. The local dev database has the new migration applied.
+
+## SPEC-15 slice 2 follow-up: cancel collapses a per-player booking to whole
+
+**When:** 2026-09-29
+
+**What:** Correction to the "Open, not fixed" note in the slice 2 entry. `cancelBooking` now handles a PER_PLAYER booking: inside the cancel transaction, before the fee logic, `collapseToWhole` deletes the booking's `PaymentAllocation` rows and non-requester participants, puts the due back on the requester row and sets `collectionMode = WHOLE`. The existing suggest, edit and waive logic then runs unchanged with `collectionMode` WHOLE. Payments, tenders and ledger rows are untouched, so everything collected (slots plus Unassigned) still counts as collected. This is the one path allowed to remove allocations, so it skips the zero-allocation guard that `switchToWhole` keeps. The cost is that who paid what is lost on that booking.
+
+**Why:** A per-player booking with payments could not be cancelled (`booking.due_whole_only`), and switching back to whole is blocked once allocations exist.
+
+**Unchanged:** `booking.switch_fee_booking` still applies to `switchToPerPlayer` on a cancelled or no-show booking. It was never a cancel error. No-show is not collapsed: at the default fee (= the due) it goes through and its slots take the cash; a no-show fee different from the due is still refused with `booking.due_whole_only`.
+
+**Files:** `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/infrastructure/bookings.ts` (`collapseToWhole`), `test/integration/per-player.integration.test.ts` (the old refusal test became cancel-with-payments, cancel with an edited fee, cancel with nothing paid).
+
+**How it connects:** Same booking-to-payment direction as before. `collapseToWhole` lives in Booking infrastructure and runs in the cancel use case's transaction.
+
+**How to verify:** `npm test`, `npm run test:integration` and `npm run build`. See the results reported when this entry was written.
+
+## SPEC-15 slice 2 follow-up 2: no-show collapses too, cancel locks the row
+
+**When:** 2026-09-30
+
+**What:** Correction to the previous entry, which left no-show per player.
+- `recordNoShow` now collapses a PER_PLAYER booking to WHOLE the same way cancel does: allocations and unnamed slots removed, requester carries the due, then the unchanged fee logic and the NO_SHOW status, all in one transaction. A no-show fee different from the due (0% or 50% policy, an edit, a waive) no longer hits `booking.due_whole_only`.
+- Slot pay is back to APPROVED only. The NO_SHOW/CANCELLED opening added in the slice 2 entry is removed, since a per-player booking can no longer be in those statuses.
+- Cancel and no-show both read the booking with `FOR UPDATE` (`findBookingForUpdate`) after the pitch lock, so a slot tap in flight finishes before the collapse. Lock order is pitch then booking; slot pay and the switches lock only the booking, so there is no cycle.
+- The existing fee clamp still applies: a fee below what was collected is raised to what was collected. A waived no-show with $3 collected ends with due $3.
+
+**Files:** `src/modules/booking/application/record-no-show.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/domain/switch-mode.ts`, `test/modules/booking/domain/switch-mode.test.ts`, `test/integration/per-player.integration.test.ts` (no-show default fee, no-show edited fee, no-show waived; the no-show-then-slot-pay case is gone), `docs/per-player-payments.md`.
+
+**How to verify:** `npm test` (58 suites, 402 tests), `npm run test:integration` (6 suites, 40 tests), `npm run build`. Not exercised: a cancel or no-show racing a slot tap (the lock is in place, no concurrent test), and the sheet in a browser.
+
+## SPEC-15 slice 2: final verification and commit
+
+**When:** 2026-09-30
+
+**What:** Closes out slice 2 (per-player mode, slots, one-tap collect) with the two follow-ups: cancel and no-show collapse a per-player booking to whole, and both lock the booking row. Summary of the slice: `Pitch.defaultPlayerCount`; `buildSlots`; `switchToPerPlayer` / `switchToWhole`; `collectSlotPayment` / `collectAllRemaining` (USD, one transaction, booking row lock, `payment.nothing_due` on a double tap); the sheet mode switch, slot list, "N of M paid" and Unassigned line; whole-game collect refused on a per-player booking; `PaymentAllocation` added to the tenant-scoped models (a slice 1 gap).
+
+**Scope boundary (intentional):** the per-player switch is offered only after the game has ended and cash is still owed. Splitting before the game ends is not possible yet and may be reconsidered after slices 3–5. Because of that, cancel reaches the collapse only when a per-player game is fully paid (cancel is refused once a game has started with money owed). No-show is the main path. The cancel collapse stays: it shares `collapseToWhole` with no-show and is needed once early splitting is allowed.
+
+**Manual verification (owner, in the browser, 2026-09-30):** slot taps do not close the sheet; the pitch edit page opens; no-show collapse checked at the default fee and with a waived fee; cancel collapse reachable only for the fully paid case, matching the integration test.
+
+**Results before commit:** `npm test` 58 suites, 402 tests; `npm run test:integration` 6 suites, 40 tests; `npm run build` compiled.
+
+**Commits:** the code in one commit, the docs (`per-player-payments.md`, `NOW.md`, `README.md`, `owner-ux.md`, the SPEC-15 banner, `progress.md`) in a second.
+
+**How it connects:** see the two slice 2 entries above for files and module rules. Living reference: `docs/per-player-payments.md`.

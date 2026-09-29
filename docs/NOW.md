@@ -10,11 +10,11 @@ Shipped since (details and dates in `progress.md`):
 
 - **UX-01** ([owner-ux.md](./owner-ux.md)) — shell (header, business sheet, offline pill, Today / Requests / ＋ / Money / More, `lg` rail), More hub, Today request banner and card states, Requests tab (slot interests, reject chips, approve notify sheet, missed requests, "starts soon" flag, precise relative time, live badge with 20s poll).
 - **UX-02** ([ux-02-history.md](./ux-02-history.md)) slices 1–2 — Beirut day navigation + `summarizeDay` line; person page + header search results.
-- **SPEC-15** slice 1 — per-player foundation: `collectionMode`, `Booking.amountDueUsd` (backfilled), pure `splitEvenly` / `personOwedOnBooking`, every remaining/owed read switched to `amountDueUsd`. No visible UI change.
+- **SPEC-15** slices 1–2 — per-player foundation (`collectionMode`, `Booking.amountDueUsd`, `splitEvenly` / `personOwedOnBooking`), then per-player mode: `Pitch.defaultPlayerCount` (1–30, default 10), switch Whole ⇄ Per player in the booking sheet, slot list with one-tap USD pay, "Booker pays all remaining", "N of M paid". P1–P5 settled at the spec defaults.
 - **SPEC-16** slices 1–3 — `BookingDueChange` log + `adjustDue`, fee suggestions from tenant policy, cancel / no-show / adjust sheets and Booking rules settings, request-card debt warning, public policy line, WhatsApp fee text.
 - **Design system** ([MIGRATION.md](./MIGRATION.md)) — token layer, typography, responsive shell. Component restyles still open there.
 
-That is still the scoped product slice — **not** full Phase 1 BRD (no per-player collect UI, pitch blocks, subscriptions, etc.). Honest line for a paying owner: pilot-with-supervision, not production-ready — see the MVP readiness audit.
+That is still the scoped product slice — **not** full Phase 1 BRD (no group pay or mixed currency per player, pitch blocks, subscriptions, etc.). Honest line for a paying owner: pilot-with-supervision, not production-ready — see the MVP readiness audit.
 
 ## Start here by topic
 
@@ -25,6 +25,7 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no per-play
 | How a slice was built | [specs/SPEC-NN](./specs/) (historical — do not rewrite bodies) |
 | Owner UX structure (wins on conflict) | [owner-ux.md](./owner-ux.md) (UX-01), [ux-02-history.md](./ux-02-history.md) (UX-02) |
 | Owner tabs / routes | [owner-ia.md](./owner-ia.md) |
+| Per-player split, slot pay, cancel / no-show on a split booking | [per-player-payments.md](./per-player-payments.md) (living, as built) |
 | Visual design | [ui-foundations.md](./ui-foundations.md), [ui-components.md](./ui-components.md), [theme.md](./theme.md), [MIGRATION.md](./MIGRATION.md) |
 | Current file tree | [guides/folder-structure.md](./guides/folder-structure.md) |
 | Module roles + request walks | [guides/module-map-and-request-walkthroughs.md](./guides/module-map-and-request-walkthroughs.md) |
@@ -36,7 +37,7 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no per-play
 
 ## What’s next
 
-**Product, next up:** SPEC-15 slices 2–5 (per-player collect UI). Not started. Settle open decisions P1–P5 in [SPEC-15 §4](./specs/SPEC-15-per-player-payments.md) first.
+**Product, next up:** SPEC-15 slices 3–5 (pay together + mixed currency, naming unpaid slots + due editing, assign Unassigned + "Same as last time"). Cancel and no-show on a per-player booking collapse it to whole. Per-player split is offered only after the game has ended (intentional for now), so in the UI the collapse runs mainly on no-show; cancel reaches it only for a fully paid game. Details in [per-player-payments.md](./per-player-payments.md).
 
 **Product, not started:** UX-02 slices 3–5 — Money → Transactions, month overview, booking-sheet timeline (actor columns).
 

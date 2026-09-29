@@ -232,7 +232,7 @@ Rate: 90,000 (read-only)
 - **Common case: 2 taps** (Collect → Paid in full).
 - Split currency: add an LBP tender, type the amount, watch Remaining drop live in USD.
 - The rate is shown **read-only**. It is managed in Settings; showing it here lets him see what an LBP tender converts at before saving.
-- **Mode switch is designed now:** MVP ships "Whole game" only (Per player disabled or hidden). When participants arrive, Per player shows a player list with an individual Paid tap per row. The sheet does not get redesigned later.
+- **Mode switch is designed now:** MVP shipped "Whole game" only. SPEC-15 slice 2 (2026-09-29) added **Per player**: a count (pitch default), a slot list with one-tap USD Pay per row, and "Booker pays all remaining". It lives in the booking sheet's money group and does not redirect, so the sheet stays open across taps. The whole-game forms are hidden while a booking is per player.
 
 ### 6.2 Didn't happen (BR-22, SPEC-14)
 
