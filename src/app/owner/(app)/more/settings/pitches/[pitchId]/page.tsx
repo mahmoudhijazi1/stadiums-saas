@@ -61,6 +61,9 @@ export default async function EditPitchPage({
           slotDurationMinutes:
             queryString(query.slotDurationMinutes) ??
             String(editor.slotDurationMinutes),
+          defaultPlayerCount:
+            queryString(query.defaultPlayerCount) ??
+            String(editor.defaultPlayerCount),
           defaultPriceUsd:
             queryString(query.defaultPriceUsd) ?? editor.defaultPriceUsd,
           priceRules:

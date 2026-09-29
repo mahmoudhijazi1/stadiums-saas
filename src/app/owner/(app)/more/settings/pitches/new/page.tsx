@@ -46,6 +46,7 @@ export default async function NewPitchPage({
             readHoursGroupsDraft(queryString(params.hoursGroupsJson)) ??
             defaultHoursGroups(),
           slotDurationMinutes: queryString(params.slotDurationMinutes) ?? "60",
+          defaultPlayerCount: queryString(params.defaultPlayerCount) ?? "10",
           defaultPriceUsd: queryString(params.defaultPriceUsd) ?? "30.00",
           priceRules:
             readPriceRulesDraft(queryString(params.priceRulesJson)) ?? [],

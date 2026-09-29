@@ -76,6 +76,7 @@ export async function updatePitch(input: {
         pitchId: row.id,
         name: input.draft.name,
         scheduleConfig: next,
+        defaultPlayerCount: input.draft.defaultPlayerCount,
       });
     });
 

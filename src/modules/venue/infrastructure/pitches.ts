@@ -19,18 +19,22 @@ export async function listPitches() {
 export async function findPitch(tx: TenantTx, pitchId: string) {
   return tx.pitch.findUnique({
     where: { id: pitchId },
-    select: { id: true, name: true, scheduleConfig: true },
+    select: { id: true, name: true, scheduleConfig: true, defaultPlayerCount: true },
   });
 }
 
 export async function insertPitch(input: {
   name: string;
   scheduleConfig: unknown;
+  defaultPlayerCount?: number;
 }) {
   return db.pitch.create({
     data: {
       name: input.name,
       scheduleConfig: input.scheduleConfig,
+      ...(input.defaultPlayerCount === undefined
+        ? {}
+        : { defaultPlayerCount: input.defaultPlayerCount }),
     } as Parameters<typeof db.pitch.create>[0]["data"],
     select: { id: true },
   });
@@ -43,6 +47,8 @@ export async function updatePitchRow(
     pitchId: string;
     name: string;
     scheduleConfig: unknown;
+    /** Omitted: leave the stored count alone. */
+    defaultPlayerCount?: number;
   },
 ) {
   return tx.pitch.update({
@@ -50,6 +56,9 @@ export async function updatePitchRow(
     data: {
       name: input.name,
       scheduleConfig: input.scheduleConfig,
+      ...(input.defaultPlayerCount === undefined
+        ? {}
+        : { defaultPlayerCount: input.defaultPlayerCount }),
     } as Parameters<typeof tx.pitch.update>[0]["data"],
     select: { id: true },
   });

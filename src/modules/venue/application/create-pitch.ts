@@ -28,6 +28,7 @@ export async function createPitch(draft: PitchDraft): Promise<{ id: string }> {
     const row = await insertPitch({
       name: draft.name,
       scheduleConfig,
+      defaultPlayerCount: draft.defaultPlayerCount,
     });
     logger.info(`Pitch created ${row.id}`, undefined, {
       useCase: "createPitch",

@@ -14,7 +14,9 @@ import {
 } from "@/modules/booking/domain/decision";
 import { confirmedFee, suggestFee } from "@/modules/booking/domain/suggest-fee";
 import {
+  collapseToWhole,
   findBookingForDecision,
+  findBookingForUpdate,
   lockPitchForUpdate,
   setApprovedNoShow,
 } from "@/modules/booking/infrastructure/bookings";
@@ -46,7 +48,7 @@ export async function recordNoShow(input: {
         throw new DomainError("booking.not_found");
       }
       await lockPitchForUpdate(tx, loaded.pitchId);
-      const booking = await findBookingForDecision(tx, input.bookingId);
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }
@@ -73,12 +75,22 @@ export async function recordNoShow(input: {
         collectedUsd: collected,
         feeUsd: input.feeUsd,
       });
+      // A per-player booking collapses to WHOLE first, allocations included, so the
+      // fee logic runs unchanged on the booking's total collected (same as cancel).
+      let collectionMode = booking.collectionMode;
+      if (collectionMode === "PER_PLAYER") {
+        await collapseToWhole(tx, {
+          bookingId: booking.id,
+          amountDueUsd: booking.amountDueUsd,
+        });
+        collectionMode = "WHOLE";
+      }
       await writeDueIfChanged(tx, {
         bookingId: booking.id,
         fromUsd: booking.amountDueUsd,
         toUsd: confirmed.feeUsd,
         collectedUsd: collected,
-        collectionMode: booking.collectionMode,
+        collectionMode,
         reason: confirmed.reason,
         note: null,
         actorMembershipId: membership.membershipId,

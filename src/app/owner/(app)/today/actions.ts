@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { DomainError } from "@/lib/errors";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { rejectReasonText } from "@/lib/ui-copy";
@@ -10,6 +11,20 @@ import { approveBooking } from "@/modules/booking/application/approve-booking";
 import { dismissMissedRequests } from "@/modules/booking/application/dismiss-missed-requests";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
+import {
+  collectAllRemaining,
+  collectSlotPayment,
+} from "@/modules/booking/application/collect-player-payment";
+import {
+  switchToPerPlayer,
+  switchToWhole,
+} from "@/modules/booking/application/switch-collection-mode";
+import {
+  collectAllRemainingSchema,
+  collectSlotSchema,
+  switchToPerPlayerSchema,
+  switchToWholeSchema,
+} from "@/modules/booking/schemas/per-player";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { recordNoShow } from "@/modules/booking/application/record-no-show";
 import { rejectBooking } from "@/modules/booking/application/reject-booking";
@@ -239,4 +254,57 @@ export async function submitCollectPayment(formData: FormData) {
     redirectOwner("/owner/today", formData, TODAY_KEEP, { error: errorKey });
   }
   redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected" });
+}
+
+/**
+ * Per-player actions (SPEC-15 slice 2). They do not redirect: ten taps in a row must
+ * keep the sheet open. The result carries an error key; success revalidates Today.
+ */
+export type PerPlayerResult = { ok: true } | { error: string };
+
+async function perPlayer(
+  useCase: string,
+  run: () => Promise<void>,
+): Promise<PerPlayerResult> {
+  try {
+    await run();
+  } catch (error) {
+    return { error: await actionErrorKey(error, useCase) };
+  }
+  revalidatePath("/owner/today");
+  return { ok: true };
+}
+
+export async function submitSwitchToPerPlayer(input: {
+  bookingId: string;
+  count: number;
+}): Promise<PerPlayerResult> {
+  return perPlayer("submitSwitchToPerPlayer", async () => {
+    await switchToPerPlayer(switchToPerPlayerSchema.parse(input));
+  });
+}
+
+export async function submitSwitchToWhole(input: {
+  bookingId: string;
+}): Promise<PerPlayerResult> {
+  return perPlayer("submitSwitchToWhole", async () => {
+    await switchToWhole(switchToWholeSchema.parse(input));
+  });
+}
+
+export async function submitCollectSlot(input: {
+  bookingId: string;
+  participantId: string;
+}): Promise<PerPlayerResult> {
+  return perPlayer("submitCollectSlot", async () => {
+    await collectSlotPayment(collectSlotSchema.parse(input));
+  });
+}
+
+export async function submitCollectAllRemaining(input: {
+  bookingId: string;
+}): Promise<PerPlayerResult> {
+  return perPlayer("submitCollectAllRemaining", async () => {
+    await collectAllRemaining(collectAllRemainingSchema.parse(input));
+  });
 }

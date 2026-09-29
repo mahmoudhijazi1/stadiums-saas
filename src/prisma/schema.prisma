@@ -44,6 +44,9 @@ model Pitch {
   /// Opening hours, slot length, gaps, pricing (DR-002 §2.4). Zod-validated in app code, not here.
   /// Default is a closed week so existing rows are valid jsonb (SPEC-02 step 1).
   scheduleConfig Json      @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
+  /// Players expected per game; the default count when a booking is split per player (SPEC-15 P2).
+  /// CHECK ("defaultPlayerCount" BETWEEN 1 AND 30) is SQL-only (Pitch_defaultPlayerCount_range).
+  defaultPlayerCount Int @default(10)
   createdAt      DateTime  @default(now())
   tenant         Tenant         @relation(fields: [tenantId], references: [id])
   bookings       Booking[]

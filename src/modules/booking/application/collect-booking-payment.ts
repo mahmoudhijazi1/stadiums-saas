@@ -41,6 +41,10 @@ export async function collectBookingPayment(input: {
         throw new DomainError("booking.not_found");
       }
       assertCanCollect(booking.status);
+      if (booking.collectionMode === "PER_PLAYER") {
+        // A whole-game payment would sit unassigned. Cash goes through the slots.
+        throw new DomainError("booking.collect_per_player");
+      }
 
       const rate = await findLatestExchangeRate(tx);
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);

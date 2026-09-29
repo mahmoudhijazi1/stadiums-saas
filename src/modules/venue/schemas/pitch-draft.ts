@@ -129,6 +129,8 @@ export function readHoursGroupsDraft(
 export const pitchDraftSchema = z.strictObject({
   name: z.string().trim().min(1).max(80),
   slotDurationMinutes: z.coerce.number().int().positive(),
+  /** SPEC-15 P2 / P5: players per game, 1 to 30. */
+  defaultPlayerCount: z.coerce.number().int().min(1).max(30).default(10),
   defaultPriceUsd: z
     .string()
     .trim()

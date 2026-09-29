@@ -13,6 +13,7 @@ export type PitchFormDefaults = {
   name: string;
   hoursGroups: HoursGroup[];
   slotDurationMinutes: string;
+  defaultPlayerCount: string;
   defaultPriceUsd: string;
   priceRules: PitchPriceRule[];
 };
@@ -68,6 +69,24 @@ export function PitchDraftForm({
           step={1}
           inputMode="numeric"
           defaultValue={defaults.slotDurationMinutes}
+          className="font-mono"
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="pitch-players">
+          {ui("owner.pitchPlayers", locale)}
+        </Label>
+        <Input
+          id="pitch-players"
+          type="number"
+          name="defaultPlayerCount"
+          required
+          min={1}
+          max={30}
+          step={1}
+          inputMode="numeric"
+          defaultValue={defaults.defaultPlayerCount}
           className="font-mono"
         />
       </div>

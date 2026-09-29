@@ -8,12 +8,18 @@ import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
-import { bookingRemaining } from "@/modules/payment/domain/collect";
+import {
+  bookingRemaining,
+  participantRemaining,
+  unassignedUsd,
+} from "@/modules/payment/domain/collect";
 import {
   listBookingsForStartDay,
   listEndedWithRemaining,
+  listSlotsForBookings,
   type DayBookingRow,
   type DayBookingStatus,
+  type SlotRow,
 } from "@/modules/booking/infrastructure/bookings";
 import { summarizeDay, type DaySummary } from "@/modules/booking/domain/day-summary";
 import { resolveOwnerDay } from "@/modules/booking/domain/start-day";
@@ -31,6 +37,18 @@ import {
 const TIME_ZONE = "Asia/Beirut";
 const TO_COLLECT_LIMIT = 5;
 
+/** One player slot on a PER_PLAYER booking (SPEC-15). */
+export type OwnerSlot = {
+  participantId: string;
+  slotNumber: number;
+  isRequester: boolean;
+  /** Null until the slot is named (slice 4). */
+  name: string | null;
+  dueUsd: Decimal;
+  paidUsd: Decimal;
+  remainingUsd: Decimal;
+};
+
 export type OwnerDayBooking = {
   id: string;
   status: DayBookingStatus;
@@ -43,6 +61,11 @@ export type OwnerDayBooking = {
   remaining: Decimal;
   collectedUsd: Decimal;
   collectionMode: "WHOLE" | "PER_PLAYER";
+  pitchDefaultPlayerCount: number;
+  /** Empty on WHOLE. */
+  slots: OwnerSlot[];
+  /** Collected minus allocated. Zero on WHOLE. */
+  unassignedUsd: Decimal;
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
@@ -88,6 +111,14 @@ export async function loadOwnerDay(
     ]);
     const summary = summarizeDay(gameRows, now);
     const locale = await getUiLocale();
+    const slotsByBooking = groupSlots(
+      await listSlotsForBookings(
+        db,
+        [...gameRows, ...collectRows]
+          .filter((row) => row.collectionMode === "PER_PLAYER")
+          .map((row) => row.id),
+      ),
+    );
 
     return {
       day,
@@ -95,12 +126,12 @@ export async function loadOwnerDay(
       isToday,
       summary,
       games: gameRows.map((row) =>
-        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay),
+        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking),
       ),
       toCollect: collectRows
         .slice(0, TO_COLLECT_LIMIT)
         .map((row) =>
-          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay),
+          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking),
         ),
       toCollectHasMore: collectRows.length > TO_COLLECT_LIMIT,
     };
@@ -109,13 +140,34 @@ export async function loadOwnerDay(
   }
 }
 
+function groupSlots(rows: SlotRow[]): Map<string, OwnerSlot[]> {
+  const byBooking = new Map<string, OwnerSlot[]>();
+  for (const row of rows) {
+    const list = byBooking.get(row.bookingId) ?? [];
+    list.push({
+      participantId: row.participantId,
+      slotNumber: row.slotNumber,
+      isRequester: row.isRequester,
+      name: row.name,
+      dueUsd: row.dueUsd,
+      paidUsd: row.paidUsd,
+      remainingUsd: participantRemaining(row.dueUsd, row.paidUsd),
+    });
+    byBooking.set(row.bookingId, list);
+  }
+  return byBooking;
+}
+
 function toOwnerDayBooking(
   row: DayBookingRow,
   stadiumName: string,
   tenantId: string,
   locale: "ar" | "en",
   hourCycle: "h23" | "h12",
+  slotsByBooking: Map<string, OwnerSlot[]>,
 ): OwnerDayBooking {
+  const slots = slotsByBooking.get(row.id) ?? [];
+  const allocated = slots.reduce((sum, slot) => sum.plus(slot.paidUsd), new Decimal(0));
   return {
     id: row.id,
     status: row.status,
@@ -128,6 +180,12 @@ function toOwnerDayBooking(
     remaining: bookingRemaining(row.amountDueUsd, row.collectedUsd),
     collectedUsd: row.collectedUsd,
     collectionMode: row.collectionMode,
+    pitchDefaultPlayerCount: row.pitchDefaultPlayerCount,
+    slots,
+    unassignedUsd:
+      row.collectionMode === "PER_PLAYER"
+        ? unassignedUsd(row.collectedUsd, allocated)
+        : new Decimal(0),
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,

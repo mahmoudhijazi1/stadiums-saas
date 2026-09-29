@@ -22,6 +22,7 @@ import {
   NoShowDecisionForm,
 } from "./fee-forms";
 import { submitCollectPayment } from "./actions";
+import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -71,6 +72,7 @@ export type UpcomingRowView = {
   showCancel: boolean;
   showNoShow: boolean;
   canAdjust: boolean;
+  perPlayer: PerPlayerView;
   hoursBefore: number;
   playerFeeCompact: string | null;
   playerFeeExact: string;
@@ -738,7 +740,8 @@ function UpcomingRowActions({
   onAdjust: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
-  const canCollect = mayCollect && owesCash(row);
+  const perPlayer = row.perPlayer.mode === "PER_PLAYER";
+  const canCollect = mayCollect && owesCash(row) && !perPlayer;
 
   return (
     <>
@@ -749,6 +752,12 @@ function UpcomingRowActions({
         <DueRemainingFigures
           dueUsd={row.priceUsd}
           remainingUsd={row.remainingUsd}
+          locale={locale}
+        />
+        <PerPlayerCollect
+          view={row.perPlayer}
+          mayCollect={mayCollect}
+          mayAdjust={mayAdjust && (perPlayer || owesCash(row))}
           locale={locale}
         />
         {canCollect && !mixedOpen ? (

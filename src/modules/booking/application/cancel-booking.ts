@@ -18,7 +18,9 @@ import {
   type FeeInitiator,
 } from "@/modules/booking/domain/suggest-fee";
 import {
+  collapseToWhole,
   findBookingForDecision,
+  findBookingForUpdate,
   findRequesterPersonId,
   insertBookingDueChange,
   lockPitchForUpdate,
@@ -63,7 +65,9 @@ export async function cancelBooking(input: {
         throw new DomainError("booking.not_found");
       }
       await lockPitchForUpdate(tx, loaded.pitchId);
-      const booking = await findBookingForDecision(tx, input.bookingId);
+      // Row lock, same as slot pay: a tap in flight finishes first, and the
+      // collapse below never races an allocation insert.
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }
@@ -95,6 +99,16 @@ export async function cancelBooking(input: {
         collectedUsd: collected,
         feeUsd: input.feeUsd,
       });
+      // A per-player booking collapses to WHOLE here, allocations included, so the
+      // fee logic below runs unchanged on the booking's total collected.
+      let collectionMode = booking.collectionMode;
+      if (collectionMode === "PER_PLAYER") {
+        await collapseToWhole(tx, {
+          bookingId: booking.id,
+          amountDueUsd: booking.amountDueUsd,
+        });
+        collectionMode = "WHOLE";
+      }
       // Note is PLAYER or OWNER so the later send row can tell the templates
       // apart from the saved row. An unchanged due still gets that row.
       const feeSame = confirmed.feeUsd
@@ -115,7 +129,7 @@ export async function cancelBooking(input: {
           fromUsd: booking.amountDueUsd,
           toUsd: confirmed.feeUsd,
           collectedUsd: collected,
-          collectionMode: booking.collectionMode,
+          collectionMode,
           reason: confirmed.reason,
           note: input.initiator,
           actorMembershipId: membership.membershipId,

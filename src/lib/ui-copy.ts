@@ -128,6 +128,15 @@ const ARABIC: Record<string, string> = {
   "owner.hideCollectMixed": "إخفاء الدفع بعملتين",
   "owner.usd": "دولار",
   "owner.usdRemaining": "المتبقي بالدولار",
+  "owner.modeWhole": "الحجز كامل",
+  "owner.modePerPlayer": "لكل لاعب",
+  "owner.modeLabel": "طريقة التحصيل",
+  "owner.playerCount": "عدد اللاعبين",
+  "owner.splitConfirm": "قسّم",
+  "owner.payPlayer": "دفع",
+  "owner.slotPaid": "دفع",
+  "owner.unassigned": "غير مخصّص",
+  "owner.perPlayerLocked": "لا يمكن العودة للحجز الكامل بعد تسجيل دفعات اللاعبين.",
   "owner.lbp": "ليرة",
   "owner.cancel": "إلغاء الحجز",
   "owner.cancelHint": "ستُلغى الساعة وتصبح متاحة مجدداً.",
@@ -220,6 +229,7 @@ const ARABIC: Record<string, string> = {
   "owner.pitchOpen": "يفتح",
   "owner.pitchClose": "يغلق",
   "owner.pitchDuration": "مدة المباراة (دقائق)",
+  "owner.pitchPlayers": "عدد اللاعبين في المباراة",
   "owner.pitchPrice": "السعر الافتراضي (دولار)",
   "owner.pitchPriceRules": "سعر حسب اليوم",
   "owner.pitchPriceRuleHint": "الصف الأخير يغلب إذا تداخلت الأيام.",
@@ -398,6 +408,15 @@ const ENGLISH: Record<string, string> = {
   "owner.hideCollectMixed": "Hide two-currency pay",
   "owner.usd": "USD",
   "owner.usdRemaining": "Remaining USD",
+  "owner.modeWhole": "Whole game",
+  "owner.modePerPlayer": "Per player",
+  "owner.modeLabel": "How to collect",
+  "owner.playerCount": "Players",
+  "owner.splitConfirm": "Split",
+  "owner.payPlayer": "Pay",
+  "owner.slotPaid": "Paid",
+  "owner.unassigned": "Unassigned",
+  "owner.perPlayerLocked": "Can't go back to whole game once player payments are recorded.",
   "owner.lbp": "LBP",
   "owner.cancel": "Cancel booking",
   "owner.cancelHint": "This hour will be freed and offered again.",
@@ -490,6 +509,7 @@ const ENGLISH: Record<string, string> = {
   "owner.pitchOpen": "Opens",
   "owner.pitchClose": "Closes",
   "owner.pitchDuration": "Game length (minutes)",
+  "owner.pitchPlayers": "Players per game",
   "owner.pitchPrice": "Default price (USD)",
   "owner.pitchPriceRules": "Day prices",
   "owner.pitchPriceRuleHint": "The last row wins when days overlap.",
@@ -796,6 +816,29 @@ export function overdueCount(n: number, locale: UiLocale = "ar"): string {
 /** Collect remaining USD — amount is already formatUsd (Latin). */
 export function collectUsdLabel(amount: string, locale: UiLocale = "ar"): string {
   return locale === "en" ? `Collect $${amount}` : `تحصيل $${amount}`;
+}
+
+/** Slot name before anyone is named. */
+export function playerLabel(slotNumber: number, locale: UiLocale = "ar"): string {
+  return locale === "en" ? `Player ${slotNumber}` : `لاعب ${slotNumber}`;
+}
+
+/** Per-player progress on the booking sheet. Counts are plain numbers. */
+export function paidOfLine(
+  paid: number,
+  total: number,
+  locale: UiLocale = "ar",
+): string {
+  return locale === "en"
+    ? `${paid} of ${total} paid`
+    : `${paid} من ${total} دفعوا`;
+}
+
+/** Booker pays every unpaid slot. Amount is already formatUsd (Latin). */
+export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {
+  return locale === "en"
+    ? `Booker pays all remaining $${amount}`
+    : `الحاجز يدفع كل المتبقي $${amount}`;
 }
 
 /** Confirmed card due line. Amounts are already formatUsd (Latin). */

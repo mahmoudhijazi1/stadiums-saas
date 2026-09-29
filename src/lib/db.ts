@@ -15,6 +15,7 @@ const TENANT_SCOPED_MODELS = new Set([
   "SlotInterest",
   "ExchangeRate",
   "Payment",
+  "PaymentAllocation",
   "PaymentTender",
   "LedgerEntry",
   "Expense",

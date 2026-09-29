@@ -267,6 +267,29 @@ function toUpcomingViews(
         !isPastUnpaidCancel(row.start, row.remaining, now),
       showNoShow:
         row.status === "APPROVED" && isNoShowWindowEnded(row.end, now),
+      perPlayer: {
+        bookingId: row.id,
+        mode: row.collectionMode,
+        canSplit: row.status === "APPROVED" && row.amountDueUsd.gt(0),
+        defaultPlayerCount: row.pitchDefaultPlayerCount,
+        slots: row.slots.map((slot) => ({
+          participantId: slot.participantId,
+          slotNumber: slot.slotNumber,
+          name: slot.name,
+          dueUsd: formatUsd(slot.dueUsd),
+          remainingUsd: formatUsd(slot.remainingUsd),
+          paid: slot.remainingUsd.lte(0),
+        })),
+        unassignedUsd: formatUsd(row.unassignedUsd),
+        hasAllocations: row.slots.some((slot) => slot.paidUsd.gt(0)),
+        unpaidTotalUsd: formatUsd(
+          row.slots.reduce(
+            (sum, slot) =>
+              slot.remainingUsd.gt(0) ? sum.plus(slot.remainingUsd) : sum,
+            new Decimal(0),
+          ),
+        ),
+      },
       canAdjust:
         row.collectionMode === "WHOLE" &&
         (due === "owed" || due === "expected"),

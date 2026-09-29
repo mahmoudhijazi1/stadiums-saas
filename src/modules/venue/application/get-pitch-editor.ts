@@ -21,6 +21,7 @@ export type PitchEditor = {
   hoursGroups: HoursGroup[];
   closedDays: Weekday[];
   slotDurationMinutes: number;
+  defaultPlayerCount: number;
   defaultPriceUsd: string;
   priceRules: PitchPriceRule[];
 };
@@ -59,6 +60,7 @@ export async function getPitchEditor(
       hoursGroups: groups,
       closedDays: closed,
       slotDurationMinutes: config.slotDurationMinutes,
+      defaultPlayerCount: row.defaultPlayerCount,
       defaultPriceUsd: config.defaultPriceUsd,
       priceRules: config.priceRules,
     };

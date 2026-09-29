@@ -10,6 +10,7 @@ import { field, redirectOwner } from "@/app/owner/form-query";
 const PITCH_KEEP = [
   "name",
   "slotDurationMinutes",
+  "defaultPlayerCount",
   "defaultPriceUsd",
   "hoursGroupsJson",
   "priceRulesJson",
@@ -32,6 +33,7 @@ export async function submitCreatePitch(formData: FormData) {
     const parsed = parsePitchDraft({
       name: field(formData, "name"),
       slotDurationMinutes: field(formData, "slotDurationMinutes"),
+      defaultPlayerCount: field(formData, "defaultPlayerCount"),
       defaultPriceUsd: field(formData, "defaultPriceUsd"),
       hoursGroups: field(formData, "hoursGroupsJson"),
       priceRules: field(formData, "priceRulesJson"),
@@ -62,6 +64,7 @@ export async function submitUpdatePitch(formData: FormData) {
     const parsed = parsePitchDraft({
       name: field(formData, "name"),
       slotDurationMinutes: field(formData, "slotDurationMinutes"),
+      defaultPlayerCount: field(formData, "defaultPlayerCount"),
       defaultPriceUsd: field(formData, "defaultPriceUsd"),
       hoursGroups: field(formData, "hoursGroupsJson"),
       priceRules: field(formData, "priceRulesJson"),

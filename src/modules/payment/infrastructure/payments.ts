@@ -105,3 +105,23 @@ export async function sumCollectedUsdBySourceIds(
 
   return totals;
 }
+
+/**
+ * Credit part of a payment to participants (SPEC-15). Payment does not know what a
+ * participant is — the caller passes ids it already checked. Tenant is stamped by the guard.
+ */
+export async function insertAllocations(
+  tx: TenantTx,
+  paymentId: string,
+  allocations: { participantId: string; amountUsd: Decimal }[],
+): Promise<void> {
+  for (const allocation of allocations) {
+    await tx.paymentAllocation.create({
+      data: {
+        paymentId,
+        participantId: allocation.participantId,
+        amountUsd: formatUsd(allocation.amountUsd),
+      } as Parameters<typeof tx.paymentAllocation.create>[0]["data"],
+    });
+  }
+}
