@@ -4165,3 +4165,35 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** The route is tenant-scoped through the existing request tenant and requires a membership. `people` does not import `booking`. The poll does not run while `document.visibilityState` is hidden.
 
 **How to verify:** `npx jest --watchAll=false` (383), `npm run test:integration` (5 suites, 24 tests), `npm run build`. A public request shows on the owner's Requests tab within 20 seconds without a manual reload.
+
+## Docs sync and CLAUDE.md
+
+**When:** 2026-09-29
+
+**What:** `NOW.md` lists what shipped after SPEC-14: UX-01 shell and Requests (through missed requests and the live badge), UX-02 slices 1–2, SPEC-15 slice 1, SPEC-16 slices 1–3, the design-system token layer. Next up is SPEC-15 slices 2–5 after its open decisions P1–P5; UX-02 slices 3–5 are not started. `docs/README.md` catalogs SPEC-15, SPEC-16, `owner-ux.md`, `ux-02-history.md`, `ui-foundations.md`, `ui-components.md`, `theme.md`, `MIGRATION.md`. SPEC-15 and SPEC-16 each carry a one-line status banner. `theme.md` §3 has a banner naming `MIGRATION.md` as the source of truth for fonts, because the §1 `@theme` block still says `--font-sans: plex-arabic` and `--font-heading: kufi`. `CLAUDE.md` keeps `@AGENTS.md` and adds a project summary, a task → doc table, the non-negotiables, the progress-log rules, and the read → report → stop → build → verify → append workflow.
+
+**Why:** `NOW.md` and the README stopped at SPEC-14, so an agent starting there would not know UX-01, UX-02, SPEC-15 or SPEC-16 existed. Claude Code reads `CLAUDE.md`, not `.cursor/rules/`, so the non-negotiables live there as well. Statuses were checked against progress entry headings and dates, not memory. Fonts were checked against `src/app/globals.css` (Manrope for sans, Big Shoulders for heading and display).
+
+**Files:** `docs/NOW.md`, `docs/README.md`, `docs/specs/SPEC-15-per-player-payments.md`, `docs/specs/SPEC-16-due-adjustments.md`, `docs/theme.md`, `CLAUDE.md`.
+
+**How it connects:** Docs only. Historical SPEC and DR bodies are unchanged apart from the banners. The middleware/proxy wording in DR-001 / SPEC-01, "no language switch" in DR-005 / SPEC-13, and `BookingLike` in `.cursor/rules/000-core-architecture.mdc` stay as they were (historical, already flagged by the audits).
+
+**How to verify:** Docs-only pass; no code or tests changed. `npx jest --watchAll=false` and `npm run build` were run afterwards only to confirm nothing moved.
+
+## Live queue: session-expiry redirect and stale-badge reconciliation
+
+**When:** 2026-09-29
+
+**What:** Two fixes to the live request badge, found in a read-only diagnosis of commit 9323f77.
+1. Session expiry. A 401 from `GET /owner/requests/live` used to count as an ordinary failure, so polling slowed to 60 seconds and the badge stayed stale with no sign of why. The poll now stops on a 401 and calls `router.replace("/owner/login")`. Other errors still use the backoff.
+2. Stale badge after refresh. The snapshot sync effect only ran when `initial.pendingCount` or `initial.latestRequestedAt` changed. If a poll-triggered `router.refresh()` rendered an older count than the poll had seen, the effect did not run and nothing asked again, so the list stayed behind until the count changed later. `router.refresh()` returns `void`, so the component marks that it started a refresh and reconciles when the next `initial` object renders. If the render matches the poll it is accepted. If it is behind, the poll's snapshot is kept and the tree is refreshed again, at most 2 more times. After that the server render is trusted, so it cannot loop.
+
+**Why:** A frozen badge on an expired session and a list that disagrees with the badge both cost the owner requests, which is the reason the badge exists (RULE-12). Follows "Live request badge" (2026-09-26).
+
+**Commits:** `a0bfd27` (redirect on 401), `d93c9f0` (reconcile after refresh).
+
+**Files:** `src/app/owner/live-queue.tsx`, `src/modules/booking/domain/live-queue.ts` (`reconcileAfterRefresh`, `MAX_RECONCILE_REFRESHES`), `test/modules/booking/domain/live-queue.test.ts`.
+
+**How it connects:** `reconcileAfterRefresh` is a pure domain function with no imports beyond its own types. The client component calls it. Nothing new imports `booking` from `people` or the reverse, and the route and query are unchanged.
+
+**How to verify:** `npm test` (387 tests; 4 new `reconcileAfterRefresh` cases: match, retry, give-up, same count with an older timestamp) and `npm run build`, both run after each fix. Not tested: the component wiring (`awaitingRender`, the effect, the `router.refresh` call) and the 401 redirect, because this Jest setup is node-only with no React Testing Library. Neither was exercised in a browser. `npm run test:integration` was not run, since nothing here touches transactions, money or isolation.
