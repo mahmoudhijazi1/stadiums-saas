@@ -85,6 +85,12 @@ export function LiveQueue({
       inFlight = true;
       try {
         const response = await fetch("/owner/requests/live", { cache: "no-store" });
+        if (response.status === 401) {
+          // Session expired. Same destination as requireOwnerMembership.
+          stopped = true;
+          router.replace("/owner/login");
+          return;
+        }
         if (!response.ok) throw new Error("live queue");
         const next = (await response.json()) as LiveQueueSnapshot;
         if (
