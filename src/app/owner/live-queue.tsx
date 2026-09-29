@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CountedPhrase } from "@/app/owner/notify-list";
 import {
   liveQueueChanged,
@@ -51,6 +51,10 @@ export function LiveQueue({
   children: ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
+  // Set by the poll effect. Lets a finished action ask for a poll right now.
+  const pollNow = useRef<() => void>(() => undefined);
   const [snapshot, setSnapshot] = useState(initial);
   const snapshotRef = useRef(initial);
   const refreshWaiting = useRef(false);
@@ -88,6 +92,7 @@ export function LiveQueue({
     let stopped = false;
     let failures = 0;
     let inFlight = false;
+    let pollAgain = false;
 
     function sheetOpen(): boolean {
       return (
@@ -141,7 +146,12 @@ export function LiveQueue({
         failures += 1;
       } finally {
         inFlight = false;
-        arm();
+        if (pollAgain && !stopped) {
+          pollAgain = false;
+          void tick();
+        } else {
+          arm();
+        }
       }
     }
 
@@ -152,6 +162,17 @@ export function LiveQueue({
         void tick();
       }, nextPollDelayMs(failures));
     }
+
+    // A poll already in flight may have read before the action committed,
+    // so ask for one more when it lands.
+    pollNow.current = () => {
+      if (inFlight) {
+        pollAgain = true;
+        return;
+      }
+      window.clearTimeout(timer);
+      void tick();
+    };
 
     function onShow() {
       if (document.visibilityState !== "visible") {
@@ -184,6 +205,18 @@ export function LiveQueue({
       observer.disconnect();
     };
   }, [router]);
+
+  // Approve, reject and dismiss redirect to a new URL and leave this layout
+  // as it was, so the badge would wait for the next 20s tick. A URL change
+  // is the signal that an action finished: poll now.
+  const firstUrl = useRef(true);
+  useEffect(() => {
+    if (firstUrl.current) {
+      firstUrl.current = false;
+      return;
+    }
+    pollNow.current();
+  }, [pathname, search]);
 
   return (
     <LiveQueueContext.Provider value={snapshot}>
