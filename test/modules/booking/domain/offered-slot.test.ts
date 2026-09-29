@@ -232,3 +232,51 @@ describe("resolveOfferedSlot occupied", () => {
     ).toThrow("booking.slot_not_offered");
   });
 });
+
+describe("resolveOfferedSlot across midnight (BR-7)", () => {
+  /** Friday 11 Sep 2026, window 22:00–02:00, Friday rule $50. */
+  const FRI = { year: 2026, month: 9, day: 11 };
+  const SAT = { year: 2026, month: 9, day: 12 };
+  const fridayNight: ScheduleConfig = parseScheduleConfig({
+    ...CLOSED_WEEK_SCHEDULE,
+    defaultPriceUsd: "30.00",
+    priceRules: [{ days: ["fri"], priceUsd: "50.00" }],
+    hours: { ...CLOSED_WEEK_SCHEDULE.hours, fri: [{ start: "22:00", end: "02:00" }] },
+  });
+
+  it("offers the 00:00 and 01:00 slots when called with the start's civil day", () => {
+    const slots = generateSlotsForDay({
+      config: fridayNight,
+      localDate: FRI,
+      timeZone: BEIRUT,
+      occupied: [],
+    });
+    for (const slot of slots.slice(2)) {
+      const resolved = resolveOfferedSlot({
+        config: fridayNight,
+        localDate: SAT,
+        timeZone: BEIRUT,
+        start: slot.start,
+        end: slot.end,
+        now: new Date("2026-09-01T00:00:00.000Z"),
+      });
+      expect(resolved.start.getTime()).toBe(slot.start.getTime());
+      expect(resolved.priceUsd.equals("50.00")).toBe(true);
+    }
+  });
+
+  it("still refuses a post-midnight slot that no window offers", () => {
+    const start = new Date("2026-09-12T00:00:00.000Z"); // Sat 03:00 Beirut
+    const end = new Date("2026-09-12T01:00:00.000Z");
+    expect(() =>
+      resolveOfferedSlot({
+        config: fridayNight,
+        localDate: SAT,
+        timeZone: BEIRUT,
+        start,
+        end,
+        now: new Date("2026-09-01T00:00:00.000Z"),
+      }),
+    ).toThrow("booking.slot_not_offered");
+  });
+});

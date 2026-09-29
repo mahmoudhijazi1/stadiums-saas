@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import {
+  addCalendarDays,
   generateSlotsForDay,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
@@ -9,8 +10,11 @@ import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
 export type UtcRange = { start: Date; end: Date };
 
 /**
- * Confirm this UTC window is a slot Venue would offer that day, and its start
- * is still in the future (same cutoff as dropEndedSlots / booking.slot_ended).
+ * Confirm this UTC window is a slot Venue would offer, and its start is still in the
+ * future (same cutoff as dropEndedSlots / booking.slot_ended). `localDate` is the civil
+ * day of the start; the day before is checked too, because a window that crosses
+ * midnight (22:00–02:00) offers its 00:00 and 01:00 slots under its own day (BR-7).
+ * The price then comes from that window's day.
  * Price is copied from the engine — never trusted from the requester (DR-002 §2.18).
  * Pass APPROVED ranges as occupied so a taken hour fails (SPEC-05). Default [] = none taken.
  */
@@ -25,18 +29,20 @@ export function resolveOfferedSlot(input: {
   /** "They played" on a missed request. Skips the future-start check only. */
   allowStarted?: boolean;
 }): { start: Date; end: Date; priceUsd: Decimal } {
-  const slots = generateSlotsForDay({
-    config: input.config,
-    localDate: input.localDate,
-    timeZone: input.timeZone,
-    occupied: input.occupied ?? [],
-  });
-
-  const offered = slots.find(
-    (slot) =>
-      slot.start.getTime() === input.start.getTime() &&
-      slot.end.getTime() === input.end.getTime(),
-  );
+  const offered = [input.localDate, addCalendarDays(input.localDate, -1)]
+    .flatMap((localDate) =>
+      generateSlotsForDay({
+        config: input.config,
+        localDate,
+        timeZone: input.timeZone,
+        occupied: input.occupied ?? [],
+      }),
+    )
+    .find(
+      (slot) =>
+        slot.start.getTime() === input.start.getTime() &&
+        slot.end.getTime() === input.end.getTime(),
+    );
 
   if (!offered) {
     throw new DomainError("booking.slot_not_offered");

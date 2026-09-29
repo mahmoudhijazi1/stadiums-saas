@@ -4337,3 +4337,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Authorization stays in the use case (DR-003); the sheet only hides what the server would refuse. No new permission flag, no schema change. `app/` imports the booking domain function; the domain imports nothing new.
 
 **How to verify:** `npm test` (60 suites, 421 tests), `npm run test:integration` (8 suites, 62 tests), `npm run build`. With the `cancelBooking` change reverted, only the "I cancelled that drops a late fee" case fails; the other twelve pin guards that already held. Not exercised: the sheet in a browser.
+
+## Slots after midnight can be booked
+
+**When:** 2026-09-30
+
+**What:** Fix 4 of the booking and payments production audit (§1.7, punch list #4, BR-7).
+- `resolveOfferedSlot` (used by public request, approve and owner-create) matches a slot against the windows of the start's civil day **and** of the day before. A 00:00 or 01:00 slot from Friday's 22:00–02:00 window resolves against Friday's window. Before, it was looked up only on Saturday and failed with `booking.slot_not_offered`.
+- Price rules match the weekday of the window the slot came from (`priceForSlot` gets the window's weekday). A 00:30 slot from Friday's window takes Friday's rules. The rule's clock range is still checked against the slot's wall-clock start.
+- `bookingFitsOpenHours` (the hours-shrink guard) checks the same two days, via the new `windowDaysForStart`, so a post-midnight booking is no longer treated as outside the hours.
+- The start-day rule for Today (UX-02, `bookingStartDay`) is **not** changed.
+
+**Where a 00:00 game from Friday's window shows up:** in the owner Book page and the public page it is listed under **Friday** (the window's day), where it was booked. In Today and the day line it is under **Saturday** (start day). On the person page, in the Requests tab date label and in the WhatsApp confirmation ("السبت … 00:00") it also reads as **Saturday**. Flag, not changed: an owner who books "Friday night 00:00" from Friday's list will not find it in Friday's Today and has to move to Saturday. The WhatsApp message saying Saturday is correct but may surprise a player who asked for "Friday night". Worth a UX decision (for example, show post-midnight games of a crossing window at the end of the window's day, marked "after midnight").
+
+**DST:** the fall-back night (Beirut, Saturday 2025-10-25, 23:00 happens twice) is bucketed by start instant: both 23:00 games on Saturday, the 00:00 game on Sunday. That already worked; there is now a test.
+
+**Files:** `src/modules/venue/domain/availability.ts`, `src/modules/booking/domain/offered-slot.ts`, `test/modules/venue/domain/availability.test.ts`, `test/modules/booking/domain/offered-slot.test.ts`, `test/integration/midnight.integration.test.ts` (new).
+
+**How it connects:** Venue domain stays pure and imports nothing from Booking. Booking's `offered-slot` imports `addCalendarDays` from Venue (already a downward import). Callers of `resolveOfferedSlot` are unchanged: they still pass the start's civil day. No schema change.
+
+**How to verify:** `npm test` (60 suites, 427 tests), `npm run test:integration` (9 suites, 66 tests), `npm run build`. New integration cases: 00:00 and 01:00 booked through owner-create and through public request plus approve, both at the window day's $50 rule; the 00:00 game on the next day in Today; the DST fall-back night. With the source change reverted, the three booking cases and five unit cases fail; the DST case passes either way (it pins existing behavior).

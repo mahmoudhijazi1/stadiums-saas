@@ -9,6 +9,8 @@ import {
   generateSlotsForDay,
   addCalendarDays,
   civilDayUtcRange,
+  bookingFitsOpenHours,
+  windowDaysForStart,
   type Slot,
 } from "@/modules/venue/domain/availability";
 import {
@@ -309,5 +311,44 @@ describe("dayHoursEmptyKind", () => {
         today: SAT,
       }),
     ).toBe("hoursEnded");
+  });
+});
+
+describe("midnight-crossing windows (BR-7)", () => {
+  const fridayNight = () =>
+    configOn("fri", { start: "22:00", end: "02:00" }, {
+      priceRules: [{ days: ["fri"], priceUsd: "50.00" }],
+    });
+
+  it("prices a post-midnight slot by the window's day, not the start's weekday", () => {
+    const slots = generate(fridayNight(), FRI);
+    expect(slots.map((slot) => beirutStamp(slot.start))).toEqual([
+      { ymd: "2026-09-11", hm: "22:00" },
+      { ymd: "2026-09-11", hm: "23:00" },
+      { ymd: "2026-09-12", hm: "00:00" },
+      { ymd: "2026-09-12", hm: "01:00" },
+    ]);
+    expect(slots.every((slot) => slot.priceUsd.equals("50.00"))).toBe(true);
+  });
+
+  it("does not apply a Saturday rule to Friday night's 00:00 slot", () => {
+    const config = configOn("fri", { start: "22:00", end: "02:00" }, {
+      priceRules: [{ days: ["sat"], priceUsd: "80.00" }],
+    });
+    const slots = generate(config, FRI);
+    expect(slots.every((slot) => slot.priceUsd.equals("30.00"))).toBe(true);
+  });
+
+  it("windowDaysForStart gives the start's civil day, then the day before", () => {
+    const afterMidnight = new Date("2026-09-11T21:30:00.000Z"); // Sat 00:30 Beirut
+    expect(windowDaysForStart(afterMidnight, BEIRUT)).toEqual([SAT, FRI]);
+  });
+
+  it("a post-midnight booking fits the previous day's window when hours are checked", () => {
+    const slots = generate(fridayNight(), FRI);
+    const oneAm = slots[3]!;
+    expect(bookingFitsOpenHours(fridayNight(), oneAm, BEIRUT)).toBe(true);
+    const shortened = configOn("fri", { start: "22:00", end: "00:00" });
+    expect(bookingFitsOpenHours(shortened, oneAm, BEIRUT)).toBe(false);
   });
 });
