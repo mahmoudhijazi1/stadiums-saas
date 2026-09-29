@@ -803,46 +803,6 @@ export async function listApprovedBookingsStartingBefore(
   return mapApprovedCollect(rows);
 }
 
-export type BookingForCollect = {
-  id: string;
-  status: BookingStatus;
-  priceUsd: Decimal;
-  amountDueUsd: Decimal;
-  collectionMode: "WHOLE" | "PER_PLAYER";
-};
-
-type BookingCollectSqlRow = {
-  id: string;
-  status: BookingStatus;
-  priceUsd: Decimal | string;
-  amountDueUsd: Decimal | string;
-  collectionMode: "WHOLE" | "PER_PLAYER";
-};
-
-/**
- * One booking for collect: status + price. Missing → null.
- */
-export async function findBookingForCollect(
-  tx: TenantTx,
-  bookingId: string,
-): Promise<BookingForCollect | null> {
-  const tenantId = await getCurrentTenantId();
-  const rows = await tx.$queryRaw<BookingCollectSqlRow[]>`
-    SELECT id, status, "priceUsd", "amountDueUsd", "collectionMode"::text AS "collectionMode"
-    FROM "Booking"
-    WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
-  `;
-  const row = rows[0];
-  if (!row) return null;
-  return {
-    id: row.id,
-    status: row.status,
-    priceUsd: new Decimal(row.priceUsd.toString()),
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
-    collectionMode: row.collectionMode,
-  };
-}
-
 export type LivePitchWindowRow = {
   start: Date;
   end: Date;

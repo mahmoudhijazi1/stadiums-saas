@@ -4282,3 +4282,22 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/modules/booking/domain/decision.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/lib/error-messages.ts`, `test/modules/booking/domain/decision.test.ts`, `test/lib/errors.test.ts`, `test/integration/booking-money.integration.test.ts` (ended paid and ended unpaid cancels refused), `docs/owner-ux.md`, `docs/requirements/brd.md` (BR-26 note), `docs/per-player-payments.md`, `docs/NOW.md`. Older guides that mention `isPastUnpaidCancel` (`mentor-defense-backend.md`, `engineering-audit.md`) are historical and were not edited.
 
 **How to verify:** `npm test` (58 suites, 402 tests), `npm run test:integration` (6 suites, 41 tests), `npm run build`. In the app, an ended fully paid game no longer shows Cancel; an upcoming game still does.
+
+## Booking row lock on every money path
+
+**When:** 2026-09-30
+
+**What:** Fix 1 of the booking and payments production audit (§2.6, races R1–R4 and R9, punch list #1 and #8).
+- `collectBookingPayment` reads the booking with `findBookingForUpdate` (`SELECT … FOR UPDATE`) and sums what was collected after the lock, like slot pay, cancel and no-show already do. The unlocked `findBookingForCollect` is deleted so nothing can go back to it.
+- `adjustBookingDue` does the same, and refuses PENDING and REJECTED with `booking.due_not_confirmed` (`assertDueAdjustableStatus` in `booking/domain/adjust-due.ts`; Arabic and English copy).
+- Lock order, checked across every use case: approve, owner-create, cancel and no-show take the pitch row, then booking rows. Collect, adjust, slot pay, pay-all and the two switches take only the one booking row, then child rows (participants, allocations). No use case takes a booking lock and then a pitch lock, and every money path holds at most one booking lock, so there is no cycle among them. One pre-existing, non-money case can still deadlock: `dismissMissedRequests` updates several PENDING rows without the pitch lock, while "They played" (`approveBooking` with `allowStarted`) updates the missed row and its PENDING siblings under the pitch lock, possibly in another order. Postgres would abort one of the two; no money is involved. Not changed here.
+
+**Why:** Collect used a plain `SELECT`, so the row locks in cancel and no-show were one-sided and adjust had none. The audit probe showed 10/10 double collects ($60 on $30), and 30/30 cancels, no-show waivers and adjusts that left the due below cash landing at the same moment (RULE-9, SPEC-16 §4.3, SPEC-06).
+
+**What the lock does not change:** overpay is still allowed (SPEC-06). If an adjust lowers the due to $10 and a $30 collect runs right after, the collect now sees due $10 (its `Payment.amountDueUsd` snapshot says 10.00) and records a knowing overpay. That end state is due < collected by product rule, not a race. The R3 test asserts the order instead of the end state.
+
+**Files:** `src/modules/booking/application/collect-booking-payment.ts`, `src/modules/booking/application/adjust-booking-due.ts`, `src/modules/booking/domain/adjust-due.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/lib/error-messages.ts`, `test/integration/money-races.integration.test.ts` (new), `test/modules/booking/domain/adjust-due.test.ts` (new), `docs/NOW.md`.
+
+**How it connects:** Booking still imports Payment only through `sumCollectedUsd` / `recordPayment`; Payment does not import Booking. No schema change. The exclusion constraint and the pitch lock are unchanged.
+
+**How to verify:** `npm test` (59 suites, 407 tests), `npm run test:integration` (7 suites, 47 tests), `npm run build`. The new race file runs each pair ten times on real connections: R1 double collect, R2 owner cancel × collect, R3 adjust × collect, R4 waived no-show × collect, R9 split × whole collect (order proven with `xmin`), plus adjust refused on PENDING and REJECTED. With the two use-case changes reverted, all six fail. The audit's integrity SQL rerun on fresh probe data: 0 due changes below what was collected at that moment (was 24), per-booking ledger = tenders, no orphans.

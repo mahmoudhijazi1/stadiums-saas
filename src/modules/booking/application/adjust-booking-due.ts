@@ -7,15 +7,16 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_ADJUST_DUE, can } from "@/modules/access/domain/can";
 import type { DueChangeReason } from "@/modules/booking/domain/suggest-fee";
-import {
-  findBookingForDecision,
-} from "@/modules/booking/infrastructure/bookings";
+import { assertDueAdjustableStatus } from "@/modules/booking/domain/adjust-due";
+import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { writeDueIfChanged } from "@/modules/booking/application/write-due-change";
 
 /**
  * Change what is collectible and log why, in one transaction.
- * No-op when the amount is already that value.
+ * No-op when the amount is already that value. The booking row is locked and collected
+ * is summed after the lock, so a payment landing at the same moment cannot leave the
+ * due below what was collected (audit §2.6). PENDING and REJECTED are refused.
  */
 export async function adjustBookingDue(input: {
   bookingId: string;
@@ -30,10 +31,11 @@ export async function adjustBookingDue(input: {
 
   try {
     await db.$transaction(async (tx) => {
-      const booking = await findBookingForDecision(tx, input.bookingId);
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }
+      assertDueAdjustableStatus(booking.status);
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
       await writeDueIfChanged(tx, {
         bookingId: booking.id,

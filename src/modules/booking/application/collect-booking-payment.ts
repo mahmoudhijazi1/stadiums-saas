@@ -18,11 +18,13 @@ import {
 import { recordPayment } from "@/modules/payment/application/record-payment";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
-import { findBookingForCollect } from "@/modules/booking/infrastructure/bookings";
+import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings";
 
 /**
  * Collect cash on an APPROVED, NO_SHOW, or CANCELLED booking with remaining > 0.
- * Auth before $transaction.
+ * Auth before $transaction. The booking row is locked first and collected is summed
+ * after the lock, so a double submit, a cancel, a no-show, an adjust or a split on the
+ * same booking runs one at a time (audit §2.6).
  * recordPayment writes payment + tenders + ledger IN inside this tx (DR-002 §2.21).
  */
 export async function collectBookingPayment(input: {
@@ -36,7 +38,7 @@ export async function collectBookingPayment(input: {
 
   try {
     const paymentId = await db.$transaction(async (tx) => {
-      const booking = await findBookingForCollect(tx, input.bookingId);
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }
