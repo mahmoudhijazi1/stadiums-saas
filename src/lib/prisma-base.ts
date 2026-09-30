@@ -71,6 +71,8 @@ function isCurrentGeneratedClient(client: PrismaClient): boolean {
 
   return (
     typeof (client as { bookingDueChange?: { create?: unknown } }).bookingDueChange
+      ?.create === "function" &&
+    typeof (client as { platformAuditLog?: { create?: unknown } }).platformAuditLog
       ?.create === "function"
   );
 }

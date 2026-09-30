@@ -5,7 +5,7 @@ import {
 } from "@/lib/tenant-context";
 
 /** Models that must always be filtered/stamped with tenantId (DR-001). */
-const TENANT_SCOPED_MODELS = new Set([
+export const TENANT_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "Pitch",
   "Person",
   "Booking",
@@ -20,6 +20,16 @@ const TENANT_SCOPED_MODELS = new Set([
   "LedgerEntry",
   "Expense",
   "BookingDueChange",
+]);
+
+/**
+ * Platform tables (tenant management). They carry a tenantId but belong to the
+ * operator, not to a stadium: the scoped client refuses them outright. Only
+ * src/modules/platform reaches them, through platformDb.
+ */
+export const PLATFORM_ONLY_MODELS: ReadonlySet<string> = new Set([
+  "Subscription",
+  "PlatformAuditLog",
 ]);
 
 /**
@@ -50,6 +60,9 @@ const scoped = prismaBase.$extends({
         const op = operation as string;
         const run = query as (queryArgs: typeof args) => ReturnType<typeof query>;
 
+        if (PLATFORM_ONLY_MODELS.has(model)) {
+          throw new Error(`${model} is platform-only: use platformDb from src/modules/platform`);
+        }
         if (!TENANT_SCOPED_MODELS.has(model)) {
           return run(args);
         }

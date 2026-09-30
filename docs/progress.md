@@ -5036,3 +5036,38 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How to verify:**
 - Local run: `npm start` with `NODE_ENV=production` against `stadiums_test`. `/proc/net/tcp` showed exactly one listener, `127.0.0.1:3000`; `ss` is not installed in this container. `curl` to 127.0.0.1:3000 answered, and the container's external IP on port 3000 was refused.
 - `npm run test:e2e`: 5 tests. `npm test`: 70 suites, 501 tests.
+
+## Tenant management 1/4: platform tables and pure rules
+
+**When:** 2026-10-01
+
+**What:** The data and pure rules for the platform operator's tenant management (a CLI, BR-103/BR-104).
+- **Schema** (migration `20261001090000_tenant_management`, additive only, so safe while the old code runs):
+  - `Tenant.suspendedAt` and `Tenant.suspendedReason`, both nullable;
+  - **`Subscription`** (tenantId, plan text, startsAt, paidUntil?, amountUsd?, note?, recordedBy, createdAt);
+  - **`PlatformAuditLog`** (action, tenantId?, actor, detail jsonb, createdAt).
+- **Append-only:** both new tables have a `BEFORE UPDATE OR DELETE` row trigger (`platform_append_only()`). `TRUNCATE` is not a row event, so the test truncate helper and the seed (now `TRUNCATE "PlatformAuditLog", "Subscription"`) still work. Foreign keys are `ON DELETE RESTRICT`.
+- **Classification:**
+  - `src/lib/db.ts` exports `TENANT_SCOPED_MODELS` and a new `PLATFORM_ONLY_MODELS` (Subscription, PlatformAuditLog). The scoped client throws for platform-only models.
+  - New `test/lib/model-classification.test.ts` parses the schema: every model with a `tenantId` must be in exactly one set. No such check existed before.
+  - Both tables were added to `truncate.ts`.
+- **Pure rules** in the new `src/modules/platform/domain`:
+  - `validateSlug`: 3–30 characters, `[a-z0-9-]`, no edge hyphen, and not in `RESERVED_SLUGS`, the 23 names from decision 3.
+  - `suspension.ts`: `tenantStatus`, `assertCanSuspend` (reason required, at most 200 characters, not already suspended), `assertCanResume`, and `isOverdue` (the paid-until day is fully over).
+- `isCurrentGeneratedClient` also requires the `platformAuditLog` model.
+
+**Why:** The user's tenant-management decisions 2, 3, 5, 6 and 8. BR-103 (plans) is PARTIAL by decision: a label only.
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20261001090000_tenant_management/migration.sql` (new), `src/lib/db.ts`, `src/lib/prisma-base.ts`, `src/prisma/seed.ts`, `src/modules/platform/domain/slug.ts` (new), `src/modules/platform/domain/suspension.ts` (new), `test/modules/platform/domain/*.test.ts` (new), `test/lib/model-classification.test.ts` (new), `test/integration/platform-tables.integration.test.ts` (new), `test/integration/truncate.ts`.
+
+**How it connects:** The platform domain imports only `lib/errors`. The migration was written by hand; `prisma migrate diff` against `stadiums_test` shows no drift for the new columns and tables.
+
+**How to verify:**
+- The tests were written first; all 3 unit suites failed (modules not found).
+- The integration tests cover:
+  - UPDATE and DELETE are blocked on both tables;
+  - TRUNCATE works;
+  - the scoped client refuses both models;
+  - the suspension columns default to null.
+- `npm test`: 73 suites, 536 tests. `npm run test:integration`: 24 suites, 150 tests.
+- `npm run build` is green, and the seed runs on `stadiums_test`.

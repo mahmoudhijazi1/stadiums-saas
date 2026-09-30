@@ -105,6 +105,8 @@ const LOCAL_DEV_PASSWORD = "dev-owner";
 
 async function main() {
   await platformDb.session.deleteMany();
+  // Append-only platform tables: row triggers block DELETE, TRUNCATE is allowed.
+  await platformDb.$executeRaw`TRUNCATE "PlatformAuditLog", "Subscription"`;
   await platformDb.rateLimit.deleteMany();
   await platformDb.membership.deleteMany();
   await platformDb.userPersonLink.deleteMany();
