@@ -43,15 +43,15 @@ export function assertCanSwitchToWhole(input: {
 }
 
 /**
- * May this slot take a payment? Needs an APPROVED booking in PER_PLAYER mode and
- * a positive remaining on the slot itself. Cancel and no-show collapse the booking
- * to WHOLE first, so a per-player booking is never in another status. The booking remaining is not checked:
- * an overpaid booking still takes cash (RULE-9, P3).
+ * May this slot tap (or pay-all) take a payment? Needs an APPROVED booking in
+ * PER_PLAYER mode and a positive charge from `planSlotCharge`, which is already capped
+ * at the booking remaining (Unassigned included). Cancel and no-show collapse the
+ * booking to WHOLE first, so a per-player booking is never in another status.
  */
 export function assertCanPaySlot(input: {
   status: string;
   collectionMode: CollectionModeName;
-  slotRemainingUsd: Decimal;
+  chargeUsd: Decimal;
 }): void {
   if (input.collectionMode !== "PER_PLAYER") {
     throw new DomainError("booking.switch_not_per_player");
@@ -59,7 +59,7 @@ export function assertCanPaySlot(input: {
   if (input.status !== "APPROVED") {
     throw new DomainError("payment.collect_unapproved");
   }
-  if (input.slotRemainingUsd.lte(0)) {
+  if (input.chargeUsd.lte(0)) {
     throw new DomainError("payment.nothing_due");
   }
 }

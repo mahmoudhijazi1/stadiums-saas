@@ -66,10 +66,10 @@ describe("assertCanPaySlot", () => {
   const slot = {
     status: "APPROVED",
     collectionMode: "PER_PLAYER" as const,
-    slotRemainingUsd: new Decimal("3.00"),
+    chargeUsd: new Decimal("3.00"),
   };
 
-  it("checks the slot remaining, not the booking remaining", () => {
+  it("allows a positive capped charge on an approved per-player booking", () => {
     expect(key(() => assertCanPaySlot(slot))).toBeNull();
   });
 
@@ -81,9 +81,9 @@ describe("assertCanPaySlot", () => {
     }
   });
 
-  it("refuses a paid slot (double tap) and a booking that is not approved", () => {
+  it("refuses a zero charge (paid or covered slot, double tap) and a booking that is not approved", () => {
     expect(
-      key(() => assertCanPaySlot({ ...slot, slotRemainingUsd: new Decimal(0) })),
+      key(() => assertCanPaySlot({ ...slot, chargeUsd: new Decimal(0) })),
     ).toBe("payment.nothing_due");
     expect(key(() => assertCanPaySlot({ ...slot, status: "PENDING" }))).toBe(
       "payment.collect_unapproved",

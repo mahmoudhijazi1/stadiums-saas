@@ -50,7 +50,7 @@ Remaining **MVP audit P0** (isolation proof is done):
 1. **Backup** — minimal droplet / Postgres snapshot or `pg_dump` cadence, written in one place and followed.
 2. **Deploy truth** — root README already points here for status; finish a short prod env checklist (host, HTTPS, DNS, `DATABASE_URL`, log disk, never seed prod).
 
-Then either more P1 from that audit (concurrent collect race, Booking indexes) or a product BRD gap when you choose one.
+Then either more P1 from that audit (Booking indexes; the concurrent collect race is closed, see progress.md "Booking row lock on every money path") or a product BRD gap when you choose one. The booking and payments production audit is [audits/booking-payments-production-audit.md](./audits/booking-payments-production-audit.md).
 
 ## How we work
 

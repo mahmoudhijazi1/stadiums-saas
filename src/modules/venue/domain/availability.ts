@@ -52,7 +52,7 @@ export function generateSlotsForDay(input: {
       slots.push({
         start,
         end,
-        priceUsd: priceForSlot(input.config, start, input.timeZone),
+        priceUsd: priceForSlot(input.config, start, input.timeZone, weekday),
         available: !isOccupied(start, end, input.occupied),
       });
       cursor += durationMs + gapMs;
@@ -123,12 +123,22 @@ function windowToUtcRange(
   };
 }
 
-function priceForSlot(config: ScheduleConfig, start: Date, timeZone: string): Decimal {
+/**
+ * Price rules match the weekday of the window the slot came from, not the weekday of
+ * its start: a 00:30 slot from Friday's 22:00–02:00 window takes Friday's rules (BR-7).
+ * The rule's clock range is still matched against the slot's wall-clock start.
+ */
+function priceForSlot(
+  config: ScheduleConfig,
+  start: Date,
+  timeZone: string,
+  windowDay: Weekday,
+): Decimal {
   const wall = zonedWallClock(start, timeZone);
   let price = parseUsd(config.defaultPriceUsd);
 
   for (const rule of config.priceRules) {
-    if (!rule.days.includes(wall.weekday)) continue;
+    if (!rule.days.includes(windowDay)) continue;
     if (rule.start !== undefined && rule.end !== undefined) {
       if (!clockLiesInWindow(wall.minutes, rule.start, rule.end)) continue;
     }
@@ -238,29 +248,34 @@ export function civilDateInTimeZone(instant: Date, timeZone: string): CivilDate 
 }
 
 /**
- * True if [start, end) sits entirely inside an open hours window on the
- * civil day of `start`. Used when hours shrink — not when duration changes.
+ * Civil days whose hours windows can contain a slot starting at `start`: the start's
+ * own day, then the day before (a window that crosses midnight, BR-7). A 00:30 slot
+ * from Friday's 22:00–02:00 window starts on Saturday but belongs to Friday's window.
+ */
+export function windowDaysForStart(start: Date, timeZone: string): CivilDate[] {
+  const startDay = civilDateInTimeZone(start, timeZone);
+  return [startDay, addCalendarDays(startDay, -1)];
+}
+
+/**
+ * True if [start, end) sits entirely inside an open hours window of the start's civil
+ * day or of the day before (midnight-crossing window). Used when hours shrink, not
+ * when duration changes.
  */
 export function bookingFitsOpenHours(
   config: ScheduleConfig,
   range: { start: Date; end: Date },
   timeZone: string,
 ): boolean {
-  const localDate = civilDateInTimeZone(range.start, timeZone);
-  const weekday = weekdayOfCivilDate(localDate);
-  const windows = config.hours[weekday];
-  return windows.some((window) => {
-    const utc = windowToUtcRange(
-      window.start,
-      window.end,
-      localDate,
-      timeZone,
-    );
-    return (
-      range.start.getTime() >= utc.start.getTime() &&
-      range.end.getTime() <= utc.end.getTime()
-    );
-  });
+  return windowDaysForStart(range.start, timeZone).some((localDate) =>
+    config.hours[weekdayOfCivilDate(localDate)].some((window) => {
+      const utc = windowToUtcRange(window.start, window.end, localDate, timeZone);
+      return (
+        range.start.getTime() >= utc.start.getTime() &&
+        range.end.getTime() <= utc.end.getTime()
+      );
+    }),
+  );
 }
 
 function zonedParts(

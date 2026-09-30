@@ -78,6 +78,8 @@ export type UpcomingRowView = {
   playerFeeExact: string;
   ownerFeeCompact: string | null;
   ownerFeeExact: string;
+  /** "I cancelled" would store less than the player path: needs bookings.adjust_due. */
+  ownerCancelLowersFee: boolean;
   noShowFeeCompact: string | null;
   noShowFeeExact: string;
   collectedExact: string;

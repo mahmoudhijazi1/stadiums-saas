@@ -4282,3 +4282,78 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/modules/booking/domain/decision.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/lib/error-messages.ts`, `test/modules/booking/domain/decision.test.ts`, `test/lib/errors.test.ts`, `test/integration/booking-money.integration.test.ts` (ended paid and ended unpaid cancels refused), `docs/owner-ux.md`, `docs/requirements/brd.md` (BR-26 note), `docs/per-player-payments.md`, `docs/NOW.md`. Older guides that mention `isPastUnpaidCancel` (`mentor-defense-backend.md`, `engineering-audit.md`) are historical and were not edited.
 
 **How to verify:** `npm test` (58 suites, 402 tests), `npm run test:integration` (6 suites, 41 tests), `npm run build`. In the app, an ended fully paid game no longer shows Cancel; an upcoming game still does.
+
+## Booking row lock on every money path
+
+**When:** 2026-09-30
+
+**What:** Fix 1 of the booking and payments production audit (§2.6, races R1–R4 and R9, punch list #1 and #8).
+- `collectBookingPayment` reads the booking with `findBookingForUpdate` (`SELECT … FOR UPDATE`) and sums what was collected after the lock, like slot pay, cancel and no-show already do. The unlocked `findBookingForCollect` is deleted so nothing can go back to it.
+- `adjustBookingDue` does the same, and refuses PENDING and REJECTED with `booking.due_not_confirmed` (`assertDueAdjustableStatus` in `booking/domain/adjust-due.ts`; Arabic and English copy).
+- Lock order, checked across every use case: approve, owner-create, cancel and no-show take the pitch row, then booking rows. Collect, adjust, slot pay, pay-all and the two switches take only the one booking row, then child rows (participants, allocations). No use case takes a booking lock and then a pitch lock, and every money path holds at most one booking lock, so there is no cycle among them. One pre-existing, non-money case can still deadlock: `dismissMissedRequests` updates several PENDING rows without the pitch lock, while "They played" (`approveBooking` with `allowStarted`) updates the missed row and its PENDING siblings under the pitch lock, possibly in another order. Postgres would abort one of the two; no money is involved. Not changed here.
+
+**Why:** Collect used a plain `SELECT`, so the row locks in cancel and no-show were one-sided and adjust had none. The audit probe showed 10/10 double collects ($60 on $30), and 30/30 cancels, no-show waivers and adjusts that left the due below cash landing at the same moment (RULE-9, SPEC-16 §4.3, SPEC-06).
+
+**What the lock does not change:** overpay is still allowed (SPEC-06). If an adjust lowers the due to $10 and a $30 collect runs right after, the collect now sees due $10 (its `Payment.amountDueUsd` snapshot says 10.00) and records a knowing overpay. That end state is due < collected by product rule, not a race. The R3 test asserts the order instead of the end state.
+
+**Files:** `src/modules/booking/application/collect-booking-payment.ts`, `src/modules/booking/application/adjust-booking-due.ts`, `src/modules/booking/domain/adjust-due.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/lib/error-messages.ts`, `test/integration/money-races.integration.test.ts` (new), `test/modules/booking/domain/adjust-due.test.ts` (new), `docs/NOW.md`.
+
+**How it connects:** Booking still imports Payment only through `sumCollectedUsd` / `recordPayment`; Payment does not import Booking. No schema change. The exclusion constraint and the pitch lock are unchanged.
+
+**How to verify:** `npm test` (59 suites, 407 tests), `npm run test:integration` (7 suites, 47 tests), `npm run build`. The new race file runs each pair ten times on real connections: R1 double collect, R2 owner cancel × collect, R3 adjust × collect, R4 waived no-show × collect, R9 split × whole collect (order proven with `xmin`), plus adjust refused on PENDING and REJECTED. With the two use-case changes reverted, all six fail. The audit's integrity SQL rerun on fresh probe data: 0 due changes below what was collected at that moment (was 24), per-booking ledger = tenders, no orphans.
+
+## Per-player charges capped at what the booking owes
+
+**When:** 2026-09-30
+
+**What:** Fix 2 of the booking and payments production audit (§3.6, punch list #2).
+- New pure `planSlotCharge` in `booking/domain/slot-charge.ts`. The cap is the booking remaining: `amountDueUsd` minus everything collected, Unassigned included. Pay-all charges min(sum of unpaid slot remainings, cap) and fills unpaid slots in slot order, the last possibly partial. One tap charges min(slot remaining, cap). Cap ≤ 0 charges nothing.
+- `collectSlotPayment` / `collectAllRemaining` charge exactly that plan, after the booking row lock. `assertCanPaySlot` now takes the capped charge (`payment.nothing_due` when it is zero).
+- The sheet uses the same function, not a copy: `lists.tsx` builds the pay-all total with `planSlotCharge` and each slot's state with `slotPayState`. A slot the booking no longer owes for shows "مغطّى بدفعة سابقة" / "Covered by earlier payment" and has no Pay button. A partial tap shows its amount. Pay-all is hidden when it would charge nothing.
+- Unassigned stays Unassigned. Moving it onto slots is slice 5.
+
+**Why:** Pay-all and the slot tap looked only at slot remainings, so money paid before the split was charged again. The audit probe: due $30, $10 whole-game before the split, two slots paid, pay-all took $24 where $14 was owed. This supersedes the slice 2 rule "only the slot's own remaining is checked" (it predates knowing about the double charge). SPEC-15 P3 already said excess stays Unassigned. Whole-game overpay (SPEC-06) is unchanged.
+
+**Files:** `src/modules/booking/domain/slot-charge.ts` (new), `src/modules/booking/domain/switch-mode.ts`, `src/modules/booking/application/collect-player-payment.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/per-player-collect.tsx`, `src/lib/ui-copy.ts`, `test/modules/booking/domain/slot-charge.test.ts` (new), `test/modules/booking/domain/switch-mode.test.ts`, `test/integration/per-player.integration.test.ts`, `docs/per-player-payments.md`.
+
+**How it connects:** Booking domain only; Payment still does not import Booking (`insertAllocations` receives the plan's ids and amounts). `app/` calls the domain function for display; the server recomputes it under the lock. SPEC-15 is historical and was not edited; `per-player-payments.md` describes the new rule.
+
+**How to verify:** `npm test` (60 suites, 417 tests), `npm run test:integration` (7 suites, 49 tests), `npm run build`. New integration cases: the audit probe (pay-all charges exactly $14, slots 1/4/5/6 get $3 and slot 7 gets $2, collected = due = $30, later taps refused), a fully paid booking split then tapped (refused, covered), and a partial single tap ($1.50). All three fail on the old code. The audit's integrity SQL on fresh probe data: no overpaid per-player booking, allocations ≤ tenders per payment, no orphans. Not exercised: the sheet in a browser.
+
+## Staff cannot drop a fee by choosing "I cancelled"
+
+**When:** 2026-09-30
+
+**What:** Fix 3 of the booking and payments production audit (§1.5, §4, punch list #3).
+- New pure `ownerInitiatorLowersFee` in `booking/domain/suggest-fee.ts`: true when the PLAYER-initiated suggestion for this booking is higher than what the OWNER path would store (after the clamp to collected).
+- `cancelBooking` refuses `initiator = OWNER` with `access.not_allowed` when that is true and the member lacks `bookings.adjust_due`. The existing edit/waive check is unchanged.
+- The cancel sheet hides "أنا ألغيت" / "I cancelled" for members without `adjust_due` when choosing it would lower the fee (`ownerCancelLowersFee` on the row, from the same domain function). It stays visible when it changes nothing: outside the window, a 0% policy, or when collected money already keeps the fee at the player amount.
+- New STAFF integration suite covering every guarded booking/payment use case, each refused without its flag (and writing nothing) and allowed with it: approve, owner-create, cancel (suggested, edited, waived, "I cancelled" that lowers the fee, "I cancelled" that does not), no-show (suggested, edited), adjust, split, whole collect, slot pay.
+
+**Why:** SPEC-16 §6: staff with `bookings.cancel` may accept the suggested fee but may not Edit or Waive. The initiator is chosen by the caller and the OWNER suggestion is always $0, so picking it was a waiver without the permission (audit probe: staff with only `bookings.cancel` cancelled a late booking with due $0 instead of $15).
+
+**Files:** `src/modules/booking/domain/suggest-fee.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/app/owner/(app)/today/lists.tsx`, `src/app/owner/(app)/today/upcoming-panel.tsx`, `src/app/owner/(app)/today/fee-forms.tsx`, `test/modules/booking/domain/suggest-fee.test.ts`, `test/integration/staff-permissions.integration.test.ts` (new).
+
+**How it connects:** Authorization stays in the use case (DR-003); the sheet only hides what the server would refuse. No new permission flag, no schema change. `app/` imports the booking domain function; the domain imports nothing new.
+
+**How to verify:** `npm test` (60 suites, 421 tests), `npm run test:integration` (8 suites, 62 tests), `npm run build`. With the `cancelBooking` change reverted, only the "I cancelled that drops a late fee" case fails; the other twelve pin guards that already held. Not exercised: the sheet in a browser.
+
+## Slots after midnight can be booked
+
+**When:** 2026-09-30
+
+**What:** Fix 4 of the booking and payments production audit (§1.7, punch list #4, BR-7).
+- `resolveOfferedSlot` (used by public request, approve and owner-create) matches a slot against the windows of the start's civil day **and** of the day before. A 00:00 or 01:00 slot from Friday's 22:00–02:00 window resolves against Friday's window. Before, it was looked up only on Saturday and failed with `booking.slot_not_offered`.
+- Price rules match the weekday of the window the slot came from (`priceForSlot` gets the window's weekday). A 00:30 slot from Friday's window takes Friday's rules. The rule's clock range is still checked against the slot's wall-clock start.
+- `bookingFitsOpenHours` (the hours-shrink guard) checks the same two days, via the new `windowDaysForStart`, so a post-midnight booking is no longer treated as outside the hours.
+- The start-day rule for Today (UX-02, `bookingStartDay`) is **not** changed.
+
+**Where a 00:00 game from Friday's window shows up:** in the owner Book page and the public page it is listed under **Friday** (the window's day), where it was booked. In Today and the day line it is under **Saturday** (start day). On the person page, in the Requests tab date label and in the WhatsApp confirmation ("السبت … 00:00") it also reads as **Saturday**. Flag, not changed: an owner who books "Friday night 00:00" from Friday's list will not find it in Friday's Today and has to move to Saturday. The WhatsApp message saying Saturday is correct but may surprise a player who asked for "Friday night". Worth a UX decision (for example, show post-midnight games of a crossing window at the end of the window's day, marked "after midnight").
+
+**DST:** the fall-back night (Beirut, Saturday 2025-10-25, 23:00 happens twice) is bucketed by start instant: both 23:00 games on Saturday, the 00:00 game on Sunday. That already worked; there is now a test.
+
+**Files:** `src/modules/venue/domain/availability.ts`, `src/modules/booking/domain/offered-slot.ts`, `test/modules/venue/domain/availability.test.ts`, `test/modules/booking/domain/offered-slot.test.ts`, `test/integration/midnight.integration.test.ts` (new).
+
+**How it connects:** Venue domain stays pure and imports nothing from Booking. Booking's `offered-slot` imports `addCalendarDays` from Venue (already a downward import). Callers of `resolveOfferedSlot` are unchanged: they still pass the start's civil day. No schema change.
+
+**How to verify:** `npm test` (60 suites, 427 tests), `npm run test:integration` (9 suites, 66 tests), `npm run build`. New integration cases: 00:00 and 01:00 booked through owner-create and through public request plus approve, both at the window day's $50 rule; the 00:00 game on the next day in Today; the DST fall-back night. With the source change reverted, the three booking cases and five unit cases fail; the DST case passes either way (it pins existing behavior).

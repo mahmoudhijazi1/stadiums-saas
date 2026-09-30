@@ -32,6 +32,12 @@ export type SlotView = {
   dueUsd: string;
   remainingUsd: string;
   paid: boolean;
+  /** From `slotPayState`: covered = unpaid, but money already collected covers it. */
+  state: "paid" | "pay" | "covered";
+  /** What a tap charges (formatUsd). Null unless state is "pay". */
+  chargeUsd: string | null;
+  /** The tap charges less than the slot's remaining (the booking owes less). */
+  partial: boolean;
 };
 
 export type PerPlayerView = {
@@ -43,7 +49,7 @@ export type PerPlayerView = {
   slots: SlotView[];
   unassignedUsd: string;
   hasAllocations: boolean;
-  /** Sum of the unpaid slots' remaining. */
+  /** What "Booker pays all remaining" charges: `planSlotCharge`, capped at the booking remaining. */
   unpaidTotalUsd: string;
 };
 
@@ -91,7 +97,7 @@ export function PerPlayerCollect({
   }
 
   const paidCount = view.slots.filter((slot) => slot.paid).length;
-  const anyUnpaid = view.slots.some((slot) => !slot.paid);
+  const payAllOpen = view.unpaidTotalUsd !== "0.00";
   const locked = view.hasAllocations;
 
   return (
@@ -202,6 +208,10 @@ export function PerPlayerCollect({
                     <Check aria-hidden className="size-4" />
                     {ui("owner.slotPaid", locale)}
                   </span>
+                ) : slot.state === "covered" ? (
+                  <span className="inline-flex min-h-11 min-w-20 items-center justify-center text-center text-xs text-muted-foreground">
+                    {ui("owner.slotCovered", locale)}
+                  </span>
                 ) : mayCollect ? (
                   <Button
                     type="button"
@@ -218,12 +228,15 @@ export function PerPlayerCollect({
                     }
                   >
                     {ui("owner.payPlayer", locale)}
+                    {slot.partial && slot.chargeUsd ? (
+                      <LtrIsolate> ${slot.chargeUsd}</LtrIsolate>
+                    ) : null}
                   </Button>
                 ) : null}
               </li>
             ))}
           </ul>
-          {mayCollect && anyUnpaid ? (
+          {mayCollect && payAllOpen ? (
             <Button
               type="button"
               variant="outline"

@@ -3,7 +3,11 @@ import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import { assertAdjustDue } from "@/modules/booking/domain/adjust-due";
 import { bookingRemaining } from "@/modules/payment/domain/collect";
-import { confirmedFee, suggestFee } from "@/modules/booking/domain/suggest-fee";
+import {
+  confirmedFee,
+  ownerInitiatorLowersFee,
+  suggestFee,
+} from "@/modules/booking/domain/suggest-fee";
 
 const start = new Date("2026-09-25T18:00:00.000Z");
 const price = new Decimal("30.00");
@@ -175,5 +179,45 @@ describe("assertAdjustDue", () => {
         collectionMode: "PER_PLAYER",
       }),
     ).toThrow(DomainError);
+  });
+});
+
+describe("ownerInitiatorLowersFee", () => {
+  const booking = { amountDueUsd: price, start };
+  const late = new Date(start.getTime() - 3 * 60 * 60 * 1000);
+  const early = new Date(start.getTime() - 48 * 60 * 60 * 1000);
+
+  it("is true inside the late window when I-cancelled would store less than the player fee", () => {
+    expect(
+      ownerInitiatorLowersFee({ policy, booking, now: late, resultingFeeUsd: new Decimal(0) }),
+    ).toBe(true);
+  });
+
+  it("is false before the window (the player path charges nothing either)", () => {
+    expect(
+      ownerInitiatorLowersFee({ policy, booking, now: early, resultingFeeUsd: new Decimal(0) }),
+    ).toBe(false);
+  });
+
+  it("is false when what was already collected keeps the fee at the player amount or more", () => {
+    expect(
+      ownerInitiatorLowersFee({
+        policy,
+        booking,
+        now: late,
+        resultingFeeUsd: new Decimal("15.00"),
+      }),
+    ).toBe(false);
+  });
+
+  it("is false when the tenant charges no late fee", () => {
+    expect(
+      ownerInitiatorLowersFee({
+        policy: { ...policy, lateCancellationFeePercent: 0 },
+        booking,
+        now: late,
+        resultingFeeUsd: new Decimal(0),
+      }),
+    ).toBe(false);
   });
 });

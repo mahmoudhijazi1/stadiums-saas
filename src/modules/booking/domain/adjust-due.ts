@@ -29,3 +29,13 @@ export function assertAdjustDue(input: {
   }
   return "ok";
 }
+
+/**
+ * Only a confirmed game or a fee (cancelled / no-show) has a due worth changing.
+ * A PENDING or REJECTED request is not collectible yet (audit #8).
+ */
+export function assertDueAdjustableStatus(status: string): void {
+  if (status !== "APPROVED" && status !== "CANCELLED" && status !== "NO_SHOW") {
+    throw new DomainError("booking.due_not_confirmed");
+  }
+}
