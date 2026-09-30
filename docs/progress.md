@@ -4441,3 +4441,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/audits/booking-payments-production-audit.md`.
 
 **How to verify:** Read the addendum; each commit hash is on this branch or on main (PR #3).
+
+## Cancel and no-show fees: capped at the due, no-show logged as a no-show
+
+**When:** 2026-09-30
+
+**What:** Audit #8 (fee cap) and #13 (no-show reason).
+- `assertFeeWithinDue` (`booking/domain/suggest-fee.ts`): a fee the owner types on cancel or no-show must be at most the booking's current `amountDueUsd`. Otherwise `booking.fee_above_due`: "الرسوم لا يمكن أن تكون أكثر من المبلغ المستحق على الحجز." / "The fee can't be more than what the booking owes." Checked in `cancelBooking` and `recordNoShow` under the booking lock, before anything is written. A fee equal to the due is accepted. Suggestions are percentages of the due, so they never exceed it.
+- `confirmedFee` reason when the fee is clamped to what was collected: cancel still logs `CANCELLATION_NO_FEE`. A no-show now logs `WAIVER` when the owner lowered a non-zero suggestion (waive, or edit down to at most collected), and `NO_SHOW_FEE` otherwise (suggestion kept, or a 0% policy). Only existing enum values; no migration.
+
+**Why:** A typed fee above the due created a debt out of nothing (audit §1.5 gap 3). A waived no-show was logged as a cancellation, so the debt-warning reason and the future booking timeline would say "cancellation" for a game that was a no-show (audit §1.6).
+
+**Existing rows:** no-show due changes written before this change with `CANCELLATION_NO_FEE` are mislabeled. They are exactly `BookingDueChange` rows with `reason = 'CANCELLATION_NO_FEE'` on a booking whose status is `NO_SHOW`: a NO_SHOW booking cannot be cancelled, and Adjust never writes that reason. They cannot all be relabeled mechanically. `WAIVER` vs `NO_SHOW_FEE` depends on the suggestion at that time, which is not stored (a `toUsd` of 0 is almost certainly a waiver). They were not changed. Check with: `SELECT d.id, d."fromUsd", d."toUsd" FROM "BookingDueChange" d JOIN "Booking" b ON b.id = d."bookingId" WHERE b.status = 'NO_SHOW' AND d.reason = 'CANCELLATION_NO_FEE';`.
+
+**Files:** `src/modules/booking/domain/suggest-fee.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/record-no-show.ts`, `src/lib/error-messages.ts`, `test/modules/booking/domain/suggest-fee.test.ts`, `test/integration/fees.integration.test.ts` (new).
+
+**How it connects:** No schema change. The Edit field in the sheets is not limited in the browser; the server refuses with the new message.
+
+**How to verify:** `npm test` (62 suites, 457 tests), `npm run test:integration` (11 suites, 76 tests), `npm run build`. Integration: cancel and no-show fee $30.01/$45 on a $30 due refused with nothing written, $30 accepted. Stored reasons: 100% default no-show writes no row (due unchanged); 50% default → `NO_SHOW_FEE` 30→15; 50% with $20 collected → `NO_SHOW_FEE` 30→20; edited to $10 → `NO_SHOW_FEE`; edited to $2 with $5 collected → `WAIVER` 30→5; waived with $0 and $3 collected → `WAIVER`. All five fail on the old code.

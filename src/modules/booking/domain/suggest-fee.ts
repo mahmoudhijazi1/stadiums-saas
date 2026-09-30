@@ -1,4 +1,5 @@
 import Decimal from "decimal.js";
+import { DomainError } from "@/lib/errors";
 
 export type FeeInitiator = "PLAYER" | "OWNER" | "NO_SHOW";
 
@@ -57,9 +58,21 @@ export function suggestFee(
 }
 
 /**
+ * A cancel or no-show fee the owner typed can be at most what the booking owes now
+ * (`amountDueUsd`). A higher fee would invent a debt; the owner uses Adjust for that.
+ */
+export function assertFeeWithinDue(feeUsd: Decimal, amountDueUsd: Decimal): void {
+  if (feeUsd.gt(amountDueUsd)) {
+    throw new DomainError("booking.fee_above_due");
+  }
+}
+
+/**
  * Due never drops below what was already collected.
- * When the confirmed amount is not above collected, the log reason is
- * CANCELLATION_NO_FEE. An omitted fee uses the suggestion.
+ * When the confirmed amount is not above collected, the fee is clamped to collected.
+ * The log reason then stays CANCELLATION_NO_FEE for a cancel. For a no-show it is
+ * WAIVER when the owner lowered a non-zero suggestion, else NO_SHOW_FEE (a no-show is
+ * not a cancellation). An omitted fee uses the suggestion.
  */
 export function confirmedFee(input: {
   suggestion: FeeSuggestion;
@@ -73,7 +86,7 @@ export function confirmedFee(input: {
     Decimal.ROUND_HALF_UP,
   );
   if (!feeUsd.gt(collected)) {
-    return { feeUsd: collected, reason: "CANCELLATION_NO_FEE" };
+    return { feeUsd: collected, reason: clampedReason(input.suggestion, requested) };
   }
   return {
     feeUsd,
@@ -95,6 +108,11 @@ export function ownerInitiatorLowersFee(input: {
 }): boolean {
   const player = suggestFee(input.policy, input.booking, input.now, "PLAYER");
   return player.feeUsd.gt(input.resultingFeeUsd);
+}
+
+function clampedReason(suggestion: FeeSuggestion, requested: Decimal): DueChangeReason {
+  if (suggestion.reason !== "NO_SHOW_FEE") return "CANCELLATION_NO_FEE";
+  return suggestion.feeUsd.gt(0) && requested.lt(suggestion.feeUsd) ? "WAIVER" : "NO_SHOW_FEE";
 }
 
 /** Log reason when the owner confirms a fee. Waive is 0 against a non-zero suggestion. */
