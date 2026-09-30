@@ -5209,3 +5209,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm test`: 75 suites, 549 tests. `npm run test:integration`: 28 suites, 192 tests. `npm run build` is green.
 - Not covered by a test: the accordion's open/close and chip tap (client state; no component test runner in the repo).
 - Known limit: a window that starts after midnight is listed under its own calendar day by the engine, but its bookings belong to the previous business day.
+
+## Free strip restyle
+
+**When:** 2026-10-01
+
+**What:** Styling only on the Today free strip. Chips wrap (no sideways scroll); more than 12 per pitch show 12 plus a "+N more" chip that expands. Heading "Available hours (N)". Quiet outline chips, lime on press, focus and pick; pending badge kept. One small period marker (م / ص, AM / PM) from the tenant's 12/24-hour setting, digits LTR-isolated. One pitch: no label; two: a small label per row; three or more: All / per-pitch filter chips kept in `?pitch=` (kept across a booking from the strip). Arabic booking-card range checked: `4:00–5:00 م` is already in order (digits in one LTR isolate, marker after it); a test now pins it.
+
+**Why:** UX-01 §3 amended; booking cards must stay the dominant element. No query or logic change.
+
+**Files:** `today/free-strip.tsx`, `book/actions.ts` (keeps `pitch`), `lib/format-local-hm.ts` (exports `shortPeriod`), `lib/ui-copy.ts`, `test/lib/clock-range-order.test.ts`.
+
+**How it connects:** UI only; imports unchanged.
+
+**How to verify:** `npm test`: 76 suites, 552 tests. `npm run test:integration`: 28 suites, 192 tests. `npm run build` is green. Screenshots taken from a production build on the test database (mobile, AR and EN, light and dark, one and three pitches).

@@ -6,7 +6,7 @@ import { parseOwnerCreateBooking } from "@/modules/booking/schemas/owner-create-
 import { field, redirectOwner } from "@/app/owner/form-query";
 
 const BOOK_KEEP = ["bookOn"] as const;
-const TODAY_KEEP = ["date"] as const;
+const TODAY_KEEP = ["date", "pitch"] as const;
 
 /**
  * Thin owner Book action. Zod → createOwnerBooking.

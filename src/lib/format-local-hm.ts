@@ -156,7 +156,7 @@ export function clockRangeFromLocals(startLocal: string, endLocal: string): stri
   return `${start.digits}–${end.digits}`;
 }
 
-function shortPeriod(period: string): string {
+export function shortPeriod(period: string): string {
   if (period === "مساءً" || period === "م") return "م";
   if (period === "صباحاً" || period === "ص") return "ص";
   return period;
