@@ -11,7 +11,10 @@ import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import type { LoginInput } from "@/modules/access/schemas/login";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
-import { verifyPassword } from "@/modules/access/infrastructure/password";
+import {
+  verifyAgainstDummy,
+  verifyPassword,
+} from "@/modules/access/infrastructure/password";
 import {
   LOGIN_BLOCK_MS,
   LOGIN_FAILURE_WINDOW_MS,
@@ -45,9 +48,10 @@ export async function login(input: LoginInput): Promise<void> {
     }
 
     const user = await findUserByIdentifier(input.identifier);
+    // Unknown account: same-cost verify, same error (S-4).
     const okHash = user
       ? await verifyPassword(input.password, user.passwordHash)
-      : false;
+      : await verifyAgainstDummy(input.password);
     const membership = user && okHash ? await findMembershipForUser(user.id) : null;
 
     if (!user || !membership) {

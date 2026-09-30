@@ -26,3 +26,16 @@ export async function verifyPassword(
   if (derived.length !== expected.length) return false;
   return timingSafeEqual(derived, expected);
 }
+
+let dummyHash: Promise<string> | undefined;
+
+/**
+ * Verify against a throwaway hash at the current cost (security audit S-4).
+ * Called when the account does not exist, so an unknown identifier costs the
+ * same time as a wrong password. Always false.
+ */
+export async function verifyAgainstDummy(password: string): Promise<false> {
+  dummyHash ??= hashPassword(randomBytes(16).toString("hex"));
+  await verifyPassword(password, await dummyHash);
+  return false;
+}

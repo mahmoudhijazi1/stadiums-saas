@@ -4724,3 +4724,24 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
   - with the setting, 40 failures from one IP block that IP while another IP is fine, and the block lifts after 15 minutes;
   - with the setting but no header, only the account limit applies.
 - `npm test`: 66 suites, 471 tests. `npm run build` is green.
+
+## Login: same cost and same error for an unknown account
+
+**When:** 2026-09-30
+
+**What:** Security audit S-4. Login skipped the password check when the identifier did not exist: about 50 ms for a real account against about 6 ms for an unknown one, which revealed which accounts exist.
+- New `verifyAgainstDummy(password)` in `access/infrastructure/password.ts` verifies against a throwaway hash made once per process with `hashPassword`, so it always uses the current cost, and returns false.
+- `login` calls it when no user is found. The error stays `access.invalid_login` for an unknown account, a wrong password, or no membership on this stadium.
+
+**Why:** [security-audit.md S-4](./audits/security-audit.md#s-4-login-reveals-which-identifiers-exist-by-timing).
+
+**Files:** `src/modules/access/infrastructure/password.ts`, `src/modules/access/application/login.ts`, `test/integration/login-timing.integration.test.ts` (new).
+
+**How it connects:** Access module only. The brute-force limit from the previous entry is checked first and counts unknown accounts the same way.
+
+**How to verify:**
+- The test was written first and failed: a 41 ms gap against a 13 ms allowance.
+- Now 7 interleaved attempts each (the rate-limit rows are cleared between attempts) give medians within 30% of each other, and both fail with `access.invalid_login`. It passed 4 runs in a row.
+- `npm test`: 66 suites, 471 tests.
+- `npm run test:integration`: 18 suites, 121 tests.
+- `npm run build` is green.
