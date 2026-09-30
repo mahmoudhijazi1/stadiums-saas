@@ -4891,3 +4891,30 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - The integration tests cover: NULL for a new phone; NULL for other Arabic spellings, case and spacing; a different name stored cleaned while the saved name stays; NULL for an owner-created booking.
 - The unit test covers: nothing rendered for NULL; the Arabic warning with a `<bdi>` name; the English copy.
 - `npm test`: 68 suites, 488 tests. `npm run test:integration`: 21 suites, 137 tests. `npm run build` is green.
+
+## Page list queries bounded
+
+**When:** 2026-09-30
+
+**What:** Security audit S-8. Every infrastructure list query was listed and checked for a limit.
+- **Capped:**
+  1. `listPendingInbox`, new, used by `listPendingRequests` (Requests inbox, Today, owner layout): the next 200 upcoming PENDING plus the 50 most recent missed, still in start order. `listPendingBookings` stays uncapped **on purpose**: approve (`rejectOverlappingPending`) and dismiss-missed must see every row. A test approves one of 260 same-slot requests, and all 259 others are rejected.
+  2. `listApprovedRanges`: bounded by time, not rows. Only APPROVED windows ending after now − 24 h. Its callers are the public page, the Book page, the public request and owner-create overlap checks, and the waitlist, and all of them only look at slots that have not ended. A row cap could have dropped a future booking from an overlap check.
+  3. `listSlotInterestsWithPeople` (waitlist, decision notify): windows ending after now − 24 h, at most 500.
+- **Already capped:** `searchPersons` (20), `listRecentExpenses`, `listEndedWithRemaining`, `listPersonBookingRows`, `listDebtParticipations`.
+- **Left as they are:**
+  - bounded by their input or a day: `listBookingsForStartDay` (one business day), `listSlotsForBookings` and `sumCollectedUsdBySourceIds` (given ids), `listPersonStatRows` (aggregate for one person), `listLiveWindowsOnPitch` (future bookings of one pitch, a conflict check that must be complete);
+  - owner-created and small: `listPitches`;
+  - single-row lookups and locks.
+
+**Why:** [security-audit.md S-8](./audits/security-audit.md#s-8-unbounded-queries-on-hot-paths).
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/list-pending-requests.ts`, `test/integration/list-caps.integration.test.ts` (new).
+
+**How it connects:** Booking infrastructure only. Every new SQL statement filters by the ALS tenant, including the CTE's join back to Booking.
+
+**How to verify:**
+- The tests were written first; 3 of 4 failed. The approve test passed, as the guard it is meant to be.
+- `npm run test:integration`: 22 suites, 141 tests.
+- `npm test`: 68 suites, 488 tests.
+- `npm run build` is green.
