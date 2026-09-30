@@ -4357,3 +4357,35 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Venue domain stays pure and imports nothing from Booking. Booking's `offered-slot` imports `addCalendarDays` from Venue (already a downward import). Callers of `resolveOfferedSlot` are unchanged: they still pass the start's civil day. No schema change.
 
 **How to verify:** `npm test` (60 suites, 427 tests), `npm run test:integration` (9 suites, 66 tests), `npm run build`. New integration cases: 00:00 and 01:00 booked through owner-create and through public request plus approve, both at the window day's $50 rule; the 00:00 game on the next day in Today; the DST fall-back night. With the source change reverted, the three booking cases and five unit cases fail; the DST case passes either way (it pins existing behavior).
+
+## Business day: 06:00 rollover
+
+**When:** 2026-09-30
+
+**What:** A game belongs to the business day it starts in, and a business day runs 06:00 to 06:00 Beirut. A game starting 00:30 Saturday is on Friday.
+- `booking/domain/business-day.ts`: `BUSINESS_DAY_ROLLOVER_HOUR = 6`, `businessDate(start)` (local civil date, minus one day when the local wall-clock hour is before 6), `businessDayUtcRange(date)` ([D 06:00, D+1 06:00) local, converted with the DST-aware Intl helpers, never a fixed offset), `isNightStart(start)`. The rollover is a parameter with a default so it can become a tenant setting; there is no setting or column.
+- Venue exports two thin helpers on top of the existing civil-date code: `localWallClock` (civil date + local hour) and `localTimeToUtc`.
+- `loadOwnerDay(dateParam, now = new Date())`: today is `businessDate(now)`; the day's games are `lower(during)` in `businessDayUtcRange(day)`; new `afterMidnight` flag.
+- Before 06:00, Today opens on the previous business date, and under the day strip it says "بعد منتصف الليل: اليوم مستمر حتى السادسة صباحاً." / "After midnight: Today runs until 6:00 AM."
+- Real time stays real. A 00:00–05:59 start gets "ليلة <weekday>" / "night of <weekday>" (the business date's weekday) beside the real date: on the Today card and its sheet, on person-page game rows, and in every WhatsApp `{day}` (confirm, approve/reject, missed, cancel/no-show/due outcome, slot available, and the sheet's client-built texts). One helper, `booking/application/night-hint.ts` (`nightHint`, `messageDayLabel`); copy via `ui-copy` (`nightOfLabel`, `owner.afterMidnightToday`).
+- `bookingStartDay` is removed (superseded). The integration money-invariants helper groups by `businessDate`.
+
+**Changed (day bucketing):** Today list (`loadOwnerDay` → `listBookingsForStartDay` with the business range), the day summary line (same rows), the day strip and "Today" label and default day (`ownerDay.today`), the `?date=` 60-day limit (counted from the business today), `test/integration/invariants.ts` day grouping.
+
+**Deliberately not changed:**
+- Instant logic: live/ended/owed (`classifyDue`, card display), missed and starts-soon requests, cancel and no-show windows, To collect (`listEndedWithRemaining`).
+- The schedule engine and the slot lists (public page day chips, owner Book page, `getDayAvailability`): slots stay under their hours window's day and those pages' "today" is the calendar day.
+- Ledger and Money period: cash stays on the calendar day of payment (documented in NOW.md).
+- Relative date labels on cards and request rows (`slotDateKind` / `formatSlotDateLabel`: "Today", weekday, date): they describe the real calendar date, and the night hint sits beside them.
+- `listDueBookings` / `partitionHomeConfirmed`: dead code with no caller (audit §6), left as is.
+- There is no month overview or day-grouped history yet (UX-02 slices 3–5), so nothing else to change.
+
+**Why:** The owner books Friday night's 00:00 game from Friday's list; with the calendar start day it then appeared on Saturday in Today (PR #3 finding). A night belongs to the evening it started.
+
+**Query plan:** 20,000 bookings on two tenants, day range [2025-02-01 03:00Z, 2025-02-02 04:00Z): `Index Scan using "Booking_tenantId_lower_during_idx" on "Booking" b`, `Index Cond: (("tenantId" = 't1') AND (lower(during) >= …) AND (lower(during) < …))`, then nested loops on primary keys. The expression index still applies.
+
+**Files:** `src/modules/booking/domain/business-day.ts` (new), `src/modules/booking/domain/start-day.ts`, `src/modules/booking/application/night-hint.ts` (new), `src/modules/booking/application/load-owner-day.ts`, `load-decision-notify.ts`, `load-outcome-notify.ts`, `list-open-waitlist.ts`, `src/modules/booking/infrastructure/bookings.ts` (comment), `src/modules/venue/domain/availability.ts`, `src/lib/ui-copy.ts`, `src/app/owner/(app)/today/lists.tsx`, `upcoming-panel.tsx`, `src/app/owner/(app)/people/[personId]/games.tsx`, `test/modules/booking/domain/business-day.test.ts` (new), `test/modules/booking/application/night-hint.test.ts` (new), `test/modules/booking/domain/start-day.test.ts`, `test/integration/midnight.integration.test.ts`, `test/integration/invariants.ts`, `docs/NOW.md`, `docs/ux-02-history.md` (banner), `docs/owner-ux.md` (banner).
+
+**How it connects:** Booking domain imports only Venue's civil-date helpers (downward). Venue does not import Booking. `app/` calls `night-hint` for display. No schema change, no new index.
+
+**How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (9 suites, 68 tests), `npm run build`. Unit: `businessDate` table for 23:59 / 00:00 / 00:30 / 05:59 / 06:00 / 06:01, spring forward 2026-03-29 (06:00 EEST is the new day, which "minus 6h" would get wrong) and fall back 2026-10-24 (both 23:30s, 00:00 and 05:59 on Saturday, 06:00 on Sunday), 23-hour and 25-hour ranges; night hint present at 00:30, absent at 06:00 and 23:00. Integration: 00:00 via owner-create and 01:00 via public request + approve on Friday's Today and summary and not Saturday's (confirm message has Saturday's date and "ليلة الجمعة"); 05:59 on the previous day, 06:00 on its own; Today at 05:00 opens Friday with `afterMidnight`, at 06:00 opens Saturday; DST fall-back night on one day. With the source reverted, four of these fail.

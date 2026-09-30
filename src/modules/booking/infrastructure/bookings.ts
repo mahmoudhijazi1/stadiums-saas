@@ -897,8 +897,9 @@ function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
 
 /**
  * APPROVED, CANCELLED, and NO_SHOW whose start falls in `[from, to)`.
- * `from`/`to` are the Beirut civil day's UTC bounds. Collected USD is the
- * sum of tenders, any collection date.
+ * `from`/`to` are one business day's UTC bounds (`businessDayUtcRange`, 06:00 to 06:00
+ * Beirut). Filtering on lower(during) keeps the ("tenantId", lower(during)) index.
+ * Collected USD is the sum of tenders, any collection date.
  */
 export async function listBookingsForStartDay(
   tx: TenantTx,

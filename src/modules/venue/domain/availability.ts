@@ -241,6 +241,32 @@ function tzOffsetMs(instant: Date, timeZone: string): number {
   return wallAsUtc - instant.getTime();
 }
 
+/**
+ * Civil date plus local wall-clock hour and minute of an instant (DST-aware, from Intl).
+ * The hour is the local clock reading: on a fall-back night 23:00 appears twice.
+ */
+export function localWallClock(
+  instant: Date,
+  timeZone: string,
+): { date: CivilDate; hour: number; minute: number } {
+  const parts = zonedParts(instant, timeZone);
+  return {
+    date: { year: parts.year, month: parts.month, day: parts.day },
+    hour: parts.hour,
+    minute: parts.minute,
+  };
+}
+
+/** A local wall-clock time on a civil date, as a UTC instant (DST-aware). */
+export function localTimeToUtc(
+  date: CivilDate,
+  hour: number,
+  minute: number,
+  timeZone: string,
+): Date {
+  return zonedLocalToUtc(date, hour, minute, timeZone);
+}
+
 /** Calendar day of an instant in a timezone (so UTC midnight is not Beirut's date). */
 export function civilDateInTimeZone(instant: Date, timeZone: string): CivilDate {
   const parts = zonedParts(instant, timeZone);

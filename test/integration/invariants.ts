@@ -3,7 +3,7 @@ import Decimal from "decimal.js";
 import db from "@/lib/db";
 import { platformDb } from "@/lib/platform-db";
 import { summarizeDay, type DaySummaryRow } from "@/modules/booking/domain/day-summary";
-import { bookingStartDay } from "@/modules/booking/domain/start-day";
+import { businessDate } from "@/modules/booking/domain/business-day";
 import { getPersonBookingStats } from "@/modules/booking/application/get-person-booking-stats";
 import { listPersonStatRows } from "@/modules/booking/infrastructure/bookings";
 
@@ -63,7 +63,7 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
     const rows = await listPersonStatRows(db, personId);
     const byDay = new Map<string, DaySummaryRow[]>();
     for (const row of rows) {
-      const day = bookingStartDay(row.start);
+      const day = businessDate(row.start);
       const key = `${day.year}-${day.month}-${day.day}`;
       const group = byDay.get(key) ?? [];
       group.push({

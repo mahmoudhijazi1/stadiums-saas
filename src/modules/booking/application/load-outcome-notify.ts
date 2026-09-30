@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { messageDayLabel } from "@/modules/booking/application/night-hint";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { logger } from "@/lib/logger";
@@ -58,11 +58,7 @@ export async function loadOutcomeNotify(input: {
     if (!booking) return null;
 
     const locale = await getUiLocale();
-    const day = formatDisplayDate(booking.start, locale, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
+    const day = messageDayLabel(booking.start, locale);
     const time = formatLocalHm(
       booking.start,
       TIME_ZONE,

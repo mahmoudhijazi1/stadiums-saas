@@ -59,6 +59,8 @@ export type UpcomingRowView = {
   pitchName: string;
   timeRange: string;
   dateLabel: string;
+  /** "night of Friday" for a 00:00–05:59 start, else null. */
+  nightHint: string | null;
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
@@ -447,6 +449,7 @@ export function UpcomingPanel({
                 {toCollect.some((item) => item.id === sheetRow.id)
                   ? ` · ${sheetRow.dateLabel}`
                   : null}
+                {sheetRow.nightHint ? ` · ${sheetRow.nightHint}` : null}
                 {" · "}
                 <Link
                   href={`/owner/people/${sheetRow.requesterPersonId}`}
@@ -652,6 +655,7 @@ function UpcomingRows({
                         {row.pitchName}
                       </span>
                       {showDate ? <span>{row.dateLabel}</span> : null}
+                      {row.nightHint ? <span>{row.nightHint}</span> : null}
                     </span>
                     <span className="sr-only">{ui("owner.openBooking", locale)}</span>
                   </button>

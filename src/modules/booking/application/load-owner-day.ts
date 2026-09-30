@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { messageDayLabel } from "@/modules/booking/application/night-hint";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { logger } from "@/lib/logger";
@@ -28,8 +28,11 @@ import {
   whatsAppHref,
 } from "@/modules/notification/domain/whatsapp-link";
 import {
+  businessDate,
+  businessDayUtcRange,
+} from "@/modules/booking/domain/business-day";
+import {
   civilDateInTimeZone,
-  civilDayUtcRange,
   compareCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
@@ -73,9 +76,13 @@ export type OwnerDayBooking = {
 };
 
 export type OwnerDay = {
+  /** Business date shown (06:00 to 06:00 Beirut). */
   day: CivilDate;
+  /** Today's business date: before 06:00 it is still yesterday's calendar date. */
   today: CivilDate;
   isToday: boolean;
+  /** Now is between midnight and the rollover: Today is still the previous night. */
+  afterMidnight: boolean;
   summary: DaySummary;
   games: OwnerDayBooking[];
   toCollect: OwnerDayBooking[];
@@ -83,11 +90,13 @@ export type OwnerDay = {
 };
 
 /**
- * One Beirut start-day for Today, plus today's To collect inbox.
- * listDueBookings is not used here.
+ * One Beirut business day for Today (06:00 to 06:00, `businessDate`), plus today's To
+ * collect inbox. A game starting at 00:30 Saturday is on Friday. listDueBookings is not
+ * used here. `now` is injectable for tests.
  */
 export async function loadOwnerDay(
   dateParam: string | undefined,
+  now: Date = new Date(),
 ): Promise<OwnerDay> {
   const membership = await getCurrentMembership();
   if (!membership) {
@@ -97,11 +106,12 @@ export async function loadOwnerDay(
   const tenant = await getCurrentTenant();
 
   try {
-    const now = new Date();
-    const today = civilDateInTimeZone(now, TIME_ZONE);
+    const today = businessDate(now, TIME_ZONE);
     const day = resolveOwnerDay(dateParam, today);
-    const range = civilDayUtcRange(day, TIME_ZONE);
+    const range = businessDayUtcRange(day, TIME_ZONE);
     const isToday = compareCivilDate(day, today) === 0;
+    const afterMidnight =
+      compareCivilDate(civilDateInTimeZone(now, TIME_ZONE), today) !== 0;
 
     const [gameRows, collectRows] = await Promise.all([
       listBookingsForStartDay(db, range.start, range.end),
@@ -124,6 +134,7 @@ export async function loadOwnerDay(
       day,
       today,
       isToday,
+      afterMidnight,
       summary,
       games: gameRows.map((row) =>
         toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking),
@@ -210,11 +221,7 @@ function confirmHref(
       bookingConfirmedMessage({
         name: row.requesterName,
         stadiumName,
-        day: formatDisplayDate(row.start, locale, {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        }),
+        day: messageDayLabel(row.start, locale),
         time: formatLocalHm(row.start, TIME_ZONE, hourCycle, locale),
         pitchName: row.pitchName,
         locale,

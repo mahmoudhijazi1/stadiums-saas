@@ -1,6 +1,6 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { messageDayLabel } from "@/modules/booking/application/night-hint";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { logger } from "@/lib/logger";
@@ -85,11 +85,7 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
         groups.set(groupKey, group);
       }
 
-      const day = formatDisplayDate(row.start, locale, {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      });
+      const day = messageDayLabel(row.start, locale);
       let href: string | null = null;
       try {
         href = whatsAppHref(
