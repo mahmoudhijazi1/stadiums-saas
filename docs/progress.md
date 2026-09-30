@@ -4976,3 +4976,29 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - The e2e test now also checks a real production response: the headers are present, there is no `X-Powered-By` and no HSTS, and a foreign host gets 404.
 - `npm test`: 69 suites, 494 tests. `npm run test:integration`: 23 suites, 145 tests.
 - `npm run build` is green, and `npm run test:e2e` passes (4 tests).
+
+## Startup env validation
+
+**When:** 2026-09-30
+
+**What:** Security audit S-18.
+- **Schema:** `src/lib/env.ts` validates the environment with Zod.
+  - Required: `DATABASE_URL` (postgres URL), `APP_BASE_DOMAIN` (host with an optional `:port`), `APP_PROTOCOL` (`http` or `https`).
+  - Optional: `PASSWORD_HASH_COST` (14–20), `TRUSTED_CLIENT_IP_HEADER` (a header name), `TRUST_PROXY_HEADERS` (`true` or `false`), `PG_POOL_MAX` (a positive integer).
+  - Errors name the variable and never print its value (`DATABASE_URL` holds the password). There is no session secret, by the user's decision: tokens are random and stored hashed.
+- **Startup:** the new `src/instrumentation.ts` `register()` runs it once at server start under `NEXT_RUNTIME=nodejs`. `next build` never runs it, so CI builds need no production env.
+  - **Found while testing:** a throw in `register()` only logs "Failed to prepare server", and `next start` keeps running. So `enforceEnvAtStartup` exits the process in production. Outside production it only warns.
+  - The exit lives in `env.ts`, which is imported only under the Node runtime, so the Edge-runtime build warning is gone.
+- **`.env.example`** is synced: a header naming the required set, and `PG_POOL_MAX` added. `docs/RUNBOOK.md` gains an "Environment" section.
+
+**Why:** [security-audit.md S-18](./audits/security-audit.md#s-18-no-env-validation-at-startup).
+
+**Files:** `src/lib/env.ts` (new), `src/instrumentation.ts` (new), `test/lib/env.test.ts` (new), `test/e2e/login-cookie.e2e.test.ts`, `.env.example`, `docs/RUNBOOK.md`.
+
+**How it connects:** `lib` only. The e2e server now gets `APP_PROTOCOL=http` as well.
+
+**How to verify:**
+- The unit test was written first and failed (module not found).
+- The e2e test `next start` with `NODE_ENV=production` and a malformed `APP_BASE_DOMAIN` now exits with a non-zero code and names the variable. Before the exit was added, the process kept running and the test failed.
+- `npm test`: 70 suites, 501 tests. `npm run test:integration`: 23 suites, 145 tests.
+- `npm run build` is green with no warnings, and `npm run test:e2e` passes (5 tests).

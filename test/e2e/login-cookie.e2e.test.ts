@@ -117,6 +117,7 @@ beforeAll(async () => {
       NODE_ENV: "production",
       PORT: String(PORT),
       APP_BASE_DOMAIN: "lebstads.test",
+      APP_PROTOCOL: "http",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -174,6 +175,39 @@ describe("security headers on a real response", () => {
   it("404s a foreign host before any tenant lookup", async () => {
     const foreign = await send("GET", "/owner/login", `${a.tenantSlug}.attacker.example`);
     expect(foreign.status).toBe(404);
+  });
+});
+
+describe("startup env validation", () => {
+  it("next start in production exits when APP_BASE_DOMAIN is malformed", async () => {
+    // A malformed value, not a missing one: next start loads a local .env,
+    // which would fill a deleted variable back in.
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      NODE_ENV: "production",
+      APP_PROTOCOL: "http",
+      APP_BASE_DOMAIN: "https://lebstads.test/",
+    };
+    const child = spawn("node_modules/.bin/next", ["start", "-p", String(PORT + 1), "-H", "127.0.0.1"], {
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let output = "";
+    child.stdout?.on("data", (chunk) => (output += chunk));
+    child.stderr?.on("data", (chunk) => (output += chunk));
+    const code = await new Promise<number | null>((resolve) => {
+      const timer = setTimeout(() => {
+        child.kill("SIGKILL");
+        resolve(null);
+      }, 30_000);
+      child.on("exit", (exitCode) => {
+        clearTimeout(timer);
+        resolve(exitCode);
+      });
+    });
+    expect(code).not.toBe(0);
+    expect(code).not.toBeNull();
+    expect(output).toContain("APP_BASE_DOMAIN");
   });
 });
 

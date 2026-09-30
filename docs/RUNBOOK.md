@@ -57,3 +57,13 @@ The app serves only the bare `APP_BASE_DOMAIN` (for example `lebstads.com`) and 
 - nginx must pass the real host: `proxy_set_header Host $host;`.
 - If nginx instead sends `Host: 127.0.0.1:3000` and the real host in `X-Forwarded-Host`, set `TRUST_PROXY_HEADERS=true`. Do this only when nginx overwrites that header (`proxy_set_header X-Forwarded-Host $host;`). Otherwise a client could choose the host.
 - Without `TRUST_PROXY_HEADERS`, `X-Forwarded-Host` is ignored.
+
+## Environment
+
+The server checks its environment once at start (`src/lib/env.ts`, from `src/instrumentation.ts`). In production it **exits** when a required variable is missing or malformed, and the log line names the variable, never its value.
+
+- **Required:** `DATABASE_URL` (a `postgres://` URL), `APP_BASE_DOMAIN` (a host name, optionally with `:port`, no scheme), `APP_PROTOCOL` (`http` or `https`).
+- **Optional:** `PASSWORD_HASH_COST` (14–20), `TRUSTED_CLIENT_IP_HEADER`, `TRUST_PROXY_HEADERS` (`true` or `false`), `PG_POOL_MAX`.
+- There is no session secret: session tokens are random and stored hashed.
+
+`.env.example` lists them all.
