@@ -4543,3 +4543,24 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/audits/logic-findings.md` (new), `docs/ROADMAP.md` (new), `docs/NOW.md`, `docs/README.md`.
 
 **How to verify:** Docs only. The lint lines match `npx eslint "src/app/owner/(app)/today/fee-forms.tsx" "src/app/owner/(app)/today/upcoming-panel.tsx" src/modules/booking/application/list-debt-warnings.ts` on main at `7ba058d`.
+
+## Security audit: full application (report)
+
+**When:** 2026-09-30
+
+**What:** New `docs/audits/security-audit.md`. It covers:
+- tenant isolation: models vs `TENANT_SCOPED_MODELS`, 31 raw SQL calls, 22 cross-tenant id probes, host resolution, `platformDb`, the manifest;
+- auth and sessions, and an authorization matrix of every server action and `route.ts`;
+- the public request surface, injection and CSRF, secrets and the seed;
+- headers, caching and the service worker, `npm audit`, DoS, and RLS against DR-001's trigger;
+- a "to confirm on the server" list, all UNVERIFIED.
+
+Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 13 Low. The four logic findings F-1–F-4 were re-checked and still hold, so no Correction was needed. `docs/ROADMAP.md` gets items 5–12 and `docs/audits/logic-findings.md` gets a short pointer section; nothing existing was edited.
+
+**Why:** DR-001 (isolation, RLS trigger), DR-003 (auth, `can()`), DR-004 (errors and logs). Before the first non-friend paying tenant.
+
+**Files:** `docs/audits/security-audit.md` (new), `docs/ROADMAP.md`, `docs/audits/logic-findings.md`, `docs/NOW.md`, `docs/README.md`.
+
+**How it connects:** Docs only. Probes ran against `stadiums_test` only: an integration test file, a flood test and curl against `next start`. They were kept outside the repo and deleted afterwards. `stadiums_dev` was not touched.
+
+**How to verify:** Read the report. Each finding names a file and function; the probe results are in §1.3, §1.4 and §4.
