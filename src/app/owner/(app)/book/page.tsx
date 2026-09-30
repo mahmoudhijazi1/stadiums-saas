@@ -1,8 +1,6 @@
 import { Suspense } from "react";
-import {
-  civilDateInTimeZone,
-  formatCivilDate,
-} from "@/modules/venue/domain/availability";
+import { businessDate } from "@/modules/booking/domain/business-day";
+import { formatCivilDate } from "@/modules/venue/domain/availability";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { OwnerBookSlots } from "./slots";
 import { parseOwnerBookOn } from "./date";
@@ -34,7 +32,8 @@ export default async function OwnerBookPage({
     );
   }
 
-  const todayCivil = civilDateInTimeZone(new Date(), OWNER_TIME_ZONE);
+  // Business date, like Today and the public page: before 06:00 it is last night.
+  const todayCivil = businessDate(new Date(), OWNER_TIME_ZONE);
   const today = formatCivilDate(todayCivil);
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
 
@@ -50,7 +49,7 @@ export default async function OwnerBookPage({
         locale={locale}
       />
       <Suspense key={bookOn} fallback={<BookSlotsSkeleton />}>
-        <OwnerBookSlots bookOn={bookOn} locale={locale} />
+        <OwnerBookSlots bookOn={bookOn} today={todayCivil} locale={locale} />
       </Suspense>
     </section>
   );

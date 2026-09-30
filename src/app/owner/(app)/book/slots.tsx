@@ -1,5 +1,6 @@
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
+import type { CivilDate } from "@/modules/venue/domain/availability";
 import { civilFromYyyyMmDd } from "./date";
 import { OwnerSlotPicker } from "./picker";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
@@ -14,9 +15,12 @@ import { ui } from "@/lib/ui-copy";
  */
 export async function OwnerBookSlots({
   bookOn,
+  today,
   locale = "ar",
 }: {
   bookOn: string;
+  /** Business date (the "Today" chip). */
+  today: CivilDate;
   locale?: UiLocale;
 }) {
   const tenant = await getCurrentTenant();
@@ -24,6 +28,7 @@ export async function OwnerBookSlots({
     localDate: civilFromYyyyMmDd(bookOn),
     timeZone: OWNER_TIME_ZONE,
     now: new Date(),
+    today,
     occupied: await listApprovedOccupied(),
     hourCycle: tenant.timeDisplay,
     locale,

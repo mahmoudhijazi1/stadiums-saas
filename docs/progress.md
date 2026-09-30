@@ -4459,3 +4459,17 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** No schema change. The Edit field in the sheets is not limited in the browser; the server refuses with the new message.
 
 **How to verify:** `npm test` (62 suites, 457 tests), `npm run test:integration` (11 suites, 76 tests), `npm run build`. Integration: cancel and no-show fee $30.01/$45 on a $30 due refused with nothing written, $30 accepted. Stored reasons: 100% default no-show writes no row (due unchanged); 50% default → `NO_SHOW_FEE` 30→15; 50% with $20 collected → `NO_SHOW_FEE` 30→20; edited to $10 → `NO_SHOW_FEE`; edited to $2 with $5 collected → `WAIVER` 30→5; waived with $0 and $3 collected → `WAIVER`. All five fail on the old code.
+
+## Public and Book pages open on the business date
+
+**When:** 2026-09-30
+
+**What was there (00:00–06:00 Beirut):** both pages took "today" as the calendar date (`civilDateInTimeZone`). At 00:30 Saturday the chip strip started at Saturday. The 01:00 slot of Friday's 22:00–02:00 window is generated under Friday, and Friday was not in the strip (a past day), so a player could not reach it without typing `?date=`. Started slots were already never offered: `dropEndedSlots` keeps only `start > now`, and `resolveOfferedSlot` refuses `slot_ended` on the server.
+
+**What:** The public page and the owner Book page use `businessDate(now)` for their default day and the "Today" chip, the same rule as owner Today. At 00:30 Saturday they open on Friday and show only the 01:00 slot; from 06:00 they open on Saturday. `getDayAvailability` takes an optional `today` so the empty-state wording says "hours ended" rather than "past" for last night after its last slot; Venue still does not import Booking (the pages pass it). Slot generation is unchanged. No reason against it was found: the only case it would disadvantage is a stadium whose own day opens before 06:00, already unsupported under the business-day rule.
+
+**Files:** `src/app/(public)/page.tsx`, `src/app/(public)/hours.tsx`, `src/app/owner/(app)/book/page.tsx`, `src/app/owner/(app)/book/slots.tsx`, `src/modules/venue/application/get-day-availability.ts`, `test/integration/slot-pages.integration.test.ts` (new), `docs/NOW.md`.
+
+**How it connects:** `app/` imports `businessDate` from the booking domain; Venue receives the date. The Money page keeps the calendar day (cash rule).
+
+**How to verify:** `npm test` (62 suites, 457 tests), `npm run test:integration` (12 suites, 79 tests), `npm run build`. With `now` injected: at 00:30 Saturday the default day is Friday and only 01:00 is offered (22:00, 23:00, 00:00 have started), Saturday still shows 16:00 and 17:00; at 02:30 Friday is Today with "hours ended"; at 06:30 the default is Saturday and Friday is past with nothing offered. The test drives the same calls as the pages; the pages themselves (server components) are not rendered in a test.
