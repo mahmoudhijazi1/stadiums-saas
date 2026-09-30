@@ -564,3 +564,13 @@ Everything here is **UNVERIFIED**. The repo has no nginx, firewall or Hestia con
 10. The disk used by `logs/` and logrotate (S-17).
 11. Backups: frequency, off-droplet copy, and a tested restore.
 12. nginx `limit_req` / `client_max_body_size` on `/owner/login` and the public page (S-3, S-5).
+
+---
+
+## Addendum: fixes on this branch
+
+| Finding | Status | Where |
+|---|---|---|
+| S-1 seed has no production guard | **Fixed.** `assertSeedAllowed` runs before the seed opens a connection. It refuses `NODE_ENV=production` and any database other than `stadiums_dev` / `stadiums_test`. Re-probed: `NODE_ENV=production` on `stadiums_test` exits 1 and deletes nothing; a DB named `stadiums_prod` is refused; the dev seed on `stadiums_test` still runs. | `src/prisma/seed-guard.ts`, `src/prisma/seed.ts`, `test/prisma/seed-guard.test.ts` |
+
+No other finding is Critical or High. The Medium and Low findings stay open (see [ROADMAP.md](../ROADMAP.md) items 6–12).

@@ -4564,3 +4564,25 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** Docs only. Probes ran against `stadiums_test` only: an integration test file, a flood test and curl against `next start`. They were kept outside the repo and deleted afterwards. `stadiums_dev` was not touched.
 
 **How to verify:** Read the report. Each finding names a file and function; the probe results are in §1.3, §1.4 and §4.
+
+## Seed refuses production and unknown databases
+
+**When:** 2026-09-30
+
+**What:** Security audit S-1 (High). `src/prisma/seed.ts` deletes every table and recreates `owner@ahmad`, `owner@sami` and `staff@ahmad` with the public `dev-owner` password. Before this fix, nothing stopped it from running against production. The audit probe ran it under `NODE_ENV=production` and it wiped and refilled the database.
+- New pure guard `assertSeedAllowed({ nodeEnv, databaseUrl })` in `src/prisma/seed-guard.ts`. It throws when `NODE_ENV === "production"`, or when the database name in `DATABASE_URL` is missing, unparsable, or not in `SEEDABLE_DATABASES` (`stadiums_dev`, `stadiums_test`).
+- `seed.ts` calls it at module load, before the pool is created, so a refused run opens no connection and writes nothing.
+
+**Why:** [security-audit.md S-1](./audits/security-audit.md#s-1-the-seed-wipes-any-database-it-is-pointed-at-including-production). The database names match `.env.example` and `docs/guides/testing-jest.md`.
+
+**Files:** `src/prisma/seed-guard.ts` (new), `src/prisma/seed.ts`, `test/prisma/seed-guard.test.ts` (new), `README.md`, `docs/guides/folder-structure.md`, `docs/ROADMAP.md`, `docs/audits/security-audit.md` (addendum).
+
+**How it connects:** The guard is used by the seed only; it imports nothing, and the app never imports it. A production database under another name is refused even if `NODE_ENV` is not set.
+
+**How to verify:**
+- The test was written first and failed (module not found). `npm test` now passes: 63 suites, 461 tests (+4 in `seed-guard.test.ts`).
+- `npm run test:integration`: 14 suites, 95 tests. `npm run build` is green.
+- Manual check, with `DATABASE_URL` pointed at `stadiums_test`:
+  - `NODE_ENV=production npx tsx src/prisma/seed.ts` fails with "Seed refused: NODE_ENV is production.", and the user count stays 0.
+  - A URL naming `stadiums_prod` is refused.
+  - Without `NODE_ENV=production` the seed runs and creates 3 users.
