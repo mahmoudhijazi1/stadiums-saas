@@ -67,3 +67,18 @@ The server checks its environment once at start (`src/lib/env.ts`, from `src/ins
 - There is no session secret: session tokens are random and stored hashed.
 
 `.env.example` lists them all.
+
+## Listen on localhost only
+
+`npm start` runs `next start -H 127.0.0.1 -p 3000`. Next.js otherwise listens on `0.0.0.0` (every interface), which would let anyone reach the app directly on port 3000 and skip nginx: its TLS, HSTS, `limit_req`, and the `Host` / `X-Real-IP` / `X-Forwarded-Host` headers the app trusts. Bound to 127.0.0.1, only nginx on the same machine can reach it.
+
+- **Source of the flag:** `next start --help` and `node_modules/next/dist/docs/01-app/03-api-reference/06-cli/next.md` ("`next start` options"). They document `-H, --hostname <hostname>` (default `0.0.0.0`) and `-p, --port <port>` (default 3000, env `PORT`).
+- **No `HOSTNAME` for `next start`:** the `HOSTNAME` env var is documented only for the standalone `server.js` (`output.md`), not for `next start`, so the script uses the flag.
+- **Check on the server** after every restart:
+
+  ```bash
+  sudo ss -tlnp | grep ':3000'
+  ```
+
+  It must show `127.0.0.1:3000`. `0.0.0.0:3000`, `*:3000` or `[::]:3000` means the app is exposed; check how it was started, for example the process manager running `next start` directly instead of `npm start`.
+- **nginx** keeps proxying to `http://127.0.0.1:3000`.

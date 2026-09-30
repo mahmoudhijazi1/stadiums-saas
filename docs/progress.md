@@ -5014,3 +5014,25 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `docs/audits/security-audit.md`, `docs/ROADMAP.md`.
 
 **How to verify:** Docs only. Every commit in the table is on `main` (PRs #7–#9) or on `fix/public-surface`.
+
+## Production server listens on 127.0.0.1 only
+
+**When:** 2026-09-30
+
+**What:** The `start` script in `package.json` is now `next start -H 127.0.0.1 -p 3000` (it was `next start`, which listens on `0.0.0.0`). `docs/RUNBOOK.md` has a new section, "Listen on localhost only", with the reason and the server check `sudo ss -tlnp | grep ':3000'`, which must show `127.0.0.1:3000`.
+
+**Why:** Audit "to confirm on the server" item 3 (port 3000 not public). Reaching the app directly bypasses nginx: TLS, HSTS, `limit_req`, and the host and client-IP headers the app trusts (S-3, S-9 to S-11).
+
+**Verification of the flag (not guessed):**
+- `next start --help` and `node_modules/next/dist/docs/01-app/03-api-reference/06-cli/next.md` ("`next start` options") document `-H, --hostname` (default 0.0.0.0) and `-p, --port` (default 3000, env `PORT`).
+- The `HOSTNAME` env var is documented only for the standalone `server.js` (`05-config/01-next-config-js/output.md`).
+
+**Files:** `package.json`, `docs/RUNBOOK.md`.
+
+**How it connects:**
+- CI never runs `npm start`: it runs unit, integration, build and `test:e2e`.
+- The e2e tests spawn `node_modules/.bin/next start -p 3217 -H 127.0.0.1` (and 3218) directly, so they are unaffected.
+
+**How to verify:**
+- Local run: `npm start` with `NODE_ENV=production` against `stadiums_test`. `/proc/net/tcp` showed exactly one listener, `127.0.0.1:3000`; `ss` is not installed in this container. `curl` to 127.0.0.1:3000 answered, and the container's external IP on port 3000 was refused.
+- `npm run test:e2e`: 5 tests. `npm test`: 70 suites, 501 tests.
