@@ -39,3 +39,13 @@ psql "${DATABASE_URL%%\?*}" -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:b
 ```
 
 **`TRUSTED_CLIENT_IP_HEADER`:** set it only when nginx overwrites that header with the real client address, for example `proxy_set_header X-Real-IP $remote_addr;` together with `TRUSTED_CLIENT_IP_HEADER=x-real-ip`. When it is unset, no per-IP limit applies. Never point it at a header the client can set by itself.
+
+## Password hash cost
+
+Passwords are hashed with scrypt, N = 2^`PASSWORD_HASH_COST` (14 to 20, default 16). On the 4-core build machine one hash took about 190 ms and used 64 MB. If login feels slow on the server, set `PASSWORD_HASH_COST=15` (about half the time) in `.env` and restart the app. Each stored hash records its own cost. On a user's next successful login, a hash made with a different cost is rehashed with the current one, and old hashes keep verifying until then.
+
+To time one hash on the server:
+
+```bash
+node -e 'const c=require("crypto");const N=2**16;const t=Date.now();c.scryptSync("x","saltsaltsaltsalt",64,{N,r:8,p:1,maxmem:256*N*8});console.log(Date.now()-t,"ms")'
+```

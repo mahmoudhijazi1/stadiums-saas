@@ -12,6 +12,8 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import type { LoginInput } from "@/modules/access/schemas/login";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
 import {
+  hashPassword,
+  passwordNeedsRehash,
   verifyAgainstDummy,
   verifyPassword,
 } from "@/modules/access/infrastructure/password";
@@ -28,7 +30,10 @@ import {
   createSession,
   deleteExpiredSessions,
 } from "@/modules/access/infrastructure/sessions";
-import { findUserByIdentifier } from "@/modules/access/infrastructure/users";
+import {
+  findUserByIdentifier,
+  updatePasswordHash,
+} from "@/modules/access/infrastructure/users";
 
 /**
  * URL tenant first, then password, then membership on *this* stadium (DR-003 §3).
@@ -57,6 +62,11 @@ export async function login(input: LoginInput): Promise<void> {
     if (!user || !membership) {
       await recordFailure(keys);
       throw new DomainError("access.invalid_login");
+    }
+
+    // Older parameters (or a changed PASSWORD_HASH_COST): upgrade while we have the password.
+    if (passwordNeedsRehash(user.passwordHash)) {
+      await updatePasswordHash(user.id, await hashPassword(input.password));
     }
 
     const now = new Date();

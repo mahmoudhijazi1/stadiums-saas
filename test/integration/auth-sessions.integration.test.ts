@@ -1,8 +1,13 @@
+import { randomBytes, scryptSync } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import { platformDb } from "@/lib/platform-db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { login } from "@/modules/access/application/login";
 import { logout } from "@/modules/access/application/logout";
+import {
+  passwordNeedsRehash,
+  verifyPassword,
+} from "@/modules/access/infrastructure/password";
 import { createSession } from "@/modules/access/infrastructure/sessions";
 import { hashSessionToken } from "@/modules/access/infrastructure/session-token";
 import { requireOwnerMembership } from "@/app/owner/shared";
@@ -183,5 +188,44 @@ describe("rolling 30-day session", () => {
     expect(hashes).not.toContain(hashSessionToken(expired));
     expect(hashes).toContain(hashSessionToken(live));
     expect(hashes).toContain(hashSessionToken(othersExpired));
+  });
+});
+
+describe("hash upgrade on login", () => {
+  it("rehashes an old-format hash with the current cost after a successful login, once", async () => {
+    const salt = randomBytes(16).toString("hex");
+    const legacy = `${salt}:${scryptSync(PASSWORD, salt, 64).toString("hex")}`;
+    await platformDb.user.update({
+      where: { id: fixture.ownerUserId },
+      data: { passwordHash: legacy },
+    });
+
+    await loginAndReadCookie();
+    const upgraded = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
+      .passwordHash;
+    expect(upgraded).not.toBe(legacy);
+    expect(passwordNeedsRehash(upgraded)).toBe(false);
+    expect(await verifyPassword(PASSWORD, upgraded)).toBe(true);
+
+    await loginAndReadCookie();
+    const again = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
+      .passwordHash;
+    expect(again).toBe(upgraded);
+  });
+
+  it("does not touch the hash on a failed login", async () => {
+    const salt = randomBytes(16).toString("hex");
+    const legacy = `${salt}:${scryptSync(PASSWORD, salt, 64).toString("hex")}`;
+    await platformDb.user.update({
+      where: { id: fixture.ownerUserId },
+      data: { passwordHash: legacy },
+    });
+    request();
+    await expect(
+      login({ identifier: fixture.ownerIdentifier, password: "wrong-password" }),
+    ).rejects.toMatchObject({ key: "access.invalid_login" });
+    const stored = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
+      .passwordHash;
+    expect(stored).toBe(legacy);
   });
 });

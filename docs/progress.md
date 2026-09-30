@@ -4745,3 +4745,37 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm test`: 66 suites, 471 tests.
 - `npm run test:integration`: 18 suites, 121 tests.
 - `npm run build` is green.
+
+## Password hash cost: measured default, env override, rehash on login
+
+**When:** 2026-09-30
+
+**What:** Security audit S-16.
+- **Measurement:** scrypt on this machine (4 cores, r=8, p=1, median of 5):
+
+  | log2 N | Time per hash |
+  |---|---|
+  | 14 | 42 ms |
+  | 15 | 94 ms |
+  | 16 | 193 ms |
+  | 17 | 387 ms |
+  | 18 | 780 ms |
+
+  N must be a power of two. 16 is the closest to the requested 250 ms (17 is further away and needs 128 MB per hash), so `DEFAULT_PASSWORD_HASH_COST = 16`, which uses 64 MB per hash.
+- **Override:** `PASSWORD_HASH_COST` (an integer from 14 to 20); an invalid value throws.
+- **Format:** a hash now records its parameters, `scrypt:cost:r:p:salt:hex`. Old `salt:hex` hashes (N = 2^14) still verify, and malformed hashes return false.
+- **Upgrade:** `passwordNeedsRehash` is true when the stored cost differs from the current one. After a successful login, `login` rehashes with the password it just checked (`updatePasswordHash`). A failed login never touches the hash.
+- The S-4 dummy hash uses the same cost, and the timing test still passes.
+- `.env.example` and `docs/RUNBOOK.md` ("Password hash cost") explain how to lower the cost and how to time one hash on the server.
+
+**Why:** [security-audit.md S-16](./audits/security-audit.md#s-16-scrypt-at-default-cost).
+
+**Files:** `src/modules/access/infrastructure/password.ts`, `src/modules/access/infrastructure/users.ts`, `src/modules/access/application/login.ts`, `test/modules/access/infrastructure/password.test.ts` (new), `test/integration/auth-sessions.integration.test.ts`, `.env.example`, `docs/RUNBOOK.md`.
+
+**How it connects:** The seed, `scripts/set-password.ts` and the fixtures all go through `hashPassword`, so they write the new format.
+
+**How to verify:**
+- The tests were written first; 4 of the 6 unit tests failed.
+- `npm test`: 67 suites, 477 tests.
+- `npm run test:integration`: 18 suites, 123 tests. The new ones check that an old hash is upgraded once on a successful login and left alone on a failed one.
+- `npm run build` is green.
