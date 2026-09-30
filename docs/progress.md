@@ -4801,3 +4801,22 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm run build && npm run test:e2e`: 2 tests pass.
 - The test passed on its first run, because the flags were already correct. As a check that it catches a regression, adding `domain: "lebstads.test"` to the cookie options and rebuilding made both tests fail; the change was then reverted.
 - `npm test`: 67 suites, 477 tests. `npm run test:integration`: 18 suites, 123 tests. `npm run build` is green.
+
+## Rolling session: end-to-end test
+
+**When:** 2026-09-30
+
+**What:** New `test/integration/rolling-session.integration.test.ts`. It fakes only `Date` and models a browser cookie jar: `Max-Age` from the time a cookie is set, and expired cookies are dropped. Each page view runs the real `proxy` (the cookie renewal) and then `getCurrentMembership` (the DB renewal).
+- A session used on day 25 is still valid on day 50.
+- A session unused for 31 days is rejected: the browser has dropped the cookie, and a client that kept it is refused by the DB expiry.
+- The cookie expiry and the DB expiry stay within one day of each other at every use (days 0, 0.5, 1, 2, 10, 25, 25.9, 26, 49).
+
+**Result:** no mismatch between the DB expiry and the cookie refresh. The first run reported a 23-day gap, but that was the test reading the fixture's own 7-day session. It now looks the row up by the jar token's hash.
+
+**Why:** User request, before the public-surface fixes.
+
+**Files:** `test/integration/rolling-session.integration.test.ts` (new).
+
+**How it connects:** Test-only. It imports `src/proxy.ts` and the access use cases.
+
+**How to verify:** `npm run test:integration` (19 suites, 126 tests), `npm test` (67 suites, 477 tests), `npm run build`.
