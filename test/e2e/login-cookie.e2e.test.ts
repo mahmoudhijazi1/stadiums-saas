@@ -159,3 +159,21 @@ describe("session cookie from a real production login", () => {
     expect(onB.headers.location).toContain("/owner/login");
   });
 });
+
+describe("security headers on a real response", () => {
+  it("has the next.config headers and no X-Powered-By", async () => {
+    const page = await send("GET", "/owner/login", hostOf(a.tenantSlug));
+    expect(page.headers["x-powered-by"]).toBeUndefined();
+    expect(page.headers["x-content-type-options"]).toBe("nosniff");
+    expect(page.headers["x-frame-options"]).toBe("DENY");
+    expect(page.headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(page.headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+    expect(page.headers["strict-transport-security"]).toBeUndefined();
+  });
+
+  it("404s a foreign host before any tenant lookup", async () => {
+    const foreign = await send("GET", "/owner/login", `${a.tenantSlug}.attacker.example`);
+    expect(foreign.status).toBe(404);
+  });
+});
+

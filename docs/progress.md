@@ -4946,3 +4946,33 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm test`: 68 suites, 490 tests.
 - `npm run test:integration`: 23 suites, 145 tests.
 - `npm run build` is green, and `npm run test:e2e` passes (2 tests).
+
+## Security headers from next.config; CSP Report-Only
+
+**When:** 2026-09-30
+
+**What:** Security audit S-7 and S-13.
+- **Headers on every route** (`/:path*`) via `next.config.ts` `headers()`:
+  - `X-Content-Type-Options: nosniff`;
+  - `Referrer-Policy: strict-origin-when-cross-origin`;
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`;
+  - `X-Frame-Options: DENY`.
+- **`poweredByHeader: false`.**
+- **No HSTS:** nginx sets it.
+- **CSP decision:** shipped as **`Content-Security-Policy-Report-Only`** with the local guide's "Without Nonces" policy. On top of the guide's policy it adds `connect-src`, `manifest-src` and `worker-src 'self'`, and it drops `upgrade-insecure-requests`, which has no effect in Report-Only.
+  - Report-Only cannot block scripts, the service worker or the manifest, so the PWA is unaffected.
+  - Fonts come from `next/font` (self-hosted), so `font-src 'self'` holds.
+  - There is no report endpoint; violations show in the browser console.
+  - Enforcing needs per-request nonces, which stay deferred by decision.
+
+**Why:** [security-audit.md S-7](./audits/security-audit.md#s-7-no-security-headers), [S-13](./audits/security-audit.md#s-13-x-powered-by-nextjs).
+
+**Files:** `next.config.ts`, `test/next-config.test.ts` (new), `test/e2e/login-cookie.e2e.test.ts`.
+
+**How it connects:** Config only.
+
+**How to verify:**
+- The tests were written first; 3 of 4 unit tests failed.
+- The e2e test now also checks a real production response: the headers are present, there is no `X-Powered-By` and no HSTS, and a foreign host gets 404.
+- `npm test`: 69 suites, 494 tests. `npm run test:integration`: 23 suites, 145 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (4 tests).
