@@ -29,7 +29,7 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no group pa
 | Owner UX structure (wins on conflict) | [owner-ux.md](./owner-ux.md) (UX-01), [ux-02-history.md](./ux-02-history.md) (UX-02) |
 | Owner tabs / routes | [owner-ia.md](./owner-ia.md) |
 | Per-player split, slot pay, cancel / no-show on a split booking | [per-player-payments.md](./per-player-payments.md) (living, as built) |
-| Visual design | [ui-foundations.md](./ui-foundations.md), [ui-components.md](./ui-components.md), [theme.md](./theme.md), [MIGRATION.md](./MIGRATION.md) |
+| Visual design | [ui-foundations.md](./ui-foundations.md), [ui-components.md](./ui-components.md), [ui-rules.md](./ui-rules.md), [theme.md](./theme.md), [MIGRATION.md](./MIGRATION.md) |
 | Current file tree | [guides/folder-structure.md](./guides/folder-structure.md) |
 | Module roles + request walks | [guides/module-map-and-request-walkthroughs.md](./guides/module-map-and-request-walkthroughs.md) |
 | Mentor oral map | [guides/mentor-defense-backend.md](./guides/mentor-defense-backend.md) |

@@ -5237,3 +5237,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** UI only; no new imports across modules.
 
 **How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Dark screenshots in Arabic and English, card and sheet, from a production build on the test database.
+
+## UI rules doc and screen audit
+
+**When:** 2026-10-01
+
+**What:** New `docs/ui-rules.md`: eight rules for owner screens (money colours, whose number, what a count counts, no heading without an action, one primary button, icons only with meaning, display font only for the title and biggest figure, current task first), each with an AR and EN example, then an audit table of Today, the booking sheet, the person page, Requests and Money (15 rows), then six conflicts with `ui-foundations.md`, `ui-components.md` and `theme.md`. Docs only; no code changed, and the three source docs are untouched.
+
+**Why:** User request. The four seeded findings are confirmed in code: person page "Paid $3" vs row "$30", "1 game" above two rows, green "Remaining" on an unplayed game, and the "Collect" heading with no collect action.
+
+**Files:** `docs/ui-rules.md` (new), `docs/README.md`, `docs/NOW.md` (links).
+
+**How it connects:** The rules are proposed. Rule 1 needs an amber `owed` role that no doc defines, and rule 7 narrows `ui-foundations.md` §2; both wait for a decision.
+
+**How to verify:** Read the audit rows against `people/[personId]/{stats,games}.tsx`, `today/upcoming-panel.tsx` (`DueRemainingFigures`, `UpcomingRowActions`), `pending-list.tsx` and `money/panel.tsx`.
