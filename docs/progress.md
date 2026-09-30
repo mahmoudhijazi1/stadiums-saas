@@ -4500,3 +4500,18 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Tests only. `recordPayment` is called directly for ledger rows at chosen instants, because collect always stamps `now`.
 
 **How to verify:** `npm test` (62 suites, 458 tests), `npm run test:integration` (14 suites, 95 tests), `npm run build`.
+
+## Dead code removed: the old Home confirmed lists
+
+**When:** 2026-09-30
+
+**What:** Audit §6 / punch list #5 (dead code).
+- Deleted `src/modules/booking/application/list-due-bookings.ts` (`listDueBookings`, the old Home confirmed lists) and, in `infrastructure/bookings.ts`, `listApprovedBookingsInRange`, `listApprovedBookingsStartingBefore`, `mapApprovedCollect`, `ApprovedCollectRow` and `HomeCollectStatus`.
+- Also deleted `partitionHomeConfirmed` (`booking/domain/home-inbox.ts`), whose only caller was `listDueBookings`, and its test block in `home-inbox.test.ts`; the rest of that test file stays.
+- **Kept `sumCollectedUsdBySourceIds`:** it is not dead. `expense/application/list-recent-expenses.ts` uses it for the Money tab's recent expenses.
+
+**Grep before deleting** (src and test, generated client excluded): `listDueBookings`, `listApprovedBookingsInRange` and `listApprovedBookingsStartingBefore` were referenced only inside `list-due-bookings.ts` and their own definitions (plus a comment in `load-owner-day.ts`). `partitionHomeConfirmed` was referenced only by `list-due-bookings.ts` and `home-inbox.test.ts`. `sumCollectedUsdBySourceIds` was referenced by `list-due-bookings.ts` and `list-recent-expenses.ts`. After deleting, each removed name has 0 references in `src`, `test` and the living guides.
+
+**Files:** `src/modules/booking/application/list-due-bookings.ts` (deleted), `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/domain/home-inbox.ts`, `src/modules/booking/application/load-owner-day.ts` (comment), `test/modules/booking/domain/home-inbox.test.ts`, `docs/guides/module-map-and-request-walkthroughs.md` (removed the file's row).
+
+**How to verify:** `npm test` (62 suites, 457 tests; one test removed with `partitionHomeConfirmed`), `npm run test:integration` (14 suites, 95 tests), `npm run build`.

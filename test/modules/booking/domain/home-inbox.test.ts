@@ -2,7 +2,6 @@ import { describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
 import {
   groupPendingBySlot,
-  partitionHomeConfirmed,
   slotDateKind,
   upcomingStatus,
 } from "@/modules/booking/domain/home-inbox";
@@ -98,31 +97,3 @@ describe("slotDateKind", () => {
   });
 });
 
-describe("partitionHomeConfirmed", () => {
-  it("puts unpaid past in overdue, keeps today, and drops paid past", () => {
-    const overdue = {
-      start: new Date("2026-09-12T13:00:00.000Z"),
-      remaining: new Decimal("30.00"),
-    };
-    const paidPast = {
-      start: new Date("2026-09-12T14:00:00.000Z"),
-      remaining: new Decimal(0),
-    };
-    const todayDue = {
-      start: new Date("2026-09-13T13:00:00.000Z"),
-      remaining: new Decimal("10.00"),
-    };
-    const later = {
-      start: new Date("2026-09-14T13:00:00.000Z"),
-      remaining: new Decimal("30.00"),
-    };
-    const split = partitionHomeConfirmed(
-      [overdue, paidPast, todayDue, later],
-      NOW,
-      BEIRUT,
-    );
-    expect(split.overdue).toEqual([overdue]);
-    expect(split.today).toEqual([todayDue]);
-    expect(split.later).toEqual([later]);
-  });
-});
