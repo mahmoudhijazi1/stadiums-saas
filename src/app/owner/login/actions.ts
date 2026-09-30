@@ -35,6 +35,9 @@ export async function submitLogin(formData: FormData) {
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitLogin");
   }
+  if (errorKey === "tenant.suspended") {
+    redirect("/owner/suspended");
+  }
   if (errorKey) {
     redirect(`/owner/login${loginQuery({ error: errorKey })}`);
   }

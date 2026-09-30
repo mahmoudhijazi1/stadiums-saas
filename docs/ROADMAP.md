@@ -17,4 +17,16 @@
 | 11 | Postgres RLS behind the Prisma extension (DR-001 trigger effectively met) | Deferred by decision; needs a DR-001 amendment, about 2–3 days | [§10](./audits/security-audit.md#10-rls) |
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 
+## Deferred on purpose: tenant management
+
+Recorded 2026-10-01 with the tenant-management CLI. These are deliberate decisions, not gaps.
+
+| Item | Why deferred |
+|---|---|
+| Web platform admin | It needs its own identity and cookie (separate from owner sessions), 2FA, rate limits, audit and its own security review. Its backend already exists: the `src/modules/platform` use cases take an explicit actor (`admin:<id>` later) and never touch a terminal. |
+| Date-based suspension (auto-suspend when `paidUntil` passes) | Suspension stays manual (decision 2). `paidUntil` is informational: `tenants list` flags OVERDUE. No cron. |
+| Plan limits and pricing | A plan is a text label only (decision 5). BR-103 is PARTIAL by decision: no limits, no pricing, no enforcement. |
+| Forced password change at first login | The owner's first password is set by the operator at `tenants create`. A "change on first login" flow needs UI and a user flag. |
+| A real HTTP 503 for a suspended tenant's public pages | Next 16 pages cannot set 503 (local `loading.md`, "Status codes": only 200, or 404/401/403 through `notFound`/`unauthorized`/`forbidden`). Doing it in the proxy would add a database query per request. Every public path shows the neutral page with status 200, robots noindex and `Cache-Control: no-store`, and no tenant data. |
+
 Other open audit items (isolation tests for `PaymentAllocation`, the WHOLE requester due drift, "They played" permission, staff money visibility) are tracked in the addendum of [audits/booking-payments-production-audit.md](./audits/booking-payments-production-audit.md).

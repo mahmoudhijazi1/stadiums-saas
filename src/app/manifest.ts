@@ -18,9 +18,10 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
   if (slug) {
     const tenant = await platformDb.tenant.findUnique({
       where: { slug },
-      select: { name: true },
+      select: { name: true, suspendedAt: true },
     });
-    const trimmed = tenant?.name.trim();
+    // Suspended: same neutral manifest as an unknown host (decision 7).
+    const trimmed = tenant && !tenant.suspendedAt ? tenant.name.trim() : undefined;
     if (trimmed) name = trimmed;
   }
 

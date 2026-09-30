@@ -12,9 +12,11 @@ Shipped since (details and dates in `progress.md`):
 - **UX-02** ([ux-02-history.md](./ux-02-history.md)) slices 1–2 — Beirut day navigation + `summarizeDay` line; person page + header search results.
 - **SPEC-15** slices 1–2 — per-player foundation (`collectionMode`, `Booking.amountDueUsd`, `splitEvenly` / `personOwedOnBooking`), then per-player mode: `Pitch.defaultPlayerCount` (1–30, default 10), switch Whole ⇄ Per player in the booking sheet, slot list with one-tap USD pay, "Booker pays all remaining", "N of M paid". P1–P5 settled at the spec defaults.
 - **SPEC-16** slices 1–3 — `BookingDueChange` log + `adjustDue`, fee suggestions from tenant policy, cancel / no-show / adjust sheets and Booking rules settings, request-card debt warning, public policy line, WhatsApp fee text.
+- **Security fixes** (PRs #7–#11) — audit S-1…S-18 fixed or deferred with reasons ([audits/security-audit.md](./audits/security-audit.md), status addendum): random hashed session tokens, rolling 30-day session, login and public request limits, strict hosts, security headers, env validation, localhost-only server.
+- **Tenant management** — platform operator CLI `scripts/platform.ts` (tenants list / create / suspend / resume, subscriptions set), append-only `PlatformAuditLog` and `Subscription`, suspension enforced at the tenant choke point (`/owner/suspended`, neutral public page). Plans are a label only (BR-103 partial by decision). See [RUNBOOK.md](./RUNBOOK.md) "Tenant management".
 - **Design system** ([MIGRATION.md](./MIGRATION.md)) — token layer, typography, responsive shell. Component restyles still open there.
 
-That is still the scoped product slice — **not** full Phase 1 BRD (no group pay or mixed currency per player, pitch blocks, subscriptions, etc.). Honest line for a paying owner: pilot-with-supervision, not production-ready — see the MVP readiness audit.
+That is still the scoped product slice — **not** full Phase 1 BRD (no group pay or mixed currency per player, pitch blocks, plan limits or pricing, etc.). Honest line for a paying owner: pilot-with-supervision, not production-ready — see the MVP readiness audit.
 
 ## Start here by topic
 
@@ -36,7 +38,7 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no group pa
 | Launch gaps / ordered backlog | [guides/mvp-readiness-audit.md](./guides/mvp-readiness-audit.md) (dated; read the banner) |
 | Known open logic items (not product slices) | [ROADMAP.md](./ROADMAP.md), details in [audits/logic-findings.md](./audits/logic-findings.md) |
 | Security audit (findings, server checklist) | [audits/security-audit.md](./audits/security-audit.md); open items in [ROADMAP.md](./ROADMAP.md) from #5 |
-| Operator procedures (reset a password) | [RUNBOOK.md](./RUNBOOK.md) |
+| Operator procedures (passwords, tenants, hosts, env) | [RUNBOOK.md](./RUNBOOK.md) |
 
 ## What’s next
 

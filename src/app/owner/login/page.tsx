@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { errorMessage } from "@/lib/error-messages";
 import { ui } from "@/lib/ui-copy";
@@ -25,6 +26,7 @@ export default async function LoginPage({
   searchParams,
 }: PageProps<"/owner/login">) {
   const tenant = await getCurrentTenant();
+  if (tenant.suspended) redirect("/owner/suspended");
   const params = await searchParams;
   const errorKey = typeof params.error === "string" ? params.error : undefined;
 

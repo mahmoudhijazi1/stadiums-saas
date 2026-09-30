@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import type { MembershipRole } from "@/app/generated/prisma/enums";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
 import { readSessionCookie } from "@/modules/access/infrastructure/session-cookie";
@@ -23,6 +24,10 @@ export type CurrentMembership = {
  */
 export const getCurrentMembership = cache(
   async (): Promise<CurrentMembership | null> => {
+    // Suspended tenant (decision 7): no membership, so every owner use case is
+    // access.not_allowed. The session is left untouched (not renewed, not deleted).
+    if ((await getCurrentTenant()).suspended) return null;
+
     const token = await readSessionCookie();
     if (!token) return null;
 

@@ -82,3 +82,47 @@ The server checks its environment once at start (`src/lib/env.ts`, from `src/ins
 
   It must show `127.0.0.1:3000`. `0.0.0.0:3000`, `*:3000` or `[::]:3000` means the app is exposed; check how it was started, for example the process manager running `next start` directly instead of `npm start`.
 - **nginx** keeps proxying to `http://127.0.0.1:3000`.
+
+## Tenant management
+
+A platform operator manages stadiums (tenants) from the server with `scripts/platform.ts`. There is no web admin: access is SSH plus `DATABASE_URL`. Like `set-password`, it runs with `tsx` (a dev dependency) from the app directory.
+
+```bash
+npx tsx scripts/platform.ts tenants list
+npx tsx scripts/platform.ts tenants create --slug al-nour --name "Al Nour" [--plan basic] [--paid-until 2026-12-31] [--owner-identifier owner@al-nour]
+npx tsx scripts/platform.ts tenants suspend al-nour --reason "Unpaid since September"
+npx tsx scripts/platform.ts tenants resume al-nour
+npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 2027-01-31 [--amount 25] [--note "cash"]
+```
+
+- **`list`** is read-only and needs no confirmation. It shows slug, name, status, plan, paid-until (with `OVERDUE` once that day is over), created, pitch count, and bookings requested in the last 30 days. It never prints hashes, tokens or suspension reasons.
+- **Every mutating command** needs an interactive terminal. It shows the database name from `DATABASE_URL` and refuses until you type it. `suspend` and `resume` also ask you to type the slug.
+- **`create`** asks the owner's first password twice, hidden, at least 12 characters. It never takes it as an argument or env var.
+- **Audit:** each mutating command writes one row to `PlatformAuditLog` (append-only: action, tenant, actor `cli:<os user>@<host>`, details, never a password).
+- **Password resets** stay in `scripts/set-password.ts` ("Passwords" above).
+- **Plans** are a label only: no limits and no pricing. `paidUntil` never blocks anything. Suspension is manual.
+
+### Onboarding checklist
+
+1. `tenants create --slug <slug> --name "<name>" --paid-until <date>`, then give the owner their login (`owner@<slug>`) and password in person.
+2. The owner opens `https://<slug>.<APP_BASE_DOMAIN>/owner/login` and logs in.
+3. The owner sets the exchange rate: More → Settings.
+4. The owner adds pitches, with hours and prices: More → Settings → Pitches.
+5. Share the public link `https://<slug>.<APP_BASE_DOMAIN>/` (or its QR code) with players.
+
+### Suspend and resume
+
+- **`tenants suspend <slug> --reason "..."`:**
+  - Owner pages go to a neutral "account suspended" page.
+  - The live poll stops (403).
+  - Every public path shows a neutral "temporarily unavailable" page (status 200, noindex, no tenant data).
+  - Public requests are refused.
+  - The reason is for the operator only and is never shown.
+- **`tenants resume <slug>`** restores everything instantly. Suspension deletes nothing: sessions stay valid and no data is touched.
+- **Check:** `tenants list` shows `SUSPENDED` or `ACTIVE`.
+
+### Slugs
+
+- **Format:** 3–30 characters, lowercase letters, digits and single inner hyphens. No leading or trailing hyphen, no `--`, no `xn--`, so that `owner@<slug>` is always a valid login.
+- **Reserved** (their explicit DNS records override the wildcard, or they are kept for the platform): www, mail, webmail, ftp, smtp, imap, pop, ns1, ns2, admin, api, app, static, assets, cdn, status, support, help, dashboard, login, panel, cpanel, test.
+- **Slugs are immutable.** There is no rename command: printed QR codes, installed PWAs and shared links use the slug.

@@ -5036,3 +5036,153 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How to verify:**
 - Local run: `npm start` with `NODE_ENV=production` against `stadiums_test`. `/proc/net/tcp` showed exactly one listener, `127.0.0.1:3000`; `ss` is not installed in this container. `curl` to 127.0.0.1:3000 answered, and the container's external IP on port 3000 was refused.
 - `npm run test:e2e`: 5 tests. `npm test`: 70 suites, 501 tests.
+
+## Tenant management 1/4: platform tables and pure rules
+
+**When:** 2026-10-01
+
+**What:** The data and pure rules for the platform operator's tenant management (a CLI, BR-103/BR-104).
+- **Schema** (migration `20261001090000_tenant_management`, additive only, so safe while the old code runs):
+  - `Tenant.suspendedAt` and `Tenant.suspendedReason`, both nullable;
+  - **`Subscription`** (tenantId, plan text, startsAt, paidUntil?, amountUsd?, note?, recordedBy, createdAt);
+  - **`PlatformAuditLog`** (action, tenantId?, actor, detail jsonb, createdAt).
+- **Append-only:** both new tables have a `BEFORE UPDATE OR DELETE` row trigger (`platform_append_only()`). `TRUNCATE` is not a row event, so the test truncate helper and the seed (now `TRUNCATE "PlatformAuditLog", "Subscription"`) still work. Foreign keys are `ON DELETE RESTRICT`.
+- **Classification:**
+  - `src/lib/db.ts` exports `TENANT_SCOPED_MODELS` and a new `PLATFORM_ONLY_MODELS` (Subscription, PlatformAuditLog). The scoped client throws for platform-only models.
+  - New `test/lib/model-classification.test.ts` parses the schema: every model with a `tenantId` must be in exactly one set. No such check existed before.
+  - Both tables were added to `truncate.ts`.
+- **Pure rules** in the new `src/modules/platform/domain`:
+  - `validateSlug`: 3–30 characters, `[a-z0-9-]`, no edge hyphen, and not in `RESERVED_SLUGS`, the 23 names from decision 3.
+  - `suspension.ts`: `tenantStatus`, `assertCanSuspend` (reason required, at most 200 characters, not already suspended), `assertCanResume`, and `isOverdue` (the paid-until day is fully over).
+- `isCurrentGeneratedClient` also requires the `platformAuditLog` model.
+
+**Why:** The user's tenant-management decisions 2, 3, 5, 6 and 8. BR-103 (plans) is PARTIAL by decision: a label only.
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20261001090000_tenant_management/migration.sql` (new), `src/lib/db.ts`, `src/lib/prisma-base.ts`, `src/prisma/seed.ts`, `src/modules/platform/domain/slug.ts` (new), `src/modules/platform/domain/suspension.ts` (new), `test/modules/platform/domain/*.test.ts` (new), `test/lib/model-classification.test.ts` (new), `test/integration/platform-tables.integration.test.ts` (new), `test/integration/truncate.ts`.
+
+**How it connects:** The platform domain imports only `lib/errors`. The migration was written by hand; `prisma migrate diff` against `stadiums_test` shows no drift for the new columns and tables.
+
+**How to verify:**
+- The tests were written first; all 3 unit suites failed (modules not found).
+- The integration tests cover:
+  - UPDATE and DELETE are blocked on both tables;
+  - TRUNCATE works;
+  - the scoped client refuses both models;
+  - the suspension columns default to null.
+- `npm test`: 73 suites, 536 tests. `npm run test:integration`: 24 suites, 150 tests.
+- `npm run build` is green, and the seed runs on `stadiums_test`.
+
+## Tenant management 2/4: suspension enforced at the tenant choke point
+
+**When:** 2026-10-01
+
+**What:** Decision 7, suspending a tenant.
+- **Choke point:** `CurrentTenant.suspended` comes from the same `loadTenant` query (`suspendedAt` added to the select), so no query is added; a test counts exactly one `tenant.findUnique` per request. `getCurrentTenantId()` throws `tenant.suspended`. Every tenant-scoped Prisma call and every raw-SQL tenant stamp goes through it, so no entry point can read or write a suspended tenant's data, even one that forgets a check.
+- **Owner side:**
+  - `getCurrentMembership` returns null first, without looking at or renewing the session, so every owner use case fails as `access.not_allowed`.
+  - The `(app)` layout, `requireOwnerMembership`, the login page and the login action (`tenant.suspended`) redirect to the new `/owner/suspended`, which is outside the shell. It renders the fixed "account suspended" copy and sends an active tenant to `/owner/today`. It never redirects to login, so there is no loop.
+  - The live route answers 403 `{ error: "tenant_suspended" }`, and `live-queue.tsx` goes to `/owner/suspended` on that code.
+  - `login` calls `getCurrentTenantId()` first, so no password is checked and no failure is counted.
+- **Public side:**
+  - The new `(public)/layout.tsx` gates **every** public path. It renders the neutral `UnavailableNotice`, with robots noindex from `generateMetadata`; `Cache-Control: no-store` is Next's own header for dynamic pages. The page checks too.
+  - `requestPublicSlot` refuses at the choke point before its rate counters, so nothing is written.
+  - The manifest answers as for an unknown host.
+- **Status code, by the user's decision:** the neutral page answers 200, not 503. Next 16 pages cannot set 503 (local `loading.md`, "Status codes"), and the proxy would need a DB query per request.
+- **Copy:** `ui()` keys `unavailable.{public,owner}.{title,body}` and the error key `tenant.suspended`, in AR and EN. No reason text is ever shown.
+- **Unchanged:** sessions and data. Resume restores everything.
+
+**Why:** User decision 7; BR-104.
+
+**Files:** `src/lib/tenant-context.ts`, `src/modules/access/application/get-current-membership.ts`, `src/modules/access/application/login.ts`, `src/modules/booking/application/request-public-slot.ts`, `src/app/owner/shared.tsx`, `src/app/owner/(app)/layout.tsx`, `src/app/owner/login/page.tsx`, `src/app/owner/login/actions.ts`, `src/app/owner/suspended/page.tsx` (new), `src/app/owner/(app)/requests/live/route.ts`, `src/app/owner/live-queue.tsx`, `src/app/(public)/layout.tsx` (new), `src/app/(public)/page.tsx`, `src/app/manifest.ts`, `src/components/unavailable-notice.tsx` (new), `src/lib/ui-copy.ts`, `src/lib/error-messages.ts`, `test/integration/suspension.integration.test.ts` (new), `test/e2e/login-cookie.e2e.test.ts`, `docs/owner-ia.md`.
+
+**How it connects:** `lib/tenant-context` imports `lib/errors` (which has no imports).
+
+**How to verify:**
+- The tests were written first; the suite failed (the page was missing).
+- The 10 integration tests cover:
+  - membership null and use cases refused;
+  - the choke point throws;
+  - the redirect target is `/owner/suspended` with or without a session;
+  - the login page and use case, with no failure counted;
+  - the suspended page renders, or redirects when the tenant is active;
+  - the live route answers 403;
+  - `requestPublicSlot` writes nothing;
+  - the other tenant is unaffected;
+  - resume keeps the same session valid and deletes no rows;
+  - one tenant query per request.
+- The e2e tests (`next start`, production) check that `/`, `/?date=` and `/?error=` return 200 with the robots noindex meta, `Cache-Control` containing no-store, the neutral copy, and no tenant name, pitch name or id. They also check the neutral manifest, the 307s to `/owner/suspended`, the 403 poll, and the other tenant unaffected.
+- `npm test`: 73 suites, 536 tests. `npm run test:integration`: 25 suites, 160 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (9 tests).
+
+## Tenant management 3/4: platform use cases and the operator CLI
+
+**When:** 2026-10-01
+
+**What:** The platform operator's CLI, decisions 1 and 3–6, 8 and 12.
+- **Use cases** (`src/modules/platform/application`): `listTenants`, `createTenant`, `suspendTenant`, `resumeTenant`, `setSubscription`.
+  - Each takes an explicit `actor` and returns plain data or throws `platform.*` DomainError keys.
+  - They never print, prompt, read `process.argv` or exit (decision 12).
+  - Every mutating one writes its row changes and **one** `PlatformAuditLog` row in the same `platformDb` transaction. The detail never includes a password or hash.
+- **`createTenant`** writes the Tenant (settings = `parseTenantSettings({})`), the User, an OWNER Membership, the first Subscription (default plan label `basic`) and the audit row.
+  - The owner identifier defaults to `owner@<slug>`; an override must use the same slug (DR-003: local@tenant-slug).
+  - A duplicate slug or identifier becomes `platform.slug_taken` / `platform.identifier_taken`, and the whole transaction rolls back, so no orphan tenant is left.
+- **`listTenants`** returns slug, name, status, latest plan, paidUntil + OVERDUE, created, pitch count and bookings requested in the last 30 days. No hashes, tokens or suspension reason.
+- **Pure input checks:** `src/modules/platform/domain/inputs.ts`.
+- **Cross-tenant reads and the audit writer:** `src/modules/platform/infrastructure/platform-store.ts`.
+- **Slug rule tightened (a step-0 conflict, resolved by the user):**
+  - `validateSlug` now refuses consecutive hyphens, so `owner@<slug>` always passes `parseLoginIdentifier`, and it refuses `xn--` explicitly (reason `punycode`).
+  - A property-style test checks every accepted slug against the identifier rule: 3 and 30 characters, a leading digit, single hyphens.
+- **CLI** (`scripts/platform.ts` → `scripts/platform-cli.ts`, `node:util` `parseArgs`, strict):
+  - Commands: `tenants list | create | suspend | resume` and `subscriptions set`. The actor is `cli:<os user>@<hostname>`.
+  - Every mutating command refuses without a TTY and requires typing the database name; suspend and resume also require typing the slug.
+  - `create` asks the owner password hidden, twice. There is no rename command, because slugs are immutable.
+- **Shared, not copied** (decision 4):
+  - The terminal code (hidden prompt, the TTY check, database confirmation, the two-entry password prompt) moved from `set-password` into `scripts/lib/operator-io.ts`, which both scripts use.
+  - The 12-character rule is `MIN_PASSWORD_LENGTH` in `access/domain/password-policy.ts`, re-exported by `set-password-core` and enforced by `createTenant`.
+
+**Why:** The user's tenant-management decisions; BR-103 (plans are a label only, PARTIAL by decision) and BR-104.
+
+**Files:** `src/modules/platform/{domain/inputs.ts,application/*.ts,infrastructure/platform-store.ts}` (new), `src/modules/platform/domain/slug.ts`, `src/modules/access/domain/password-policy.ts` (new), `scripts/platform.ts` (new), `scripts/platform-cli.ts` (new), `scripts/lib/operator-io.ts` (new), `scripts/set-password.ts`, `scripts/set-password-core.ts`, `test/integration/platform-use-cases.integration.test.ts` (new), `test/integration/platform-cli.integration.test.ts` (new), `test/modules/platform/domain/slug.test.ts`, `docs/guides/folder-structure.md`.
+
+**How it connects:**
+- `platform` imports `access` (identifier, password policy, hashing) and `lib`; nothing imports `platform` except `scripts/`.
+- The use cases use `platformDb` directly. They run in the CLI process, never inside a tenant request.
+
+**How to verify:**
+- The tests were written first; both suites failed (modules not found).
+- The use-case tests (10) call each use case directly with fake actors (`test:jest@ci`, `admin:42`) and no terminal.
+- The CLI tests (13) cover:
+  - a wrong database name refuses;
+  - non-interactive runs refuse before any prompt;
+  - a wrong slug confirmation refuses;
+  - one audit row per command, with the actor stored as given;
+  - the password prompts are hidden and not printed;
+  - the list prints no secrets and writes nothing;
+  - unknown commands and flags are refused.
+- The set-password tests still pass after the refactor.
+- A manual run against `stadiums_test`: non-interactive create refused with exit 1; create in a pseudo-terminal printed `created demo-club (owner login: owner@demo-club)` and never echoed the password; `tenants list` printed the row.
+- `npm test`: 73 suites, 540 tests. `npm run test:integration`: 27 suites, 182 tests. `npm run build` is green.
+
+## Tenant management 4/4: platformDb import guard and docs
+
+**When:** 2026-10-01
+
+**What:**
+- **Guard:** new `test/platform-db-imports.test.ts` scans `src/` and `scripts/` (generated client excluded) for imports of `lib/platform-db`: alias, relative and dynamic `import()`. It compares them with an allowlist where each entry has its reason.
+  - Allowed: the tenant lookup (`tenant-context`), `src/modules/platform/`, and `scripts/set-password-core.ts` (the body of `scripts/set-password.ts`). `scripts/platform.ts` reaches the database only through the platform use cases. `prisma/seed.ts` builds its own client and does not import `platform-db`.
+  - Also allowed: the pre-existing importers DR-003 and the security work need, namely `access/infrastructure/{sessions,users,tenants}.ts` (global User and Session, tenant settings by the resolved id), `lib/rate-limit.ts` (a global table) and `app/manifest.ts` (lookup by slug). These go beyond the list in the request.
+  - Any new importer fails the test.
+- **`docs/RUNBOOK.md`** (extended, not overwritten) gains "Tenant management": the commands, the confirmation rules, audit, the onboarding checklist, the suspend/resume procedure, reserved slugs and slug immutability. Password resets point to "Passwords".
+- **`docs/ROADMAP.md`** gains "Deferred on purpose: tenant management", with reasons: the web platform admin, date-based suspension, plan limits and pricing, forced password change at first login, and a real HTTP 503 (Next 16 pages cannot set it; the proxy would need a DB query per request).
+- **`docs/NOW.md`** now lists the security fixes and tenant management in "Shipped since" and points to the RUNBOOK.
+
+**Why:** User request, commit 4 of the tenant-management work.
+
+**Files:** `test/platform-db-imports.test.ts` (new), `docs/RUNBOOK.md`, `docs/ROADMAP.md`, `docs/NOW.md`.
+
+**How it connects:** Test-only and docs.
+
+**How to verify:**
+- The guard passes on the current tree. A probe file `src/modules/booking/zz-probe.ts` importing `platformDb` made it fail, naming the file; the probe was then deleted.
+- `npm test`: 74 suites, 543 tests. `npm run test:integration`: 27 suites, 182 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (9 tests).

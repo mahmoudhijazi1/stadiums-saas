@@ -1,33 +1,20 @@
 import { platformDb } from "@/lib/platform-db";
 import { hashPassword } from "@/modules/access/infrastructure/password";
-import { databaseNameFromUrl } from "@/prisma/seed-guard";
+import { askNewPassword, confirmDatabase, type OperatorIo } from "./lib/operator-io";
 
 /**
  * Operator password reset (docs/RUNBOOK.md, "Passwords"). Crosses tenants, so
  * it uses platformDb. The terminal is injected so tests can script answers.
  */
-export const MIN_PASSWORD_LENGTH = 12;
-
-export type SetPasswordIo = {
-  /** One answer. Hidden answers are never echoed. */
-  ask(question: string, options: { hidden: boolean }): Promise<string>;
-  /** Prompts and notes (stderr). */
-  say(line: string): void;
-  /** The result line (stdout). */
-  print(line: string): void;
-};
+export { MIN_PASSWORD_LENGTH } from "@/modules/access/domain/password-policy";
+export type SetPasswordIo = OperatorIo;
 
 export async function setPassword(
   identifier: string,
   databaseUrl: string | undefined,
   io: SetPasswordIo,
 ): Promise<void> {
-  const database = databaseNameFromUrl(databaseUrl);
-  if (!database) throw new Error("DATABASE_URL is missing or has no database name.");
-
-  io.say(`Database: ${database}`);
-  const typed = await io.ask("Type the database name to continue: ", { hidden: false });
-  if (typed.trim() !== database) throw new Error("Refused: the database name does not match.");
+  await confirmDatabase(io, databaseUrl);
 
   const user = await platformDb.user.findUnique({
     where: { identifier },
@@ -35,13 +22,7 @@ export async function setPassword(
   });
   if (!user) throw new Error(`Refused: no user ${identifier}.`);
 
-  const password = await io.ask("New password: ", { hidden: true });
-  const again = await io.ask("Repeat new password: ", { hidden: true });
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`Refused: the password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-  }
-  if (password !== again) throw new Error("Refused: the two passwords do not match.");
-
+  const password = await askNewPassword(io);
   const passwordHash = await hashPassword(password);
   await platformDb.$transaction([
     platformDb.user.update({ where: { id: user.id }, data: { passwordHash } }),

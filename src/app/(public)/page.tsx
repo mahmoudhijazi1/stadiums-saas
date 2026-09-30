@@ -9,6 +9,7 @@ import { PublicHoursSkeleton } from "./skeletons";
 import { PublicHours } from "./hours";
 import { PublicLangToggle } from "./lang-toggle";
 import { Container } from "@/components/ui/container";
+import { UnavailableNotice } from "@/components/unavailable-notice";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
@@ -26,6 +27,8 @@ import { Suspense } from "react";
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
   const locale = await getUiLocale();
+  // The (public) layout already shows the neutral page; never render tenant data here either.
+  if (tenant.suspended) return <UnavailableNotice kind="public" locale={locale} />;
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const now = new Date();

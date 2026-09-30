@@ -34,6 +34,13 @@ model Tenant {
   ledgerEntries       LedgerEntry[]
   expenses            Expense[]
   bookingDueChanges   BookingDueChange[]
+  /// Set by the platform operator (scripts/platform.ts). Null = active. Sessions and
+  /// data are untouched; resume clears both columns (decision 7).
+  suspendedAt         DateTime?
+  /// Operator note only. Never shown to owners or players.
+  suspendedReason     String?
+  subscriptions       Subscription[]
+  platformAuditLogs   PlatformAuditLog[]
 }
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
@@ -394,4 +401,38 @@ model RateLimit {
   count       Int
 
   @@index([windowStart])
+}
+
+/// Platform-only (never through the scoped client). Append-only: a trigger blocks
+/// UPDATE and DELETE. The latest row by createdAt is the current plan. Plan is a
+/// label only: no limits, no pricing (BR-103 partial by decision).
+model Subscription {
+  id         String   @id @default(cuid())
+  tenantId   String
+  plan       String
+  startsAt   DateTime
+  /// Informational: the list flags OVERDUE. Nothing blocks on it (decision 2).
+  paidUntil  DateTime?
+  amountUsd  Decimal? @db.Decimal(12, 2)
+  note       String?
+  /// Actor string as given by the use case ("cli:user@host").
+  recordedBy String
+  createdAt  DateTime @default(now())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+}
+
+/// Platform-only, append-only (trigger blocks UPDATE and DELETE). One row per
+/// mutating platform command, written in the same transaction. Never a password.
+model PlatformAuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  tenantId  String?
+  actor     String
+  detail    Json     @default("{}")
+  createdAt DateTime @default(now())
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, createdAt])
 }

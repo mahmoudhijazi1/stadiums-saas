@@ -5,6 +5,8 @@ import { prismaBase } from "@/lib/prisma-base";
  * Refuses to run unless STADIUMS_INTEGRATION=1 and DATABASE_URL names stadiums_test.
  */
 const TABLES = [
+  "PlatformAuditLog",
+  "Subscription",
   "BookingDueChange",
   "BookingParticipant",
   "SlotInterest",
