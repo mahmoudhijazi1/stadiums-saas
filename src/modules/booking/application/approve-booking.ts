@@ -9,6 +9,7 @@ import {
 } from "@/modules/access/domain/can";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
+  listOverlappingPending,
   rejectOverlappingPending,
   type AutoRejectedPerson,
 } from "@/modules/booking/application/reject-overlapping-pending";
@@ -17,6 +18,7 @@ import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
   findBookingForDecision,
   listApprovedRanges,
+  lockPendingRowsInOrder,
   lockPitchForUpdate,
   setPendingStatus,
   type ApprovedRangeRow,
@@ -92,6 +94,18 @@ export async function approveBooking(
         occupied: approved.map((row) => ({ start: row.start, end: row.end })),
         allowStarted: deps.allowStarted === true,
       });
+
+      // Lock this request and its overlapping siblings in id order before changing any
+      // of them, the same order dismissMissedRequests uses (no deadlock). A dismiss
+      // that got there first has already rejected it.
+      const siblings = await listOverlappingPending(tx, booking);
+      const stillPending = await lockPendingRowsInOrder(tx, [
+        booking.id,
+        ...siblings.map((row) => row.id),
+      ]);
+      if (!stillPending.has(booking.id)) {
+        throw new DomainError("booking.no_longer_pending");
+      }
 
       await setPendingStatus(tx, booking.id, "APPROVED");
 

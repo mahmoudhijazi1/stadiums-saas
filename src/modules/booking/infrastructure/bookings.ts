@@ -495,6 +495,29 @@ export async function listApprovedRanges(
 }
 
 /**
+ * Lock these booking rows in one fixed order (by id) and return the ones still
+ * PENDING. Every path that decides several pending rows ("They played", approve,
+ * owner-create siblings, dismiss missed) locks through here first, so two of them can
+ * never hold rows in opposite orders (audit: dismiss vs They played).
+ */
+export async function lockPendingRowsInOrder(
+  tx: TenantTx,
+  bookingIds: string[],
+): Promise<Set<string>> {
+  if (bookingIds.length === 0) return new Set();
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ id: string; status: string }[]>`
+    SELECT id, status::text AS status
+    FROM "Booking"
+    WHERE "tenantId" = ${tenantId}
+      AND id IN (${Prisma.join(bookingIds)})
+    ORDER BY id
+    FOR UPDATE
+  `;
+  return new Set(rows.filter((row) => row.status === "PENDING").map((row) => row.id));
+}
+
+/**
  * PENDING → APPROVED or REJECTED. 0 rows means gone or already decided.
  */
 export async function setPendingStatus(

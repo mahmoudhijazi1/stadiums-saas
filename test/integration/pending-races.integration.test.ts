@@ -1,7 +1,15 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
+import Decimal from "decimal.js";
+import db from "@/lib/db";
 import { platformDb } from "@/lib/platform-db";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
+import { dismissMissedRequests } from "@/modules/booking/application/dismiss-missed-requests";
 import { requestPublicSlot } from "@/modules/booking/application/request-public-slot";
+import {
+  insertPendingPublicBooking,
+  insertRequesterParticipant,
+} from "@/modules/booking/infrastructure/bookings";
+import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import {
   addCalendarDays,
   civilDateInTimeZone,
@@ -24,6 +32,12 @@ const RUNS = 10;
 let fixture: TestFixture;
 let phoneSeq = 0;
 
+// One teardown for the file: finishIntegrationFile ends the pool.
+afterAll(async () => {
+  await truncateAll();
+  await finishIntegrationFile();
+});
+
 describe("public request vs approve", () => {
   beforeEach(async () => {
     await truncateAll();
@@ -31,11 +45,6 @@ describe("public request vs approve", () => {
     fixture = await seedMinimalFixture();
     setTenantSlug(fixture.tenantSlug);
     setSessionCookie(fixture.sessionId);
-  });
-
-  afterAll(async () => {
-    await truncateAll();
-    await finishIntegrationFile();
   });
 
   it("never strands a PENDING on an approved hour, and the late requester is an interest", async () => {
@@ -82,6 +91,65 @@ describe("public request vs approve", () => {
     expect(await platformDb.slotInterest.count({ where: { personId: person.id } })).toBe(1);
   });
 });
+
+describe("dismiss missed vs They played", () => {
+  beforeEach(async () => {
+    await truncateAll();
+    clearRequestStubs();
+    fixture = await seedMinimalFixture();
+    setTenantSlug(fixture.tenantSlug);
+    setSessionCookie(fixture.sessionId);
+  });
+
+  it("locks the pending rows in one order: no deadlock, both calls finish cleanly", async () => {
+    for (let i = 0; i < RUNS; i += 1) {
+      // Three missed requests on one past hour. "They played" approves the middle one
+      // while "Dismiss all" rejects every missed request. Before the fix, approve locked
+      // the middle row first and dismiss the first row first: a deadlock (P2034).
+      const slot = await slotOn(-2 - i, 0);
+      const ids: string[] = [];
+      for (let n = 0; n < 3; n += 1) ids.push(await missedRequest(slot));
+      const played = ids[1]!;
+
+      const results = await Promise.allSettled([
+        approveBooking(played, { allowStarted: true }),
+        dismissMissedRequests(),
+      ]);
+      const [approve, dismiss] = outcomes(results);
+      expect(JSON.stringify(results)).not.toContain("P2034");
+      expect(dismiss).toBe("ok");
+      // Approve first: it wins and rejects the other two. Dismiss first: all three are
+      // rejected and approve reports the request is no longer pending.
+      expect(["ok", "booking.no_longer_pending"]).toContain(approve);
+
+      const statuses = await platformDb.booking.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, status: true },
+      });
+      expect(statuses.filter((row) => row.status === "PENDING")).toEqual([]);
+      const approved = statuses.filter((row) => row.status === "APPROVED");
+      expect(approved.map((row) => row.id)).toEqual(approve === "ok" ? [played] : []);
+    }
+  }, 60_000);
+});
+
+async function missedRequest(slot: { start: Date; end: Date }): Promise<string> {
+  return db.$transaction(async (tx) => {
+    const person = await findOrCreatePerson(tx, { name: "فائت", phone: nextPhone() });
+    const bookingId = await insertPendingPublicBooking(tx, {
+      pitchId: fixture.pitchId,
+      start: slot.start,
+      end: slot.end,
+      priceUsd: new Decimal("30.00"),
+    });
+    await insertRequesterParticipant(tx, {
+      bookingId,
+      personId: person.id,
+      amountDueUsd: new Decimal("30.00"),
+    });
+    return bookingId;
+  });
+}
 
 function outcomes(results: PromiseSettledResult<unknown>[]): string[] {
   return results.map((result) =>

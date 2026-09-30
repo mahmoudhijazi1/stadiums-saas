@@ -4409,3 +4409,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** No schema change. Public requests on different pitches do not wait on each other; requests on one pitch now serialize with approvals on that pitch. The slot validity check (offered, not started, price) is unchanged and still runs before the person is created.
 
 **How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (10 suites, 70 tests), `npm run build`. Race: a public request against an approve of another request on the same hour, ten times. Every run ends with no PENDING overlapping an APPROVED window, and the late requester has exactly one interest. Sequential: a request for an approved hour, sent twice, gives `booking.slot_taken` twice, no PENDING, one interest. Both fail without the change.
+
+## Dismiss missed and "They played" lock pending rows in one order
+
+**When:** 2026-09-30
+
+**What:** Follow-up to the lock-order note in "Booking row lock on every money path".
+- New `lockPendingRowsInOrder(tx, ids)`: `SELECT … FOR UPDATE` on those booking rows `ORDER BY id`. It returns the ones still PENDING.
+- `dismissMissedRequests` locks every missed row through it, then rejects only the rows still PENDING, in id order.
+- `approveBooking` (including "They played") locks the request and its overlapping PENDING siblings through it before changing any of them. If a dismiss already rejected the request, it throws `booking.no_longer_pending` instead of `booking.not_found`.
+- `rejectOverlappingPending` (approve and owner-create) locks the losers the same way and skips any a dismiss already rejected. `listOverlappingPending` is split out so approve can lock target and siblings together.
+
+**Why:** The two paths updated overlapping PENDING rows in different orders: approve did the target first, dismiss followed list order. That is a deadlock waiting to happen (Postgres aborts one side, P2034). In practice the race showed a lost update: with three missed requests on one hour, "They played" racing "Dismiss all" failed with a misleading `booking.not_found` in 10/10 runs, because dismiss had already rejected its row. No deadlock was observed in those runs; the fixed lock order removes both.
+
+**Lock order now:** pitch row (approve, owner-create, public request, cancel, no-show), then booking rows. Several pending rows are always locked in id order; a single booking row is locked alone (collect, adjust, slot pay, switches). Dismiss takes no pitch lock and locks only PENDING rows in id order, so it cannot form a cycle with approve.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/approve-booking.ts`, `src/modules/booking/application/reject-overlapping-pending.ts`, `src/modules/booking/application/dismiss-missed-requests.ts`, `test/integration/pending-races.integration.test.ts`.
+
+**How it connects:** No schema change. Owner-create keeps its pitch lock; its sibling rejection now also locks in id order.
+
+**How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (10 suites, 71 tests), `npm run build`. Race: three missed requests on one past hour, "They played" on the middle one against "Dismiss all", ten times. There is no P2034, dismiss always succeeds, and approve either succeeds or reports `booking.no_longer_pending`. No PENDING row is left, and at most the played request is APPROVED. Fails without the change (`booking.not_found`).
