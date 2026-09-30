@@ -4389,3 +4389,23 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Booking domain imports only Venue's civil-date helpers (downward). Venue does not import Booking. `app/` calls `night-hint` for display. No schema change, no new index.
 
 **How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (9 suites, 68 tests), `npm run build`. Unit: `businessDate` table for 23:59 / 00:00 / 00:30 / 05:59 / 06:00 / 06:01, spring forward 2026-03-29 (06:00 EEST is the new day, which "minus 6h" would get wrong) and fall back 2026-10-24 (both 23:30s, 00:00 and 05:59 on Saturday, 06:00 on Sunday), 23-hour and 25-hour ranges; night hint present at 00:30, absent at 06:00 and 23:00. Integration: 00:00 via owner-create and 01:00 via public request + approve on Friday's Today and summary and not Saturday's (confirm message has Saturday's date and "ليلة الجمعة"); 05:59 on the previous day, 06:00 on its own; Today at 05:00 opens Friday with `afterMidnight`, at 06:00 opens Saturday; DST fall-back night on one day. With the source reverted, four of these fail.
+
+## No stranded PENDING on a taken hour
+
+**When:** 2026-09-30
+
+**What:** Audit §1.2, punch list #7.
+- `requestPublicSlot` takes the pitch lock first (`lockPitchForUpdate`, same as approve and owner-create), then checks APPROVED overlap after the lock.
+- A taken hour creates no PENDING row. The person is recorded as a `SlotInterest` on the approved booking's window (the BR-21 convention approve uses, so they show up if that booking is cancelled), with no duplicate if they ask again. The transaction commits the interest, then the use case throws `booking.slot_taken`.
+- The public action shows `booking.slot_taken_noted`: "هذه الساعة حُجزت. سجّلنا اهتمامك وسنبلغك إذا صارت متاحة." / "That hour was just booked. We noted your interest and will tell you if it frees up." The copy lives in the error catalog (`error-messages.ts`, DR-004), because the public toast renders `errorMessage`; `booking.slot_taken` itself keeps its short copy for the owner screens.
+- New `hasSlotInterest` repository read.
+
+**Why:** Without the lock, a request that read "no APPROVED range" could commit after an approve had already rejected the siblings, leaving a PENDING row on a taken hour (audit probe R10: 10/10). The requester never got an interest.
+
+**Lock order:** request now takes pitch, then inserts booking rows, the same order as approve and owner-create. No use case takes a booking lock and then a pitch lock, so there is still no cycle.
+
+**Files:** `src/modules/booking/application/request-public-slot.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/(public)/request-slot.ts`, `src/lib/error-messages.ts`, `test/integration/pending-races.integration.test.ts` (new).
+
+**How it connects:** No schema change. Public requests on different pitches do not wait on each other; requests on one pitch now serialize with approvals on that pitch. The slot validity check (offered, not started, price) is unchanged and still runs before the person is created.
+
+**How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (10 suites, 70 tests), `npm run build`. Race: a public request against an approve of another request on the same hour, ten times. Every run ends with no PENDING overlapping an APPROVED window, and the late requester has exactly one interest. Sequential: a request for an approved hour, sent twice, gives `booking.slot_taken` twice, no PENDING, one interest. Both fail without the change.

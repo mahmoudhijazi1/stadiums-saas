@@ -29,6 +29,8 @@ export async function submitPublicSlotRequest(formData: FormData) {
     await requestPublicSlot(parsed);
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitPublicSlotRequest");
+    // A taken hour was recorded as interest: say so, not just "taken".
+    if (errorKey === "booking.slot_taken") errorKey = "booking.slot_taken_noted";
   }
 
   const next = new URLSearchParams();

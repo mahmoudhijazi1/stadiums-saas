@@ -630,6 +630,23 @@ export async function insertSlotInterest(
   `;
 }
 
+/** Does this person already wait on exactly this window? (avoid a duplicate interest) */
+export async function hasSlotInterest(
+  tx: TenantTx,
+  input: { pitchId: string; start: Date; end: Date; personId: string },
+): Promise<boolean> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "SlotInterest"
+    WHERE "tenantId" = ${tenantId}
+      AND "pitchId" = ${input.pitchId}
+      AND "personId" = ${input.personId}
+      AND during = tstzrange(${input.start}, ${input.end}, '[)')
+    LIMIT 1
+  `;
+  return rows.length > 0;
+}
+
 export type SlotInterestPersonRow = {
   pitchId: string;
   pitchName: string;
