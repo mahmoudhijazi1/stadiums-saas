@@ -10,6 +10,7 @@ import {
 } from "../modules/venue/schemas/schedule-config";
 import { logger } from "../lib/logger";
 import { hashPassword } from "../modules/access/infrastructure/password";
+import { assertSeedAllowed } from "./seed-guard";
 
 /**
  * Seed crosses tenants, so it must use an UNSCOPED client (same idea as platformDb).
@@ -17,6 +18,9 @@ import { hashPassword } from "../modules/access/infrastructure/password";
  * Parse schedule_config with Zod before every write (DR-002 §2.4).
  * Local login password is LOCAL_DEV_PASSWORD below — not used in app/ (SPEC-04 step 7).
  */
+// Refuse before any connection or write (security audit S-1).
+assertSeedAllowed({ nodeEnv: process.env.NODE_ENV, databaseUrl: process.env.DATABASE_URL });
+
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const platformDb = new PrismaClient({ adapter: new PrismaPg(pool) });
 

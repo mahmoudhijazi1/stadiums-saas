@@ -35,6 +35,7 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no group pa
 | Docs catalog (all DRs/SPECs/guides) | [README.md](./README.md) |
 | Launch gaps / ordered backlog | [guides/mvp-readiness-audit.md](./guides/mvp-readiness-audit.md) (dated; read the banner) |
 | Known open logic items (not product slices) | [ROADMAP.md](./ROADMAP.md), details in [audits/logic-findings.md](./audits/logic-findings.md) |
+| Security audit (findings, server checklist) | [audits/security-audit.md](./audits/security-audit.md); open items in [ROADMAP.md](./ROADMAP.md) from #5 |
 
 ## What’s next
 

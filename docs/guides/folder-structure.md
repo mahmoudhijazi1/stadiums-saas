@@ -88,7 +88,7 @@ src/
     # No lib/auth.ts — sessions + can() live in modules/access/
     # No lib/i18n.ts — dictionaries are the files above (no next-intl yet)
 
-  prisma/                       ← schema.prisma, migrations/, seed.ts
+  prisma/                       ← schema.prisma, migrations/, seed.ts, seed-guard.ts (refuses production and any DB but stadiums_dev / stadiums_test)
 ```
 
 Also at repo root (not under `src/`): `docs/`, `test/` (Jest unit + `test/integration/`), `docker-compose.yml`, `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`.

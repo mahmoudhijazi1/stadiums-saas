@@ -72,3 +72,9 @@ WHERE b.status = 'NO_SHOW' AND d.reason = 'CANCELLATION_NO_FEE';
 - Delete the unused import.
 
 This is UI-only; no domain change.
+
+---
+
+## Security findings (added 2026-09-30)
+
+The full-application security audit is in [security-audit.md](./security-audit.md). Its open items are tracked there, not duplicated here; [ROADMAP.md](../ROADMAP.md) lists them from item 5 on. F-1 to F-4 above were re-checked against the code during that audit and still hold as written: the F-4 lint lines are unchanged on `audit/security`.
