@@ -4801,3 +4801,216 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm run build && npm run test:e2e`: 2 tests pass.
 - The test passed on its first run, because the flags were already correct. As a check that it catches a regression, adding `domain: "lebstads.test"` to the cookie options and rebuilding made both tests fail; the change was then reverted.
 - `npm test`: 67 suites, 477 tests. `npm run test:integration`: 18 suites, 123 tests. `npm run build` is green.
+
+## Rolling session: end-to-end test
+
+**When:** 2026-09-30
+
+**What:** New `test/integration/rolling-session.integration.test.ts`. It fakes only `Date` and models a browser cookie jar: `Max-Age` from the time a cookie is set, and expired cookies are dropped. Each page view runs the real `proxy` (the cookie renewal) and then `getCurrentMembership` (the DB renewal).
+- A session used on day 25 is still valid on day 50.
+- A session unused for 31 days is rejected: the browser has dropped the cookie, and a client that kept it is refused by the DB expiry.
+- The cookie expiry and the DB expiry stay within one day of each other at every use (days 0, 0.5, 1, 2, 10, 25, 25.9, 26, 49).
+
+**Result:** no mismatch between the DB expiry and the cookie refresh. The first run reported a 23-day gap, but that was the test reading the fixture's own 7-day session. It now looks the row up by the jar token's hash.
+
+**Why:** User request, before the public-surface fixes.
+
+**Files:** `test/integration/rolling-session.integration.test.ts` (new).
+
+**How it connects:** Test-only. It imports `src/proxy.ts` and the access use cases.
+
+**How to verify:** `npm run test:integration` (19 suites, 126 tests), `npm test` (67 suites, 477 tests), `npm run build`.
+
+## Person names: invisible characters stripped, public name capped at 60
+
+**When:** 2026-09-30
+
+**What:** Security audit S-5 (unbounded name) and S-14 (bidi spoofing).
+- **`cleanPersonName`** (`people/domain/clean-person-name.ts`) is the shared cleaner. `createPerson` uses it for every Person name, from both the public request and the owner's form. It:
+  - strips the bidi controls U+061C, U+200E, U+200F, U+202A–202E and U+2066–2069;
+  - strips U+200B, U+FEFF and the C0/C1 control characters;
+  - turns tabs and newlines into one space;
+  - keeps ZWJ and ZWNJ, which Arabic-script names need.
+- **Public request schema:** the name is cleaned first, then must be 1–60 characters (`PUBLIC_NAME_MAX`). A name made only of invisible characters is refused. The phone still goes through the existing `normalizePhone` (8–15 digits).
+- **The shared slot-picker name input** has `maxLength={60}`.
+
+**Why:** [security-audit.md S-5](./audits/security-audit.md#s-5-public-requests-can-be-flooded-and-names-are-unbounded), [S-14](./audits/security-audit.md#s-14-names-accept-bidi-overrides-and-control-characters).
+
+**Files:** `src/modules/people/domain/clean-person-name.ts`, `src/modules/booking/schemas/public-slot-request.ts`, `src/components/slot-picker.tsx`, `test/modules/people/domain/clean-person-name.test.ts`, `test/modules/booking/schemas/public-slot-request.test.ts`.
+
+**How it connects:** The booking schema imports the people domain cleaner (downward). `searchName` is still `normalizeName` of the cleaned name.
+
+**How to verify:**
+- The tests were written first; 5 failed.
+- `npm test`: 67 suites, 485 tests.
+- `npm run test:integration`: 19 suites, 126 tests.
+- `npm run build` is green.
+
+## Public requests: per-phone and per-IP limits, pending cap
+
+**When:** 2026-09-30
+
+**What:** Security audit S-5.
+- **Per phone:** 5 requests per phone per stadium per hour. Requests for a taken hour count too.
+- **Per IP:** 60 requests per IP per hour across all stadiums, only when `TRUSTED_CLIENT_IP_HEADER` is set.
+- **Where the counters run:** both use the Postgres `RateLimit` counters from the login work, and are hit in `requestPublicSlot` before the tenant transaction (platform tables, one-pool rule).
+- **Pending cap:** inside the transaction, after the pitch lock, a phone may have at most 3 **future** PENDING requests at one stadium (`countFuturePendingForRequester`: requester participant, `lower(during) > now`). Old missed requests do not count, and a Person created by the refused request is rolled back.
+- **One answer for every limit:** `booking.request_limit`, "No more requests can be sent right now. Try again later or call the stadium." / "لا يمكن إرسال طلبات أخرى الآن. حاول لاحقاً أو اتصل بالملعب.". It does not say which limit was hit, so a phone typed by someone else reveals nothing about its owner's requests.
+- **SlotInterest dedupe per person and window:** already in place (`hasSlotInterest`, checked under the pitch `FOR UPDATE` lock). It is now pinned by a test: 5 requests for the same taken hour leave one interest.
+
+**Why:** [security-audit.md S-5](./audits/security-audit.md#s-5-public-requests-can-be-flooded-and-names-are-unbounded). The user asked for generic messages that reveal nothing about other people's data.
+
+**Files:** `src/modules/booking/domain/public-request-limits.ts` (new), `src/modules/booking/application/request-public-slot.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/lib/error-messages.ts`, `test/integration/public-limits.integration.test.ts` (new).
+
+**How it connects:** Booking imports `lib/rate-limit` and `lib/client-ip` (downward). The new raw SQL filters by the ALS tenant, like its neighbours.
+
+**How to verify:**
+- The tests were written first; 5 of 7 failed. The 2 that passed pin existing behaviour: no IP limit without the setting, and a decided request freeing a place.
+- `npm run test:integration`: 20 suites, 133 tests.
+- `npm test`: 67 suites, 485 tests.
+- `npm run build` is green.
+
+## Request card: the typed name when it differs from the saved one
+
+**When:** 2026-09-30
+
+**What:** Security audit S-6. A public request under a known phone is filed under that Person, and the saved name is never overwritten. The owner now also sees what the requester typed.
+- **Schema:** new nullable `Booking.requestedName` (TEXT, no default). Migration `20260930140000_booking_requested_name` only adds the column, so it is safe while the old code is still running. The user approved this before migrating: Booking only, no change to SlotInterest or Person.
+- **Write:** `requestPublicSlot` writes the cleaned typed name only when its `normalizeName` fold (the same as `searchName`) differs from the saved Person name's fold. أحمد/احمد/إحمد, tashkeel, letter case and spacing never count as different. The column stays NULL for a new phone, for matching names and for owner-created bookings.
+- **Read:** `listPendingBookings` returns `requestedName`.
+- **Card:** the new `RequestedNameNotice` shows `ui("owner.requestedNameDiffers")` ("الاسم يختلف عن المسجّل:" / "Name differs from the saved one:") followed by the name in `<bdi>`. It appears under the saved name on both the pending and the missed request cards, and only when the value is not null.
+
+**Why:** [security-audit.md S-6](./audits/security-audit.md#s-6-anyone-can-file-a-public-request-under-someone-elses-phone).
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20260930140000_booking_requested_name/migration.sql` (new), `src/modules/booking/application/request-public-slot.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/owner/requested-name-notice.tsx` (new), `src/app/owner/pending-list.tsx`, `src/lib/ui-copy.ts`, `test/integration/requested-name.integration.test.ts` (new), `test/app/owner/requested-name-notice.test.ts` (new).
+
+**How it connects:** Booking imports the people domain `cleanPersonName` and `normalizeName` (downward). The migration was written by hand; `prisma migrate diff` from `stadiums_test` shows no drift for the column.
+
+**How to verify:**
+- The tests were written first. The unit test failed (module not found) and all 4 integration tests failed.
+- The integration tests cover: NULL for a new phone; NULL for other Arabic spellings, case and spacing; a different name stored cleaned while the saved name stays; NULL for an owner-created booking.
+- The unit test covers: nothing rendered for NULL; the Arabic warning with a `<bdi>` name; the English copy.
+- `npm test`: 68 suites, 488 tests. `npm run test:integration`: 21 suites, 137 tests. `npm run build` is green.
+
+## Page list queries bounded
+
+**When:** 2026-09-30
+
+**What:** Security audit S-8. Every infrastructure list query was listed and checked for a limit.
+- **Capped:**
+  1. `listPendingInbox`, new, used by `listPendingRequests` (Requests inbox, Today, owner layout): the next 200 upcoming PENDING plus the 50 most recent missed, still in start order. `listPendingBookings` stays uncapped **on purpose**: approve (`rejectOverlappingPending`) and dismiss-missed must see every row. A test approves one of 260 same-slot requests, and all 259 others are rejected.
+  2. `listApprovedRanges`: bounded by time, not rows. Only APPROVED windows ending after now − 24 h. Its callers are the public page, the Book page, the public request and owner-create overlap checks, and the waitlist, and all of them only look at slots that have not ended. A row cap could have dropped a future booking from an overlap check.
+  3. `listSlotInterestsWithPeople` (waitlist, decision notify): windows ending after now − 24 h, at most 500.
+- **Already capped:** `searchPersons` (20), `listRecentExpenses`, `listEndedWithRemaining`, `listPersonBookingRows`, `listDebtParticipations`.
+- **Left as they are:**
+  - bounded by their input or a day: `listBookingsForStartDay` (one business day), `listSlotsForBookings` and `sumCollectedUsdBySourceIds` (given ids), `listPersonStatRows` (aggregate for one person), `listLiveWindowsOnPitch` (future bookings of one pitch, a conflict check that must be complete);
+  - owner-created and small: `listPitches`;
+  - single-row lookups and locks.
+
+**Why:** [security-audit.md S-8](./audits/security-audit.md#s-8-unbounded-queries-on-hot-paths).
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/list-pending-requests.ts`, `test/integration/list-caps.integration.test.ts` (new).
+
+**How it connects:** Booking infrastructure only. Every new SQL statement filters by the ALS tenant, including the CTE's join back to Booking.
+
+**How to verify:**
+- The tests were written first; 3 of 4 failed. The approve test passed, as the guard it is meant to be.
+- `npm run test:integration`: 22 suites, 141 tests.
+- `npm test`: 68 suites, 488 tests.
+- `npm run build` is green.
+
+## Hosts: strict allowlist, tenant from the validated Host only
+
+**When:** 2026-09-30
+
+**What:** Security audit S-9, S-10 and S-11.
+- **Resolver:** `src/lib/tenant-slug.ts` has a new pure resolver, `classifyHost` / `resolveTenantHost` / `resolveTenantFromHeaders`.
+  - Valid hosts are the bare `APP_BASE_DOMAIN` (the apex, no tenant) or a single-label subdomain of it, case- and port-insensitive, with a trailing dot allowed.
+  - Anything else is invalid: another domain, a deeper subdomain, a bad label, or a missing base (fails closed).
+  - `X-Forwarded-Host` (its last entry) is used only with `TRUST_PROXY_HEADERS=true`.
+  - The old Origin/Referer fallback for the `next dev` redirect issue now runs only outside production, only from the bare domain, and only to a host that is itself a valid tenant host.
+- **`src/proxy.ts`:** an invalid host gets a 404 before any tenant lookup, and the proxy always forwards the request headers with `x-tenant-slug` removed.
+- **`tenant-context.loadTenant`** resolves the slug from the same validated Host and **never reads `x-tenant-slug`**. This also closes the image-extension paths the proxy matcher skips.
+- **`manifest.ts`** uses the same resolver.
+- **Tests:** integration stubs now set `Host: <slug>.lebstads.test` (`setup-env` sets `APP_BASE_DOMAIN=lebstads.test`), and the e2e server gets the same base.
+- **Docs:** README, folder-structure, owner-ia, the module map and the tenant-guard guide no longer mention `?tenant=` or `x-tenant-slug`. `.env.example` and `docs/RUNBOOK.md` ("Hosts") cover `TRUST_PROXY_HEADERS` and the nginx `Host` line.
+
+**Why:** [security-audit.md S-9](./audits/security-audit.md#s-9-spoofed-x-tenant-slug-is-believed-on-image-extension-paths), [S-10](./audits/security-audit.md#s-10-any-base-domain-is-accepted), [S-11](./audits/security-audit.md#s-11-x-forwarded-host-is-trusted-when-host-is-localhost).
+
+**Files:** `src/lib/tenant-slug.ts`, `src/lib/tenant-context.ts`, `src/proxy.ts`, `src/app/manifest.ts`, `test/lib/tenant-slug.test.ts`, `test/proxy.test.ts`, `test/integration/host-tenant.integration.test.ts` (new), `test/integration/request-stubs.ts`, `test/integration/setup-env.ts`, `test/e2e/login-cookie.e2e.test.ts`, `.env.example`, `README.md`, `docs/RUNBOOK.md`, `docs/owner-ia.md`, `docs/guides/folder-structure.md`, `docs/guides/module-map-and-request-walkthroughs.md`, `docs/guides/prisma-transaction-tenant-guard.md`.
+
+**How it connects:** `lib` only; the proxy still never queries Postgres.
+
+**How to verify:**
+- The tests were written first; 10 unit/proxy tests and 3 integration tests failed.
+- `npm test`: 68 suites, 490 tests.
+- `npm run test:integration`: 23 suites, 145 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (2 tests).
+
+## Security headers from next.config; CSP Report-Only
+
+**When:** 2026-09-30
+
+**What:** Security audit S-7 and S-13.
+- **Headers on every route** (`/:path*`) via `next.config.ts` `headers()`:
+  - `X-Content-Type-Options: nosniff`;
+  - `Referrer-Policy: strict-origin-when-cross-origin`;
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`;
+  - `X-Frame-Options: DENY`.
+- **`poweredByHeader: false`.**
+- **No HSTS:** nginx sets it.
+- **CSP decision:** shipped as **`Content-Security-Policy-Report-Only`** with the local guide's "Without Nonces" policy. On top of the guide's policy it adds `connect-src`, `manifest-src` and `worker-src 'self'`, and it drops `upgrade-insecure-requests`, which has no effect in Report-Only.
+  - Report-Only cannot block scripts, the service worker or the manifest, so the PWA is unaffected.
+  - Fonts come from `next/font` (self-hosted), so `font-src 'self'` holds.
+  - There is no report endpoint; violations show in the browser console.
+  - Enforcing needs per-request nonces, which stay deferred by decision.
+
+**Why:** [security-audit.md S-7](./audits/security-audit.md#s-7-no-security-headers), [S-13](./audits/security-audit.md#s-13-x-powered-by-nextjs).
+
+**Files:** `next.config.ts`, `test/next-config.test.ts` (new), `test/e2e/login-cookie.e2e.test.ts`.
+
+**How it connects:** Config only.
+
+**How to verify:**
+- The tests were written first; 3 of 4 unit tests failed.
+- The e2e test now also checks a real production response: the headers are present, there is no `X-Powered-By` and no HSTS, and a foreign host gets 404.
+- `npm test`: 69 suites, 494 tests. `npm run test:integration`: 23 suites, 145 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (4 tests).
+
+## Startup env validation
+
+**When:** 2026-09-30
+
+**What:** Security audit S-18.
+- **Schema:** `src/lib/env.ts` validates the environment with Zod.
+  - Required: `DATABASE_URL` (postgres URL), `APP_BASE_DOMAIN` (host with an optional `:port`), `APP_PROTOCOL` (`http` or `https`).
+  - Optional: `PASSWORD_HASH_COST` (14–20), `TRUSTED_CLIENT_IP_HEADER` (a header name), `TRUST_PROXY_HEADERS` (`true` or `false`), `PG_POOL_MAX` (a positive integer).
+  - Errors name the variable and never print its value (`DATABASE_URL` holds the password). There is no session secret, by the user's decision: tokens are random and stored hashed.
+- **Startup:** the new `src/instrumentation.ts` `register()` runs it once at server start under `NEXT_RUNTIME=nodejs`. `next build` never runs it, so CI builds need no production env.
+  - **Found while testing:** a throw in `register()` only logs "Failed to prepare server", and `next start` keeps running. So `enforceEnvAtStartup` exits the process in production. Outside production it only warns.
+  - The exit lives in `env.ts`, which is imported only under the Node runtime, so the Edge-runtime build warning is gone.
+- **`.env.example`** is synced: a header naming the required set, and `PG_POOL_MAX` added. `docs/RUNBOOK.md` gains an "Environment" section.
+
+**Why:** [security-audit.md S-18](./audits/security-audit.md#s-18-no-env-validation-at-startup).
+
+**Files:** `src/lib/env.ts` (new), `src/instrumentation.ts` (new), `test/lib/env.test.ts` (new), `test/e2e/login-cookie.e2e.test.ts`, `.env.example`, `docs/RUNBOOK.md`.
+
+**How it connects:** `lib` only. The e2e server now gets `APP_PROTOCOL=http` as well.
+
+**How to verify:**
+- The unit test was written first and failed (module not found).
+- The e2e test `next start` with `NODE_ENV=production` and a malformed `APP_BASE_DOMAIN` now exits with a non-zero code and names the variable. Before the exit was added, the process kept running and the test failed.
+- `npm test`: 70 suites, 501 tests. `npm run test:integration`: 23 suites, 145 tests.
+- `npm run build` is green with no warnings, and `npm run test:e2e` passes (5 tests).
+
+## Security audit: status of every finding
+
+**When:** 2026-09-30
+
+**What:** Appended "Addendum: status of every finding after the security fixes" to `docs/audits/security-audit.md`. It gives S-1 to S-21 and RLS a status (fixed, partly fixed, deferred or open), with the commits and the reason. The audit body is unchanged. `docs/ROADMAP.md` items 6–12 now carry their fix commits or deferral.
+
+**Deferred by decision:** RLS, an enforced nonce-based CSP, and the Low findings outside this round: S-12, S-15, S-17 (global sweep and log rotation), S-20 and S-21. S-19 stays open by design (DR-003).
+
+**Files:** `docs/audits/security-audit.md`, `docs/ROADMAP.md`.
+
+**How to verify:** Docs only. Every commit in the table is on `main` (PRs #7–#9) or on `fix/public-surface`.

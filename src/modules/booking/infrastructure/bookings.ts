@@ -21,7 +21,13 @@ type BookingInsertSource = "PUBLIC" | "OWNER";
  */
 async function insertBookingDuring(
   tx: TenantTx,
-  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+  input: {
+    pitchId: string;
+    start: Date;
+    end: Date;
+    priceUsd: Decimal;
+    requestedName?: string | null;
+  },
   status: BookingInsertStatus,
   source: BookingInsertSource,
 ): Promise<string> {
@@ -32,7 +38,7 @@ async function insertBookingDuring(
   await tx.$executeRaw`
     INSERT INTO "Booking" (
       "id", "tenantId", "pitchId", "during", "status", "source",
-      "priceUsd", "amountDueUsd", "collectionMode"
+      "priceUsd", "amountDueUsd", "collectionMode", "requestedName"
     )
     VALUES (
       ${id},
@@ -43,7 +49,8 @@ async function insertBookingDuring(
       ${source}::"BookingSource",
       ${price}::decimal,
       ${price}::decimal,
-      'WHOLE'::"CollectionMode"
+      'WHOLE'::"CollectionMode",
+      ${input.requestedName ?? null}
     )
   `;
 
@@ -57,7 +64,14 @@ async function insertBookingDuring(
  */
 export async function insertPendingPublicBooking(
   tx: TenantTx,
-  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+  input: {
+    pitchId: string;
+    start: Date;
+    end: Date;
+    priceUsd: Decimal;
+    /** Typed name when it differs from the stored Person name (S-6), else null. */
+    requestedName?: string | null;
+  },
 ): Promise<string> {
   return insertBookingDuring(tx, input, "PENDING", "PUBLIC");
 }
@@ -124,6 +138,8 @@ export type PendingBookingRow = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
+  /** Name typed on the request when it differs from requesterName (S-6). */
+  requestedName: string | null;
 };
 
 type PendingSqlRow = {
@@ -136,6 +152,7 @@ type PendingSqlRow = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
+  requestedName: string | null;
 };
 
 /**
@@ -157,7 +174,8 @@ export async function listPendingBookings(
       b."requestedAt",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
-      per.phone AS "requesterPhone"
+      per.phone AS "requesterPhone",
+      b."requestedName"
     FROM "Booking" b
     JOIN "Pitch" p ON p.id = b."pitchId"
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
@@ -167,7 +185,11 @@ export async function listPendingBookings(
     ORDER BY lower(b.during) ASC, b."requestedAt" ASC
   `;
 
-  return rows.map((row) => ({
+  return rows.map(mapPendingRow);
+}
+
+function mapPendingRow(row: PendingSqlRow): PendingBookingRow {
+  return {
     id: row.id,
     pitchId: row.pitchId,
     pitchName: row.pitchName,
@@ -177,7 +199,59 @@ export async function listPendingBookings(
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
-  }));
+    requestedName: row.requestedName,
+  };
+}
+
+/** Page caps (security audit S-8). Decision paths use listPendingBookings (all rows). */
+export const PENDING_INBOX_UPCOMING_MAX = 200;
+export const PENDING_INBOX_MISSED_MAX = 50;
+
+/**
+ * The Requests inbox: the next 200 upcoming PENDING plus the 50 latest missed
+ * ones, in start order. Approve and dismiss must see every row, so they keep
+ * listPendingBookings.
+ */
+export async function listPendingInbox(
+  tx: TenantTx,
+  now: Date,
+): Promise<PendingBookingRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<PendingSqlRow[]>`
+    WITH picked AS (
+      (SELECT b.id FROM "Booking" b
+        WHERE b."tenantId" = ${tenantId}
+          AND b.status = 'PENDING'::"BookingStatus"
+          AND lower(b.during) > ${now}
+        ORDER BY lower(b.during) ASC, b."requestedAt" ASC
+        LIMIT ${PENDING_INBOX_UPCOMING_MAX})
+      UNION ALL
+      (SELECT b.id FROM "Booking" b
+        WHERE b."tenantId" = ${tenantId}
+          AND b.status = 'PENDING'::"BookingStatus"
+          AND lower(b.during) <= ${now}
+        ORDER BY lower(b.during) DESC, b."requestedAt" DESC
+        LIMIT ${PENDING_INBOX_MISSED_MAX})
+    )
+    SELECT
+      b.id,
+      b."pitchId",
+      p.name AS "pitchName",
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."requestedAt",
+      per.id AS "requesterPersonId",
+      per.name AS "requesterName",
+      per.phone AS "requesterPhone",
+      b."requestedName"
+    FROM picked
+    JOIN "Booking" b ON b.id = picked.id AND b."tenantId" = ${tenantId}
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
+    JOIN "Person" per ON per.id = bp."personId"
+    ORDER BY lower(b.during) ASC, b."requestedAt" ASC
+  `;
+  return rows.map(mapPendingRow);
 }
 
 /**
@@ -467,11 +541,21 @@ type ApprovedSqlRow = {
 /**
  * APPROVED windows for occupied (SPEC-05). Optional pitch filter.
  */
+/** Occupancy and waitlist windows older than this are never needed (S-8). */
+const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * APPROVED windows ending after now − 24 h (security audit S-8: bounded by
+ * time, not a row cap, so an overlap check never misses a future booking).
+ * Every caller checks a slot that has not ended, or shows occupancy from today on.
+ */
 export async function listApprovedRanges(
   tx: TenantTx,
   pitchId?: string,
+  now: Date = new Date(),
 ): Promise<ApprovedRangeRow[]> {
   const tenantId = await getCurrentTenantId();
+  const since = new Date(now.getTime() - RECENT_WINDOW_MS);
   const rows = pitchId
     ? await tx.$queryRaw<ApprovedSqlRow[]>`
         SELECT "pitchId", lower(during) AS start, upper(during) AS end
@@ -479,12 +563,14 @@ export async function listApprovedRanges(
         WHERE "tenantId" = ${tenantId}
           AND status = 'APPROVED'::"BookingStatus"
           AND "pitchId" = ${pitchId}
+          AND upper(during) > ${since}
       `
     : await tx.$queryRaw<ApprovedSqlRow[]>`
         SELECT "pitchId", lower(during) AS start, upper(during) AS end
         FROM "Booking"
         WHERE "tenantId" = ${tenantId}
           AND status = 'APPROVED'::"BookingStatus"
+          AND upper(during) > ${since}
       `;
 
   return rows.map((row) => ({
@@ -696,10 +782,15 @@ type SlotInterestSqlRow = {
  * Waitlist rows for this tenant (SPEC-11). Raw: during is Unsupported.
  * tenantId in SQL (extension does not stamp $queryRaw). Open/closed is domain.
  */
+export const SLOT_INTEREST_LIST_MAX = 500;
+
+/** Interests on windows ending after now − 24 h, at most 500 (security audit S-8). */
 export async function listSlotInterestsWithPeople(
   tx: TenantTx,
+  now: Date = new Date(),
 ): Promise<SlotInterestPersonRow[]> {
   const tenantId = await getCurrentTenantId();
+  const since = new Date(now.getTime() - RECENT_WINDOW_MS);
   const rows = await tx.$queryRaw<SlotInterestSqlRow[]>`
     SELECT
       si."pitchId",
@@ -714,7 +805,9 @@ export async function listSlotInterestsWithPeople(
     JOIN "Pitch" p ON p.id = si."pitchId"
     JOIN "Person" per ON per.id = si."personId"
     WHERE si."tenantId" = ${tenantId}
+      AND upper(si.during) > ${since}
     ORDER BY lower(si.during) ASC, si."createdAt" ASC
+    LIMIT ${SLOT_INTEREST_LIST_MAX}
   `;
 
   return rows.map((row) => ({
@@ -1396,4 +1489,23 @@ export async function listSlotsForBookings(
     dueUsd: new Decimal(row.dueUsd.toString()),
     paidUsd: new Decimal((row.paidUsd ?? 0).toString()),
   }));
+}
+
+/** Future PENDING requests where this person is the requester (public request cap, S-5). */
+export async function countFuturePendingForRequester(
+  tx: TenantTx,
+  personId: string,
+  now: Date,
+): Promise<number> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ n: number }[]>`
+    SELECT count(*)::int AS n
+    FROM "Booking" b
+    JOIN "BookingParticipant" p ON p."bookingId" = b.id AND p."isRequester"
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status = 'PENDING'
+      AND p."personId" = ${personId}
+      AND lower(b.during) > ${now}
+  `;
+  return Number(rows[0]?.n ?? 0);
 }

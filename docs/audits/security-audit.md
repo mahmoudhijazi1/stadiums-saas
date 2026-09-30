@@ -574,3 +574,36 @@ Everything here is **UNVERIFIED**. The repo has no nginx, firewall or Hestia con
 | S-1 seed has no production guard | **Fixed.** `assertSeedAllowed` runs before the seed opens a connection. It refuses `NODE_ENV=production` and any database other than `stadiums_dev` / `stadiums_test`. Re-probed: `NODE_ENV=production` on `stadiums_test` exits 1 and deletes nothing; a DB named `stadiums_prod` is refused; the dev seed on `stadiums_test` still runs. | `src/prisma/seed-guard.ts`, `src/prisma/seed.ts`, `test/prisma/seed-guard.test.ts` |
 
 No other finding is Critical or High. The Medium and Low findings stay open (see [ROADMAP.md](../ROADMAP.md) items 6–12).
+
+---
+
+## Addendum: status of every finding after the security fixes (2026-09-30)
+
+Fixed in PR #7/#8 (`f3658f8`), PR #9 (`fix/auth`) and `fix/public-surface`. "Deferred" means left open by decision. Each commit has its own `docs/progress.md` entry.
+
+| Finding | Status | Commit(s) | Reason / note |
+|---|---|---|---|
+| S-1 seed has no production guard | Fixed | `f3658f8` | The operator password tool `35d7988` resets any seeded password. |
+| S-2 cuid v1 session ids | Fixed | `08da596` | 256-bit random token; the DB stores only its SHA-256. Every session was invalidated at deploy. |
+| S-3 no login brute-force protection | Fixed | `dcffb84` | 8 failures per account in 15 min → 15-min block. Per IP 40 / 15 min, only with `TRUSTED_CLIENT_IP_HEADER`. |
+| S-4 login timing reveals accounts | Fixed | `06ae591` | Dummy verify at the same cost; same error. |
+| S-5 public flood, unbounded names | Fixed | `2efbfbd`, `cb9049a` | Name at most 60 characters after cleaning. 5 requests per phone per hour, 60 per IP per hour (with the IP setting), at most 3 future PENDING per phone. One generic key. |
+| S-6 request under someone else's phone | Fixed (mitigated) | `3707fd6` | The owner sees the typed name when its `normalizeName` fold differs. Phone ownership is still not proven: an OTP would be a product decision. |
+| S-7 no security headers | Fixed, except enforced CSP | `0c69947` | nosniff, Referrer-Policy, Permissions-Policy and XFO DENY. The CSP ships Report-Only; **enforcing it with nonces is deferred by decision**. HSTS is set by nginx (server, UNVERIFIED). |
+| S-8 unbounded queries | Fixed | `bed1538` | Pending inbox 200 + 50; approved ranges and interests bounded by time; interests at most 500. Decision paths keep full lists. |
+| S-9 spoofed `x-tenant-slug` | Fixed | `c13403e` | The tenant comes from the validated Host only; the header is never read. |
+| S-10 any base domain accepted | Fixed | `c13403e` | Only `APP_BASE_DOMAIN` or a one-label subdomain; anything else is a 404 in the proxy. The nginx `default_server` is still on the server list. |
+| S-11 `X-Forwarded-Host` trusted on localhost | Fixed | `c13403e` | Only with `TRUST_PROXY_HEADERS=true`. |
+| S-12 manifest reveals slugs | Deferred (Low) | — | Same answer as the public page's 200/404. The manifest now uses the validated host. |
+| S-13 `X-Powered-By` | Fixed | `0c69947` | `poweredByHeader: false`. |
+| S-14 bidi/control characters in names | Fixed | `2efbfbd` | Shared `cleanPersonName`; ZWJ/ZWNJ kept. |
+| S-15 URL text into WhatsApp messages | Deferred (Low) | — | Not in scope; the owner still sees and sends the text. |
+| S-16 scrypt default cost | Fixed | `6879627` | N = 2^16 by default, `PASSWORD_HASH_COST` override, rehash on login. |
+| S-17 sessions and logs never cleaned | Partly fixed | `822db35` | A user's expired sessions are deleted at their login. A global session sweep and log rotation are deferred (Low; logrotate is on the server list). |
+| S-18 no env validation | Fixed | `ed99634` | Zod at server start; exits in production. |
+| S-19 staff can search every customer | Open (Info, by design) | — | DR-003; no change. |
+| S-20 latent tenant-guard gaps | Deferred (Low) | — | No call sites; RLS would close the class. |
+| S-21 `submitUpdatePitch` order and `pitchId` | Deferred (Low) | — | Nothing leaks; not in scope. |
+| §10 RLS | Deferred by decision | — | DR-001 amendment, about 2–3 days. |
+
+New server settings from these fixes: `TRUSTED_CLIENT_IP_HEADER`, `TRUST_PROXY_HEADERS`, `PASSWORD_HASH_COST`, and `APP_PROTOCOL` (now required). See `docs/RUNBOOK.md`.

@@ -1,11 +1,24 @@
+import { trustedClientIp } from "@/lib/client-ip";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { safeTenantId } from "@/lib/tenant-context";
+import { hitRateLimit } from "@/lib/rate-limit";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
+import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
+import { normalizeName } from "@/modules/people/domain/normalize-name";
 import { overlaps, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
+  PUBLIC_MAX_PENDING_PER_PHONE,
+  PUBLIC_MAX_REQUESTS_PER_IP,
+  PUBLIC_MAX_REQUESTS_PER_PHONE,
+  PUBLIC_REQUEST_LIMIT_KEY,
+  PUBLIC_REQUEST_WINDOW_MS,
+  publicRequestLimitKeys,
+} from "@/modules/booking/domain/public-request-limits";
+import {
+  countFuturePendingForRequester,
   hasSlotInterest,
   insertPendingPublicBooking,
   insertRequesterParticipant,
@@ -30,11 +43,16 @@ const TIME_ZONE = "Asia/Beirut";
  * or sees the approved hour. A taken hour creates no PENDING row: the person is
  * recorded as a SlotInterest on the approved window (BR-21) and the call fails with
  * booking.slot_taken after that interest is committed (audit §1.2).
+ *
+ * Limits (security audit S-5), all answered with booking.request_limit:
+ * 5 requests per phone per hour and 60 per IP per hour (Postgres counters,
+ * before the transaction), then at most 3 future PENDING per phone (inside it).
  */
 export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
   bookingId: string;
 }> {
   try {
+    await assertRequestRate(input.phone);
     const outcome = await db.$transaction(async (tx) => {
       await lockPitchForUpdate(tx, input.pitchId);
       const pitch = await findPitchById(tx, input.pitchId);
@@ -75,11 +93,18 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
         return { taken: true as const };
       }
 
+      const open = await countFuturePendingForRequester(tx, person.id, new Date());
+      if (open >= PUBLIC_MAX_PENDING_PER_PHONE) {
+        // Rolls back a Person created just now too.
+        throw new DomainError(PUBLIC_REQUEST_LIMIT_KEY);
+      }
+
       const id = await insertPendingPublicBooking(tx, {
         pitchId: pitch.id,
         start: slot.start,
         end: slot.end,
         priceUsd: slot.priceUsd,
+        requestedName: typedNameIfDifferent(input.name, person.name),
       });
 
       await insertRequesterParticipant(tx, {
@@ -111,4 +136,26 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
       "requestPublicSlot",
     );
   }
+}
+
+/** Counters live in platform tables: hit them before the tenant transaction. */
+async function assertRequestRate(phone: string): Promise<void> {
+  const tenant = await getCurrentTenant();
+  const keys = publicRequestLimitKeys(tenant.id, phone, await trustedClientIp());
+  if (keys.ip && (await hitRateLimit(keys.ip, PUBLIC_REQUEST_WINDOW_MS)) > PUBLIC_MAX_REQUESTS_PER_IP) {
+    throw new DomainError(PUBLIC_REQUEST_LIMIT_KEY);
+  }
+  if ((await hitRateLimit(keys.phone, PUBLIC_REQUEST_WINDOW_MS)) > PUBLIC_MAX_REQUESTS_PER_PHONE) {
+    throw new DomainError(PUBLIC_REQUEST_LIMIT_KEY);
+  }
+}
+
+/**
+ * Security audit S-6: the owner must see what was typed when a known phone
+ * comes with another name. Compared with the searchName fold, so spelling
+ * variants (أحمد/احمد), case and spacing never count as different.
+ */
+function typedNameIfDifferent(typed: string, saved: string): string | null {
+  const cleaned = cleanPersonName(typed);
+  return normalizeName(cleaned) === normalizeName(saved) ? null : cleaned;
 }

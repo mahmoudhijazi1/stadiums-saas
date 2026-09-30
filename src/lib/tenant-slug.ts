@@ -1,31 +1,51 @@
 /**
- * Pure function: turn a request host into a tenant slug.
- * No query params. Use ahmad.localhost / ahmad.lvh.me / ahmad.stadiums.com.
+ * Pure host → tenant resolution (security audit S-9, S-10, S-11).
+ * Only the bare APP_BASE_DOMAIN (the apex, no tenant) or a single-label
+ * subdomain of it is valid; anything else is `invalid` and gets a 404 before
+ * any tenant lookup. The tenant is never read from a client header.
  */
 
-/**
- * Host used for tenant slug. After a Server Action `redirect()`, Next can send
- * `Host: localhost:3000` on the follow-up RSC request while forwarded / Origin /
- * Referer still carry `ahmad.localhost:3000` — bare localhost then 404s until
- * hard refresh (vercel/next.js#65893-class). Prefer those when Host has no subdomain.
- */
-export function resolveRequestHost(
-  hostHeader: string | null | undefined,
-  forwardedHostHeader: string | null | undefined,
-  originHeader?: string | null | undefined,
-  refererHeader?: string | null | undefined,
-): string {
-  const host = hostHeader?.trim() ?? "";
-  const forwarded =
-    forwardedHostHeader?.split(",")[0]?.trim() ?? "";
-  const fromOrigin = hostFromUrl(originHeader);
-  const fromReferer = hostFromUrl(refererHeader);
-  const hostName = host.split(":")[0]?.toLowerCase() ?? "";
+export type TenantHost =
+  | { kind: "tenant"; slug: string }
+  | { kind: "apex" }
+  | { kind: "invalid" };
 
-  if (hostName === "" || hostName === "localhost" || hostName === "127.0.0.1") {
-    return forwarded || fromOrigin || fromReferer || host;
-  }
-  return host;
+export type HostHeaders = {
+  host?: string | null;
+  forwardedHost?: string | null;
+  origin?: string | null;
+  referer?: string | null;
+};
+
+export type HostOptions = {
+  /** APP_BASE_DOMAIN, e.g. lebstads.com or localhost:3000 (port ignored). */
+  baseDomain: string;
+  /** TRUST_PROXY_HEADERS=true: our reverse proxy sets X-Forwarded-Host. */
+  trustProxyHeaders: boolean;
+  /**
+   * Development only: after a Server Action redirect, `next dev` can send the
+   * follow-up request with `Host: localhost:3000` while X-Forwarded-Host,
+   * Origin or Referer still name the tenant (vercel/next.js#65893-class).
+   */
+  devFallback: boolean;
+};
+
+const LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const INVALID: TenantHost = { kind: "invalid" };
+
+function hostnameOf(host: string): string {
+  return host.trim().toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
+}
+
+/** Classify one Host value against the base domain. Fails closed without a base. */
+export function classifyHost(host: string, baseDomain: string): TenantHost {
+  const base = hostnameOf(baseDomain);
+  const name = hostnameOf(host);
+  if (!base || !name) return INVALID;
+  if (name === base) return { kind: "apex" };
+  if (!name.endsWith(`.${base}`)) return INVALID;
+  const label = name.slice(0, -(base.length + 1));
+  return LABEL.test(label) ? { kind: "tenant", slug: label } : INVALID;
 }
 
 function hostFromUrl(value: string | null | undefined): string {
@@ -38,33 +58,42 @@ function hostFromUrl(value: string | null | undefined): string {
   }
 }
 
-export function parseTenantSlug(host: string): string | null {
-  // Hostname from host (strip port like :3000)
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
-  if (!hostname || hostname === "localhost" || hostname === "127.0.0.1") {
-    return null;
-  }
-
-  const parts = hostname.split(".").filter(Boolean);
-
-  // ahmad.localhost
-  if (parts.length === 2 && parts[1] === "localhost") {
-    return parts[0] === "www" ? null : parts[0];
-  }
-
-  // ahmad.lvh.me or ahmad.stadiums.com → need at least 3 parts
-  if (parts.length < 3) {
-    return null;
-  }
-
-  const sub = parts[0];
-  if (sub === "www") {
-    return null;
-  }
-
-  return isValidSlug(sub) ? sub : null;
+/** The options the running app uses (env), overridable in tests. */
+export function hostOptionsFromEnv(): HostOptions {
+  return {
+    baseDomain: process.env.APP_BASE_DOMAIN ?? "",
+    trustProxyHeaders: process.env.TRUST_PROXY_HEADERS === "true",
+    devFallback: process.env.NODE_ENV !== "production",
+  };
 }
 
-function isValidSlug(value: string): boolean {
-  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+export function resolveTenantHost(
+  headers: HostHeaders,
+  options: HostOptions = hostOptionsFromEnv(),
+): TenantHost {
+  // The last X-Forwarded-Host entry is the one our own proxy wrote.
+  const forwarded = headers.forwardedHost?.split(",").at(-1)?.trim() ?? "";
+  const host =
+    options.trustProxyHeaders && forwarded ? forwarded : (headers.host ?? "");
+  const resolved = classifyHost(host, options.baseDomain);
+  if (resolved.kind !== "apex" || !options.devFallback) return resolved;
+
+  for (const candidate of [forwarded, hostFromUrl(headers.origin), hostFromUrl(headers.referer)]) {
+    if (!candidate) continue;
+    const fallback = classifyHost(candidate, options.baseDomain);
+    if (fallback.kind === "tenant") return fallback;
+  }
+  return resolved;
+}
+
+/** Same resolution from a Headers-like object (proxy, tenant context, manifest). */
+export function resolveTenantFromHeaders(list: {
+  get(name: string): string | null;
+}): TenantHost {
+  return resolveTenantHost({
+    host: list.get("host"),
+    forwardedHost: list.get("x-forwarded-host"),
+    origin: list.get("origin"),
+    referer: list.get("referer"),
+  });
 }

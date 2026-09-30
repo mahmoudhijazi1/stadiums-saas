@@ -227,8 +227,8 @@ No `application/` or `infrastructure/`. One domain file only (YAGNI).
 
 Shared entry plumbing (almost every path):
 
-1. Browser hits a host or `?tenant=` → `src/proxy.ts` `proxy()` sets `x-tenant-slug`.
-2. First use of tenant-scoped `db` / `getCurrentTenant` → `src/lib/tenant-context.ts` loads Tenant via `platformDb` and (inside `$transaction`) parks it in ALS so the Prisma extension does not nest-query.
+1. Browser hits a tenant host → `src/proxy.ts` `proxy()` checks it against `APP_BASE_DOMAIN` (else 404) and drops any client `x-tenant-slug`.
+2. First use of tenant-scoped `db` / `getCurrentTenant` → `src/lib/tenant-context.ts` resolves the slug from the validated Host (`resolveTenantFromHeaders`) and loads Tenant via `platformDb` and (inside `$transaction`) parks it in ALS so the Prisma extension does not nest-query.
 
 ---
 
@@ -384,7 +384,7 @@ Shared entry plumbing (almost every path):
 
 ## Path E — Tenant guard blocks a cross-tenant id
 
-**Story:** Request is for stadium Ahmad (`x-tenant-slug=ahmad`). Someone posts a form (or crafts a request) with Sami’s `pitchId` UUID. Isolation must not return Sami’s pitch as if it were Ahmad’s.
+**Story:** Request is for stadium Ahmad (Host `ahmad.<APP_BASE_DOMAIN>`). Someone posts a form (or crafts a request) with Sami’s `pitchId` UUID. Isolation must not return Sami’s pitch as if it were Ahmad’s.
 
 This is not a dedicated “guard endpoint.” The guard is the Prisma extension on every tenant-scoped model.
 

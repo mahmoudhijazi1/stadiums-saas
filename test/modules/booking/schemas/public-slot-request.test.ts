@@ -32,4 +32,22 @@ describe("parsePublicSlotRequest", () => {
       parsePublicSlotRequest({ ...valid, priceUsd: "1.00" }),
     ).toThrow();
   });
+
+  it("cleans the name and allows at most 60 characters after cleaning", () => {
+    expect(parsePublicSlotRequest({ ...valid, name: " Ali\u202E  Hassan " }).name).toBe("Ali Hassan");
+    expect(parsePublicSlotRequest({ ...valid, name: "a".repeat(60) }).name).toHaveLength(60);
+    expect(() => parsePublicSlotRequest({ ...valid, name: "a".repeat(61) })).toThrow();
+    // 60 visible characters padded with invisibles still passes.
+    expect(parsePublicSlotRequest({ ...valid, name: `${"a".repeat(60)}\u200B\u200B` }).name).toHaveLength(60);
+  });
+
+  it("rejects a name that is only invisible characters", () => {
+    expect(() => parsePublicSlotRequest({ ...valid, name: "\u200B\u202E" })).toThrow();
+  });
+
+  it("normalizes the phone with the shared normalizer", () => {
+    expect(parsePublicSlotRequest({ ...valid, phone: "+961 3-123-456" }).phone).toBe("9613123456");
+    expect(() => parsePublicSlotRequest({ ...valid, phone: "phone" })).toThrow();
+  });
 });
+

@@ -15,7 +15,9 @@ Grow this one module at a time. Do NOT scaffold empty folders up front — wrong
 ```
 src/
   proxy.ts                      ← Next.js 16 proxy (renamed from middleware).
-                                  Host / ?tenant= → header x-tenant-slug.
+                                  Host check (APP_BASE_DOMAIN or one-label subdomain,
+                                  else 404); drops client x-tenant-slug; renews the
+                                  session cookie.
                                   Must not query Postgres.
 
   app/                          ← Next.js routes ONLY. Thin. No business logic.
@@ -79,7 +81,7 @@ src/
     db.ts                       ← Tenant-scoped extension
     platform-db.ts              ← Unscoped escape hatch (allowlisted)
     tenant-context.ts           ← Request-scoped tenant (after header → load)
-    tenant-slug.ts              ← Parse host / ?tenant=
+    tenant-slug.ts              ← Host → tenant (APP_BASE_DOMAIN; TRUST_PROXY_HEADERS)
     money.ts                    ← Decimal helpers, USD/LBP
     logger.ts                   ← Server file logger → /logs
     rate-limit.ts               ← Postgres counters (RateLimit table, atomic upsert)

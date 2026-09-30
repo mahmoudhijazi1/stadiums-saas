@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { parseTenantSlug, resolveRequestHost } from "@/lib/tenant-slug";
+import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -11,30 +11,23 @@ import {
 
 /**
  * Next.js 16 renamed middleware → proxy (same idea: runs before your page).
- * Docs: https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+ * Docs: node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
  *
  * What it does:
- *   1. Look at the host (x-forwarded-host when Host collapsed to localhost)
- *   2. Put the slug on a request header: x-tenant-slug
- *   3. The page can read that header later
- *   4. Renew the session cookie (rolling 30 days), at most once a day
+ *   1. Check the host (security audit S-9..S-11): the bare APP_BASE_DOMAIN or a
+ *      single-label subdomain of it, else 404 before any tenant lookup.
+ *      X-Forwarded-Host only with TRUST_PROXY_HEADERS=true.
+ *   2. Drop any client-sent x-tenant-slug. Nothing reads it: the tenant is
+ *      resolved from the same host check in tenant-context.
+ *   3. Renew the session cookie (rolling 30 days), at most once a day
  */
 export function proxy(request: NextRequest) {
-  const host = resolveRequestHost(
-    request.headers.get("host"),
-    request.headers.get("x-forwarded-host"),
-    request.headers.get("origin"),
-    request.headers.get("referer"),
-  );
-  const slug = parseTenantSlug(host);
-
-  // Clone headers and pass them to the rest of the app
-  const requestHeaders = new Headers(request.headers);
-  if (slug) {
-    requestHeaders.set("x-tenant-slug", slug);
-  } else {
-    requestHeaders.delete("x-tenant-slug");
+  if (resolveTenantFromHeaders(request.headers).kind === "invalid") {
+    return new NextResponse(null, { status: 404 });
   }
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete("x-tenant-slug");
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },

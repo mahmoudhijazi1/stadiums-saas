@@ -25,7 +25,7 @@ npm run db:seed
 npm run dev
 ```
 
-Seed logins (password `dev-owner`): `owner@ahmad`, `owner@sami`, `staff@ahmad`. Use `?tenant=ahmad` (or host slug) locally.
+Seed logins (password `dev-owner`): `owner@ahmad`, `owner@sami`, `staff@ahmad`. Open the tenant by host locally: `http://ahmad.localhost:3000` (`APP_BASE_DOMAIN="localhost:3000"`). Only the bare `APP_BASE_DOMAIN` or a single-label subdomain of it is served; other hosts get 404.
 
 The seed wipes every table. It refuses to run when `NODE_ENV=production` or when `DATABASE_URL` names any database other than `stadiums_dev` or `stadiums_test` (`src/prisma/seed-guard.ts`).
 
