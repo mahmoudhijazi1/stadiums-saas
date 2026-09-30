@@ -8,6 +8,7 @@ import { getCurrentMembership } from "@/modules/access/application/get-current-m
 import { missedPending } from "@/modules/booking/domain/expired-request";
 import {
   listPendingBookings,
+  lockPendingRowsInOrder,
   setPendingStatus,
 } from "@/modules/booking/infrastructure/bookings";
 
@@ -15,7 +16,8 @@ import {
  * Dismiss every PENDING request whose slot has already started.
  * Same status as a manual reject (REJECTED) and no stored reason — Booking
  * has no reason column; the WhatsApp line is optional and separate.
- * Future pending rows are left alone.
+ * Future pending rows are left alone. Rows are locked in id order first
+ * (`lockPendingRowsInOrder`), the order approve uses, so the two cannot deadlock.
  */
 export async function dismissMissedRequests(now = new Date()): Promise<number> {
   const membership = await getCurrentMembership();
@@ -27,8 +29,13 @@ export async function dismissMissedRequests(now = new Date()): Promise<number> {
   try {
     await db.$transaction(async (tx) => {
       const pending = await listPendingBookings(tx);
-      for (const row of missedPending(pending, now)) {
-        await setPendingStatus(tx, row.id, "REJECTED");
+      // Lock in id order (same as approve), then skip rows a concurrent
+      // "They played" already decided.
+      const missedIds = missedPending(pending, now).map((row) => row.id);
+      const stillPending = await lockPendingRowsInOrder(tx, missedIds);
+      for (const id of [...missedIds].sort()) {
+        if (!stillPending.has(id)) continue;
+        await setPendingStatus(tx, id, "REJECTED");
         dismissed += 1;
       }
     });

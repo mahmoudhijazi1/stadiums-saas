@@ -183,6 +183,7 @@ const ARABIC: Record<string, string> = {
   "owner.toCollect": "للتحصيل",
   "owner.seeAll": "عرض الكل",
   "owner.prevDay": "اليوم السابق",
+  "owner.afterMidnightToday": "بعد منتصف الليل: اليوم مستمر حتى السادسة صباحاً.",
   "owner.nextDay": "اليوم التالي",
   "owner.monthCalendar": "الشهر",
   "owner.gamesWord": "مباريات",
@@ -464,6 +465,7 @@ const ENGLISH: Record<string, string> = {
   "owner.toCollect": "To collect",
   "owner.seeAll": "See all",
   "owner.prevDay": "Previous day",
+  "owner.afterMidnightToday": "After midnight: Today runs until 6:00 AM.",
   "owner.nextDay": "Next day",
   "owner.monthCalendar": "Month",
   "owner.gamesWord": "games",
@@ -837,6 +839,11 @@ export function paidOfLine(
 }
 
 /** Booker pays every unpaid slot. Amount is already formatUsd (Latin). */
+/** Night hint beside a real date for a 00:00–05:59 start. `weekday` is already localized. */
+export function nightOfLabel(weekday: string, locale: UiLocale = "ar"): string {
+  return locale === "en" ? `night of ${weekday}` : `ليلة ${weekday}`;
+}
+
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {
   return locale === "en"
     ? `Booker pays all remaining $${amount}`

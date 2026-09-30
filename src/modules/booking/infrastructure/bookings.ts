@@ -495,6 +495,29 @@ export async function listApprovedRanges(
 }
 
 /**
+ * Lock these booking rows in one fixed order (by id) and return the ones still
+ * PENDING. Every path that decides several pending rows ("They played", approve,
+ * owner-create siblings, dismiss missed) locks through here first, so two of them can
+ * never hold rows in opposite orders (audit: dismiss vs They played).
+ */
+export async function lockPendingRowsInOrder(
+  tx: TenantTx,
+  bookingIds: string[],
+): Promise<Set<string>> {
+  if (bookingIds.length === 0) return new Set();
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ id: string; status: string }[]>`
+    SELECT id, status::text AS status
+    FROM "Booking"
+    WHERE "tenantId" = ${tenantId}
+      AND id IN (${Prisma.join(bookingIds)})
+    ORDER BY id
+    FOR UPDATE
+  `;
+  return new Set(rows.filter((row) => row.status === "PENDING").map((row) => row.id));
+}
+
+/**
  * PENDING → APPROVED or REJECTED. 0 rows means gone or already decided.
  */
 export async function setPendingStatus(
@@ -628,6 +651,23 @@ export async function insertSlotInterest(
       ${input.personId}
     )
   `;
+}
+
+/** Does this person already wait on exactly this window? (avoid a duplicate interest) */
+export async function hasSlotInterest(
+  tx: TenantTx,
+  input: { pitchId: string; start: Date; end: Date; personId: string },
+): Promise<boolean> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "SlotInterest"
+    WHERE "tenantId" = ${tenantId}
+      AND "pitchId" = ${input.pitchId}
+      AND "personId" = ${input.personId}
+      AND during = tstzrange(${input.start}, ${input.end}, '[)')
+    LIMIT 1
+  `;
+  return rows.length > 0;
 }
 
 export type SlotInterestPersonRow = {
@@ -897,8 +937,9 @@ function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
 
 /**
  * APPROVED, CANCELLED, and NO_SHOW whose start falls in `[from, to)`.
- * `from`/`to` are the Beirut civil day's UTC bounds. Collected USD is the
- * sum of tenders, any collection date.
+ * `from`/`to` are one business day's UTC bounds (`businessDayUtcRange`, 06:00 to 06:00
+ * Beirut). Filtering on lower(during) keeps the ("tenantId", lower(during)) index.
+ * Collected USD is the sum of tenders, any collection date.
  */
 export async function listBookingsForStartDay(
   tx: TenantTx,

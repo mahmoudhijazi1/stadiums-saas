@@ -19,6 +19,7 @@ const ARABIC: Record<string, string> = {
     "يمكن تسجيل عدم الحضور بعد انتهاء الساعة فقط.",
   "booking.slot_not_offered": "هذه الساعة غير معروضة.",
   "booking.slot_taken": "هذه الساعة محجوزة.",
+  "booking.slot_taken_noted": "هذه الساعة حُجزت. سجّلنا اهتمامك وسنبلغك إذا صارت متاحة.",
   "booking.slot_ended": "هذه الساعة انتهت.",
   "booking.slot_unavailable": "الساعة لم تعد متاحة.",
   "booking.pitch_not_found": "الملعب غير موجود.",
@@ -68,6 +69,8 @@ const ENGLISH: Record<string, string> = {
     "A no-show can be recorded only after the hour has ended.",
   "booking.slot_not_offered": "That hour is not offered.",
   "booking.slot_taken": "That hour is taken.",
+  "booking.slot_taken_noted":
+    "That hour was just booked. We noted your interest and will tell you if it frees up.",
   "booking.slot_ended": "That hour has ended.",
   "booking.slot_unavailable": "The hour is no longer available.",
   "booking.pitch_not_found": "Pitch not found.",

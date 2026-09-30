@@ -20,13 +20,16 @@ import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import type { DaySummary } from "@/modules/booking/domain/day-summary";
 import Decimal from "decimal.js";
-import { formatDisplayDate } from "@/lib/format-display-date";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { formatUsd, formatUsdCompact } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { formatSlotDateLabel } from "./date-label";
 import { OwnerDayStrip } from "./day-strip";
+import {
+  messageDayLabel,
+  nightHint,
+} from "@/modules/booking/application/night-hint";
 import { UpcomingPanel, type UpcomingRowView } from "./upcoming-panel";
 import {
   formatLocalClock,
@@ -84,6 +87,11 @@ export async function OwnerToday({
   return (
     <>
       <OwnerDayStrip day={ownerDay.day} today={ownerDay.today} locale={locale} />
+      {ownerDay.isToday && ownerDay.afterMidnight ? (
+        <p className="text-center text-xs text-muted-foreground">
+          {ui("owner.afterMidnightToday", locale)}
+        </p>
+      ) : null}
       <DaySummaryLine summary={summary} locale={locale} />
 
       {ownerDay.isToday && pending.length > 0 && earliest ? (
@@ -251,6 +259,7 @@ function toUpcomingViews(
       pitchName: row.pitchName,
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
       dateLabel: formatSlotDateLabel(row.start, now, locale),
+      nightHint: nightHint(row.start, locale),
       requesterPersonId: row.requesterPersonId,
       requesterName: row.requesterName,
       requesterPhone: row.requesterPhone,
@@ -330,11 +339,7 @@ function toUpcomingViews(
       collectedExact: formatUsd(row.collectedUsd),
       collectedCompact: formatUsdCompact(row.collectedUsd),
       stadiumName,
-      waDay: formatDisplayDate(row.start, locale, {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      }),
+      waDay: messageDayLabel(row.start, locale),
       waTime: formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale),
     };
   });

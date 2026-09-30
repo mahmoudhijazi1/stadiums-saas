@@ -4357,3 +4357,87 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** Venue domain stays pure and imports nothing from Booking. Booking's `offered-slot` imports `addCalendarDays` from Venue (already a downward import). Callers of `resolveOfferedSlot` are unchanged: they still pass the start's civil day. No schema change.
 
 **How to verify:** `npm test` (60 suites, 427 tests), `npm run test:integration` (9 suites, 66 tests), `npm run build`. New integration cases: 00:00 and 01:00 booked through owner-create and through public request plus approve, both at the window day's $50 rule; the 00:00 game on the next day in Today; the DST fall-back night. With the source change reverted, the three booking cases and five unit cases fail; the DST case passes either way (it pins existing behavior).
+
+## Business day: 06:00 rollover
+
+**When:** 2026-09-30
+
+**What:** A game belongs to the business day it starts in, and a business day runs 06:00 to 06:00 Beirut. A game starting 00:30 Saturday is on Friday.
+- `booking/domain/business-day.ts`: `BUSINESS_DAY_ROLLOVER_HOUR = 6`, `businessDate(start)` (local civil date, minus one day when the local wall-clock hour is before 6), `businessDayUtcRange(date)` ([D 06:00, D+1 06:00) local, converted with the DST-aware Intl helpers, never a fixed offset), `isNightStart(start)`. The rollover is a parameter with a default so it can become a tenant setting; there is no setting or column.
+- Venue exports two thin helpers on top of the existing civil-date code: `localWallClock` (civil date + local hour) and `localTimeToUtc`.
+- `loadOwnerDay(dateParam, now = new Date())`: today is `businessDate(now)`; the day's games are `lower(during)` in `businessDayUtcRange(day)`; new `afterMidnight` flag.
+- Before 06:00, Today opens on the previous business date, and under the day strip it says "بعد منتصف الليل: اليوم مستمر حتى السادسة صباحاً." / "After midnight: Today runs until 6:00 AM."
+- Real time stays real. A 00:00–05:59 start gets "ليلة <weekday>" / "night of <weekday>" (the business date's weekday) beside the real date: on the Today card and its sheet, on person-page game rows, and in every WhatsApp `{day}` (confirm, approve/reject, missed, cancel/no-show/due outcome, slot available, and the sheet's client-built texts). One helper, `booking/application/night-hint.ts` (`nightHint`, `messageDayLabel`); copy via `ui-copy` (`nightOfLabel`, `owner.afterMidnightToday`).
+- `bookingStartDay` is removed (superseded). The integration money-invariants helper groups by `businessDate`.
+
+**Changed (day bucketing):** Today list (`loadOwnerDay` → `listBookingsForStartDay` with the business range), the day summary line (same rows), the day strip and "Today" label and default day (`ownerDay.today`), the `?date=` 60-day limit (counted from the business today), `test/integration/invariants.ts` day grouping.
+
+**Deliberately not changed:**
+- Instant logic: live/ended/owed (`classifyDue`, card display), missed and starts-soon requests, cancel and no-show windows, To collect (`listEndedWithRemaining`).
+- The schedule engine and the slot lists (public page day chips, owner Book page, `getDayAvailability`): slots stay under their hours window's day and those pages' "today" is the calendar day.
+- Ledger and Money period: cash stays on the calendar day of payment (documented in NOW.md).
+- Relative date labels on cards and request rows (`slotDateKind` / `formatSlotDateLabel`: "Today", weekday, date): they describe the real calendar date, and the night hint sits beside them.
+- `listDueBookings` / `partitionHomeConfirmed`: dead code with no caller (audit §6), left as is.
+- There is no month overview or day-grouped history yet (UX-02 slices 3–5), so nothing else to change.
+
+**Why:** The owner books Friday night's 00:00 game from Friday's list; with the calendar start day it then appeared on Saturday in Today (PR #3 finding). A night belongs to the evening it started.
+
+**Query plan:** 20,000 bookings on two tenants, day range [2025-02-01 03:00Z, 2025-02-02 04:00Z): `Index Scan using "Booking_tenantId_lower_during_idx" on "Booking" b`, `Index Cond: (("tenantId" = 't1') AND (lower(during) >= …) AND (lower(during) < …))`, then nested loops on primary keys. The expression index still applies.
+
+**Files:** `src/modules/booking/domain/business-day.ts` (new), `src/modules/booking/domain/start-day.ts`, `src/modules/booking/application/night-hint.ts` (new), `src/modules/booking/application/load-owner-day.ts`, `load-decision-notify.ts`, `load-outcome-notify.ts`, `list-open-waitlist.ts`, `src/modules/booking/infrastructure/bookings.ts` (comment), `src/modules/venue/domain/availability.ts`, `src/lib/ui-copy.ts`, `src/app/owner/(app)/today/lists.tsx`, `upcoming-panel.tsx`, `src/app/owner/(app)/people/[personId]/games.tsx`, `test/modules/booking/domain/business-day.test.ts` (new), `test/modules/booking/application/night-hint.test.ts` (new), `test/modules/booking/domain/start-day.test.ts`, `test/integration/midnight.integration.test.ts`, `test/integration/invariants.ts`, `docs/NOW.md`, `docs/ux-02-history.md` (banner), `docs/owner-ux.md` (banner).
+
+**How it connects:** Booking domain imports only Venue's civil-date helpers (downward). Venue does not import Booking. `app/` calls `night-hint` for display. No schema change, no new index.
+
+**How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (9 suites, 68 tests), `npm run build`. Unit: `businessDate` table for 23:59 / 00:00 / 00:30 / 05:59 / 06:00 / 06:01, spring forward 2026-03-29 (06:00 EEST is the new day, which "minus 6h" would get wrong) and fall back 2026-10-24 (both 23:30s, 00:00 and 05:59 on Saturday, 06:00 on Sunday), 23-hour and 25-hour ranges; night hint present at 00:30, absent at 06:00 and 23:00. Integration: 00:00 via owner-create and 01:00 via public request + approve on Friday's Today and summary and not Saturday's (confirm message has Saturday's date and "ليلة الجمعة"); 05:59 on the previous day, 06:00 on its own; Today at 05:00 opens Friday with `afterMidnight`, at 06:00 opens Saturday; DST fall-back night on one day. With the source reverted, four of these fail.
+
+## No stranded PENDING on a taken hour
+
+**When:** 2026-09-30
+
+**What:** Audit §1.2, punch list #7.
+- `requestPublicSlot` takes the pitch lock first (`lockPitchForUpdate`, same as approve and owner-create), then checks APPROVED overlap after the lock.
+- A taken hour creates no PENDING row. The person is recorded as a `SlotInterest` on the approved booking's window (the BR-21 convention approve uses, so they show up if that booking is cancelled), with no duplicate if they ask again. The transaction commits the interest, then the use case throws `booking.slot_taken`.
+- The public action shows `booking.slot_taken_noted`: "هذه الساعة حُجزت. سجّلنا اهتمامك وسنبلغك إذا صارت متاحة." / "That hour was just booked. We noted your interest and will tell you if it frees up." The copy lives in the error catalog (`error-messages.ts`, DR-004), because the public toast renders `errorMessage`; `booking.slot_taken` itself keeps its short copy for the owner screens.
+- New `hasSlotInterest` repository read.
+
+**Why:** Without the lock, a request that read "no APPROVED range" could commit after an approve had already rejected the siblings, leaving a PENDING row on a taken hour (audit probe R10: 10/10). The requester never got an interest.
+
+**Lock order:** request now takes pitch, then inserts booking rows, the same order as approve and owner-create. No use case takes a booking lock and then a pitch lock, so there is still no cycle.
+
+**Files:** `src/modules/booking/application/request-public-slot.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/(public)/request-slot.ts`, `src/lib/error-messages.ts`, `test/integration/pending-races.integration.test.ts` (new).
+
+**How it connects:** No schema change. Public requests on different pitches do not wait on each other; requests on one pitch now serialize with approvals on that pitch. The slot validity check (offered, not started, price) is unchanged and still runs before the person is created.
+
+**How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (10 suites, 70 tests), `npm run build`. Race: a public request against an approve of another request on the same hour, ten times. Every run ends with no PENDING overlapping an APPROVED window, and the late requester has exactly one interest. Sequential: a request for an approved hour, sent twice, gives `booking.slot_taken` twice, no PENDING, one interest. Both fail without the change.
+
+## Dismiss missed and "They played" lock pending rows in one order
+
+**When:** 2026-09-30
+
+**What:** Follow-up to the lock-order note in "Booking row lock on every money path".
+- New `lockPendingRowsInOrder(tx, ids)`: `SELECT … FOR UPDATE` on those booking rows `ORDER BY id`. It returns the ones still PENDING.
+- `dismissMissedRequests` locks every missed row through it, then rejects only the rows still PENDING, in id order.
+- `approveBooking` (including "They played") locks the request and its overlapping PENDING siblings through it before changing any of them. If a dismiss already rejected the request, it throws `booking.no_longer_pending` instead of `booking.not_found`.
+- `rejectOverlappingPending` (approve and owner-create) locks the losers the same way and skips any a dismiss already rejected. `listOverlappingPending` is split out so approve can lock target and siblings together.
+
+**Why:** The two paths updated overlapping PENDING rows in different orders: approve did the target first, dismiss followed list order. That is a deadlock waiting to happen (Postgres aborts one side, P2034). In practice the race showed a lost update: with three missed requests on one hour, "They played" racing "Dismiss all" failed with a misleading `booking.not_found` in 10/10 runs, because dismiss had already rejected its row. No deadlock was observed in those runs; the fixed lock order removes both.
+
+**Lock order now:** pitch row (approve, owner-create, public request, cancel, no-show), then booking rows. Several pending rows are always locked in id order; a single booking row is locked alone (collect, adjust, slot pay, switches). Dismiss takes no pitch lock and locks only PENDING rows in id order, so it cannot form a cycle with approve.
+
+**Files:** `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/application/approve-booking.ts`, `src/modules/booking/application/reject-overlapping-pending.ts`, `src/modules/booking/application/dismiss-missed-requests.ts`, `test/integration/pending-races.integration.test.ts`.
+
+**How it connects:** No schema change. Owner-create keeps its pitch lock; its sibling rejection now also locks in id order.
+
+**How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (10 suites, 71 tests), `npm run build`. Race: three missed requests on one past hour, "They played" on the middle one against "Dismiss all", ten times. There is no P2034, dismiss always succeeds, and approve either succeeds or reports `booking.no_longer_pending`. No PENDING row is left, and at most the played request is APPROVED. Fails without the change (`booking.not_found`).
+
+## Audit addendum: punch-list status
+
+**When:** 2026-09-30
+
+**What:** Appended a status table to `docs/audits/booking-payments-production-audit.md`: each punch-list item marked closed, open, partly closed or deferred, with the commit and the reason. The audit body is unchanged.
+
+**Why:** The audit is historical; the addendum records what PR #3 and this branch closed and what is still open.
+
+**Files:** `docs/audits/booking-payments-production-audit.md`.
+
+**How to verify:** Read the addendum; each commit hash is on this branch or on main (PR #3).

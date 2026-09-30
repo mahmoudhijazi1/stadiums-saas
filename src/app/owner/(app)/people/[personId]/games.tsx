@@ -5,6 +5,7 @@ import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { personOwedOnBooking } from "@/modules/booking/domain/person-owed";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
 import { formatDisplayDate } from "@/lib/format-display-date";
+import { nightHint } from "@/modules/booking/application/night-hint";
 import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -96,6 +97,9 @@ export async function PersonGames({
                         month: "short",
                       })}
                     </LtrIsolate>
+                    {nightHint(row.start, locale) ? (
+                      <span>{nightHint(row.start, locale)}</span>
+                    ) : null}
                     <span className="inline-flex items-center gap-1.5">
                       <MapPin aria-hidden className="size-4 shrink-0" />
                       {row.pitchName}

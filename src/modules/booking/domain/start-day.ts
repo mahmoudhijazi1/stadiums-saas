@@ -1,26 +1,16 @@
 import {
   addCalendarDays,
-  civilDateInTimeZone,
   compareCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 
-/** Owner Today may open this many civil days after today. Past days are unlimited. */
+/**
+ * Owner Today may open this many business days after today. Past days are unlimited.
+ * Which day a game belongs to is `businessDate` (business-day.ts).
+ */
 export const OWNER_FUTURE_DAYS = 60;
 
-const OWNER_TIME_ZONE = "Asia/Beirut";
 const CIVIL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-/**
- * The day a game belongs to: the Beirut civil day of its start.
- * The end instant is ignored, so 23:00–00:30 stays on the start day.
- */
-export function bookingStartDay(
-  start: Date,
-  timeZone: string = OWNER_TIME_ZONE,
-): CivilDate {
-  return civilDateInTimeZone(start, timeZone);
-}
 
 /**
  * `?date=` for Today. Missing, unparsable, or more than OWNER_FUTURE_DAYS

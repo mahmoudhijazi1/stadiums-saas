@@ -16,6 +16,7 @@ import {
   civilDateInTimeZone,
   formatCivilDate,
   generateSlotsForDay,
+  localTimeToUtc,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 import {
@@ -33,8 +34,8 @@ import { truncateAll } from "./truncate";
 
 /**
  * BR-7: a 22:00–02:00 window offers 00:00 and 01:00 under its own day. Those slots
- * resolve against that window (and its day's price rules). The start-day rule for Today
- * (UX-02) is unchanged: a 00:00 game is listed on the next civil day.
+ * resolve against that window (and its day's price rules), and Today lists them on the
+ * same business day (06:00 to 06:00 Beirut, `businessDate`).
  */
 const TIME_ZONE = "Asia/Beirut";
 const WEEKDAYS: Weekday[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -100,42 +101,98 @@ describe("midnight-crossing windows", () => {
     }
   });
 
-  it("lists a 00:00 game on the next civil day in Today (start-day rule unchanged)", async () => {
-    const day = addCalendarDays(civilDateInTimeZone(new Date(), TIME_ZONE), 5);
-    const slots = await useOvernightWindow(day);
-    const [elevenPm, midnight] = [slots[1]!, slots[2]!];
-    const ids: string[] = [];
-    for (const slot of [elevenPm, midnight]) {
-      const { bookingId } = await createOwnerBooking({
-        pitchId: fixture.pitchId,
-        start: slot.start.toISOString(),
-        end: slot.end.toISOString(),
-        name: "ليلي",
-        phone: nextPhone(),
-      });
-      ids.push(bookingId);
-    }
+  it("lists 00:00 and 01:00 from Friday's window in Friday's Today and day summary, not Saturday's", async () => {
+    const friday = nextFriday();
+    const slots = await useOvernightWindow(friday);
+    const [midnight, oneAm] = [slots[2]!, slots[3]!];
+    const { bookingId: ownerMade } = await createOwnerBooking({
+      pitchId: fixture.pitchId,
+      start: midnight.start.toISOString(),
+      end: midnight.end.toISOString(),
+      name: "ليلي",
+      phone: nextPhone(),
+    });
+    const { bookingId: requested } = await requestPublicSlot({
+      pitchId: fixture.pitchId,
+      start: oneAm.start.toISOString(),
+      end: oneAm.end.toISOString(),
+      name: "طلب ليلي",
+      phone: nextPhone(),
+    });
+    await approveBooking(requested);
 
-    const windowDay = await loadOwnerDay(formatCivilDate(day));
-    const nextDay = await loadOwnerDay(formatCivilDate(addCalendarDays(day, 1)));
-    expect(windowDay.games.map((game) => game.id)).toEqual([ids[0]]);
-    expect(nextDay.games.map((game) => game.id)).toEqual([ids[1]]);
+    const fridayDay = await loadOwnerDay(formatCivilDate(friday));
+    const saturdayDay = await loadOwnerDay(formatCivilDate(addCalendarDays(friday, 1)));
+    expect(fridayDay.games.map((game) => game.id)).toEqual([ownerMade, requested]);
+    expect(fridayDay.summary.games).toBe(2);
+    expect(fridayDay.summary.expectedUsd.equals("100")).toBe(true);
+    expect(saturdayDay.games).toEqual([]);
+    expect(saturdayDay.summary.games).toBe(0);
+
+    // Real time stays real: the confirm message has Saturday's date plus the night hint.
+    const href = decodeURIComponent(fridayDay.games[0]!.confirmWhatsAppHref ?? "");
+    expect(href).toContain("السبت");
+    expect(href).toContain("ليلة الجمعة");
+    await assertMoneyInvariants([]);
   });
 
-  it("buckets the repeated 23:00 hour of the DST fall-back night on the right day", async () => {
+  it("puts a 05:59 game on the previous day and a 06:00 game on its own civil day", async () => {
+    const friday = nextFriday();
+    const saturday = addCalendarDays(friday, 1);
+    const at0559 = await insertGame(localTimeToUtc(saturday, 5, 59, TIME_ZONE), 1);
+    const at0600 = await insertGame(localTimeToUtc(saturday, 6, 0, TIME_ZONE));
+
+    const fridayDay = await loadOwnerDay(formatCivilDate(friday));
+    const saturdayDay = await loadOwnerDay(formatCivilDate(saturday));
+    expect(fridayDay.games.map((game) => game.id)).toEqual([at0559]);
+    expect(saturdayDay.games.map((game) => game.id)).toEqual([at0600]);
+  });
+
+  it("opens Today on the previous business day before 06:00 and on the calendar day from 06:00", async () => {
+    const friday = nextFriday();
+    const saturday = addCalendarDays(friday, 1);
+    const nightGame = await insertGame(localTimeToUtc(saturday, 1, 0, TIME_ZONE));
+
+    const at0500 = await loadOwnerDay(undefined, localTimeToUtc(saturday, 5, 0, TIME_ZONE));
+    expect(at0500.day).toEqual(friday);
+    expect(at0500.isToday).toBe(true);
+    expect(at0500.afterMidnight).toBe(true);
+    expect(at0500.games.map((game) => game.id)).toEqual([nightGame]);
+
+    const at0600 = await loadOwnerDay(undefined, localTimeToUtc(saturday, 6, 0, TIME_ZONE));
+    expect(at0600.day).toEqual(saturday);
+    expect(at0600.afterMidnight).toBe(false);
+    expect(at0600.games).toEqual([]);
+  });
+
+  it("keeps the DST fall-back night on one business day, rolling over at 06:00 local", async () => {
     // Beirut 2025-10-26 00:00 EEST → 2025-10-25 23:00 EET: Saturday has 25 hours.
     const first2300 = await insertGame(new Date("2025-10-25T20:00:00.000Z")); // 23:00 EEST
     const second2300 = await insertGame(new Date("2025-10-25T21:00:00.000Z")); // 23:00 EET
     const sundayMidnight = await insertGame(new Date("2025-10-25T22:00:00.000Z")); // Sun 00:00 EET
+    const sunday0600 = await insertGame(new Date("2025-10-26T04:00:00.000Z")); // Sun 06:00 EET
 
     const saturday = await loadOwnerDay("2025-10-25");
     const sunday = await loadOwnerDay("2025-10-26");
-    expect(saturday.games.map((game) => game.id)).toEqual([first2300, second2300]);
-    expect(sunday.games.map((game) => game.id)).toEqual([sundayMidnight]);
-    expect(saturday.summary.games).toBe(2);
+    expect(saturday.games.map((game) => game.id)).toEqual([
+      first2300,
+      second2300,
+      sundayMidnight,
+    ]);
+    expect(sunday.games.map((game) => game.id)).toEqual([sunday0600]);
+    expect(saturday.summary.games).toBe(3);
     expect(sunday.summary.games).toBe(1);
   });
 });
+
+/** The first Friday at least two days ahead, so every slot is still in the future. */
+function nextFriday(): CivilDate {
+  let day = addCalendarDays(civilDateInTimeZone(new Date(), TIME_ZONE), 2);
+  while (new Date(Date.UTC(day.year, day.month - 1, day.day)).getUTCDay() !== 5) {
+    day = addCalendarDays(day, 1);
+  }
+  return day;
+}
 
 function civil(instant: Date): CivilDate {
   return civilDateInTimeZone(instant, TIME_ZONE);
@@ -170,8 +227,8 @@ async function useOvernightWindow(day: CivilDate) {
 }
 
 /** Past games cannot go through owner-create (slot_ended); insert them directly. */
-async function insertGame(start: Date): Promise<string> {
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
+async function insertGame(start: Date, minutes = 60): Promise<string> {
+  const end = new Date(start.getTime() + minutes * 60 * 1000);
   return db.$transaction(async (tx) => {
     const person = await findOrCreatePerson(tx, { name: "تغيير الساعة", phone: nextPhone() });
     const id = await insertApprovedOwnerBooking(tx, {
