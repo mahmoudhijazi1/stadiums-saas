@@ -230,6 +230,8 @@ model Membership {
 /// Server-side session. No tenantId — cookie is not the isolation key (DR-003 §4).
 model Session {
   id        String   @id @default(cuid())
+  /// SHA-256 (hex) of the cookie token. The raw token is never stored (security audit S-2).
+  tokenHash String   @unique
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -378,4 +380,15 @@ enum Currency {
 enum LedgerDirection {
   IN
   OUT
+}
+
+/// Rate-limit counter (security audit S-3). One row per key; the window restarts
+/// at the first hit after it ends. Global like Session: the key carries the
+/// account, IP or tenant it counts. Written only by src/lib/rate-limit.ts.
+model RateLimit {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+
+  @@index([windowStart])
 }

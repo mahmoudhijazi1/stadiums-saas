@@ -82,6 +82,8 @@ src/
     tenant-slug.ts              ← Parse host / ?tenant=
     money.ts                    ← Decimal helpers, USD/LBP
     logger.ts                   ← Server file logger → /logs
+    rate-limit.ts               ← Postgres counters (RateLimit table, atomic upsert)
+    client-ip.ts                ← Client IP from TRUSTED_CLIENT_IP_HEADER only
     locale.ts / get-ui-locale.ts / ui-copy.ts
     error-messages.ts / success-messages.ts / errors.ts / use-case-error.ts
     request-fields.ts / format-local-hm.ts / utils.ts

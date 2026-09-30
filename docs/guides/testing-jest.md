@@ -67,6 +67,13 @@ Inspect data with DBeaver (or similar) at `localhost:5433` — no pgAdmin contai
 
 Unit tests (`npm test`) stay offline and do not require Postgres.
 
+End-to-end (`npm run test:e2e`, after `npm run build`): `jest.e2e.config.ts` runs
+`test/e2e/*.e2e.test.ts`. Each suite seeds `stadiums_test`, starts `next start` with
+`NODE_ENV=production` on 127.0.0.1, and talks HTTP with a tenant `Host` header.
+`login-cookie.e2e.test.ts` checks the real `Set-Cookie` of a login and of the proxy
+renewal: HttpOnly, Secure, SameSite=Lax, Path=/, 30 days, no Domain. CI runs it after
+the build.
+
 Deadlock regression for `approveBooking`: **A** elapsed &lt; 5s and **B**
 `platformDb.tenant.findUnique` call count stays 0 after tenant cache warm-up.
 

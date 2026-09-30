@@ -61,3 +61,7 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # next start (production) against stadiums_test: real Set-Cookie flags.
+      - name: End-to-end tests
+        run: npm run test:e2e

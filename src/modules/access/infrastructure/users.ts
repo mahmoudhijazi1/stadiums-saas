@@ -9,3 +9,7 @@ export async function findUserByIdentifier(identifier: string) {
     select: { id: true, identifier: true, passwordHash: true },
   });
 }
+
+export async function updatePasswordHash(userId: string, passwordHash: string) {
+  await platformDb.user.update({ where: { id: userId }, data: { passwordHash } });
+}

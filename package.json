@@ -12,6 +12,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:integration": "npx tsx test/integration/migrate-test-db.ts && jest --config jest.integration.config.ts",
+    "test:e2e": "npx tsx test/integration/migrate-test-db.ts && jest --config jest.e2e.config.ts",
     "db:seed": "npx prisma db seed --config prisma7.config.ts"
   },
   "dependencies": {

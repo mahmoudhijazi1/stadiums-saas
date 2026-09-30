@@ -4623,3 +4623,181 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
   - `--list` printed three rows;
   - piped stdin was refused;
   - a full run printed `updated owner@ahmad`, the typed password never appeared in the output, and the session count went to 0.
+
+## Session tokens: 256-bit random, stored as SHA-256
+
+**When:** 2026-09-30
+
+**What:** Security audit S-2. Session ids used to be Prisma cuid v1: `Math.random`, about 41 unpredictable bits. The raw id was the cookie value, so a read of the Session table gave live cookies.
+- New `access/infrastructure/session-token.ts`:
+  - `newSessionToken()` returns 32 bytes from `crypto.randomBytes`, as base64url (43 characters);
+  - `hashSessionToken()` returns the hex SHA-256.
+- `Session.tokenHash` is new, `@unique`. The cookie carries the raw token and the row stores only the hash. `createSession` returns `{ token }`.
+- `findSessionByToken` and `deleteSessionByToken` replace the lookups by id. Login, `getCurrentMembership` and logout go through them.
+- Migration `20260930120000_session_token_hash` **deletes every existing session** (old rows have no hash) before adding the column. Every user must log in again after deploy.
+- The integration mocks now record the cookies written, via `writtenCookies()`. Fixtures create sessions through `createSession`, and `fixture.sessionId` is now the raw token.
+- The set-password test creates its extra session the same way. The tool still deletes by `userId`, and its "sessions deleted, another user's session kept" test passes.
+- `isCurrentGeneratedClient` also requires `Session.tokenHash`, so a dev server drops a stale client.
+
+**Why:** [security-audit.md S-2](./audits/security-audit.md#s-2-session-ids-are-cuid-v1-not-cryptographically-random). No server secret is needed: the token is random and only its hash is kept.
+
+**Files:** `src/modules/access/infrastructure/session-token.ts` (new), `src/modules/access/infrastructure/sessions.ts`, `src/modules/access/infrastructure/session-cookie.ts`, `src/modules/access/application/login.ts`, `src/modules/access/application/logout.ts`, `src/modules/access/application/get-current-membership.ts`, `src/lib/prisma-base.ts`, `src/prisma/schema.prisma`, `src/prisma/migrations/20260930120000_session_token_hash/migration.sql` (new), `test/modules/access/infrastructure/session-token.test.ts` (new), `test/integration/auth-sessions.integration.test.ts` (new), `test/integration/fixtures.ts`, `test/integration/setup-mocks.ts`, `test/integration/request-stubs.ts`, `test/integration/set-password.integration.test.ts`.
+
+**How it connects:** Access module only, and User/Session stay global (DR-003). The migration was written by hand and never run against `stadiums_dev`. `prisma migrate diff` from `stadiums_test` to the schema shows no Session drift.
+
+**How to verify:**
+- The unit test was written first and failed (module not found).
+- `npm test`: 64 suites, 464 tests.
+- `npm run test:integration`: 16 suites, 105 tests. The new ones check that:
+  - the cookie is 43 base64url characters and the row holds its SHA-256, with the raw token in no column;
+  - the token authenticates, but the row id or the stored hash does not;
+  - two logins get different tokens;
+  - logout deletes only that token's row and clears the cookie.
+- `npm run build` is green.
+
+## Rolling 30-day session
+
+**When:** 2026-09-30
+
+**What:** Sessions now last 30 days from the last use, instead of 7 days from login.
+- `access/domain/session-lifetime.ts`: `renewedSessionExpiry(expiresAt, now)` returns now + 30 days once the last renewal is at least a day old. It returns null inside that day, and it never revives an expired session.
+- `getCurrentMembership` calls it and writes with `extendSession`, an `updateMany` that only moves the expiry forward, so concurrent requests are harmless. That is at most one write per session per day.
+- **Cookie half:** Server Components cannot set cookies. `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/cookies.md` says `.set` is allowed only in a Server Function or a Route Handler, and `proxy.md` shows `response.cookies.set` in the proxy. So `src/proxy.ts` re-sends the session cookie with the same value, the same flags and `Max-Age` of 30 days.
+  - It does this on GET only, when the cookie is present and the day-long marker `stadium_session_renewed` is absent, and then sets that marker.
+  - Login and logout are POST Server Actions and write the cookie themselves.
+- The flags live in the new `session-cookie-options.ts` (no `next/headers`), shared by the proxy and `session-cookie.ts`.
+- **Expired session:** `getCurrentMembership` returns null, and `requireOwnerMembership` redirects to `/owner/login`. A test now covers that redirect.
+- **Login:** `deleteExpiredSessions(userId, now)` removes that user's dead rows before the new one is created.
+
+**Why:** The user asked for a rolling 30-day session. Owners stay logged in on their phone while dead rows are cleaned (audit S-17, for the logged-in user's rows).
+
+**Files:** `src/modules/access/domain/session-lifetime.ts` (new), `src/modules/access/infrastructure/session-cookie-options.ts` (new), `src/modules/access/infrastructure/session-cookie.ts`, `src/modules/access/infrastructure/sessions.ts`, `src/modules/access/application/get-current-membership.ts`, `src/modules/access/application/login.ts`, `src/proxy.ts`, `test/modules/access/domain/session-lifetime.test.ts` (new), `test/proxy.test.ts` (new), `test/integration/auth-sessions.integration.test.ts`.
+
+**How it connects:** The proxy imports only the pure cookie-options module and never reads the database. The renewal is a platform `Session` write, outside any tenant transaction (DR-001, one-pool rule).
+
+**How to verify:**
+- Tests were written first. The unit test failed (module not found); the proxy test and 3 integration tests failed. The expired-session redirect already worked.
+- `npm test`: 66 suites, 471 tests.
+- `npm run test:integration`: 16 suites, 110 tests.
+- `npm run build` is green.
+
+## Login brute-force limit (Postgres counters)
+
+**When:** 2026-09-30
+
+**What:** Security audit S-3.
+- **Table:** new `RateLimit (key PK, windowStart, count)` with an index on `windowStart`; migration `20260930130000_rate_limit`. It is global like Session, and the key carries the account or IP.
+- **`src/lib/rate-limit.ts`:**
+  - `hitRateLimit(key, windowMs)` is one atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING count`. The window restarts at the first hit after it ends.
+  - `rateLimitCount`, `resetRateLimit` and `pruneRateLimits` complete the set.
+- **Login** (`access/domain/login-limits.ts`):
+  - 8 failures per account within 15 minutes start a 15-minute block. While blocked, every attempt, including one with the right password, gets `access.login_throttled` ("Too many attempts. Try again in 15 minutes."). The password is not checked while blocked.
+  - Failures count for unknown identifiers too, so the limit reveals nothing about which accounts exist.
+  - A successful login resets that account's failure count and prunes rows older than a day.
+- **Per IP:**
+  - It applies only when `TRUSTED_CLIENT_IP_HEADER` is set. `src/lib/client-ip.ts` reads that header, takes the last entry and requires a valid IP.
+  - Limit: 40 failures in 15 minutes, then a 15-minute block. The user gave no per-IP login number, so this one was chosen here and needs confirming.
+  - If the variable is unset, no IP limit applies (fail safe).
+- **Trade-off:** anyone can keep an owner's account blocked by sending 8 bad passwords every 15 minutes. A session that is already logged in keeps working, and an operator can lift the block (`docs/RUNBOOK.md`, "Login lockout").
+- **Wiring:** the seed and the test truncation now also wipe `RateLimit`. The integration header stub gained `setRequestHeader`. `.env.example` documents `TRUSTED_CLIENT_IP_HEADER` (commented out).
+
+**Why:** [security-audit.md S-3](./audits/security-audit.md#s-3-no-brute-force-protection-on-login).
+
+**Files:** `src/lib/rate-limit.ts` (new), `src/lib/client-ip.ts` (new), `src/modules/access/domain/login-limits.ts` (new), `src/modules/access/application/login.ts`, `src/lib/error-messages.ts`, `src/prisma/schema.prisma`, `src/prisma/migrations/20260930130000_rate_limit/migration.sql` (new), `src/prisma/seed.ts`, `test/integration/login-rate-limit.integration.test.ts` (new), `test/integration/truncate.ts`, `test/integration/request-stubs.ts`, `.env.example`, `docs/RUNBOOK.md`, `docs/guides/folder-structure.md`.
+
+**How it connects:**
+- `lib/rate-limit` uses `platformDb` and never runs inside a tenant transaction. Part 3 (public requests) will reuse it.
+- `access` imports `lib` only.
+- The migration was written by hand. `prisma migrate diff` from `stadiums_test` shows no RateLimit or Session drift.
+
+**How to verify:**
+- The test was written first and failed (module not found).
+- `npm run test:integration`: 17 suites, 120 tests. The 10 new ones cover:
+  - 20 concurrent hits count 1…20, and the window restarts;
+  - 8 failures block, and the right password is refused at 14 minutes and accepted after 15;
+  - 7 failures do not block;
+  - failures older than 15 minutes do not count;
+  - a success resets the count;
+  - an unknown account is throttled the same way;
+  - the block covers only that account, and its live session keeps working;
+  - with no env setting, no IP limit applies;
+  - with the setting, 40 failures from one IP block that IP while another IP is fine, and the block lifts after 15 minutes;
+  - with the setting but no header, only the account limit applies.
+- `npm test`: 66 suites, 471 tests. `npm run build` is green.
+
+## Login: same cost and same error for an unknown account
+
+**When:** 2026-09-30
+
+**What:** Security audit S-4. Login skipped the password check when the identifier did not exist: about 50 ms for a real account against about 6 ms for an unknown one, which revealed which accounts exist.
+- New `verifyAgainstDummy(password)` in `access/infrastructure/password.ts` verifies against a throwaway hash made once per process with `hashPassword`, so it always uses the current cost, and returns false.
+- `login` calls it when no user is found. The error stays `access.invalid_login` for an unknown account, a wrong password, or no membership on this stadium.
+
+**Why:** [security-audit.md S-4](./audits/security-audit.md#s-4-login-reveals-which-identifiers-exist-by-timing).
+
+**Files:** `src/modules/access/infrastructure/password.ts`, `src/modules/access/application/login.ts`, `test/integration/login-timing.integration.test.ts` (new).
+
+**How it connects:** Access module only. The brute-force limit from the previous entry is checked first and counts unknown accounts the same way.
+
+**How to verify:**
+- The test was written first and failed: a 41 ms gap against a 13 ms allowance.
+- Now 7 interleaved attempts each (the rate-limit rows are cleared between attempts) give medians within 30% of each other, and both fail with `access.invalid_login`. It passed 4 runs in a row.
+- `npm test`: 66 suites, 471 tests.
+- `npm run test:integration`: 18 suites, 121 tests.
+- `npm run build` is green.
+
+## Password hash cost: measured default, env override, rehash on login
+
+**When:** 2026-09-30
+
+**What:** Security audit S-16.
+- **Measurement:** scrypt on this machine (4 cores, r=8, p=1, median of 5):
+
+  | log2 N | Time per hash |
+  |---|---|
+  | 14 | 42 ms |
+  | 15 | 94 ms |
+  | 16 | 193 ms |
+  | 17 | 387 ms |
+  | 18 | 780 ms |
+
+  N must be a power of two. 16 is the closest to the requested 250 ms (17 is further away and needs 128 MB per hash), so `DEFAULT_PASSWORD_HASH_COST = 16`, which uses 64 MB per hash.
+- **Override:** `PASSWORD_HASH_COST` (an integer from 14 to 20); an invalid value throws.
+- **Format:** a hash now records its parameters, `scrypt:cost:r:p:salt:hex`. Old `salt:hex` hashes (N = 2^14) still verify, and malformed hashes return false.
+- **Upgrade:** `passwordNeedsRehash` is true when the stored cost differs from the current one. After a successful login, `login` rehashes with the password it just checked (`updatePasswordHash`). A failed login never touches the hash.
+- The S-4 dummy hash uses the same cost, and the timing test still passes.
+- `.env.example` and `docs/RUNBOOK.md` ("Password hash cost") explain how to lower the cost and how to time one hash on the server.
+
+**Why:** [security-audit.md S-16](./audits/security-audit.md#s-16-scrypt-at-default-cost).
+
+**Files:** `src/modules/access/infrastructure/password.ts`, `src/modules/access/infrastructure/users.ts`, `src/modules/access/application/login.ts`, `test/modules/access/infrastructure/password.test.ts` (new), `test/integration/auth-sessions.integration.test.ts`, `.env.example`, `docs/RUNBOOK.md`.
+
+**How it connects:** The seed, `scripts/set-password.ts` and the fixtures all go through `hashPassword`, so they write the new format.
+
+**How to verify:**
+- The tests were written first; 4 of the 6 unit tests failed.
+- `npm test`: 67 suites, 477 tests.
+- `npm run test:integration`: 18 suites, 123 tests. The new ones check that an old hash is upgraded once on a successful login and left alone on a failed one.
+- `npm run build` is green.
+
+## End-to-end test: the real session cookie in production
+
+**When:** 2026-09-30
+
+**What:** New `test/e2e/login-cookie.e2e.test.ts`, run by the new `npm run test:e2e` (`jest.e2e.config.ts`, after `npm run build`).
+- It seeds two tenants on `stadiums_test` and starts `next start` with `NODE_ENV=production` on 127.0.0.1. It reads the login Server Action id from the login page, then posts a real login with a tenant `Host` and a matching `Origin`.
+- **The login `Set-Cookie`:** `stadium_session` is a 43-character token with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, a 30-day `Max-Age`, and **no `Domain`** (host-only).
+- **The proxy renewal on `GET /owner/today`:** it carries the same flags, and the marker cookie is `Secure` with no `Domain`.
+- **Tenant B:** with tenant A's cookie, B's host answers 307 to `/owner/login`.
+- CI runs `npm run test:e2e` after the build. The unit Jest config ignores `*.e2e.test.ts`.
+
+**Why:** User request: prove the cookie flags from a real production response, not from code.
+
+**Files:** `test/e2e/login-cookie.e2e.test.ts` (new), `jest.e2e.config.ts` (new), `jest.config.ts`, `package.json` (`test:e2e`), `.github/workflows/ci.yml`, `docs/guides/testing-jest.md`.
+
+**How it connects:** Test-only. It reuses the integration `setup-env.ts`, which forces `stadiums_test`, plus the fixtures and truncate. `stadiums_dev` has 0 transactions in `pg_stat_database` after the builds and test runs.
+
+**How to verify:**
+- `npm run build && npm run test:e2e`: 2 tests pass.
+- The test passed on its first run, because the flags were already correct. As a check that it catches a regression, adding `domain: "lebstads.test"` to the cookie options and rebuilding made both tests fail; the change was then reverted.
+- `npm test`: 67 suites, 477 tests. `npm run test:integration`: 18 suites, 123 tests. `npm run build` is green.

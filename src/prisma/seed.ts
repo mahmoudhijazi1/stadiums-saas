@@ -105,6 +105,7 @@ const LOCAL_DEV_PASSWORD = "dev-owner";
 
 async function main() {
   await platformDb.session.deleteMany();
+  await platformDb.rateLimit.deleteMany();
   await platformDb.membership.deleteMany();
   await platformDb.userPersonLink.deleteMany();
   await platformDb.ledgerEntry.deleteMany();

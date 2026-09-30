@@ -44,7 +44,7 @@ type RuntimeField = { name: string };
 
 /**
  * Cached client from before the last `prisma generate`.
- * A new model (expense) or a new column (Person.searchName) means drop it.
+ * A new model (expense) or a new column (Person.searchName, Session.tokenHash) means drop it.
  */
 function isCurrentGeneratedClient(client: PrismaClient): boolean {
   const hasExpense =
@@ -52,14 +52,20 @@ function isCurrentGeneratedClient(client: PrismaClient): boolean {
     "function";
   if (!hasExpense) return false;
 
-  const person = (
+  const models = (
     client as {
       _runtimeDataModel?: {
-        models?: { Person?: { fields?: RuntimeField[] } };
+        models?: {
+          Person?: { fields?: RuntimeField[] };
+          Session?: { fields?: RuntimeField[] };
+        };
       };
     }
-  )._runtimeDataModel?.models?.Person;
-  if (person?.fields?.some((field) => field.name === "searchName") !== true) {
+  )._runtimeDataModel?.models;
+  if (models?.Person?.fields?.some((field) => field.name === "searchName") !== true) {
+    return false;
+  }
+  if (models?.Session?.fields?.some((field) => field.name === "tokenHash") !== true) {
     return false;
   }
 
