@@ -5002,3 +5002,15 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - The e2e test `next start` with `NODE_ENV=production` and a malformed `APP_BASE_DOMAIN` now exits with a non-zero code and names the variable. Before the exit was added, the process kept running and the test failed.
 - `npm test`: 70 suites, 501 tests. `npm run test:integration`: 23 suites, 145 tests.
 - `npm run build` is green with no warnings, and `npm run test:e2e` passes (5 tests).
+
+## Security audit: status of every finding
+
+**When:** 2026-09-30
+
+**What:** Appended "Addendum: status of every finding after the security fixes" to `docs/audits/security-audit.md`. It gives S-1 to S-21 and RLS a status (fixed, partly fixed, deferred or open), with the commits and the reason. The audit body is unchanged. `docs/ROADMAP.md` items 6–12 now carry their fix commits or deferral.
+
+**Deferred by decision:** RLS, an enforced nonce-based CSP, and the Low findings outside this round: S-12, S-15, S-17 (global sweep and log rotation), S-20 and S-21. S-19 stays open by design (DR-003).
+
+**Files:** `docs/audits/security-audit.md`, `docs/ROADMAP.md`.
+
+**How to verify:** Docs only. Every commit in the table is on `main` (PRs #7–#9) or on `fix/public-surface`.
