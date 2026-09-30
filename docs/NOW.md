@@ -36,6 +36,7 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no group pa
 | Launch gaps / ordered backlog | [guides/mvp-readiness-audit.md](./guides/mvp-readiness-audit.md) (dated; read the banner) |
 | Known open logic items (not product slices) | [ROADMAP.md](./ROADMAP.md), details in [audits/logic-findings.md](./audits/logic-findings.md) |
 | Security audit (findings, server checklist) | [audits/security-audit.md](./audits/security-audit.md); open items in [ROADMAP.md](./ROADMAP.md) from #5 |
+| Operator procedures (reset a password) | [RUNBOOK.md](./RUNBOOK.md) |
 
 ## What’s next
 

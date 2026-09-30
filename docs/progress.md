@@ -4586,3 +4586,40 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
   - `NODE_ENV=production npx tsx src/prisma/seed.ts` fails with "Seed refused: NODE_ENV is production.", and the user count stays 0.
   - A URL naming `stadiums_prod` is refused.
   - Without `NODE_ENV=production` the seed runs and creates 3 users.
+
+## Operator password tool
+
+**When:** 2026-09-30
+
+**What:** New `scripts/set-password.ts`, a CLI that sets a login's password on the server.
+- `npx tsx scripts/set-password.ts <identifier>`:
+  - shows the database name from `DATABASE_URL` and refuses unless the operator types that name;
+  - asks for the new password twice at hidden prompts. The password is never taken from an argument or an env var, and it must be at least 12 characters;
+  - hashes it with the app's `hashPassword`;
+  - in one transaction, updates `User.passwordHash` and deletes every session of that user;
+  - prints only `updated <identifier>`. Prompts go to stderr.
+- `--list` prints identifier, role and tenant slug per membership, never hashes.
+- It refuses to run without an interactive terminal.
+- The logic is in `scripts/set-password-core.ts`, with the terminal injected so tests can script it. `databaseNameFromUrl` is now exported from `src/prisma/seed-guard.ts` and shared with the seed guard.
+- New `docs/RUNBOOK.md` with only a "Passwords" section: exact commands, and the note that `tsx` and the generated Prisma client are dev-dependency tooling.
+
+**Why:** Security audit S-1 follow-up. Any server where the seed ran has users with the public `dev-owner` password, and there was no safe way to change a password.
+
+**Files:** `scripts/set-password.ts` (new), `scripts/set-password-core.ts` (new), `src/prisma/seed-guard.ts`, `test/integration/set-password.integration.test.ts` (new), `docs/RUNBOOK.md` (new), `docs/NOW.md`, `docs/README.md`, `docs/guides/folder-structure.md`.
+
+**How it connects:** An operator tool, not part of the app. It uses `platformDb`, because a user and their sessions are global (DR-003), and it imports only `platform-db`, `password` and `seed-guard`. Nothing in `src/` imports `scripts/`.
+
+**How to verify:**
+- The test was written first and failed (module not found).
+- `npm run test:integration`: 15 suites, 101 tests, including 6 new ones:
+  - a wrong database name refuses and leaves the hash and sessions unchanged;
+  - a short password refuses and leaves them unchanged;
+  - two different entries refuse;
+  - an unknown identifier refuses;
+  - on success the new password verifies, all of that user's sessions are deleted, another user's session is kept, the only output is `updated <identifier>`, and both password prompts are hidden;
+  - `--list` prints no hash.
+- `npm test`: 63 suites, 461 tests. `npm run build` is green.
+- Manual check in a pseudo-terminal on `stadiums_test`:
+  - `--list` printed three rows;
+  - piped stdin was refused;
+  - a full run printed `updated owner@ahmad`, the typed password never appeared in the output, and the session count went to 0.

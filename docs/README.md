@@ -13,6 +13,7 @@ docs/
   NOW.md                    ← status + next work + pointers (entry point)
   README.md                 ← this catalog
   progress.md               ← append-only journey log
+  RUNBOOK.md                ← operator procedures (passwords, …)
   owner-ia.md               ← living owner tab/route map
   owner-ux.md, ux-02-history.md  ← UX-01 / UX-02 records
   ui-*.md, theme.md, MIGRATION.md ← design system

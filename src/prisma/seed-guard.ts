@@ -12,7 +12,7 @@ export function assertSeedAllowed(input: {
   if (input.nodeEnv === "production") {
     throw new Error("Seed refused: NODE_ENV is production.");
   }
-  const name = databaseName(input.databaseUrl);
+  const name = databaseNameFromUrl(input.databaseUrl);
   if (!name || !(SEEDABLE_DATABASES as readonly string[]).includes(name)) {
     throw new Error(
       `Seed refused: database "${name ?? "?"}" is not one of ${SEEDABLE_DATABASES.join(", ")}.`,
@@ -20,7 +20,8 @@ export function assertSeedAllowed(input: {
   }
 }
 
-function databaseName(databaseUrl: string | undefined): string | null {
+/** Database name from a Postgres URL (path without the slash), or null. */
+export function databaseNameFromUrl(databaseUrl: string | undefined): string | null {
   if (!databaseUrl) return null;
   try {
     const name = decodeURIComponent(new URL(databaseUrl).pathname.replace(/^\//, ""));
