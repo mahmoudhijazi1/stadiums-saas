@@ -27,6 +27,8 @@ npm run dev
 
 Seed logins (password `dev-owner`): `owner@ahmad`, `owner@sami`, `staff@ahmad`. Use `?tenant=ahmad` (or host slug) locally.
 
+The seed wipes every table. It refuses to run when `NODE_ENV=production` or when `DATABASE_URL` names any database other than `stadiums_dev` or `stadiums_test` (`src/prisma/seed-guard.ts`).
+
 ## Scripts
 
 ```bash

@@ -4543,3 +4543,83 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/audits/logic-findings.md` (new), `docs/ROADMAP.md` (new), `docs/NOW.md`, `docs/README.md`.
 
 **How to verify:** Docs only. The lint lines match `npx eslint "src/app/owner/(app)/today/fee-forms.tsx" "src/app/owner/(app)/today/upcoming-panel.tsx" src/modules/booking/application/list-debt-warnings.ts` on main at `7ba058d`.
+
+## Security audit: full application (report)
+
+**When:** 2026-09-30
+
+**What:** New `docs/audits/security-audit.md`. It covers:
+- tenant isolation: models vs `TENANT_SCOPED_MODELS`, 31 raw SQL calls, 22 cross-tenant id probes, host resolution, `platformDb`, the manifest;
+- auth and sessions, and an authorization matrix of every server action and `route.ts`;
+- the public request surface, injection and CSRF, secrets and the seed;
+- headers, caching and the service worker, `npm audit`, DoS, and RLS against DR-001's trigger;
+- a "to confirm on the server" list, all UNVERIFIED.
+
+Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 13 Low. The four logic findings F-1–F-4 were re-checked and still hold, so no Correction was needed. `docs/ROADMAP.md` gets items 5–12 and `docs/audits/logic-findings.md` gets a short pointer section; nothing existing was edited.
+
+**Why:** DR-001 (isolation, RLS trigger), DR-003 (auth, `can()`), DR-004 (errors and logs). Before the first non-friend paying tenant.
+
+**Files:** `docs/audits/security-audit.md` (new), `docs/ROADMAP.md`, `docs/audits/logic-findings.md`, `docs/NOW.md`, `docs/README.md`.
+
+**How it connects:** Docs only. Probes ran against `stadiums_test` only: an integration test file, a flood test and curl against `next start`. They were kept outside the repo and deleted afterwards. `stadiums_dev` was not touched.
+
+**How to verify:** Read the report. Each finding names a file and function; the probe results are in §1.3, §1.4 and §4.
+
+## Seed refuses production and unknown databases
+
+**When:** 2026-09-30
+
+**What:** Security audit S-1 (High). `src/prisma/seed.ts` deletes every table and recreates `owner@ahmad`, `owner@sami` and `staff@ahmad` with the public `dev-owner` password. Before this fix, nothing stopped it from running against production. The audit probe ran it under `NODE_ENV=production` and it wiped and refilled the database.
+- New pure guard `assertSeedAllowed({ nodeEnv, databaseUrl })` in `src/prisma/seed-guard.ts`. It throws when `NODE_ENV === "production"`, or when the database name in `DATABASE_URL` is missing, unparsable, or not in `SEEDABLE_DATABASES` (`stadiums_dev`, `stadiums_test`).
+- `seed.ts` calls it at module load, before the pool is created, so a refused run opens no connection and writes nothing.
+
+**Why:** [security-audit.md S-1](./audits/security-audit.md#s-1-the-seed-wipes-any-database-it-is-pointed-at-including-production). The database names match `.env.example` and `docs/guides/testing-jest.md`.
+
+**Files:** `src/prisma/seed-guard.ts` (new), `src/prisma/seed.ts`, `test/prisma/seed-guard.test.ts` (new), `README.md`, `docs/guides/folder-structure.md`, `docs/ROADMAP.md`, `docs/audits/security-audit.md` (addendum).
+
+**How it connects:** The guard is used by the seed only; it imports nothing, and the app never imports it. A production database under another name is refused even if `NODE_ENV` is not set.
+
+**How to verify:**
+- The test was written first and failed (module not found). `npm test` now passes: 63 suites, 461 tests (+4 in `seed-guard.test.ts`).
+- `npm run test:integration`: 14 suites, 95 tests. `npm run build` is green.
+- Manual check, with `DATABASE_URL` pointed at `stadiums_test`:
+  - `NODE_ENV=production npx tsx src/prisma/seed.ts` fails with "Seed refused: NODE_ENV is production.", and the user count stays 0.
+  - A URL naming `stadiums_prod` is refused.
+  - Without `NODE_ENV=production` the seed runs and creates 3 users.
+
+## Operator password tool
+
+**When:** 2026-09-30
+
+**What:** New `scripts/set-password.ts`, a CLI that sets a login's password on the server.
+- `npx tsx scripts/set-password.ts <identifier>`:
+  - shows the database name from `DATABASE_URL` and refuses unless the operator types that name;
+  - asks for the new password twice at hidden prompts. The password is never taken from an argument or an env var, and it must be at least 12 characters;
+  - hashes it with the app's `hashPassword`;
+  - in one transaction, updates `User.passwordHash` and deletes every session of that user;
+  - prints only `updated <identifier>`. Prompts go to stderr.
+- `--list` prints identifier, role and tenant slug per membership, never hashes.
+- It refuses to run without an interactive terminal.
+- The logic is in `scripts/set-password-core.ts`, with the terminal injected so tests can script it. `databaseNameFromUrl` is now exported from `src/prisma/seed-guard.ts` and shared with the seed guard.
+- New `docs/RUNBOOK.md` with only a "Passwords" section: exact commands, and the note that `tsx` and the generated Prisma client are dev-dependency tooling.
+
+**Why:** Security audit S-1 follow-up. Any server where the seed ran has users with the public `dev-owner` password, and there was no safe way to change a password.
+
+**Files:** `scripts/set-password.ts` (new), `scripts/set-password-core.ts` (new), `src/prisma/seed-guard.ts`, `test/integration/set-password.integration.test.ts` (new), `docs/RUNBOOK.md` (new), `docs/NOW.md`, `docs/README.md`, `docs/guides/folder-structure.md`.
+
+**How it connects:** An operator tool, not part of the app. It uses `platformDb`, because a user and their sessions are global (DR-003), and it imports only `platform-db`, `password` and `seed-guard`. Nothing in `src/` imports `scripts/`.
+
+**How to verify:**
+- The test was written first and failed (module not found).
+- `npm run test:integration`: 15 suites, 101 tests, including 6 new ones:
+  - a wrong database name refuses and leaves the hash and sessions unchanged;
+  - a short password refuses and leaves them unchanged;
+  - two different entries refuse;
+  - an unknown identifier refuses;
+  - on success the new password verifies, all of that user's sessions are deleted, another user's session is kept, the only output is `updated <identifier>`, and both password prompts are hidden;
+  - `--list` prints no hash.
+- `npm test`: 63 suites, 461 tests. `npm run build` is green.
+- Manual check in a pseudo-terminal on `stadiums_test`:
+  - `--list` printed three rows;
+  - piped stdin was refused;
+  - a full run printed `updated owner@ahmad`, the typed password never appeared in the output, and the session count went to 0.

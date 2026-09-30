@@ -13,6 +13,7 @@ docs/
   NOW.md                    ← status + next work + pointers (entry point)
   README.md                 ← this catalog
   progress.md               ← append-only journey log
+  RUNBOOK.md                ← operator procedures (passwords, …)
   owner-ia.md               ← living owner tab/route map
   owner-ux.md, ux-02-history.md  ← UX-01 / UX-02 records
   ui-*.md, theme.md, MIGRATION.md ← design system
@@ -95,6 +96,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [MVP readiness audit](./guides/mvp-readiness-audit.md)
 - [Booking and payments production audit](./audits/booking-payments-production-audit.md) (with status addendum)
 - [Logic findings: recorded, not fixed](./audits/logic-findings.md)
+- [Security audit: full application](./audits/security-audit.md)
 - [Roadmap: open items](./ROADMAP.md)
 
 ### Requirements
