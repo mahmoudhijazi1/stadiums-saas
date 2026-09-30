@@ -2,7 +2,6 @@ import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
 import db from "@/lib/db";
 import { platformDb } from "@/lib/platform-db";
-import { hashPassword } from "@/modules/access/infrastructure/password";
 import { adjustBookingDue } from "@/modules/booking/application/adjust-booking-due";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
@@ -24,7 +23,7 @@ import {
 } from "@/modules/venue/domain/availability";
 import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
 import type { TestFixture } from "./fixtures";
-import { seedMinimalFixture } from "./fixtures";
+import { createStaffSession, seedMinimalFixture } from "./fixtures";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
@@ -39,7 +38,6 @@ const TIME_ZONE = "Asia/Beirut";
 
 let fixture: TestFixture;
 let phoneSeq = 0;
-let staffSeq = 0;
 
 type Flags = Record<string, true>;
 
@@ -233,19 +231,10 @@ function asOwner() {
 
 /** A fresh STAFF user with exactly these flags, logged in on the fixture tenant. */
 async function asStaff(flags: Flags): Promise<void> {
-  staffSeq += 1;
-  const user = await platformDb.user.create({
-    data: { identifier: `staff${staffSeq}@test-stadium`, passwordHash: await hashPassword("x") },
-  });
-  await platformDb.membership.create({
-    data: { tenantId: fixture.tenantId, userId: user.id, role: "STAFF", permissions: flags },
-  } as Parameters<typeof platformDb.membership.create>[0]);
-  const session = await platformDb.session.create({
-    data: { userId: user.id, expiresAt: new Date(Date.now() + 86_400_000) },
-  });
+  const sessionId = await createStaffSession(fixture.tenantId, flags);
   clearRequestStubs();
   setTenantSlug(fixture.tenantSlug);
-  setSessionCookie(session.id);
+  setSessionCookie(sessionId);
 }
 
 async function setLateFeePercent(percent: number): Promise<void> {

@@ -123,3 +123,31 @@ export async function seedTwoTenants(): Promise<{
   });
   return { a, b };
 }
+
+let staffSeq = 0;
+
+/**
+ * A new STAFF user on this tenant with exactly these permission flags, and a live
+ * session. Returns the session id for `setSessionCookie`.
+ */
+export async function createStaffSession(
+  tenantId: string,
+  flags: Record<string, true>,
+): Promise<string> {
+  staffSeq += 1;
+  const user = await platformDb.user.create({
+    data: {
+      identifier: `staff${staffSeq}-${tenantId}@test`,
+      passwordHash: await hashPassword("staff-password"),
+    },
+    select: { id: true },
+  });
+  await platformDb.membership.create({
+    data: { tenantId, userId: user.id, role: "STAFF", permissions: flags },
+  } as Parameters<typeof platformDb.membership.create>[0]);
+  const session = await platformDb.session.create({
+    data: { userId: user.id, expiresAt: new Date(Date.now() + 86_400_000) },
+    select: { id: true },
+  });
+  return session.id;
+}

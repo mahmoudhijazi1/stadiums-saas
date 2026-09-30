@@ -4473,3 +4473,30 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** `app/` imports `businessDate` from the booking domain; Venue receives the date. The Money page keeps the calendar day (cash rule).
 
 **How to verify:** `npm test` (62 suites, 457 tests), `npm run test:integration` (12 suites, 79 tests), `npm run build`. With `now` injected: at 00:30 Saturday the default day is Friday and only 01:00 is offered (22:00, 23:00, 00:00 have started), Saturday still shows 16:00 and 17:00; at 02:30 Friday is Today with "hours ended"; at 06:30 the default is Saturday and Friday is past with nothing offered. The test drives the same calls as the pages; the pages themselves (server components) are not rendered in a test.
+
+## Tests for the untested money paths
+
+**When:** 2026-09-30
+
+**What:** Audit §6 / punch list #5. Real use cases on the real test database, no source change.
+- `expense-ledger.integration.test.ts`:
+  - `recordExpense` with USD, LBP and mixed tenders. The expense is at 12:00 Beirut, each tender freezes the current rate (90,000, then 100,000 after a rate change), and there is one ledger OUT equal to the sum of the tenders' USD equivalents (payment `amountDueUsd` too).
+  - Staff with only `payments.collect` is refused and nothing is written; staff with `expenses.record` succeeds.
+  - An LBP tender with no rate fails after the expense row was inserted, and everything rolls back.
+  - `summarizeLedgerPeriod` / `sumAmountUsdByDirection`: IN, OUT and net over three days, rows outside the period and another stadium's rows ignored.
+  - Fall-back Saturday (25 h): rows at 23:59:59 Friday, 00:00 Saturday, the repeated 23:30, an expense at noon and 00:00 Sunday all land on the right day.
+  - Spring-forward: Saturday ends exactly where Sunday begins (at the 01:00 jump), 23:30 Saturday on Saturday, 01:00 Sunday on Sunday.
+- `collect-notify-debt.integration.test.ts`:
+  - `listEndedWithRemaining` (To collect) lists ended unpaid, partial, no-show with fee, per-player and cancelled-with-fee games, oldest first. It leaves out fully paid, upcoming and another stadium's games. A 23:30–00:30 game appears only once it has ended (00:15 vs 00:45), and the extra row for "more" is returned.
+  - `loadOutcomeNotify` / `findBookingFeeState`: after a player cancel the message fee is the saved `toUsd` ($15 on a $30 game with $5 collected) and the note is PLAYER. An owner cancel uses the no-fee owner template. An edited no-show shows the saved $20. After an adjust the reminder is due minus collected ($25 − $10 = $15).
+  - `listDebtWarnings` / `listDebtParticipations`: a per-player booking with $10 Unassigned and two paid slots gives the requester only their own $3 slot; the nine unnamed slots owe no person (pins the open gap #6). A person's owed games are summed ($20 no-show + $30 unpaid) with the latest owed game as the note; paid and upcoming are left out.
+- `split-evenly.test.ts`: property test over n = 1…30 for every cent up to $30, 1,000 seeded amounts up to $1,000,000 and edge amounts (120,150 splits): exact total, at most 1¢ spread, whole cents, extra cents on the first slots.
+- `createStaffSession` added to `test/integration/fixtures.ts`; the staff-permissions suite now uses it.
+
+**Bugs found:** none. The DST period bounds, the To collect SQL, the outcome fee text and the debt query all behaved as specified. The per-player debt case pins the known open gap #6 rather than a new bug.
+
+**Files:** `test/integration/expense-ledger.integration.test.ts` (new), `test/integration/collect-notify-debt.integration.test.ts` (new), `test/integration/fixtures.ts`, `test/integration/staff-permissions.integration.test.ts`, `test/modules/booking/domain/split-evenly.test.ts`.
+
+**How it connects:** Tests only. `recordPayment` is called directly for ledger rows at chosen instants, because collect always stamps `now`.
+
+**How to verify:** `npm test` (62 suites, 458 tests), `npm run test:integration` (14 suites, 95 tests), `npm run build`.
