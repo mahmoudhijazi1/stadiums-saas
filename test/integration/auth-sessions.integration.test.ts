@@ -3,7 +3,9 @@ import { platformDb } from "@/lib/platform-db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { login } from "@/modules/access/application/login";
 import { logout } from "@/modules/access/application/logout";
+import { createSession } from "@/modules/access/infrastructure/sessions";
 import { hashSessionToken } from "@/modules/access/infrastructure/session-token";
+import { requireOwnerMembership } from "@/app/owner/shared";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
 import {
@@ -103,5 +105,83 @@ describe("session tokens (S-2)", () => {
 
     request(token);
     expect(await getCurrentMembership()).toBeNull();
+  });
+});
+
+describe("rolling 30-day session", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  async function sessionExpiringIn(ms: number, userId = fixture.ownerUserId) {
+    const session = await createSession(userId, new Date(Date.now() + ms));
+    return session.token;
+  }
+
+  async function expiryOf(token: string): Promise<number> {
+    const row = await platformDb.session.findUniqueOrThrow({
+      where: { tokenHash: hashSessionToken(token) },
+    });
+    return row.expiresAt.getTime();
+  }
+
+  it("login sets a 30-day cookie and a 30-day row", async () => {
+    const before = Date.now();
+    const token = await loginAndReadCookie();
+    const cookie = writtenCookies().find((entry) => entry.name === "stadium_session");
+    expect(cookie?.maxAge).toBe(30 * 24 * 60 * 60);
+    expect(await expiryOf(token)).toBeGreaterThanOrEqual(before + 30 * DAY - 1000);
+  });
+
+  it("use extends the expiry to 30 days from now, at most once a day", async () => {
+    const token = await sessionExpiringIn(10 * DAY);
+    request(token);
+    const before = Date.now();
+    expect(await getCurrentMembership()).not.toBeNull();
+    const renewed = await expiryOf(token);
+    expect(renewed).toBeGreaterThanOrEqual(before + 30 * DAY - 1000);
+
+    // Used again the same day: no second write.
+    request(token);
+    expect(await getCurrentMembership()).not.toBeNull();
+    expect(await expiryOf(token)).toBe(renewed);
+  });
+
+  it("a session renewed less than a day ago is left alone", async () => {
+    const token = await sessionExpiringIn(29 * DAY + 60 * 60 * 1000);
+    const stored = await expiryOf(token);
+    request(token);
+    expect(await getCurrentMembership()).not.toBeNull();
+    expect(await expiryOf(token)).toBe(stored);
+  });
+
+  it("an expired session is not revived and the owner shell redirects to /owner/login", async () => {
+    const token = await sessionExpiringIn(-1000);
+    const stored = await expiryOf(token);
+    request(token);
+    expect(await getCurrentMembership()).toBeNull();
+    expect(await expiryOf(token)).toBe(stored);
+
+    request(token);
+    await expect(requireOwnerMembership()).rejects.toMatchObject({
+      digest: expect.stringContaining("/owner/login"),
+    });
+  });
+
+  it("login deletes that user's expired sessions, keeps live ones and other users'", async () => {
+    const expired = await sessionExpiringIn(-1000);
+    const live = await sessionExpiringIn(5 * DAY);
+    const other = await seedMinimalFixture({
+      tenantSlug: "other-stadium",
+      tenantName: "Other",
+      pitchName: "PO",
+      ownerIdentifier: "owner@other-stadium",
+    });
+    const othersExpired = await sessionExpiringIn(-1000, other.ownerUserId);
+
+    await loginAndReadCookie();
+
+    const hashes = (await platformDb.session.findMany()).map((row) => row.tokenHash);
+    expect(hashes).not.toContain(hashSessionToken(expired));
+    expect(hashes).toContain(hashSessionToken(live));
+    expect(hashes).toContain(hashSessionToken(othersExpired));
   });
 });

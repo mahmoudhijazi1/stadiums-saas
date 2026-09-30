@@ -5,11 +5,12 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import type { LoginInput } from "@/modules/access/schemas/login";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
 import { verifyPassword } from "@/modules/access/infrastructure/password";
+import { SESSION_LIFETIME_MS } from "@/modules/access/domain/session-lifetime";
+import { writeSessionCookie } from "@/modules/access/infrastructure/session-cookie";
 import {
-  SESSION_MAX_AGE_SECONDS,
-  writeSessionCookie,
-} from "@/modules/access/infrastructure/session-cookie";
-import { createSession } from "@/modules/access/infrastructure/sessions";
+  createSession,
+  deleteExpiredSessions,
+} from "@/modules/access/infrastructure/sessions";
 import { findUserByIdentifier } from "@/modules/access/infrastructure/users";
 
 /**
@@ -36,9 +37,13 @@ export async function login(input: LoginInput): Promise<void> {
       throw new DomainError("access.invalid_login");
     }
 
-    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
-    const session = await createSession(user.id, expiresAt);
-    await writeSessionCookie(session.token, expiresAt);
+    const now = new Date();
+    await deleteExpiredSessions(user.id, now);
+    const session = await createSession(
+      user.id,
+      new Date(now.getTime() + SESSION_LIFETIME_MS),
+    );
+    await writeSessionCookie(session.token);
     logger.info(`Login ${user.id}`, undefined, {
       useCase: "login",
       tenantId: await safeTenantId(),

@@ -4654,3 +4654,29 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
   - two logins get different tokens;
   - logout deletes only that token's row and clears the cookie.
 - `npm run build` is green.
+
+## Rolling 30-day session
+
+**When:** 2026-09-30
+
+**What:** Sessions now last 30 days from the last use, instead of 7 days from login.
+- `access/domain/session-lifetime.ts`: `renewedSessionExpiry(expiresAt, now)` returns now + 30 days once the last renewal is at least a day old. It returns null inside that day, and it never revives an expired session.
+- `getCurrentMembership` calls it and writes with `extendSession`, an `updateMany` that only moves the expiry forward, so concurrent requests are harmless. That is at most one write per session per day.
+- **Cookie half:** Server Components cannot set cookies. `node_modules/next/dist/docs/01-app/03-api-reference/04-functions/cookies.md` says `.set` is allowed only in a Server Function or a Route Handler, and `proxy.md` shows `response.cookies.set` in the proxy. So `src/proxy.ts` re-sends the session cookie with the same value, the same flags and `Max-Age` of 30 days.
+  - It does this on GET only, when the cookie is present and the day-long marker `stadium_session_renewed` is absent, and then sets that marker.
+  - Login and logout are POST Server Actions and write the cookie themselves.
+- The flags live in the new `session-cookie-options.ts` (no `next/headers`), shared by the proxy and `session-cookie.ts`.
+- **Expired session:** `getCurrentMembership` returns null, and `requireOwnerMembership` redirects to `/owner/login`. A test now covers that redirect.
+- **Login:** `deleteExpiredSessions(userId, now)` removes that user's dead rows before the new one is created.
+
+**Why:** The user asked for a rolling 30-day session. Owners stay logged in on their phone while dead rows are cleaned (audit S-17, for the logged-in user's rows).
+
+**Files:** `src/modules/access/domain/session-lifetime.ts` (new), `src/modules/access/infrastructure/session-cookie-options.ts` (new), `src/modules/access/infrastructure/session-cookie.ts`, `src/modules/access/infrastructure/sessions.ts`, `src/modules/access/application/get-current-membership.ts`, `src/modules/access/application/login.ts`, `src/proxy.ts`, `test/modules/access/domain/session-lifetime.test.ts` (new), `test/proxy.test.ts` (new), `test/integration/auth-sessions.integration.test.ts`.
+
+**How it connects:** The proxy imports only the pure cookie-options module and never reads the database. The renewal is a platform `Session` write, outside any tenant transaction (DR-001, one-pool rule).
+
+**How to verify:**
+- Tests were written first. The unit test failed (module not found); the proxy test and 3 integration tests failed. The expired-session redirect already worked.
+- `npm test`: 66 suites, 471 tests.
+- `npm run test:integration`: 16 suites, 110 tests.
+- `npm run build` is green.

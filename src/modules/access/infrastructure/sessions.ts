@@ -29,3 +29,16 @@ export async function deleteSessionByToken(token: string) {
     .deleteMany({ where: { tokenHash: hashSessionToken(token) } })
     .catch(() => undefined);
 }
+
+/** Rolling renewal. Only moves the expiry forward, so concurrent uses are harmless. */
+export async function extendSession(id: string, expiresAt: Date) {
+  await platformDb.session.updateMany({
+    where: { id, expiresAt: { lt: expiresAt } },
+    data: { expiresAt },
+  });
+}
+
+/** Called on login: a user's dead sessions are removed, live ones kept. */
+export async function deleteExpiredSessions(userId: string, now: Date) {
+  await platformDb.session.deleteMany({ where: { userId, expiresAt: { lte: now } } });
+}
