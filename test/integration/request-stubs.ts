@@ -18,6 +18,11 @@ export function setTenantSlug(slug: string) {
   stores().__headerStore.set("x-tenant-slug", slug);
 }
 
+/** Any request header the code under test reads through next/headers. */
+export function setRequestHeader(name: string, value: string) {
+  stores().__headerStore.set(name.toLowerCase(), value);
+}
+
 export function setSessionCookie(sessionId: string) {
   stores().__cookieStore.set("stadium_session", sessionId);
 }

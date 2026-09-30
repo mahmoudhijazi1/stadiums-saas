@@ -4680,3 +4680,47 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm test`: 66 suites, 471 tests.
 - `npm run test:integration`: 16 suites, 110 tests.
 - `npm run build` is green.
+
+## Login brute-force limit (Postgres counters)
+
+**When:** 2026-09-30
+
+**What:** Security audit S-3.
+- **Table:** new `RateLimit (key PK, windowStart, count)` with an index on `windowStart`; migration `20260930130000_rate_limit`. It is global like Session, and the key carries the account or IP.
+- **`src/lib/rate-limit.ts`:**
+  - `hitRateLimit(key, windowMs)` is one atomic `INSERT … ON CONFLICT DO UPDATE … RETURNING count`. The window restarts at the first hit after it ends.
+  - `rateLimitCount`, `resetRateLimit` and `pruneRateLimits` complete the set.
+- **Login** (`access/domain/login-limits.ts`):
+  - 8 failures per account within 15 minutes start a 15-minute block. While blocked, every attempt, including one with the right password, gets `access.login_throttled` ("Too many attempts. Try again in 15 minutes."). The password is not checked while blocked.
+  - Failures count for unknown identifiers too, so the limit reveals nothing about which accounts exist.
+  - A successful login resets that account's failure count and prunes rows older than a day.
+- **Per IP:**
+  - It applies only when `TRUSTED_CLIENT_IP_HEADER` is set. `src/lib/client-ip.ts` reads that header, takes the last entry and requires a valid IP.
+  - Limit: 40 failures in 15 minutes, then a 15-minute block. The user gave no per-IP login number, so this one was chosen here and needs confirming.
+  - If the variable is unset, no IP limit applies (fail safe).
+- **Trade-off:** anyone can keep an owner's account blocked by sending 8 bad passwords every 15 minutes. A session that is already logged in keeps working, and an operator can lift the block (`docs/RUNBOOK.md`, "Login lockout").
+- **Wiring:** the seed and the test truncation now also wipe `RateLimit`. The integration header stub gained `setRequestHeader`. `.env.example` documents `TRUSTED_CLIENT_IP_HEADER` (commented out).
+
+**Why:** [security-audit.md S-3](./audits/security-audit.md#s-3-no-brute-force-protection-on-login).
+
+**Files:** `src/lib/rate-limit.ts` (new), `src/lib/client-ip.ts` (new), `src/modules/access/domain/login-limits.ts` (new), `src/modules/access/application/login.ts`, `src/lib/error-messages.ts`, `src/prisma/schema.prisma`, `src/prisma/migrations/20260930130000_rate_limit/migration.sql` (new), `src/prisma/seed.ts`, `test/integration/login-rate-limit.integration.test.ts` (new), `test/integration/truncate.ts`, `test/integration/request-stubs.ts`, `.env.example`, `docs/RUNBOOK.md`, `docs/guides/folder-structure.md`.
+
+**How it connects:**
+- `lib/rate-limit` uses `platformDb` and never runs inside a tenant transaction. Part 3 (public requests) will reuse it.
+- `access` imports `lib` only.
+- The migration was written by hand. `prisma migrate diff` from `stadiums_test` shows no RateLimit or Session drift.
+
+**How to verify:**
+- The test was written first and failed (module not found).
+- `npm run test:integration`: 17 suites, 120 tests. The 10 new ones cover:
+  - 20 concurrent hits count 1…20, and the window restarts;
+  - 8 failures block, and the right password is refused at 14 minutes and accepted after 15;
+  - 7 failures do not block;
+  - failures older than 15 minutes do not count;
+  - a success resets the count;
+  - an unknown account is throttled the same way;
+  - the block covers only that account, and its live session keeps working;
+  - with no env setting, no IP limit applies;
+  - with the setting, 40 failures from one IP block that IP while another IP is fine, and the block lifts after 15 minutes;
+  - with the setting but no header, only the account limit applies.
+- `npm test`: 66 suites, 471 tests. `npm run build` is green.

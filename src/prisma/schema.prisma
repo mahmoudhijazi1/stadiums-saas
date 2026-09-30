@@ -381,3 +381,14 @@ enum LedgerDirection {
   IN
   OUT
 }
+
+/// Rate-limit counter (security audit S-3). One row per key; the window restarts
+/// at the first hit after it ends. Global like Session: the key carries the
+/// account, IP or tenant it counts. Written only by src/lib/rate-limit.ts.
+model RateLimit {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+
+  @@index([windowStart])
+}

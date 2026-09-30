@@ -22,6 +22,7 @@ const TABLES = [
   "Session",
   "User",
   "Tenant",
+  "RateLimit",
 ] as const;
 
 export async function truncateAll(): Promise<void> {

@@ -26,3 +26,16 @@ npx tsx scripts/set-password.ts owner@ahmad
 A wrong database name, a password under 12 characters, two entries that differ, or an unknown identifier all stop the tool with exit code 1 and change nothing.
 
 After the seed's `dev-owner` accounts have ever existed on a server, reset every one of them with this tool (security audit S-1).
+
+## Login lockout
+
+After 8 failed logins for one account within 15 minutes, that account's logins are refused for 15 minutes with "Too many attempts". This also applies to identifiers that do not exist. Sessions that are already logged in keep working. When `TRUSTED_CLIENT_IP_HEADER` is set, 40 failures from one IP address in 15 minutes block that IP the same way.
+
+To lift a block early (for example, an owner locked out by someone guessing at their account), delete the counters for that identifier:
+
+```bash
+# psql does not accept Prisma's ?schema=public suffix, so strip the query string.
+psql "${DATABASE_URL%%\?*}" -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
+```
+
+**`TRUSTED_CLIENT_IP_HEADER`:** set it only when nginx overwrites that header with the real client address, for example `proxy_set_header X-Real-IP $remote_addr;` together with `TRUSTED_CLIENT_IP_HEADER=x-real-ip`. When it is unset, no per-IP limit applies. Never point it at a header the client can set by itself.
