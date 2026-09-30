@@ -2,7 +2,7 @@ import { cache } from "react";
 import type { MembershipRole } from "@/app/generated/prisma/enums";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
 import { readSessionCookie } from "@/modules/access/infrastructure/session-cookie";
-import { findSessionById } from "@/modules/access/infrastructure/sessions";
+import { findSessionByToken } from "@/modules/access/infrastructure/sessions";
 
 export type CurrentMembership = {
   membershipId: string;
@@ -19,10 +19,10 @@ export type CurrentMembership = {
  */
 export const getCurrentMembership = cache(
   async (): Promise<CurrentMembership | null> => {
-    const id = await readSessionCookie();
-    if (!id) return null;
+    const token = await readSessionCookie();
+    if (!token) return null;
 
-    const session = await findSessionById(id);
+    const session = await findSessionByToken(token);
     if (!session || session.expiresAt.getTime() <= Date.now()) {
       return null;
     }

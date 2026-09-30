@@ -1,4 +1,5 @@
 import { platformDb } from "@/lib/platform-db";
+import { createSession } from "@/modules/access/infrastructure/sessions";
 import { hashPassword } from "@/modules/access/infrastructure/password";
 import { CLOSED_WEEK_SCHEDULE } from "@/modules/venue/schemas/schedule-config";
 import type { ScheduleConfig, Weekday } from "@/modules/venue/schemas/schedule-config";
@@ -34,6 +35,7 @@ export type TestFixture = {
   pitchId: string;
   ownerUserId: string;
   ownerIdentifier: string;
+  /** Cookie value: the raw session token (the row stores only its hash). */
   sessionId: string;
 };
 
@@ -92,10 +94,7 @@ export async function seedMinimalFixture(
   });
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const session = await platformDb.session.create({
-    data: { userId: user.id, expiresAt },
-    select: { id: true },
-  });
+  const session = await createSession(user.id, expiresAt);
 
   return {
     tenantId: tenant.id,
@@ -103,7 +102,7 @@ export async function seedMinimalFixture(
     pitchId: pitch.id,
     ownerUserId: user.id,
     ownerIdentifier: user.identifier,
-    sessionId: session.id,
+    sessionId: session.token,
   };
 }
 
@@ -128,7 +127,7 @@ let staffSeq = 0;
 
 /**
  * A new STAFF user on this tenant with exactly these permission flags, and a live
- * session. Returns the session id for `setSessionCookie`.
+ * session. Returns the session token (the cookie value) for `setSessionCookie`.
  */
 export async function createStaffSession(
   tenantId: string,
@@ -145,9 +144,6 @@ export async function createStaffSession(
   await platformDb.membership.create({
     data: { tenantId, userId: user.id, role: "STAFF", permissions: flags },
   } as Parameters<typeof platformDb.membership.create>[0]);
-  const session = await platformDb.session.create({
-    data: { userId: user.id, expiresAt: new Date(Date.now() + 86_400_000) },
-    select: { id: true },
-  });
-  return session.id;
+  const session = await createSession(user.id, new Date(Date.now() + 86_400_000));
+  return session.token;
 }

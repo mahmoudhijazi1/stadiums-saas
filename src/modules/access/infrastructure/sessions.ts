@@ -1,22 +1,31 @@
 import { platformDb } from "@/lib/platform-db";
+import {
+  hashSessionToken,
+  newSessionToken,
+} from "@/modules/access/infrastructure/session-token";
 
 /**
- * Sessions are not tenant-owned. Cookie value is Session.id (opaque).
+ * Sessions are not tenant-owned. The cookie carries a random token; the row
+ * stores only its SHA-256 (security audit S-2), so lookups go by hash.
  */
 export async function createSession(userId: string, expiresAt: Date) {
-  return platformDb.session.create({
-    data: { userId, expiresAt },
-    select: { id: true, userId: true, expiresAt: true },
+  const token = newSessionToken();
+  const row = await platformDb.session.create({
+    data: { userId, expiresAt, tokenHash: hashSessionToken(token) },
+    select: { userId: true, expiresAt: true },
   });
+  return { token, ...row };
 }
 
-export async function findSessionById(id: string) {
+export async function findSessionByToken(token: string) {
   return platformDb.session.findUnique({
-    where: { id },
+    where: { tokenHash: hashSessionToken(token) },
     select: { id: true, userId: true, expiresAt: true },
   });
 }
 
-export async function deleteSession(id: string) {
-  await platformDb.session.delete({ where: { id } }).catch(() => undefined);
+export async function deleteSessionByToken(token: string) {
+  await platformDb.session
+    .deleteMany({ where: { tokenHash: hashSessionToken(token) } })
+    .catch(() => undefined);
 }

@@ -38,7 +38,7 @@ export async function login(input: LoginInput): Promise<void> {
 
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
     const session = await createSession(user.id, expiresAt);
-    await writeSessionCookie(session.id, expiresAt);
+    await writeSessionCookie(session.token, expiresAt);
     logger.info(`Login ${user.id}`, undefined, {
       useCase: "login",
       tenantId: await safeTenantId(),

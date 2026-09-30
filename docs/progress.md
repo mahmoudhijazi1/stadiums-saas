@@ -4623,3 +4623,34 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
   - `--list` printed three rows;
   - piped stdin was refused;
   - a full run printed `updated owner@ahmad`, the typed password never appeared in the output, and the session count went to 0.
+
+## Session tokens: 256-bit random, stored as SHA-256
+
+**When:** 2026-09-30
+
+**What:** Security audit S-2. Session ids used to be Prisma cuid v1: `Math.random`, about 41 unpredictable bits. The raw id was the cookie value, so a read of the Session table gave live cookies.
+- New `access/infrastructure/session-token.ts`:
+  - `newSessionToken()` returns 32 bytes from `crypto.randomBytes`, as base64url (43 characters);
+  - `hashSessionToken()` returns the hex SHA-256.
+- `Session.tokenHash` is new, `@unique`. The cookie carries the raw token and the row stores only the hash. `createSession` returns `{ token }`.
+- `findSessionByToken` and `deleteSessionByToken` replace the lookups by id. Login, `getCurrentMembership` and logout go through them.
+- Migration `20260930120000_session_token_hash` **deletes every existing session** (old rows have no hash) before adding the column. Every user must log in again after deploy.
+- The integration mocks now record the cookies written, via `writtenCookies()`. Fixtures create sessions through `createSession`, and `fixture.sessionId` is now the raw token.
+- The set-password test creates its extra session the same way. The tool still deletes by `userId`, and its "sessions deleted, another user's session kept" test passes.
+- `isCurrentGeneratedClient` also requires `Session.tokenHash`, so a dev server drops a stale client.
+
+**Why:** [security-audit.md S-2](./audits/security-audit.md#s-2-session-ids-are-cuid-v1-not-cryptographically-random). No server secret is needed: the token is random and only its hash is kept.
+
+**Files:** `src/modules/access/infrastructure/session-token.ts` (new), `src/modules/access/infrastructure/sessions.ts`, `src/modules/access/infrastructure/session-cookie.ts`, `src/modules/access/application/login.ts`, `src/modules/access/application/logout.ts`, `src/modules/access/application/get-current-membership.ts`, `src/lib/prisma-base.ts`, `src/prisma/schema.prisma`, `src/prisma/migrations/20260930120000_session_token_hash/migration.sql` (new), `test/modules/access/infrastructure/session-token.test.ts` (new), `test/integration/auth-sessions.integration.test.ts` (new), `test/integration/fixtures.ts`, `test/integration/setup-mocks.ts`, `test/integration/request-stubs.ts`, `test/integration/set-password.integration.test.ts`.
+
+**How it connects:** Access module only, and User/Session stay global (DR-003). The migration was written by hand and never run against `stadiums_dev`. `prisma migrate diff` from `stadiums_test` to the schema shows no Session drift.
+
+**How to verify:**
+- The unit test was written first and failed (module not found).
+- `npm test`: 64 suites, 464 tests.
+- `npm run test:integration`: 16 suites, 105 tests. The new ones check that:
+  - the cookie is 43 base64url characters and the row holds its SHA-256, with the raw token in no column;
+  - the token authenticates, but the row id or the stored hash does not;
+  - two logins get different tokens;
+  - logout deletes only that token's row and clears the cookie.
+- `npm run build` is green.

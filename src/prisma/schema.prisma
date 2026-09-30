@@ -230,6 +230,8 @@ model Membership {
 /// Server-side session. No tenantId — cookie is not the isolation key (DR-003 §4).
 model Session {
   id        String   @id @default(cuid())
+  /// SHA-256 (hex) of the cookie token. The raw token is never stored (security audit S-2).
+  tokenHash String   @unique
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())

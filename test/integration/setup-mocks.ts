@@ -40,10 +40,13 @@ jest.mock("react", () => {
 jest.mock("next/headers", () => {
   const headerStore = new Map<string, string>();
   const cookieStore = new Map<string, string>();
+  /** Every cookie written or deleted by the code under test, in order. */
+  const setCookies: { name: string; value: string; [option: string]: unknown }[] = [];
 
   const api = {
     __headerStore: headerStore,
     __cookieStore: cookieStore,
+    __setCookies: setCookies,
     headers: jest.fn(async () => ({
       get(name: string) {
         return headerStore.get(name.toLowerCase()) ?? null;
@@ -54,8 +57,22 @@ jest.mock("next/headers", () => {
         const value = cookieStore.get(name);
         return value === undefined ? undefined : { name, value };
       },
-      set() {},
-      delete() {},
+      set(
+        nameOrOptions: string | { name: string; value: string },
+        value?: string,
+        options?: Record<string, unknown>,
+      ) {
+        const cookie =
+          typeof nameOrOptions === "string"
+            ? { ...options, name: nameOrOptions, value: value ?? "" }
+            : { ...nameOrOptions };
+        setCookies.push(cookie);
+        cookieStore.set(cookie.name, cookie.value);
+      },
+      delete(name: string) {
+        setCookies.push({ name, value: "", deleted: true });
+        cookieStore.delete(name);
+      },
     })),
   };
   return api;

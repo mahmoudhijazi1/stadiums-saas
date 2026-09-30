@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import { platformDb } from "@/lib/platform-db";
 import { verifyPassword } from "@/modules/access/infrastructure/password";
+import { createSession } from "@/modules/access/infrastructure/sessions";
 import { listAccounts, setPassword, type SetPasswordIo } from "../../scripts/set-password-core";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
@@ -31,9 +32,7 @@ beforeEach(async () => {
     ownerIdentifier: "owner@other-stadium",
   });
   // A second live session for the target user.
-  await platformDb.session.create({
-    data: { userId: fixture.ownerUserId, expiresAt: new Date(Date.now() + 86_400_000) },
-  });
+  await createSession(fixture.ownerUserId, new Date(Date.now() + 86_400_000));
 });
 
 /** Answers in order; records what was asked (hidden or not) and what was printed. */
