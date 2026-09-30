@@ -4525,3 +4525,21 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/audits/booking-payments-production-audit.md`.
 
 **How to verify:** Read the update table; each commit is on this branch.
+
+## Open logic findings recorded (not fixed)
+
+**When:** 2026-09-30
+
+**What:** New `docs/audits/logic-findings.md` (the detail) and `docs/ROADMAP.md` (the short ordered list). Nothing in code changed. They record four items:
+- **F-1**, audit #6: money paid before a per-player split credits nobody. Proposed rule, not implemented: Unassigned is credited to the booker. The booker's Total paid includes it; Owes now = max(own slot remaining − Unassigned, 0); any excess stays Unassigned on the booking until SPEC-15 slice 5.
+- **F-2**, audit #9: ledger hardening, deferred. Needs a migration and a design decision.
+- **F-3**: old no-show fee rows labelled `CANCELLATION_NO_FEE` (SQL in the "Cancel and no-show fees" entry above), not fixed.
+- **F-4**: three setState-in-effect lint errors (`fee-forms.tsx` lines 55 and 59, `upcoming-panel.tsx` line 353) and the unused `Decimal` import in `list-debt-warnings.ts`.
+
+`NOW.md` and `docs/README.md` link both files.
+
+**Why:** These are known and deliberately left open; they need one place other than the dated audit.
+
+**Files:** `docs/audits/logic-findings.md` (new), `docs/ROADMAP.md` (new), `docs/NOW.md`, `docs/README.md`.
+
+**How to verify:** Docs only. The lint lines match `npx eslint "src/app/owner/(app)/today/fee-forms.tsx" "src/app/owner/(app)/today/upcoming-panel.tsx" src/modules/booking/application/list-debt-warnings.ts` on main at `7ba058d`.
