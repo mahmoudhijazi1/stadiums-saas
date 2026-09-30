@@ -4820,3 +4820,28 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** Test-only. It imports `src/proxy.ts` and the access use cases.
 
 **How to verify:** `npm run test:integration` (19 suites, 126 tests), `npm test` (67 suites, 477 tests), `npm run build`.
+
+## Person names: invisible characters stripped, public name capped at 60
+
+**When:** 2026-09-30
+
+**What:** Security audit S-5 (unbounded name) and S-14 (bidi spoofing).
+- **`cleanPersonName`** (`people/domain/clean-person-name.ts`) is the shared cleaner. `createPerson` uses it for every Person name, from both the public request and the owner's form. It:
+  - strips the bidi controls U+061C, U+200E, U+200F, U+202A–202E and U+2066–2069;
+  - strips U+200B, U+FEFF and the C0/C1 control characters;
+  - turns tabs and newlines into one space;
+  - keeps ZWJ and ZWNJ, which Arabic-script names need.
+- **Public request schema:** the name is cleaned first, then must be 1–60 characters (`PUBLIC_NAME_MAX`). A name made only of invisible characters is refused. The phone still goes through the existing `normalizePhone` (8–15 digits).
+- **The shared slot-picker name input** has `maxLength={60}`.
+
+**Why:** [security-audit.md S-5](./audits/security-audit.md#s-5-public-requests-can-be-flooded-and-names-are-unbounded), [S-14](./audits/security-audit.md#s-14-names-accept-bidi-overrides-and-control-characters).
+
+**Files:** `src/modules/people/domain/clean-person-name.ts`, `src/modules/booking/schemas/public-slot-request.ts`, `src/components/slot-picker.tsx`, `test/modules/people/domain/clean-person-name.test.ts`, `test/modules/booking/schemas/public-slot-request.test.ts`.
+
+**How it connects:** The booking schema imports the people domain cleaner (downward). `searchName` is still `normalizeName` of the cleaned name.
+
+**How to verify:**
+- The tests were written first; 5 failed.
+- `npm test`: 67 suites, 485 tests.
+- `npm run test:integration`: 19 suites, 126 tests.
+- `npm run build` is green.

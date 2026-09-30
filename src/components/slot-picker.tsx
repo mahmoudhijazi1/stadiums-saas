@@ -335,6 +335,7 @@ function RequestForm({
           type="text"
           name="name"
           autoComplete="name"
+          maxLength={60}
           aria-invalid={Boolean(fieldErrors.name)}
           aria-describedby={fieldErrors.name ? nameErrorId : undefined}
           onInput={() =>
