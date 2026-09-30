@@ -3,6 +3,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { platformDb } from "@/lib/platform-db";
+import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
   parseTenantSettings,
   type TimeDisplay,
@@ -33,10 +34,12 @@ export type CurrentTenant = {
 const tenantAls = new AsyncLocalStorage<CurrentTenant>();
 
 async function loadTenant(): Promise<CurrentTenant> {
-  const slug = (await headers()).get("x-tenant-slug");
-  if (!slug) {
+  // From the validated Host, never from a client header (security audit S-9).
+  const resolved = resolveTenantFromHeaders(await headers());
+  if (resolved.kind !== "tenant") {
     notFound();
   }
+  const slug = resolved.slug;
 
   const tenant = await platformDb.tenant.findUnique({
     where: { slug },
@@ -62,7 +65,7 @@ async function loadTenant(): Promise<CurrentTenant> {
 /**
  * Resolve the current tenant for this request.
  *
- * 1. Read x-tenant-slug (set by proxy in Step 2)
+ * 1. Resolve the slug from the validated Host (resolveTenantFromHeaders)
  * 2. Load that row from Tenant with platformDb
  * 3. If missing header or unknown slug → 404
  *

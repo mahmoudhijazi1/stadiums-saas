@@ -4918,3 +4918,31 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm run test:integration`: 22 suites, 141 tests.
 - `npm test`: 68 suites, 488 tests.
 - `npm run build` is green.
+
+## Hosts: strict allowlist, tenant from the validated Host only
+
+**When:** 2026-09-30
+
+**What:** Security audit S-9, S-10 and S-11.
+- **Resolver:** `src/lib/tenant-slug.ts` has a new pure resolver, `classifyHost` / `resolveTenantHost` / `resolveTenantFromHeaders`.
+  - Valid hosts are the bare `APP_BASE_DOMAIN` (the apex, no tenant) or a single-label subdomain of it, case- and port-insensitive, with a trailing dot allowed.
+  - Anything else is invalid: another domain, a deeper subdomain, a bad label, or a missing base (fails closed).
+  - `X-Forwarded-Host` (its last entry) is used only with `TRUST_PROXY_HEADERS=true`.
+  - The old Origin/Referer fallback for the `next dev` redirect issue now runs only outside production, only from the bare domain, and only to a host that is itself a valid tenant host.
+- **`src/proxy.ts`:** an invalid host gets a 404 before any tenant lookup, and the proxy always forwards the request headers with `x-tenant-slug` removed.
+- **`tenant-context.loadTenant`** resolves the slug from the same validated Host and **never reads `x-tenant-slug`**. This also closes the image-extension paths the proxy matcher skips.
+- **`manifest.ts`** uses the same resolver.
+- **Tests:** integration stubs now set `Host: <slug>.lebstads.test` (`setup-env` sets `APP_BASE_DOMAIN=lebstads.test`), and the e2e server gets the same base.
+- **Docs:** README, folder-structure, owner-ia, the module map and the tenant-guard guide no longer mention `?tenant=` or `x-tenant-slug`. `.env.example` and `docs/RUNBOOK.md` ("Hosts") cover `TRUST_PROXY_HEADERS` and the nginx `Host` line.
+
+**Why:** [security-audit.md S-9](./audits/security-audit.md#s-9-spoofed-x-tenant-slug-is-believed-on-image-extension-paths), [S-10](./audits/security-audit.md#s-10-any-base-domain-is-accepted), [S-11](./audits/security-audit.md#s-11-x-forwarded-host-is-trusted-when-host-is-localhost).
+
+**Files:** `src/lib/tenant-slug.ts`, `src/lib/tenant-context.ts`, `src/proxy.ts`, `src/app/manifest.ts`, `test/lib/tenant-slug.test.ts`, `test/proxy.test.ts`, `test/integration/host-tenant.integration.test.ts` (new), `test/integration/request-stubs.ts`, `test/integration/setup-env.ts`, `test/e2e/login-cookie.e2e.test.ts`, `.env.example`, `README.md`, `docs/RUNBOOK.md`, `docs/owner-ia.md`, `docs/guides/folder-structure.md`, `docs/guides/module-map-and-request-walkthroughs.md`, `docs/guides/prisma-transaction-tenant-guard.md`.
+
+**How it connects:** `lib` only; the proxy still never queries Postgres.
+
+**How to verify:**
+- The tests were written first; 10 unit/proxy tests and 3 integration tests failed.
+- `npm test`: 68 suites, 490 tests.
+- `npm run test:integration`: 23 suites, 145 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (2 tests).

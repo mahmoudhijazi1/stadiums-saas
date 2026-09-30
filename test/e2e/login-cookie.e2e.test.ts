@@ -112,7 +112,12 @@ beforeAll(async () => {
   await truncateAll();
   ({ a, b } = await seedTwoTenants());
   server = spawn("node_modules/.bin/next", ["start", "-p", String(PORT), "-H", "127.0.0.1"], {
-    env: { ...process.env, NODE_ENV: "production", PORT: String(PORT) },
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      PORT: String(PORT),
+      APP_BASE_DOMAIN: "lebstads.test",
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout?.on("data", (chunk) => (serverLog += chunk));

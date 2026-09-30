@@ -14,8 +14,9 @@ function stores(): Stores {
   return nextHeaders as unknown as Stores;
 }
 
+/** The tenant comes from Host (APP_BASE_DOMAIN is lebstads.test in setup-env). */
 export function setTenantSlug(slug: string) {
-  stores().__headerStore.set("x-tenant-slug", slug);
+  stores().__headerStore.set("host", `${slug}.lebstads.test`);
 }
 
 /** Any request header the code under test reads through next/headers. */

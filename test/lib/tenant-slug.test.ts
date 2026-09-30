@@ -1,62 +1,117 @@
 import { describe, expect, it } from "@jest/globals";
-import { parseTenantSlug, resolveRequestHost } from "@/lib/tenant-slug";
+import { classifyHost, resolveTenantHost } from "@/lib/tenant-slug";
 
-describe("parseTenantSlug", () => {
-  it("reads the subdomain from a normal host", () => {
-    expect(parseTenantSlug("ahmad.stadiums.com")).toBe("ahmad");
-    expect(parseTenantSlug("sami.stadiums.com:3000")).toBe("sami");
+/**
+ * Hosts (security audit S-9, S-10, S-11): only the bare APP_BASE_DOMAIN or a
+ * single-label subdomain of it. Forwarded headers only behind a trusted proxy.
+ */
+const BASE = "lebstads.com";
+const tenant = (slug: string) => ({ kind: "tenant", slug });
+const APEX = { kind: "apex" };
+const INVALID = { kind: "invalid" };
+
+describe("classifyHost", () => {
+  it("accepts a single-label subdomain of the base domain", () => {
+    expect(classifyHost("ahmad.lebstads.com", BASE)).toEqual(tenant("ahmad"));
+    expect(classifyHost("AHMAD.LebStads.com", BASE)).toEqual(tenant("ahmad"));
+    expect(classifyHost("ahmad.lebstads.com:443", BASE)).toEqual(tenant("ahmad"));
+    expect(classifyHost("ahmad.lebstads.com.", BASE)).toEqual(tenant("ahmad"));
+    expect(classifyHost("sami-2.lebstads.com", BASE)).toEqual(tenant("sami-2"));
   });
 
-  it("works with local hosts (lvh.me and *.localhost)", () => {
-    expect(parseTenantSlug("ahmad.lvh.me")).toBe("ahmad");
-    expect(parseTenantSlug("sami.localhost")).toBe("sami");
+  it("accepts the bare base domain as the apex (no tenant)", () => {
+    expect(classifyHost("lebstads.com", BASE)).toEqual(APEX);
+    expect(classifyHost("LEBSTADS.COM:443", BASE)).toEqual(APEX);
   });
 
-  it("returns null when there is no tenant subdomain", () => {
-    expect(parseTenantSlug("stadiums.com")).toBeNull();
-    expect(parseTenantSlug("www.stadiums.com")).toBeNull();
-    expect(parseTenantSlug("localhost")).toBeNull();
-    expect(parseTenantSlug("127.0.0.1")).toBeNull();
+  it("rejects any other domain, deeper subdomains and bad labels", () => {
+    for (const host of [
+      "ahmad.attacker.example",
+      "lebstads.com.attacker.example",
+      "ahmad.lebstads.com.attacker.example",
+      "evil-lebstads.com",
+      "a.ahmad.lebstads.com",
+      "bad_slug.lebstads.com",
+      "-ahmad.lebstads.com",
+      ".lebstads.com",
+      "localhost",
+      "127.0.0.1",
+      "",
+    ]) {
+      expect(classifyHost(host, BASE)).toEqual(INVALID);
+    }
   });
 
-  it("rejects invalid subdomain slugs on multi-part hosts", () => {
-    expect(parseTenantSlug("Bad_Slug.stadiums.com")).toBeNull();
+  it("uses the base domain without its port (local dev base localhost:3000)", () => {
+    expect(classifyHost("ahmad.localhost:3000", "localhost:3000")).toEqual(tenant("ahmad"));
+    expect(classifyHost("localhost:3000", "localhost:3000")).toEqual(APEX);
+  });
+
+  it("fails closed when the base domain is not configured", () => {
+    expect(classifyHost("ahmad.lebstads.com", "")).toEqual(INVALID);
   });
 });
 
-describe("resolveRequestHost", () => {
-  it("keeps a normal subdomain Host", () => {
-    expect(
-      resolveRequestHost("ahmad.localhost:3000", "ahmad.localhost:3000"),
-    ).toBe("ahmad.localhost:3000");
-  });
+describe("resolveTenantHost", () => {
+  const production = { baseDomain: BASE, trustProxyHeaders: false, devFallback: false };
 
-  it("uses x-forwarded-host when Host collapsed to localhost", () => {
+  it("reads Host; ignores X-Forwarded-Host, Origin and Referer by default", () => {
     expect(
-      resolveRequestHost("localhost:3000", "ahmad.localhost:3000"),
-    ).toBe("ahmad.localhost:3000");
-  });
-
-  it("falls back to Origin host when forwarded is missing", () => {
-    expect(
-      resolveRequestHost("localhost:3000", null, "http://ahmad.localhost:3000"),
-    ).toBe("ahmad.localhost:3000");
-  });
-
-  it("falls back to Referer host when Origin is missing", () => {
-    expect(
-      resolveRequestHost(
-        "localhost:3000",
-        null,
-        null,
-        "http://ahmad.localhost:3000/owner/login",
+      resolveTenantHost(
+        {
+          host: "sami.lebstads.com",
+          forwardedHost: "ahmad.lebstads.com",
+          origin: "https://ahmad.lebstads.com",
+          referer: "https://ahmad.lebstads.com/x",
+        },
+        production,
       ),
-    ).toBe("ahmad.localhost:3000");
+    ).toEqual(tenant("sami"));
+    expect(
+      resolveTenantHost({ host: "127.0.0.1:3000", forwardedHost: "ahmad.lebstads.com" }, production),
+    ).toEqual(INVALID);
   });
 
-  it("uses first forwarded host when a list is present", () => {
+  it("uses X-Forwarded-Host (the last entry, set by our proxy) only when trusted", () => {
+    const trusted = { ...production, trustProxyHeaders: true };
     expect(
-      resolveRequestHost("127.0.0.1:3000", "sami.localhost:3000, other"),
-    ).toBe("sami.localhost:3000");
+      resolveTenantHost({ host: "127.0.0.1:3000", forwardedHost: "ahmad.lebstads.com" }, trusted),
+    ).toEqual(tenant("ahmad"));
+    expect(
+      resolveTenantHost(
+        { host: "127.0.0.1:3000", forwardedHost: "sami.lebstads.com, ahmad.lebstads.com" },
+        trusted,
+      ),
+    ).toEqual(tenant("ahmad"));
+    expect(
+      resolveTenantHost({ host: "127.0.0.1:3000", forwardedHost: "ahmad.evil.example" }, trusted),
+    ).toEqual(INVALID);
+  });
+
+  it("outside production only, a bare-domain Host falls back to forwarded, Origin, then Referer (Next dev redirect)", () => {
+    const dev = { baseDomain: "localhost:3000", trustProxyHeaders: false, devFallback: true };
+    expect(
+      resolveTenantHost({ host: "localhost:3000", forwardedHost: "ahmad.localhost:3000" }, dev),
+    ).toEqual(tenant("ahmad"));
+    expect(
+      resolveTenantHost({ host: "localhost:3000", origin: "http://sami.localhost:3000" }, dev),
+    ).toEqual(tenant("sami"));
+    expect(
+      resolveTenantHost({ host: "localhost:3000", referer: "http://sami.localhost:3000/owner" }, dev),
+    ).toEqual(tenant("sami"));
+    // Never to a foreign domain, and never when Host already names a tenant.
+    expect(
+      resolveTenantHost({ host: "localhost:3000", origin: "http://ahmad.evil.example" }, dev),
+    ).toEqual(APEX);
+    expect(
+      resolveTenantHost({ host: "sami.localhost:3000", origin: "http://ahmad.localhost:3000" }, dev),
+    ).toEqual(tenant("sami"));
+    // Production: no fallback.
+    expect(
+      resolveTenantHost(
+        { host: "localhost:3000", origin: "http://sami.localhost:3000" },
+        { ...dev, devFallback: false },
+      ),
+    ).toEqual(APEX);
   });
 });

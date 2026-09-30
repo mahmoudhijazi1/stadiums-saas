@@ -31,7 +31,7 @@ Three facts collide.
 
 `src/lib/db.ts` is a Prisma **query extension**. Every Pitch / Person / Booking / BookingParticipant operation calls `getCurrentTenantId()`, which (if nothing is cached) does:
 
-`headers()` → `x-tenant-slug` → `platformDb.tenant.findUnique`
+`headers()` → validated Host (`resolveTenantFromHeaders`) → `platformDb.tenant.findUnique`
 
 That is correct for isolation (DR-001). Callers still must **not** pass `tenantId`.
 

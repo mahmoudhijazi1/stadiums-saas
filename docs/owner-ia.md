@@ -178,7 +178,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 
 ## TODO — Proxy vs middleware (historical note)
 
-Next.js 16 uses **Proxy** (`src/proxy.ts`) for tenant resolution (host only → `x-tenant-slug`). Living docs (`docs/guides/folder-structure.md`, [NOW.md](./NOW.md)) already say proxy.
+Next.js 16 uses **Proxy** (`src/proxy.ts`) for the host check (bare `APP_BASE_DOMAIN` or a one-label subdomain, else 404); `tenant-context` resolves the tenant from the same validated Host, never from a header. Living docs (`docs/guides/folder-structure.md`, [NOW.md](./NOW.md)) already say proxy.
 
 SPEC-01 step 2 and DR-001 §2 still say **middleware** — that is **historical record**, not a bug and not a reason to recreate `middleware.ts`. Do not “fix” those SPEC/DR bodies; at most they carry a one-line superseded banner.
 

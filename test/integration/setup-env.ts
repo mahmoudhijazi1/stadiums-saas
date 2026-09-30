@@ -17,3 +17,6 @@ if (!testUrl?.includes("/stadiums_test")) {
 
 process.env.DATABASE_URL = testUrl;
 process.env.STADIUMS_INTEGRATION = "1";
+// Tenant hosts in tests are <slug>.lebstads.test (request-stubs.setTenantSlug).
+process.env.APP_BASE_DOMAIN = "lebstads.test";
+process.env.TRUST_PROXY_HEADERS = "";
