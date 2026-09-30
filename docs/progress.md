@@ -5113,3 +5113,52 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - The e2e tests (`next start`, production) check that `/`, `/?date=` and `/?error=` return 200 with the robots noindex meta, `Cache-Control` containing no-store, the neutral copy, and no tenant name, pitch name or id. They also check the neutral manifest, the 307s to `/owner/suspended`, the 403 poll, and the other tenant unaffected.
 - `npm test`: 73 suites, 536 tests. `npm run test:integration`: 25 suites, 160 tests.
 - `npm run build` is green, and `npm run test:e2e` passes (9 tests).
+
+## Tenant management 3/4: platform use cases and the operator CLI
+
+**When:** 2026-10-01
+
+**What:** The platform operator's CLI, decisions 1 and 3–6, 8 and 12.
+- **Use cases** (`src/modules/platform/application`): `listTenants`, `createTenant`, `suspendTenant`, `resumeTenant`, `setSubscription`.
+  - Each takes an explicit `actor` and returns plain data or throws `platform.*` DomainError keys.
+  - They never print, prompt, read `process.argv` or exit (decision 12).
+  - Every mutating one writes its row changes and **one** `PlatformAuditLog` row in the same `platformDb` transaction. The detail never includes a password or hash.
+- **`createTenant`** writes the Tenant (settings = `parseTenantSettings({})`), the User, an OWNER Membership, the first Subscription (default plan label `basic`) and the audit row.
+  - The owner identifier defaults to `owner@<slug>`; an override must use the same slug (DR-003: local@tenant-slug).
+  - A duplicate slug or identifier becomes `platform.slug_taken` / `platform.identifier_taken`, and the whole transaction rolls back, so no orphan tenant is left.
+- **`listTenants`** returns slug, name, status, latest plan, paidUntil + OVERDUE, created, pitch count and bookings requested in the last 30 days. No hashes, tokens or suspension reason.
+- **Pure input checks:** `src/modules/platform/domain/inputs.ts`.
+- **Cross-tenant reads and the audit writer:** `src/modules/platform/infrastructure/platform-store.ts`.
+- **Slug rule tightened (a step-0 conflict, resolved by the user):**
+  - `validateSlug` now refuses consecutive hyphens, so `owner@<slug>` always passes `parseLoginIdentifier`, and it refuses `xn--` explicitly (reason `punycode`).
+  - A property-style test checks every accepted slug against the identifier rule: 3 and 30 characters, a leading digit, single hyphens.
+- **CLI** (`scripts/platform.ts` → `scripts/platform-cli.ts`, `node:util` `parseArgs`, strict):
+  - Commands: `tenants list | create | suspend | resume` and `subscriptions set`. The actor is `cli:<os user>@<hostname>`.
+  - Every mutating command refuses without a TTY and requires typing the database name; suspend and resume also require typing the slug.
+  - `create` asks the owner password hidden, twice. There is no rename command, because slugs are immutable.
+- **Shared, not copied** (decision 4):
+  - The terminal code (hidden prompt, the TTY check, database confirmation, the two-entry password prompt) moved from `set-password` into `scripts/lib/operator-io.ts`, which both scripts use.
+  - The 12-character rule is `MIN_PASSWORD_LENGTH` in `access/domain/password-policy.ts`, re-exported by `set-password-core` and enforced by `createTenant`.
+
+**Why:** The user's tenant-management decisions; BR-103 (plans are a label only, PARTIAL by decision) and BR-104.
+
+**Files:** `src/modules/platform/{domain/inputs.ts,application/*.ts,infrastructure/platform-store.ts}` (new), `src/modules/platform/domain/slug.ts`, `src/modules/access/domain/password-policy.ts` (new), `scripts/platform.ts` (new), `scripts/platform-cli.ts` (new), `scripts/lib/operator-io.ts` (new), `scripts/set-password.ts`, `scripts/set-password-core.ts`, `test/integration/platform-use-cases.integration.test.ts` (new), `test/integration/platform-cli.integration.test.ts` (new), `test/modules/platform/domain/slug.test.ts`, `docs/guides/folder-structure.md`.
+
+**How it connects:**
+- `platform` imports `access` (identifier, password policy, hashing) and `lib`; nothing imports `platform` except `scripts/`.
+- The use cases use `platformDb` directly. They run in the CLI process, never inside a tenant request.
+
+**How to verify:**
+- The tests were written first; both suites failed (modules not found).
+- The use-case tests (10) call each use case directly with fake actors (`test:jest@ci`, `admin:42`) and no terminal.
+- The CLI tests (13) cover:
+  - a wrong database name refuses;
+  - non-interactive runs refuse before any prompt;
+  - a wrong slug confirmation refuses;
+  - one audit row per command, with the actor stored as given;
+  - the password prompts are hidden and not printed;
+  - the list prints no secrets and writes nothing;
+  - unknown commands and flags are refused.
+- The set-password tests still pass after the refactor.
+- A manual run against `stadiums_test`: non-interactive create refused with exit 1; create in a pseudo-terminal printed `created demo-club (owner login: owner@demo-club)` and never echoed the password; `tenants list` printed the row.
+- `npm test`: 73 suites, 540 tests. `npm run test:integration`: 27 suites, 182 tests. `npm run build` is green.

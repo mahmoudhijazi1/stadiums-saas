@@ -72,7 +72,9 @@ src/
     expense/
     notification/               ← domain only today (WhatsApp link helpers)
     # No modules/*/ui/ — route UI lives under app/; shared under components/
-    # No modules/platform/ — platform tables use lib/platform-db.ts
+    platform/                   ← operator-only: tenants, subscriptions, suspension, audit
+                                  (domain + application + infrastructure; no UI). Use cases
+                                  take an explicit actor; driven by scripts/platform.ts.
     # shop/     ← Phase 2, don't create yet
     # academy/  ← Phase 3, don't create yet
 
@@ -95,7 +97,7 @@ src/
   prisma/                       ← schema.prisma, migrations/, seed.ts, seed-guard.ts (refuses production and any DB but stadiums_dev / stadiums_test)
 ```
 
-Also at repo root (not under `src/`): `docs/`, `scripts/` (operator tools run with `tsx`, e.g. `set-password.ts`; see `docs/RUNBOOK.md`), `test/` (Jest unit + `test/integration/`), `docker-compose.yml`, `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`.
+Also at repo root (not under `src/`): `docs/`, `scripts/` (operator tools run with `tsx`: `set-password.ts`, `platform.ts` with `platform-cli.ts`, shared terminal code in `scripts/lib/operator-io.ts`; see `docs/RUNBOOK.md`), `test/` (Jest unit + `test/integration/`), `docker-compose.yml`, `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`.
 
 ---
 
