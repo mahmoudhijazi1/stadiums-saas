@@ -5186,3 +5186,26 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - The guard passes on the current tree. A probe file `src/modules/booking/zz-probe.ts` importing `platformDb` made it fail, naming the file; the probe was then deleted.
 - `npm test`: 74 suites, 543 tests. `npm run test:integration`: 27 suites, 182 tests.
 - `npm run build` is green, and `npm run test:e2e` passes (9 tests).
+
+## Today free-slot strip
+
+**When:** 2026-10-01
+
+**What:**
+- New strip on Today between the day summary and the bookings list: one line per pitch (pitch name only with more than one pitch) of horizontally scrollable time chips. Free = engine slot, start after now, not overlapped by an APPROVED booking. PENDING keeps the chip and adds a count badge. A price shows only when it differs from the pitch default. Tap opens the existing booking sheet (extracted from `SlotPicker` as `SlotBookSheet`, so Book and Today share one form), prefilled; the action returns to Today on the same day. Without `bookings.create` the chips show and do nothing.
+- Past day: no strip. No hours on the day: one "Closed" line. No games and no free slots: the existing empty state is unchanged.
+- To collect is one amber row ("N games to collect · $X", "5+" when the inbox is capped) that expands in place to the same cards. It opens by itself for a highlighted or opened card, so money is never hidden.
+- Pure `buildFreeStrip`; `loadFreeStrip` use case; `countPendingBySlot` (one grouped query); `PitchDayAvailability` gained `defaultPriceUsd`. The strip has its own Suspense boundary.
+
+**Why:** G-2, see the free hour and book it in one tap, without a busier Today. UX-01 §3 amended (banner only). No DR covers it; no change to booking creation, the exclusion constraint or slot rules.
+
+**Files:** `booking/domain/free-strip.ts`, `booking/application/load-free-strip.ts`, `booking/infrastructure/bookings.ts`, `venue/application/get-day-availability.ts`, `components/slot-picker.tsx`, `app/owner/(app)/today/{free-strip,free-strip-section,lists,upcoming-panel}.tsx`, `app/owner/(app)/book/actions.ts`, `lib/ui-copy.ts`, `test/modules/free-strip.test.ts`, `test/integration/free-strip.integration.test.ts`, `docs/owner-ux.md`, `docs/NOW.md`.
+
+**How it connects:** Booking imports Venue's availability (down only); Venue still imports nothing from Booking (occupied ranges and pending counts are passed in). `buildFreeStrip` is pure. The strip does not touch `$transaction`, `platformDb` or the ledger; booking goes through `createOwnerBooking` and its authorization.
+
+**How to verify:**
+- Unit: 6 tests for `buildFreeStrip`. Integration: 10 tests (17:00 and 19:00 booked, PENDING badge then approve, started slots with injected now, past day, rule price, Friday post-midnight slots, Closed, other tenant, staff without `bookings.create`, To collect count and total, query count).
+- Today render queries (membership, tenant, `loadOwnerDay`, waitlist, pending inbox): 8 before, 11 after (+3: pitches, approved ranges, pending counts). Fixed at three however many slots.
+- `npm test`: 75 suites, 549 tests. `npm run test:integration`: 28 suites, 192 tests. `npm run build` is green.
+- Not covered by a test: the accordion's open/close and chip tap (client state; no component test runner in the repo).
+- Known limit: a window that starts after midnight is listed under its own calendar day by the engine, but its bookings belong to the previous business day.

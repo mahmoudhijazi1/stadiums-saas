@@ -1,7 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type Ref } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
@@ -259,6 +260,8 @@ type SheetStep = "details" | "cancel" | "noshow" | "adjust";
 export function UpcomingPanel({
   toCollect,
   toCollectHasMore,
+  toCollectTotal,
+  between,
   games,
   locale,
   mayCollect,
@@ -271,6 +274,10 @@ export function UpcomingPanel({
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
+  /** Compact USD sum of the listed To collect rows. */
+  toCollectTotal: string;
+  /** Rendered between To collect and the day's games (summary line, free strip). */
+  between?: ReactNode;
   games: UpcomingRowView[];
   locale: UiLocale;
   mayCollect: boolean;
@@ -285,9 +292,14 @@ export function UpcomingPanel({
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
   const [sheetStep, setSheetStep] = useState<SheetStep>("details");
   const [interestOpen, setInterestOpen] = useState(false);
+  const [collectOpen, setCollectOpen] = useState(false);
   const openRow =
     [...toCollect, ...games].find((row) => row.id === openId) ?? null;
   const sheetRow = openRow ?? heldRow;
+  // Amber and never hidden: a highlighted or opened card forces the list open.
+  const collectShown =
+    collectOpen ||
+    toCollect.some((row) => row.id === openId || row.id === highlight);
   const confirmSubmitRef = useRef<HTMLButtonElement>(null);
   const cancelBookingRef = useRef<HTMLButtonElement>(null);
   const pendingFocusRef = useRef<"confirm" | "cancel" | null>(null);
@@ -360,30 +372,53 @@ export function UpcomingPanel({
     <div className="flex flex-col gap-3">
       {toCollect.length > 0 ? (
         <>
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {ui("owner.toCollect", locale)}
-          </h3>
-          <UpcomingRows
-            rows={toCollect}
-            showDate
-            openId={openId}
-            onOpen={openRowSheet}
-            onOpenInterests={openInterestSheet}
-            locale={locale}
-            highlight={highlight}
-            mayCollect={mayCollect}
-            rowKeyPrefix="collect"
-          />
-          {toCollectHasMore ? (
-            <Link
-              href="/owner/money"
-              className="inline-flex min-h-11 items-center self-start text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              {ui("owner.seeAll", locale)}
-            </Link>
+          <button
+            type="button"
+            aria-expanded={collectShown}
+            aria-controls="to-collect-list"
+            onClick={() => setCollectOpen((open) => !open)}
+            className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-start text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <span className="min-w-0 flex-1">
+              <CollectCount
+                text={uiCount("owner.toCollectGames", toCollect.length, locale)}
+                plus={toCollectHasMore}
+              />
+              <span aria-hidden> · </span>
+              <LtrIsolate>{`$${toCollectTotal}${toCollectHasMore ? "+" : ""}`}</LtrIsolate>
+            </span>
+            <ChevronDown
+              aria-hidden
+              className={cn("size-5 shrink-0 transition-transform", collectShown && "rotate-180")}
+            />
+          </button>
+          {collectShown ? (
+            <div id="to-collect-list" className="flex flex-col gap-3">
+              <UpcomingRows
+                rows={toCollect}
+                showDate
+                openId={openId}
+                onOpen={openRowSheet}
+                onOpenInterests={openInterestSheet}
+                locale={locale}
+                highlight={highlight}
+                mayCollect={mayCollect}
+                rowKeyPrefix="collect"
+              />
+              {toCollectHasMore ? (
+                <Link
+                  href="/owner/money"
+                  className="inline-flex min-h-11 items-center self-start text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  {ui("owner.seeAll", locale)}
+                </Link>
+              ) : null}
+            </div>
           ) : null}
         </>
       ) : null}
+
+      {between}
 
       {games.length > 0 ? (
         <UpcomingRows
@@ -586,6 +621,18 @@ function stepTitle(step: SheetStep, locale: UiLocale): string {
   if (step === "noshow") return ui("owner.noShow", locale);
   if (step === "adjust") return ui("owner.adjustDue", locale);
   return ui("owner.cancel", locale);
+}
+
+function CollectCount({ text, plus }: { text: string; plus: boolean }) {
+  const match = /^(\D*)(\d+)(.*)$/.exec(text);
+  if (!match) return <>{text}</>;
+  return (
+    <>
+      {match[1]}
+      <LtrIsolate>{`${match[2]}${plus ? "+" : ""}`}</LtrIsolate>
+      {match[3]}
+    </>
+  );
 }
 
 function UpcomingRows({

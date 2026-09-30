@@ -187,6 +187,7 @@ const ARABIC: Record<string, string> = {
   "owner.noShow": "لم يحضر",
   "owner.toCollect": "للتحصيل",
   "owner.seeAll": "عرض الكل",
+  "owner.freeStrip": "أوقات متاحة",
   "owner.prevDay": "اليوم السابق",
   "owner.afterMidnightToday": "بعد منتصف الليل: اليوم مستمر حتى السادسة صباحاً.",
   "owner.nextDay": "اليوم التالي",
@@ -474,6 +475,7 @@ const ENGLISH: Record<string, string> = {
   "owner.noShow": "No-show",
   "owner.toCollect": "To collect",
   "owner.seeAll": "See all",
+  "owner.freeStrip": "Free slots",
   "owner.prevDay": "Previous day",
   "owner.afterMidnightToday": "After midnight: Today runs until 6:00 AM.",
   "owner.nextDay": "Next day",
@@ -623,6 +625,19 @@ const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
       zero: "No games",
       one: "{n} game",
       other: "{n} games",
+    },
+  },
+  "owner.toCollectGames": {
+    ar: {
+      one: "مباراة واحدة للتحصيل",
+      two: "مباراتان للتحصيل",
+      few: "{n} مباريات للتحصيل",
+      many: "{n} مباراة للتحصيل",
+      other: "{n} مباراة للتحصيل",
+    },
+    en: {
+      one: "{n} game to collect",
+      other: "{n} games to collect",
     },
   },
   "owner.interested": {

@@ -116,6 +116,7 @@ Tab root pages (Today, Requests, Money, More) have **no large page title**. The 
 ---
 
 ## 3. Today tab (landing screen)
+> **Amended 2026-10-01:** Today now shows a free-slot strip (one line of time chips per pitch, tap to book) between the day summary and the bookings list, and To collect is one amber row that expands to the cards. The timeline-of-every-slot in 3.1 item 4 is not built that way. See `docs/NOW.md`.
 > **Amended 2026-09-30:** Today shows one **business day** (06:00 to 06:00 Beirut). Before 06:00 it opens on the previous night and says so. See `docs/NOW.md` "Business day".
 
 

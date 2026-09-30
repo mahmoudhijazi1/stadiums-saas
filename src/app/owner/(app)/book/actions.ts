@@ -6,6 +6,7 @@ import { parseOwnerCreateBooking } from "@/modules/booking/schemas/owner-create-
 import { field, redirectOwner } from "@/app/owner/form-query";
 
 const BOOK_KEEP = ["bookOn"] as const;
+const TODAY_KEEP = ["date"] as const;
 
 /**
  * Thin owner Book action. Zod → createOwnerBooking.
@@ -25,8 +26,12 @@ export async function submitCreateOwnerBooking(formData: FormData) {
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitCreateOwnerBooking");
   }
+  // Booked from the Today free strip: land back on Today, same day.
+  const fromToday = field(formData, "returnTo") === "today";
+  const path = fromToday ? "/owner/today" : "/owner/book";
+  const keep = fromToday ? TODAY_KEEP : BOOK_KEEP;
   if (errorKey) {
-    redirectOwner("/owner/book", formData, BOOK_KEEP, { error: errorKey });
+    redirectOwner(path, formData, keep, { error: errorKey });
   }
-  redirectOwner("/owner/book", formData, BOOK_KEEP, { ok: "booked" });
+  redirectOwner(path, formData, keep, { ok: "booked" });
 }
