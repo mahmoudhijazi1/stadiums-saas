@@ -16,6 +16,7 @@ const config: Config = {
   testPathIgnorePatterns: [
     "/node_modules/",
     "\\.integration\\.test\\.ts$",
+    "\\.e2e\\.test\\.ts$",
   ],
 };
 

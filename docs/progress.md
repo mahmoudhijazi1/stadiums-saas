@@ -4779,3 +4779,25 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm test`: 67 suites, 477 tests.
 - `npm run test:integration`: 18 suites, 123 tests. The new ones check that an old hash is upgraded once on a successful login and left alone on a failed one.
 - `npm run build` is green.
+
+## End-to-end test: the real session cookie in production
+
+**When:** 2026-09-30
+
+**What:** New `test/e2e/login-cookie.e2e.test.ts`, run by the new `npm run test:e2e` (`jest.e2e.config.ts`, after `npm run build`).
+- It seeds two tenants on `stadiums_test` and starts `next start` with `NODE_ENV=production` on 127.0.0.1. It reads the login Server Action id from the login page, then posts a real login with a tenant `Host` and a matching `Origin`.
+- **The login `Set-Cookie`:** `stadium_session` is a 43-character token with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, a 30-day `Max-Age`, and **no `Domain`** (host-only).
+- **The proxy renewal on `GET /owner/today`:** it carries the same flags, and the marker cookie is `Secure` with no `Domain`.
+- **Tenant B:** with tenant A's cookie, B's host answers 307 to `/owner/login`.
+- CI runs `npm run test:e2e` after the build. The unit Jest config ignores `*.e2e.test.ts`.
+
+**Why:** User request: prove the cookie flags from a real production response, not from code.
+
+**Files:** `test/e2e/login-cookie.e2e.test.ts` (new), `jest.e2e.config.ts` (new), `jest.config.ts`, `package.json` (`test:e2e`), `.github/workflows/ci.yml`, `docs/guides/testing-jest.md`.
+
+**How it connects:** Test-only. It reuses the integration `setup-env.ts`, which forces `stadiums_test`, plus the fixtures and truncate. `stadiums_dev` has 0 transactions in `pg_stat_database` after the builds and test runs.
+
+**How to verify:**
+- `npm run build && npm run test:e2e`: 2 tests pass.
+- The test passed on its first run, because the flags were already correct. As a check that it catches a regression, adding `domain: "lebstads.test"` to the cookie options and rebuilding made both tests fail; the change was then reverted.
+- `npm test`: 67 suites, 477 tests. `npm run test:integration`: 18 suites, 123 tests. `npm run build` is green.
