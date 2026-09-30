@@ -1397,3 +1397,22 @@ export async function listSlotsForBookings(
     paidUsd: new Decimal((row.paidUsd ?? 0).toString()),
   }));
 }
+
+/** Future PENDING requests where this person is the requester (public request cap, S-5). */
+export async function countFuturePendingForRequester(
+  tx: TenantTx,
+  personId: string,
+  now: Date,
+): Promise<number> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ n: number }[]>`
+    SELECT count(*)::int AS n
+    FROM "Booking" b
+    JOIN "BookingParticipant" p ON p."bookingId" = b.id AND p."isRequester"
+    WHERE b."tenantId" = ${tenantId}
+      AND b.status = 'PENDING'
+      AND p."personId" = ${personId}
+      AND lower(b.during) > ${now}
+  `;
+  return Number(rows[0]?.n ?? 0);
+}

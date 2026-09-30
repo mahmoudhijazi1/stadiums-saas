@@ -4845,3 +4845,27 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm test`: 67 suites, 485 tests.
 - `npm run test:integration`: 19 suites, 126 tests.
 - `npm run build` is green.
+
+## Public requests: per-phone and per-IP limits, pending cap
+
+**When:** 2026-09-30
+
+**What:** Security audit S-5.
+- **Per phone:** 5 requests per phone per stadium per hour. Requests for a taken hour count too.
+- **Per IP:** 60 requests per IP per hour across all stadiums, only when `TRUSTED_CLIENT_IP_HEADER` is set.
+- **Where the counters run:** both use the Postgres `RateLimit` counters from the login work, and are hit in `requestPublicSlot` before the tenant transaction (platform tables, one-pool rule).
+- **Pending cap:** inside the transaction, after the pitch lock, a phone may have at most 3 **future** PENDING requests at one stadium (`countFuturePendingForRequester`: requester participant, `lower(during) > now`). Old missed requests do not count, and a Person created by the refused request is rolled back.
+- **One answer for every limit:** `booking.request_limit`, "No more requests can be sent right now. Try again later or call the stadium." / "لا يمكن إرسال طلبات أخرى الآن. حاول لاحقاً أو اتصل بالملعب.". It does not say which limit was hit, so a phone typed by someone else reveals nothing about its owner's requests.
+- **SlotInterest dedupe per person and window:** already in place (`hasSlotInterest`, checked under the pitch `FOR UPDATE` lock). It is now pinned by a test: 5 requests for the same taken hour leave one interest.
+
+**Why:** [security-audit.md S-5](./audits/security-audit.md#s-5-public-requests-can-be-flooded-and-names-are-unbounded). The user asked for generic messages that reveal nothing about other people's data.
+
+**Files:** `src/modules/booking/domain/public-request-limits.ts` (new), `src/modules/booking/application/request-public-slot.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/lib/error-messages.ts`, `test/integration/public-limits.integration.test.ts` (new).
+
+**How it connects:** Booking imports `lib/rate-limit` and `lib/client-ip` (downward). The new raw SQL filters by the ALS tenant, like its neighbours.
+
+**How to verify:**
+- The tests were written first; 5 of 7 failed. The 2 that passed pin existing behaviour: no IP limit without the setting, and a decided request freeing a place.
+- `npm run test:integration`: 20 suites, 133 tests.
+- `npm test`: 67 suites, 485 tests.
+- `npm run build` is green.
