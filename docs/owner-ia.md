@@ -22,6 +22,8 @@ Tab root pages have no large title. Nested pages keep a title and a back button.
 
 `/owner` itself has no UI: it redirects to `/owner/today`. Login lands on `/owner/today` (not `/owner`) so Server Action `redirect()` does not stack a second hop (`redirect.md`: actions **push** history). Tenant comes from the host (`ahmad.localhost` / subdomain), not `?tenant=`.
 
+`/owner/suspended` sits outside the shell like `/owner/login`. While the platform has suspended the stadium, the shell, every owner page and `/owner/login` redirect there, and the live poll answers 403 `tenant_suspended`. It shows fixed copy with no tenant data and no reason. For an active stadium it redirects to `/owner/today`, and it never redirects to login, so there is no loop.
+
 Staff without `bookings.create`: `/owner/book` shows an EmptyState, not slots. The ＋ row for Booking is hidden. Staff without `expenses.record`: the Expense row is hidden.
 
 Do not grow a destination by stacking another product’s UI on it. If it is not in the “Contains” column, it belongs on another destination or a **More list row** (see Phase 2+).
@@ -93,7 +95,7 @@ Tab bar Links carry **`tenant` only** (local-dev; not isolation).
 
 | Param | Lives on |
 |---|---|
-| `tenant` | every owner URL |
+| `tenant` | not used: the tenant comes from the validated Host |
 | `bookOn` | `/owner/book` only |
 | `from` `to` `view` `displayRate` | `/owner/money` only |
 | `ok` / `error` | the tab the action redirected to; FlashToast strips them |

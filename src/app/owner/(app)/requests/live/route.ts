@@ -1,4 +1,5 @@
 import { DomainError } from "@/lib/errors";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { getLiveQueue } from "@/modules/booking/application/get-live-queue";
 
 /**
@@ -7,6 +8,13 @@ import { getLiveQueue } from "@/modules/booking/application/get-live-queue";
  * Cannot sit beside requests/page.tsx — this is the /live segment.
  */
 export async function GET() {
+  // Distinct from 401 so the client goes to /owner/suspended, not to login.
+  if ((await getCurrentTenant()).suspended) {
+    return Response.json({ error: "tenant_suspended" }, {
+      status: 403,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
   try {
     const snapshot = await getLiveQueue();
     return Response.json(snapshot, {

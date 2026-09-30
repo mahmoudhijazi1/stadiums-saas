@@ -3,7 +3,7 @@ import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { hitRateLimit } from "@/lib/rate-limit";
-import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenantId, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
@@ -140,8 +140,8 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
 
 /** Counters live in platform tables: hit them before the tenant transaction. */
 async function assertRequestRate(phone: string): Promise<void> {
-  const tenant = await getCurrentTenant();
-  const keys = publicRequestLimitKeys(tenant.id, phone, await trustedClientIp());
+  // getCurrentTenantId refuses a suspended tenant before any counter is written.
+  const keys = publicRequestLimitKeys(await getCurrentTenantId(), phone, await trustedClientIp());
   if (keys.ip && (await hitRateLimit(keys.ip, PUBLIC_REQUEST_WINDOW_MS)) > PUBLIC_MAX_REQUESTS_PER_IP) {
     throw new DomainError(PUBLIC_REQUEST_LIMIT_KEY);
   }

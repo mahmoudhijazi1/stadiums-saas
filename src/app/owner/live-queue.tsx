@@ -119,6 +119,15 @@ export function LiveQueue({
       inFlight = true;
       try {
         const response = await fetch("/owner/requests/live", { cache: "no-store" });
+        if (response.status === 403) {
+          // Tenant suspended by the platform: its own page, never login (no loop).
+          const body = (await response.json().catch(() => null)) as { error?: string } | null;
+          if (body?.error === "tenant_suspended") {
+            stopped = true;
+            router.replace("/owner/suspended");
+            return;
+          }
+        }
         if (response.status === 401) {
           // Session expired. Same destination as requireOwnerMembership.
           stopped = true;

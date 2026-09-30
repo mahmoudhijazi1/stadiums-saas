@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
@@ -30,6 +31,8 @@ export default async function OwnerLayout({
   children,
 }: LayoutProps<"/owner">) {
   const tenant = await getCurrentTenant();
+  // Every owner page sits under this shell: a suspended tenant never renders it.
+  if (tenant.suspended) redirect("/owner/suspended");
   const membership = await getCurrentMembership();
   const showBooking = membership ? can(membership, BOOKINGS_CREATE) : false;
   const showExpense = membership ? can(membership, EXPENSES_RECORD) : false;

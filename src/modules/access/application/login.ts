@@ -7,7 +7,7 @@ import {
   rateLimitCount,
   resetRateLimit,
 } from "@/lib/rate-limit";
-import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenantId, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import type { LoginInput } from "@/modules/access/schemas/login";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
@@ -44,7 +44,8 @@ import {
  * User/Session via platformDb; membership via db — not inside one $transaction.
  */
 export async function login(input: LoginInput): Promise<void> {
-  await getCurrentTenant();
+  // Throws tenant.suspended first: no password check, no failure counted.
+  await getCurrentTenantId();
 
   try {
     const keys = loginLimitKeys(input.identifier, await trustedClientIp());

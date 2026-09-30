@@ -5071,3 +5071,45 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
   - the suspension columns default to null.
 - `npm test`: 73 suites, 536 tests. `npm run test:integration`: 24 suites, 150 tests.
 - `npm run build` is green, and the seed runs on `stadiums_test`.
+
+## Tenant management 2/4: suspension enforced at the tenant choke point
+
+**When:** 2026-10-01
+
+**What:** Decision 7, suspending a tenant.
+- **Choke point:** `CurrentTenant.suspended` comes from the same `loadTenant` query (`suspendedAt` added to the select), so no query is added; a test counts exactly one `tenant.findUnique` per request. `getCurrentTenantId()` throws `tenant.suspended`. Every tenant-scoped Prisma call and every raw-SQL tenant stamp goes through it, so no entry point can read or write a suspended tenant's data, even one that forgets a check.
+- **Owner side:**
+  - `getCurrentMembership` returns null first, without looking at or renewing the session, so every owner use case fails as `access.not_allowed`.
+  - The `(app)` layout, `requireOwnerMembership`, the login page and the login action (`tenant.suspended`) redirect to the new `/owner/suspended`, which is outside the shell. It renders the fixed "account suspended" copy and sends an active tenant to `/owner/today`. It never redirects to login, so there is no loop.
+  - The live route answers 403 `{ error: "tenant_suspended" }`, and `live-queue.tsx` goes to `/owner/suspended` on that code.
+  - `login` calls `getCurrentTenantId()` first, so no password is checked and no failure is counted.
+- **Public side:**
+  - The new `(public)/layout.tsx` gates **every** public path. It renders the neutral `UnavailableNotice`, with robots noindex from `generateMetadata`; `Cache-Control: no-store` is Next's own header for dynamic pages. The page checks too.
+  - `requestPublicSlot` refuses at the choke point before its rate counters, so nothing is written.
+  - The manifest answers as for an unknown host.
+- **Status code, by the user's decision:** the neutral page answers 200, not 503. Next 16 pages cannot set 503 (local `loading.md`, "Status codes"), and the proxy would need a DB query per request.
+- **Copy:** `ui()` keys `unavailable.{public,owner}.{title,body}` and the error key `tenant.suspended`, in AR and EN. No reason text is ever shown.
+- **Unchanged:** sessions and data. Resume restores everything.
+
+**Why:** User decision 7; BR-104.
+
+**Files:** `src/lib/tenant-context.ts`, `src/modules/access/application/get-current-membership.ts`, `src/modules/access/application/login.ts`, `src/modules/booking/application/request-public-slot.ts`, `src/app/owner/shared.tsx`, `src/app/owner/(app)/layout.tsx`, `src/app/owner/login/page.tsx`, `src/app/owner/login/actions.ts`, `src/app/owner/suspended/page.tsx` (new), `src/app/owner/(app)/requests/live/route.ts`, `src/app/owner/live-queue.tsx`, `src/app/(public)/layout.tsx` (new), `src/app/(public)/page.tsx`, `src/app/manifest.ts`, `src/components/unavailable-notice.tsx` (new), `src/lib/ui-copy.ts`, `src/lib/error-messages.ts`, `test/integration/suspension.integration.test.ts` (new), `test/e2e/login-cookie.e2e.test.ts`, `docs/owner-ia.md`.
+
+**How it connects:** `lib/tenant-context` imports `lib/errors` (which has no imports).
+
+**How to verify:**
+- The tests were written first; the suite failed (the page was missing).
+- The 10 integration tests cover:
+  - membership null and use cases refused;
+  - the choke point throws;
+  - the redirect target is `/owner/suspended` with or without a session;
+  - the login page and use case, with no failure counted;
+  - the suspended page renders, or redirects when the tenant is active;
+  - the live route answers 403;
+  - `requestPublicSlot` writes nothing;
+  - the other tenant is unaffected;
+  - resume keeps the same session valid and deletes no rows;
+  - one tenant query per request.
+- The e2e tests (`next start`, production) check that `/`, `/?date=` and `/?error=` return 200 with the robots noindex meta, `Cache-Control` containing no-store, the neutral copy, and no tenant name, pitch name or id. They also check the neutral manifest, the 307s to `/owner/suspended`, the 403 poll, and the other tenant unaffected.
+- `npm test`: 73 suites, 536 tests. `npm run test:integration`: 25 suites, 160 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (9 tests).

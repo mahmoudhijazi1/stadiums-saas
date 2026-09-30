@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { request as httpRequest } from "node:http";
 import { existsSync } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { platformDb } from "@/lib/platform-db";
 import type { TestFixture } from "../integration/fixtures";
 import { seedTwoTenants } from "../integration/fixtures";
 import { finishIntegrationFile } from "../integration/teardown";
@@ -208,6 +209,65 @@ describe("startup env validation", () => {
     expect(code).not.toBe(0);
     expect(code).not.toBeNull();
     expect(output).toContain("APP_BASE_DOMAIN");
+  });
+});
+
+describe("suspended tenant on a real production server (decision 7)", () => {
+  let token = "";
+
+  beforeAll(async () => {
+    token = /^stadium_session=([^;]+);/.exec(cookieLine(await loginResponse(), "stadium_session")!)![1]!;
+    await platformDb.tenant.update({
+      where: { id: a.tenantId },
+      data: { suspendedAt: new Date(), suspendedReason: "e2e" },
+    });
+  });
+
+  afterAll(async () => {
+    await platformDb.tenant.update({
+      where: { id: a.tenantId },
+      data: { suspendedAt: null, suspendedReason: null },
+    });
+  });
+
+  it("every public path shows the neutral page: 200, noindex, no-store, no tenant data", async () => {
+    for (const path of ["/", "/?date=2026-10-20", "/?error=booking.slot_taken"]) {
+      const page = await send("GET", path, hostOf(a.tenantSlug));
+      expect(page.status).toBe(200);
+      expect(page.body).toMatch(/<meta name="robots" content="noindex, nofollow"/);
+      expect(String(page.headers["cache-control"])).toContain("no-store");
+      expect(page.body).toContain("غير متاح مؤقتاً");
+      expect(page.body).not.toContain("Test Stadium");
+      expect(page.body).not.toContain("Pitch T1");
+      expect(page.body).not.toContain(a.pitchId);
+    }
+  });
+
+  it("the manifest is the neutral one, as for an unknown host", async () => {
+    const manifest = await send("GET", "/manifest.webmanifest", hostOf(a.tenantSlug));
+    expect(JSON.parse(manifest.body).name).toBe("lebstads");
+  });
+
+  it("owner pages and login go to /owner/suspended, which renders; the poll answers 403", async () => {
+    const today = await send("GET", "/owner/today", hostOf(a.tenantSlug), { cookie: `stadium_session=${token}` });
+    expect(today.status).toBe(307);
+    expect(today.headers.location).toContain("/owner/suspended");
+    const loginPage = await send("GET", "/owner/login", hostOf(a.tenantSlug));
+    expect(loginPage.status).toBe(307);
+    expect(loginPage.headers.location).toContain("/owner/suspended");
+    const suspended = await send("GET", "/owner/suspended", hostOf(a.tenantSlug), { cookie: `stadium_session=${token}` });
+    expect(suspended.status).toBe(200);
+    expect(suspended.body).not.toContain("Test Stadium");
+    const live = await send("GET", "/owner/requests/live", hostOf(a.tenantSlug), { cookie: `stadium_session=${token}` });
+    expect(live.status).toBe(403);
+    expect(JSON.parse(live.body)).toEqual({ error: "tenant_suspended" });
+  });
+
+  it("another tenant is unaffected", async () => {
+    const page = await send("GET", "/", hostOf(b.tenantSlug));
+    expect(page.status).toBe(200);
+    expect(page.body).toContain("Other Stadium");
+    expect(page.body).not.toMatch(/content="noindex/);
   });
 });
 

@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { DomainError } from "@/lib/errors";
 import { platformDb } from "@/lib/platform-db";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
@@ -18,6 +19,8 @@ export type CurrentTenant = {
   cancellationWindowHours: number;
   lateCancellationFeePercent: number;
   noShowFeePercent: number;
+  /** Suspended by the platform operator (decision 7). Loaded in the same query. */
+  suspended: boolean;
 };
 
 /**
@@ -43,7 +46,7 @@ async function loadTenant(): Promise<CurrentTenant> {
 
   const tenant = await platformDb.tenant.findUnique({
     where: { slug },
-    select: { id: true, slug: true, name: true, settings: true },
+    select: { id: true, slug: true, name: true, settings: true, suspendedAt: true },
   });
 
   if (!tenant) {
@@ -59,6 +62,7 @@ async function loadTenant(): Promise<CurrentTenant> {
     cancellationWindowHours: settings.cancellationWindowHours,
     lateCancellationFeePercent: settings.lateCancellationFeePercent,
     noShowFeePercent: settings.noShowFeePercent,
+    suspended: tenant.suspendedAt !== null,
   };
 }
 
@@ -78,10 +82,16 @@ export const getCurrentTenant = cache(async () => {
   return loadTenant();
 });
 
+/**
+ * The suspension choke point (decision 7): every tenant-scoped query (the
+ * Prisma extension) and every raw SQL tenant stamp goes through here, so no
+ * entry point can read or write a suspended tenant's data.
+ */
 export async function getCurrentTenantId(): Promise<string> {
-  const fromAls = tenantAls.getStore();
-  if (fromAls) return fromAls.id;
-  const tenant = await getCurrentTenant();
+  const tenant = tenantAls.getStore() ?? (await getCurrentTenant());
+  if (tenant.suspended) {
+    throw new DomainError("tenant.suspended");
+  }
   return tenant.id;
 }
 
