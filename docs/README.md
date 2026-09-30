@@ -93,6 +93,9 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 - [Engineering audit](./guides/engineering-audit.md)
 - [Error handling + logging audit](./guides/error-handling-logging-audit.md)
 - [MVP readiness audit](./guides/mvp-readiness-audit.md)
+- [Booking and payments production audit](./audits/booking-payments-production-audit.md) (with status addendum)
+- [Logic findings: recorded, not fixed](./audits/logic-findings.md)
+- [Roadmap: open items](./ROADMAP.md)
 
 ### Requirements
 - [BRD](./requirements/brd.md) — [requirements/README.md](./requirements/README.md)
