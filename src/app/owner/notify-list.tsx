@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
+import { PersonLink } from "@/app/owner/person-link";
 import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
@@ -74,12 +75,7 @@ export function NotifyPersonRow({
 }) {
   const [sent, setSent] = useState(false);
   const name = href ? (
-    <Link
-      href={href}
-      className="block truncate text-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      {person.name}
-    </Link>
+    <PersonLink personId={person.personId} name={person.name} />
   ) : (
     <span className="block truncate text-sm font-medium">{person.name}</span>
   );

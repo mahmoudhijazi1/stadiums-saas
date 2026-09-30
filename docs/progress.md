@@ -5223,3 +5223,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** UI only; imports unchanged.
 
 **How to verify:** `npm test`: 76 suites, 552 tests. `npm run test:integration`: 28 suites, 192 tests. `npm run build` is green. Screenshots taken from a production build on the test database (mobile, AR and EN, light and dark, one and three pitches).
+
+## Person link: no accidental taps
+
+**When:** 2026-10-01
+
+**What:** Structure and styling only. The Today card's player name is plain text inside the card's button, so the whole card opens the booking sheet. The sheet header gets the person link instead. New shared `app/owner/person-link.tsx` (`PersonLink`: person icon, name, chevron, `w-fit`, 44px, underlined accent, stops propagation) used in the sheet, Requests cards (both lists) and the interest rows (`NotifyPersonRow`). Search results still link to the person page as a whole row. No link sits inside a button or another link.
+
+**Why:** UX-01 owner UI; a full-width name link under the card was hit by accident.
+
+**Files:** `app/owner/person-link.tsx` (new), `today/upcoming-panel.tsx`, `notify-list.tsx`, `pending-list.tsx`.
+
+**How it connects:** UI only; no new imports across modules.
+
+**How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Dark screenshots in Arabic and English, card and sheet, from a production build on the test database.

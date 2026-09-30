@@ -23,6 +23,7 @@ import {
   NoShowDecisionForm,
 } from "./fee-forms";
 import { submitCollectPayment } from "./actions";
+import { PersonLink } from "@/app/owner/person-link";
 import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";
 import {
   BottomSheet,
@@ -485,14 +486,11 @@ export function UpcomingPanel({
                   ? ` · ${sheetRow.dateLabel}`
                   : null}
                 {sheetRow.nightHint ? ` · ${sheetRow.nightHint}` : null}
-                {" · "}
-                <Link
-                  href={`/owner/people/${sheetRow.requesterPersonId}`}
-                  className="underline-offset-2 hover:underline"
-                >
-                  {sheetRow.requesterName}
-                </Link>
               </BottomSheetDescription>
+              <PersonLink
+                personId={sheetRow.requesterPersonId}
+                name={sheetRow.requesterName}
+              />
             </BottomSheetHeader>
             {interestOpen ? (
               <BottomSheetBody className="flex flex-col gap-4 pb-4">
@@ -704,14 +702,11 @@ function UpcomingRows({
                       {showDate ? <span>{row.dateLabel}</span> : null}
                       {row.nightHint ? <span>{row.nightHint}</span> : null}
                     </span>
+                    <span className="mt-1.5 block truncate text-sm text-muted-foreground">
+                      {row.requesterName}
+                    </span>
                     <span className="sr-only">{ui("owner.openBooking", locale)}</span>
                   </button>
-                  <Link
-                    href={`/owner/people/${row.requesterPersonId}`}
-                    className="mt-1 block min-h-11 truncate py-2 text-sm text-muted-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    {row.requesterName}
-                  </Link>
                   {row.interested.length > 0 ? (
                     <button
                       type="button"
