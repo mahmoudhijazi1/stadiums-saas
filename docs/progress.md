@@ -4429,3 +4429,15 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **How it connects:** No schema change. Owner-create keeps its pitch lock; its sibling rejection now also locks in id order.
 
 **How to verify:** `npm test` (62 suites, 450 tests), `npm run test:integration` (10 suites, 71 tests), `npm run build`. Race: three missed requests on one past hour, "They played" on the middle one against "Dismiss all", ten times. There is no P2034, dismiss always succeeds, and approve either succeeds or reports `booking.no_longer_pending`. No PENDING row is left, and at most the played request is APPROVED. Fails without the change (`booking.not_found`).
+
+## Audit addendum: punch-list status
+
+**When:** 2026-09-30
+
+**What:** Appended a status table to `docs/audits/booking-payments-production-audit.md`: each punch-list item marked closed, open, partly closed or deferred, with the commit and the reason. The audit body is unchanged.
+
+**Why:** The audit is historical; the addendum records what PR #3 and this branch closed and what is still open.
+
+**Files:** `docs/audits/booking-payments-production-audit.md`.
+
+**How to verify:** Read the addendum; each commit hash is on this branch or on main (PR #3).

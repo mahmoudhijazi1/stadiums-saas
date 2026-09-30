@@ -460,3 +460,26 @@ Coverage was mapped per function from the unit + integration v8 runs.
     - dedupe `SlotInterest` per person and window;
     - decide whether "They played" should need a stronger permission than approve;
     - decide whether staff without `reports.view` should see money totals on Today.
+
+---
+
+## Addendum — punch-list status (2026-09-30)
+
+The audit body above is historical and unchanged. Status of each item after PR #3 (merged) and the `fix/midnight-and-pending` branch:
+
+| # | Item | Status | Commit | Note |
+|---|---|---|---|---|
+| 1 | Booking row lock in collect and adjust | **Closed** | `259fb64` | R1–R4 and R9 race tests, ten runs each. R3 asserts order, since overpay after a lowered due is allowed (SPEC-06). |
+| 2 | Pay-all with Unassigned money | **Closed** | `6b92f81` | `planSlotCharge` caps every per-player charge at the booking remaining; covered slots have no Pay. |
+| 3 | Staff fee bypass on cancel | **Closed** | `72c78c5` | STAFF integration suite for every guarded booking/payment use case. |
+| 4 | Midnight windows | **Closed** | `66552f3`, `b9259ac` | Post-midnight slots bookable and priced by their window's day. Today, the day strip and the day summary use a 06:00–06:00 business day. |
+| 5 | Untested money paths | **Open** | — | `recordExpense`, `summarizeLedgerPeriod`, `listEndedWithRemaining`, `loadOutcomeNotify`, `listDebtParticipations` still have no test; the dead `listDueBookings` chain is still there. |
+| 6 | Person stats in per-player mode | **Open** | — | Unassigned money counts for nobody on the person page; tied to SPEC-15 slice 5. |
+| 7 | Stranded PENDING | **Closed** | `f8bb1d6` | Public request takes the pitch lock; a taken hour becomes a slot interest and `booking.slot_taken`. |
+| 8 | Adjust status guard; fee cap | **Partly closed** | `259fb64` | PENDING/REJECTED refused. A cancel or no-show fee above the current due is still accepted (open). |
+| 9 | Ledger hardening (`paymentId`, block UPDATE/DELETE) | **Deferred** | — | Needs a migration and a DR decision on DB-level append-only; nothing writes to these tables outside the use cases today. |
+| 10 | WHOLE requester due drift; exactly-one-requester | **Deferred** | — | Latent: nothing reads the participant due in WHOLE mode. |
+| 11 | PaymentAllocation isolation depth | **Open** | — | Probe showed cross-tenant slot pay refused; no repo test yet for collapse `deleteMany` or the raw readers. |
+| 12 | `splitEvenly` property test | **Open** | — | Code is correct (600,120-case probe); the repo test is still four examples. `planSlotCharge` has a sweep test. |
+| 13 | Low items | **Mostly open** | `f8bb1d6` | Public requests no longer add a duplicate interest for the same window (approve still can). `parseUsd` error type, no-show waiver reason, "They played" permission, staff money visibility: open. |
+| — | Deadlock: dismiss missed vs "They played" (found while fixing #1) | **Closed** | `24fcf50` | Pending rows locked in id order on both paths; ten-run race test. |
