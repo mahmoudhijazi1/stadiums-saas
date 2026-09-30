@@ -4515,3 +4515,13 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `src/modules/booking/application/list-due-bookings.ts` (deleted), `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/domain/home-inbox.ts`, `src/modules/booking/application/load-owner-day.ts` (comment), `test/modules/booking/domain/home-inbox.test.ts`, `docs/guides/module-map-and-request-walkthroughs.md` (removed the file's row).
 
 **How to verify:** `npm test` (62 suites, 457 tests; one test removed with `partitionHomeConfirmed`), `npm run test:integration` (14 suites, 95 tests), `npm run build`.
+
+## Audit addendum: round 2 status
+
+**When:** 2026-09-30
+
+**What:** Appended "Update — hardening round 2" to the addendum in `docs/audits/booking-payments-production-audit.md`: #5, #8, #12 and the no-show reason bug closed, plus the public/Book pages change, each with its commit.
+
+**Files:** `docs/audits/booking-payments-production-audit.md`.
+
+**How to verify:** Read the update table; each commit is on this branch.
