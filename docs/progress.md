@@ -5162,3 +5162,27 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - The set-password tests still pass after the refactor.
 - A manual run against `stadiums_test`: non-interactive create refused with exit 1; create in a pseudo-terminal printed `created demo-club (owner login: owner@demo-club)` and never echoed the password; `tenants list` printed the row.
 - `npm test`: 73 suites, 540 tests. `npm run test:integration`: 27 suites, 182 tests. `npm run build` is green.
+
+## Tenant management 4/4: platformDb import guard and docs
+
+**When:** 2026-10-01
+
+**What:**
+- **Guard:** new `test/platform-db-imports.test.ts` scans `src/` and `scripts/` (generated client excluded) for imports of `lib/platform-db`: alias, relative and dynamic `import()`. It compares them with an allowlist where each entry has its reason.
+  - Allowed: the tenant lookup (`tenant-context`), `src/modules/platform/`, and `scripts/set-password-core.ts` (the body of `scripts/set-password.ts`). `scripts/platform.ts` reaches the database only through the platform use cases. `prisma/seed.ts` builds its own client and does not import `platform-db`.
+  - Also allowed: the pre-existing importers DR-003 and the security work need, namely `access/infrastructure/{sessions,users,tenants}.ts` (global User and Session, tenant settings by the resolved id), `lib/rate-limit.ts` (a global table) and `app/manifest.ts` (lookup by slug). These go beyond the list in the request.
+  - Any new importer fails the test.
+- **`docs/RUNBOOK.md`** (extended, not overwritten) gains "Tenant management": the commands, the confirmation rules, audit, the onboarding checklist, the suspend/resume procedure, reserved slugs and slug immutability. Password resets point to "Passwords".
+- **`docs/ROADMAP.md`** gains "Deferred on purpose: tenant management", with reasons: the web platform admin, date-based suspension, plan limits and pricing, forced password change at first login, and a real HTTP 503 (Next 16 pages cannot set it; the proxy would need a DB query per request).
+- **`docs/NOW.md`** now lists the security fixes and tenant management in "Shipped since" and points to the RUNBOOK.
+
+**Why:** User request, commit 4 of the tenant-management work.
+
+**Files:** `test/platform-db-imports.test.ts` (new), `docs/RUNBOOK.md`, `docs/ROADMAP.md`, `docs/NOW.md`.
+
+**How it connects:** Test-only and docs.
+
+**How to verify:**
+- The guard passes on the current tree. A probe file `src/modules/booking/zz-probe.ts` importing `platformDb` made it fail, naming the file; the probe was then deleted.
+- `npm test`: 74 suites, 543 tests. `npm run test:integration`: 27 suites, 182 tests.
+- `npm run build` is green, and `npm run test:e2e` passes (9 tests).
