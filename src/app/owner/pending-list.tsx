@@ -36,6 +36,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { RequestedNameNotice } from "@/app/owner/requested-name-notice";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import Link from "next/link";
@@ -135,6 +136,10 @@ export function PendingRequestList({
                           >
                             {item.request.requesterName}
                           </Link>
+                          <RequestedNameNotice
+                            requestedName={item.request.requestedName}
+                            locale={locale}
+                          />
                           <p className="text-sm text-muted-foreground">
                             <RelativeWhen
                               text={formatRelativeTime(
@@ -284,6 +289,10 @@ export function MissedRequestSection({
                         >
                           {request.requesterName}
                         </Link>
+                        <RequestedNameNotice
+                          requestedName={request.requestedName}
+                          locale={locale}
+                        />
                         <p className="text-sm text-muted-foreground">
                           <RelativeWhen
                             text={formatRelativeTime(request.requestedAt, now, {

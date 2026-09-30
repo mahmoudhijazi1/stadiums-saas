@@ -6,6 +6,8 @@ import { hitRateLimit } from "@/lib/rate-limit";
 import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
+import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
+import { normalizeName } from "@/modules/people/domain/normalize-name";
 import { overlaps, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
   PUBLIC_MAX_PENDING_PER_PHONE,
@@ -102,6 +104,7 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
         start: slot.start,
         end: slot.end,
         priceUsd: slot.priceUsd,
+        requestedName: typedNameIfDifferent(input.name, person.name),
       });
 
       await insertRequesterParticipant(tx, {
@@ -145,4 +148,14 @@ async function assertRequestRate(phone: string): Promise<void> {
   if ((await hitRateLimit(keys.phone, PUBLIC_REQUEST_WINDOW_MS)) > PUBLIC_MAX_REQUESTS_PER_PHONE) {
     throw new DomainError(PUBLIC_REQUEST_LIMIT_KEY);
   }
+}
+
+/**
+ * Security audit S-6: the owner must see what was typed when a known phone
+ * comes with another name. Compared with the searchName fold, so spelling
+ * variants (أحمد/احمد), case and spacing never count as different.
+ */
+function typedNameIfDifferent(typed: string, saved: string): string | null {
+  const cleaned = cleanPersonName(typed);
+  return normalizeName(cleaned) === normalizeName(saved) ? null : cleaned;
 }

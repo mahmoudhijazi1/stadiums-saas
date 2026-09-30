@@ -4869,3 +4869,25 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - `npm run test:integration`: 20 suites, 133 tests.
 - `npm test`: 67 suites, 485 tests.
 - `npm run build` is green.
+
+## Request card: the typed name when it differs from the saved one
+
+**When:** 2026-09-30
+
+**What:** Security audit S-6. A public request under a known phone is filed under that Person, and the saved name is never overwritten. The owner now also sees what the requester typed.
+- **Schema:** new nullable `Booking.requestedName` (TEXT, no default). Migration `20260930140000_booking_requested_name` only adds the column, so it is safe while the old code is still running. The user approved this before migrating: Booking only, no change to SlotInterest or Person.
+- **Write:** `requestPublicSlot` writes the cleaned typed name only when its `normalizeName` fold (the same as `searchName`) differs from the saved Person name's fold. أحمد/احمد/إحمد, tashkeel, letter case and spacing never count as different. The column stays NULL for a new phone, for matching names and for owner-created bookings.
+- **Read:** `listPendingBookings` returns `requestedName`.
+- **Card:** the new `RequestedNameNotice` shows `ui("owner.requestedNameDiffers")` ("الاسم يختلف عن المسجّل:" / "Name differs from the saved one:") followed by the name in `<bdi>`. It appears under the saved name on both the pending and the missed request cards, and only when the value is not null.
+
+**Why:** [security-audit.md S-6](./audits/security-audit.md#s-6-anyone-can-file-a-public-request-under-someone-elses-phone).
+
+**Files:** `src/prisma/schema.prisma`, `src/prisma/migrations/20260930140000_booking_requested_name/migration.sql` (new), `src/modules/booking/application/request-public-slot.ts`, `src/modules/booking/infrastructure/bookings.ts`, `src/app/owner/requested-name-notice.tsx` (new), `src/app/owner/pending-list.tsx`, `src/lib/ui-copy.ts`, `test/integration/requested-name.integration.test.ts` (new), `test/app/owner/requested-name-notice.test.ts` (new).
+
+**How it connects:** Booking imports the people domain `cleanPersonName` and `normalizeName` (downward). The migration was written by hand; `prisma migrate diff` from `stadiums_test` shows no drift for the column.
+
+**How to verify:**
+- The tests were written first. The unit test failed (module not found) and all 4 integration tests failed.
+- The integration tests cover: NULL for a new phone; NULL for other Arabic spellings, case and spacing; a different name stored cleaned while the saved name stays; NULL for an owner-created booking.
+- The unit test covers: nothing rendered for NULL; the Arabic warning with a `<bdi>` name; the English copy.
+- `npm test`: 68 suites, 488 tests. `npm run test:integration`: 21 suites, 137 tests. `npm run build` is green.

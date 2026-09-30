@@ -21,7 +21,13 @@ type BookingInsertSource = "PUBLIC" | "OWNER";
  */
 async function insertBookingDuring(
   tx: TenantTx,
-  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+  input: {
+    pitchId: string;
+    start: Date;
+    end: Date;
+    priceUsd: Decimal;
+    requestedName?: string | null;
+  },
   status: BookingInsertStatus,
   source: BookingInsertSource,
 ): Promise<string> {
@@ -32,7 +38,7 @@ async function insertBookingDuring(
   await tx.$executeRaw`
     INSERT INTO "Booking" (
       "id", "tenantId", "pitchId", "during", "status", "source",
-      "priceUsd", "amountDueUsd", "collectionMode"
+      "priceUsd", "amountDueUsd", "collectionMode", "requestedName"
     )
     VALUES (
       ${id},
@@ -43,7 +49,8 @@ async function insertBookingDuring(
       ${source}::"BookingSource",
       ${price}::decimal,
       ${price}::decimal,
-      'WHOLE'::"CollectionMode"
+      'WHOLE'::"CollectionMode",
+      ${input.requestedName ?? null}
     )
   `;
 
@@ -57,7 +64,14 @@ async function insertBookingDuring(
  */
 export async function insertPendingPublicBooking(
   tx: TenantTx,
-  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+  input: {
+    pitchId: string;
+    start: Date;
+    end: Date;
+    priceUsd: Decimal;
+    /** Typed name when it differs from the stored Person name (S-6), else null. */
+    requestedName?: string | null;
+  },
 ): Promise<string> {
   return insertBookingDuring(tx, input, "PENDING", "PUBLIC");
 }
@@ -124,6 +138,8 @@ export type PendingBookingRow = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
+  /** Name typed on the request when it differs from requesterName (S-6). */
+  requestedName: string | null;
 };
 
 type PendingSqlRow = {
@@ -136,6 +152,7 @@ type PendingSqlRow = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
+  requestedName: string | null;
 };
 
 /**
@@ -157,7 +174,8 @@ export async function listPendingBookings(
       b."requestedAt",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
-      per.phone AS "requesterPhone"
+      per.phone AS "requesterPhone",
+      b."requestedName"
     FROM "Booking" b
     JOIN "Pitch" p ON p.id = b."pitchId"
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
@@ -177,6 +195,7 @@ export async function listPendingBookings(
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
+    requestedName: row.requestedName,
   }));
 }
 

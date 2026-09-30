@@ -93,6 +93,9 @@ model Booking {
   /// CHECK ("amountDueUsd" >= 0) is SQL-only (Booking_amountDueUsd_nonneg).
   amountDueUsd Decimal                  @db.Decimal(12, 2)
   requestedAt  DateTime                 @default(now())
+  /// Public request only: the name as typed (cleaned) when its normalizeName fold differs
+  /// from the stored Person name. The Person name is never overwritten (security audit S-6).
+  requestedName String?
   tenant       Tenant                   @relation(fields: [tenantId], references: [id])
   pitch        Pitch                    @relation(fields: [pitchId], references: [id])
   participants BookingParticipant[]
