@@ -4441,3 +4441,87 @@ Picking a day this week is one tap on a chip. The hours list refreshes underneat
 **Files:** `docs/audits/booking-payments-production-audit.md`.
 
 **How to verify:** Read the addendum; each commit hash is on this branch or on main (PR #3).
+
+## Cancel and no-show fees: capped at the due, no-show logged as a no-show
+
+**When:** 2026-09-30
+
+**What:** Audit #8 (fee cap) and #13 (no-show reason).
+- `assertFeeWithinDue` (`booking/domain/suggest-fee.ts`): a fee the owner types on cancel or no-show must be at most the booking's current `amountDueUsd`. Otherwise `booking.fee_above_due`: "الرسوم لا يمكن أن تكون أكثر من المبلغ المستحق على الحجز." / "The fee can't be more than what the booking owes." Checked in `cancelBooking` and `recordNoShow` under the booking lock, before anything is written. A fee equal to the due is accepted. Suggestions are percentages of the due, so they never exceed it.
+- `confirmedFee` reason when the fee is clamped to what was collected: cancel still logs `CANCELLATION_NO_FEE`. A no-show now logs `WAIVER` when the owner lowered a non-zero suggestion (waive, or edit down to at most collected), and `NO_SHOW_FEE` otherwise (suggestion kept, or a 0% policy). Only existing enum values; no migration.
+
+**Why:** A typed fee above the due created a debt out of nothing (audit §1.5 gap 3). A waived no-show was logged as a cancellation, so the debt-warning reason and the future booking timeline would say "cancellation" for a game that was a no-show (audit §1.6).
+
+**Existing rows:** no-show due changes written before this change with `CANCELLATION_NO_FEE` are mislabeled. They are exactly `BookingDueChange` rows with `reason = 'CANCELLATION_NO_FEE'` on a booking whose status is `NO_SHOW`: a NO_SHOW booking cannot be cancelled, and Adjust never writes that reason. They cannot all be relabeled mechanically. `WAIVER` vs `NO_SHOW_FEE` depends on the suggestion at that time, which is not stored (a `toUsd` of 0 is almost certainly a waiver). They were not changed. Check with: `SELECT d.id, d."fromUsd", d."toUsd" FROM "BookingDueChange" d JOIN "Booking" b ON b.id = d."bookingId" WHERE b.status = 'NO_SHOW' AND d.reason = 'CANCELLATION_NO_FEE';`.
+
+**Files:** `src/modules/booking/domain/suggest-fee.ts`, `src/modules/booking/application/cancel-booking.ts`, `src/modules/booking/application/record-no-show.ts`, `src/lib/error-messages.ts`, `test/modules/booking/domain/suggest-fee.test.ts`, `test/integration/fees.integration.test.ts` (new).
+
+**How it connects:** No schema change. The Edit field in the sheets is not limited in the browser; the server refuses with the new message.
+
+**How to verify:** `npm test` (62 suites, 457 tests), `npm run test:integration` (11 suites, 76 tests), `npm run build`. Integration: cancel and no-show fee $30.01/$45 on a $30 due refused with nothing written, $30 accepted. Stored reasons: 100% default no-show writes no row (due unchanged); 50% default → `NO_SHOW_FEE` 30→15; 50% with $20 collected → `NO_SHOW_FEE` 30→20; edited to $10 → `NO_SHOW_FEE`; edited to $2 with $5 collected → `WAIVER` 30→5; waived with $0 and $3 collected → `WAIVER`. All five fail on the old code.
+
+## Public and Book pages open on the business date
+
+**When:** 2026-09-30
+
+**What was there (00:00–06:00 Beirut):** both pages took "today" as the calendar date (`civilDateInTimeZone`). At 00:30 Saturday the chip strip started at Saturday. The 01:00 slot of Friday's 22:00–02:00 window is generated under Friday, and Friday was not in the strip (a past day), so a player could not reach it without typing `?date=`. Started slots were already never offered: `dropEndedSlots` keeps only `start > now`, and `resolveOfferedSlot` refuses `slot_ended` on the server.
+
+**What:** The public page and the owner Book page use `businessDate(now)` for their default day and the "Today" chip, the same rule as owner Today. At 00:30 Saturday they open on Friday and show only the 01:00 slot; from 06:00 they open on Saturday. `getDayAvailability` takes an optional `today` so the empty-state wording says "hours ended" rather than "past" for last night after its last slot; Venue still does not import Booking (the pages pass it). Slot generation is unchanged. No reason against it was found: the only case it would disadvantage is a stadium whose own day opens before 06:00, already unsupported under the business-day rule.
+
+**Files:** `src/app/(public)/page.tsx`, `src/app/(public)/hours.tsx`, `src/app/owner/(app)/book/page.tsx`, `src/app/owner/(app)/book/slots.tsx`, `src/modules/venue/application/get-day-availability.ts`, `test/integration/slot-pages.integration.test.ts` (new), `docs/NOW.md`.
+
+**How it connects:** `app/` imports `businessDate` from the booking domain; Venue receives the date. The Money page keeps the calendar day (cash rule).
+
+**How to verify:** `npm test` (62 suites, 457 tests), `npm run test:integration` (12 suites, 79 tests), `npm run build`. With `now` injected: at 00:30 Saturday the default day is Friday and only 01:00 is offered (22:00, 23:00, 00:00 have started), Saturday still shows 16:00 and 17:00; at 02:30 Friday is Today with "hours ended"; at 06:30 the default is Saturday and Friday is past with nothing offered. The test drives the same calls as the pages; the pages themselves (server components) are not rendered in a test.
+
+## Tests for the untested money paths
+
+**When:** 2026-09-30
+
+**What:** Audit §6 / punch list #5. Real use cases on the real test database, no source change.
+- `expense-ledger.integration.test.ts`:
+  - `recordExpense` with USD, LBP and mixed tenders. The expense is at 12:00 Beirut, each tender freezes the current rate (90,000, then 100,000 after a rate change), and there is one ledger OUT equal to the sum of the tenders' USD equivalents (payment `amountDueUsd` too).
+  - Staff with only `payments.collect` is refused and nothing is written; staff with `expenses.record` succeeds.
+  - An LBP tender with no rate fails after the expense row was inserted, and everything rolls back.
+  - `summarizeLedgerPeriod` / `sumAmountUsdByDirection`: IN, OUT and net over three days, rows outside the period and another stadium's rows ignored.
+  - Fall-back Saturday (25 h): rows at 23:59:59 Friday, 00:00 Saturday, the repeated 23:30, an expense at noon and 00:00 Sunday all land on the right day.
+  - Spring-forward: Saturday ends exactly where Sunday begins (at the 01:00 jump), 23:30 Saturday on Saturday, 01:00 Sunday on Sunday.
+- `collect-notify-debt.integration.test.ts`:
+  - `listEndedWithRemaining` (To collect) lists ended unpaid, partial, no-show with fee, per-player and cancelled-with-fee games, oldest first. It leaves out fully paid, upcoming and another stadium's games. A 23:30–00:30 game appears only once it has ended (00:15 vs 00:45), and the extra row for "more" is returned.
+  - `loadOutcomeNotify` / `findBookingFeeState`: after a player cancel the message fee is the saved `toUsd` ($15 on a $30 game with $5 collected) and the note is PLAYER. An owner cancel uses the no-fee owner template. An edited no-show shows the saved $20. After an adjust the reminder is due minus collected ($25 − $10 = $15).
+  - `listDebtWarnings` / `listDebtParticipations`: a per-player booking with $10 Unassigned and two paid slots gives the requester only their own $3 slot; the nine unnamed slots owe no person (pins the open gap #6). A person's owed games are summed ($20 no-show + $30 unpaid) with the latest owed game as the note; paid and upcoming are left out.
+- `split-evenly.test.ts`: property test over n = 1…30 for every cent up to $30, 1,000 seeded amounts up to $1,000,000 and edge amounts (120,150 splits): exact total, at most 1¢ spread, whole cents, extra cents on the first slots.
+- `createStaffSession` added to `test/integration/fixtures.ts`; the staff-permissions suite now uses it.
+
+**Bugs found:** none. The DST period bounds, the To collect SQL, the outcome fee text and the debt query all behaved as specified. The per-player debt case pins the known open gap #6 rather than a new bug.
+
+**Files:** `test/integration/expense-ledger.integration.test.ts` (new), `test/integration/collect-notify-debt.integration.test.ts` (new), `test/integration/fixtures.ts`, `test/integration/staff-permissions.integration.test.ts`, `test/modules/booking/domain/split-evenly.test.ts`.
+
+**How it connects:** Tests only. `recordPayment` is called directly for ledger rows at chosen instants, because collect always stamps `now`.
+
+**How to verify:** `npm test` (62 suites, 458 tests), `npm run test:integration` (14 suites, 95 tests), `npm run build`.
+
+## Dead code removed: the old Home confirmed lists
+
+**When:** 2026-09-30
+
+**What:** Audit §6 / punch list #5 (dead code).
+- Deleted `src/modules/booking/application/list-due-bookings.ts` (`listDueBookings`, the old Home confirmed lists) and, in `infrastructure/bookings.ts`, `listApprovedBookingsInRange`, `listApprovedBookingsStartingBefore`, `mapApprovedCollect`, `ApprovedCollectRow` and `HomeCollectStatus`.
+- Also deleted `partitionHomeConfirmed` (`booking/domain/home-inbox.ts`), whose only caller was `listDueBookings`, and its test block in `home-inbox.test.ts`; the rest of that test file stays.
+- **Kept `sumCollectedUsdBySourceIds`:** it is not dead. `expense/application/list-recent-expenses.ts` uses it for the Money tab's recent expenses.
+
+**Grep before deleting** (src and test, generated client excluded): `listDueBookings`, `listApprovedBookingsInRange` and `listApprovedBookingsStartingBefore` were referenced only inside `list-due-bookings.ts` and their own definitions (plus a comment in `load-owner-day.ts`). `partitionHomeConfirmed` was referenced only by `list-due-bookings.ts` and `home-inbox.test.ts`. `sumCollectedUsdBySourceIds` was referenced by `list-due-bookings.ts` and `list-recent-expenses.ts`. After deleting, each removed name has 0 references in `src`, `test` and the living guides.
+
+**Files:** `src/modules/booking/application/list-due-bookings.ts` (deleted), `src/modules/booking/infrastructure/bookings.ts`, `src/modules/booking/domain/home-inbox.ts`, `src/modules/booking/application/load-owner-day.ts` (comment), `test/modules/booking/domain/home-inbox.test.ts`, `docs/guides/module-map-and-request-walkthroughs.md` (removed the file's row).
+
+**How to verify:** `npm test` (62 suites, 457 tests; one test removed with `partitionHomeConfirmed`), `npm run test:integration` (14 suites, 95 tests), `npm run build`.
+
+## Audit addendum: round 2 status
+
+**When:** 2026-09-30
+
+**What:** Appended "Update — hardening round 2" to the addendum in `docs/audits/booking-payments-production-audit.md`: #5, #8, #12 and the no-show reason bug closed, plus the public/Book pages change, each with its commit.
+
+**Files:** `docs/audits/booking-payments-production-audit.md`.
+
+**How to verify:** Read the update table; each commit is on this branch.

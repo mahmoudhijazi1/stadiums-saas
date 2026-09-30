@@ -483,3 +483,13 @@ The audit body above is historical and unchanged. Status of each item after PR #
 | 12 | `splitEvenly` property test | **Open** | — | Code is correct (600,120-case probe); the repo test is still four examples. `planSlotCharge` has a sweep test. |
 | 13 | Low items | **Mostly open** | `f8bb1d6` | Public requests no longer add a duplicate interest for the same window (approve still can). `parseUsd` error type, no-show waiver reason, "They played" permission, staff money visibility: open. |
 | — | Deadlock: dismiss missed vs "They played" (found while fixing #1) | **Closed** | `24fcf50` | Pending rows locked in id order on both paths; ten-run race test. |
+
+### Update — hardening round 2 (2026-09-30)
+
+| # | Item | Status | Commit | Note |
+|---|---|---|---|---|
+| 5 | Untested money paths; dead `listDueBookings` chain | **Closed** | `66adab1`, `f0e7cff` | Integration tests for `recordExpense`, ledger period totals (both DST days), `listEndedWithRemaining`, `loadOutcomeNotify` / `findBookingFeeState`, `listDebtWarnings` / `listDebtParticipations`; no bug found. Dead chain deleted; `sumCollectedUsdBySourceIds` kept (used by recent expenses). |
+| 8 | Adjust status guard; fee cap | **Closed** | `259fb64`, `48a3ce8` | A typed cancel or no-show fee above the current due is refused (`booking.fee_above_due`). |
+| 12 | `splitEvenly` property test | **Closed** | `66adab1` | 120,150 splits over n = 1…30 in the unit suite. |
+| 13 | No-show logged as `CANCELLATION_NO_FEE` | **Closed** | `48a3ce8` | A clamped no-show now logs `WAIVER` (owner lowered a non-zero suggestion) or `NO_SHOW_FEE`. Rows written before are not changed: they are `CANCELLATION_NO_FEE` rows on NO_SHOW bookings and cannot all be relabeled without the suggestion at that time (query in progress.md). |
+| — | Public and Book pages before 06:00 | **Closed** | `3197dcd` | Default day is the business date, so the rest of last night's window is reachable; started slots are never offered. |

@@ -50,6 +50,11 @@ export async function getDayAvailability(input: {
   localDate: CivilDate;
   timeZone: string;
   now: Date;
+  /**
+   * The caller's "today" for the empty-state wording (past vs hours ended). Pages pass
+   * the business date (06:00 rollover, owned by Booking). Defaults to the civil date.
+   */
+  today?: CivilDate;
   occupied?: OccupiedWindow[];
   /** Owner Book, public hours, and WhatsApp share this clock. */
   hourCycle?: HourCycle;
@@ -59,7 +64,7 @@ export async function getDayAvailability(input: {
     const pitches = await listPitches();
     const occupied = input.occupied ?? [];
     const tenantId = await safeTenantId();
-    const today = civilDateInTimeZone(input.now, input.timeZone);
+    const today = input.today ?? civilDateInTimeZone(input.now, input.timeZone);
 
     return pitches.map((pitch) => {
       let config;

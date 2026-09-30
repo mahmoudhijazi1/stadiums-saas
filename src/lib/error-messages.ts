@@ -36,6 +36,7 @@ const ARABIC: Record<string, string> = {
   "booking.due_below_collected":
     "تم تحصيل مبلغ أكبر من الجديد، لا يمكن الاسترداد بعد.",
   "booking.due_whole_only": "تعديل المبلغ متاح للحجز الكامل فقط.",
+  "booking.fee_above_due": "الرسوم لا يمكن أن تكون أكثر من المبلغ المستحق على الحجز.",
   "booking.due_not_confirmed": "تعديل المبلغ متاح لحجز مؤكد أو ملغى أو لم يحضر فقط.",
   "payment.collect_unapproved": "يمكن التحصيل من حجز مؤكد أو لم يحضر أو ملغى فقط.",
   "payment.nothing_due": "لا يوجد مبلغ مستحق.",
@@ -87,6 +88,7 @@ const ENGLISH: Record<string, string> = {
   "booking.due_below_collected":
     "Already collected more than the new amount. Refunds are not supported yet.",
   "booking.due_whole_only": "Adjusting the due is only available for a whole-game booking.",
+  "booking.fee_above_due": "The fee can't be more than what the booking owes.",
   "booking.due_not_confirmed":
     "Only a confirmed, cancelled, or no-show booking can have its due adjusted.",
   "payment.collect_unapproved": "Only a confirmed, no-show, or cancelled booking can be collected.",

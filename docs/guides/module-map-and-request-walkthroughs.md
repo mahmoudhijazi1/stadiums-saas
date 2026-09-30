@@ -69,7 +69,6 @@ Pattern break flags use the same wording as the engineering audit: Venue/Access 
 | `collect-booking-payment.ts` | Use case: auth, load booking, freeze tenders, call Payment `recordPayment` in same tx. **Boundary:** Booking → Payment. |
 | `create-owner-booking.ts` | Use case: phone-call APPROVED booking + person + reject overlapping. |
 | `list-pending-requests.ts` | Use case: membership gate + list PENDING. |
-| `list-due-bookings.ts` | Use case: Home confirmed lists + remaining + confirm WhatsApp href. **Boundary:** Booking → Payment sums; Booking → Notification message helpers. |
 | `list-approved-occupied.ts` | Use case: APPROVED ranges for day grids (passes `db` into infra). |
 | `list-live-pitch-windows.ts` | Use case: live APPROVED+PENDING for pitch Settings (passes `db`). |
 | `list-open-waitlist.ts` | Use case: open waitlist groups + notify hrefs. **Boundary:** Notification domain. |

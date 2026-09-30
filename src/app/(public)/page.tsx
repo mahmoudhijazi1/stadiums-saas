@@ -1,6 +1,6 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { businessDate } from "@/modules/booking/domain/business-day";
 import {
-  civilDateInTimeZone,
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
@@ -19,6 +19,9 @@ import { Suspense } from "react";
  * Occupied comes from Booking; Venue only receives UTC ranges (SPEC-05).
  * Date is ?date= yyyy-mm-dd via Link chips (client transition, not a GET form).
  * Hours list is a child RSC so the chip row stays mounted while slots suspend.
+ * "Today" is the business date (06:00 to 06:00 Beirut, same rule as owner Today): at
+ * 00:30 it is still last night, so the rest of a window that crosses midnight stays
+ * reachable. Started slots are never offered (dropEndedSlots / slot_ended).
  */
 export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
@@ -26,7 +29,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const now = new Date();
-  const today = civilDateInTimeZone(now, "Asia/Beirut");
+  const today = businessDate(now, "Asia/Beirut");
   const localDate = parseCivilDate(dateParam) ?? today;
   const dateValue = formatCivilDate(localDate);
 
@@ -55,6 +58,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             dateValue={dateValue}
             locale={locale}
             now={now}
+            today={today}
           />
         </Suspense>
       </section>

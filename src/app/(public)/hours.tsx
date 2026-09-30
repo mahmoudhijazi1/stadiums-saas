@@ -19,11 +19,14 @@ export async function PublicHours({
   dateValue,
   locale,
   now,
+  today,
 }: {
   localDate: CivilDate;
   dateValue: string;
   locale: UiLocale;
   now: Date;
+  /** Business date (page's "Today" chip). */
+  today: CivilDate;
 }) {
   const tenant = await getCurrentTenant();
   const occupied = await listApprovedOccupied();
@@ -31,6 +34,7 @@ export async function PublicHours({
     localDate,
     timeZone: TIME_ZONE,
     now,
+    today,
     occupied,
     hourCycle: tenant.timeDisplay,
     locale,

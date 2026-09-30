@@ -4,6 +4,7 @@ import { DomainError } from "@/lib/errors";
 import { assertAdjustDue } from "@/modules/booking/domain/adjust-due";
 import { bookingRemaining } from "@/modules/payment/domain/collect";
 import {
+  assertFeeWithinDue,
   confirmedFee,
   ownerInitiatorLowersFee,
   suggestFee,
@@ -219,5 +220,73 @@ describe("ownerInitiatorLowersFee", () => {
         resultingFeeUsd: new Decimal(0),
       }),
     ).toBe(false);
+  });
+});
+
+describe("assertFeeWithinDue", () => {
+  it("rejects a fee above the due and accepts one equal to it", () => {
+    expect(() => assertFeeWithinDue(new Decimal("30.01"), price)).toThrow("booking.fee_above_due");
+    expect(() => assertFeeWithinDue(new Decimal("30.00"), price)).not.toThrow();
+    expect(() => assertFeeWithinDue(new Decimal("0.00"), price)).not.toThrow();
+  });
+});
+
+describe("confirmedFee reason for a no-show clamped to collected", () => {
+  const noShow = (percent: number) =>
+    suggestFee({ ...policy, noShowFeePercent: percent }, { amountDueUsd: price, start }, start, "NO_SHOW");
+
+  it("is WAIVER when the owner waives a non-zero suggestion", () => {
+    for (const collected of ["0.00", "3.00"]) {
+      const confirmed = confirmedFee({
+        suggestion: noShow(100),
+        collectedUsd: new Decimal(collected),
+        feeUsd: new Decimal("0.00"),
+      });
+      expect(confirmed.reason).toBe("WAIVER");
+      expect(confirmed.feeUsd.toFixed(2)).toBe(collected);
+    }
+  });
+
+  it("is WAIVER when the owner edits the fee down to at most what was collected", () => {
+    const confirmed = confirmedFee({
+      suggestion: noShow(100),
+      collectedUsd: new Decimal("5.00"),
+      feeUsd: new Decimal("2.00"),
+    });
+    expect(confirmed.reason).toBe("WAIVER");
+    expect(confirmed.feeUsd.toFixed(2)).toBe("5.00");
+  });
+
+  it("is NO_SHOW_FEE when the suggestion is kept and collected already covers it", () => {
+    const confirmed = confirmedFee({ suggestion: noShow(50), collectedUsd: new Decimal("20.00") });
+    expect(confirmed.reason).toBe("NO_SHOW_FEE");
+    expect(confirmed.feeUsd.toFixed(2)).toBe("20.00");
+  });
+
+  it("is NO_SHOW_FEE when the policy suggests nothing", () => {
+    const confirmed = confirmedFee({ suggestion: noShow(0), collectedUsd: new Decimal("0.00") });
+    expect(confirmed.reason).toBe("NO_SHOW_FEE");
+  });
+
+  it("keeps NO_SHOW_FEE for a fee above collected (edited down, still owed)", () => {
+    const confirmed = confirmedFee({
+      suggestion: noShow(100),
+      collectedUsd: new Decimal("0.00"),
+      feeUsd: new Decimal("10.00"),
+    });
+    expect(confirmed.reason).toBe("NO_SHOW_FEE");
+  });
+
+  it("leaves cancel reasons as they were", () => {
+    const late = suggestFee(
+      policy,
+      { amountDueUsd: price, start },
+      new Date(start.getTime() - 3_600_000),
+      "PLAYER",
+    );
+    expect(
+      confirmedFee({ suggestion: late, collectedUsd: new Decimal("0"), feeUsd: new Decimal("0") })
+        .reason,
+    ).toBe("CANCELLATION_NO_FEE");
   });
 });

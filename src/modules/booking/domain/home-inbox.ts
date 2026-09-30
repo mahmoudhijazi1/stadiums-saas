@@ -1,7 +1,6 @@
 import Decimal from "decimal.js";
 import {
   civilDateInTimeZone,
-  compareCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 
@@ -81,30 +80,6 @@ export function slotDateKind(
   if (delta === 0) return "today";
   if (Math.abs(delta) <= WEEKDAY_SPAN_DAYS) return "weekday";
   return "date";
-}
-
-export function partitionHomeConfirmed<T extends { start: Date; remaining: Decimal }>(
-  rows: T[],
-  now: Date,
-  timeZone: string,
-): { overdue: T[]; today: T[]; later: T[] } {
-  const today = civilDateInTimeZone(now, timeZone);
-  const overdue: T[] = [];
-  const todayRows: T[] = [];
-  const later: T[] = [];
-
-  for (const row of rows) {
-    const day = civilDateInTimeZone(row.start, timeZone);
-    const cmp = compareCivilDate(day, today);
-    if (cmp < 0) {
-      if (row.remaining.gt(0)) overdue.push(row);
-      continue;
-    }
-    if (cmp === 0) todayRows.push(row);
-    else later.push(row);
-  }
-
-  return { overdue, today: todayRows, later };
 }
 
 function civilOrdinal(date: CivilDate): number {

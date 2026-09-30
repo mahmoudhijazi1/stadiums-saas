@@ -91,8 +91,7 @@ export type OwnerDay = {
 
 /**
  * One Beirut business day for Today (06:00 to 06:00, `businessDate`), plus today's To
- * collect inbox. A game starting at 00:30 Saturday is on Friday. listDueBookings is not
- * used here. `now` is injectable for tests.
+ * collect inbox. A game starting at 00:30 Saturday is on Friday. `now` is injectable for tests.
  */
 export async function loadOwnerDay(
   dateParam: string | undefined,

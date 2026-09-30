@@ -12,7 +12,11 @@ import {
   assertApprovedForNoShow,
   assertEndedForNoShow,
 } from "@/modules/booking/domain/decision";
-import { confirmedFee, suggestFee } from "@/modules/booking/domain/suggest-fee";
+import {
+  assertFeeWithinDue,
+  confirmedFee,
+  suggestFee,
+} from "@/modules/booking/domain/suggest-fee";
 import {
   collapseToWhole,
   findBookingForDecision,
@@ -68,6 +72,9 @@ export async function recordNoShow(input: {
         !can(membership, BOOKINGS_ADJUST_DUE)
       ) {
         throw new DomainError("access.not_allowed");
+      }
+      if (input.feeUsd !== undefined) {
+        assertFeeWithinDue(input.feeUsd, booking.amountDueUsd);
       }
 
       const confirmed = confirmedFee({
