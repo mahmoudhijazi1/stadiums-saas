@@ -194,41 +194,76 @@ export function SlotPicker({
           </li>
         ))}
       </ul>
-      <BottomSheet
-        open={picked !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
-      >
-        {picked ? (
-          <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
-            <BottomSheetHeader>
-              <BottomSheetTitle className="sr-only">
-                <ClockRangeText
-                  text={clockRangeFromLocals(
-                    picked.slot.startLocal,
-                    picked.slot.endLocal,
-                  )}
-                />
-              </BottomSheetTitle>
-              <SlotFace slot={picked.slot} variant="idle" locale={locale} onSurface />
-              <BottomSheetDescription>{picked.pitch.name}</BottomSheetDescription>
-            </BottomSheetHeader>
-            <BottomSheetBody>
-              <RequestForm
-                pitchId={picked.pitch.id}
-                slot={picked.slot}
-                action={action}
-                hiddenFields={hiddenFields}
-                submitLabel={submitLabel}
-                locale={locale}
-                policyLine={policyLine}
-              />
-            </BottomSheetBody>
-          </BottomSheetContent>
-        ) : null}
-      </BottomSheet>
+      <SlotBookSheet
+        picked={
+          picked
+            ? { pitchId: picked.pitch.id, pitchName: picked.pitch.name, slot: picked.slot }
+            : null
+        }
+        onClose={() => setSelected(null)}
+        action={action}
+        hiddenFields={hiddenFields}
+        submitLabel={submitLabel}
+        locale={locale}
+        policyLine={policyLine}
+      />
     </>
+  );
+}
+
+/**
+ * The name + phone bottom sheet for one picked slot. Shared by the Book grid and the
+ * Today free strip so there is one booking form.
+ */
+export function SlotBookSheet({
+  picked,
+  onClose,
+  action,
+  hiddenFields,
+  submitLabel,
+  locale = "ar",
+  policyLine = null,
+}: {
+  picked: { pitchId: string; pitchName: string; slot: SlotPickerSlot } | null;
+  onClose: () => void;
+  action: (formData: FormData) => void | Promise<void>;
+  hiddenFields: Record<string, string>;
+  submitLabel: string;
+  locale?: UiLocale;
+  policyLine?: string | null;
+}) {
+  return (
+    <BottomSheet
+      open={picked !== null}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      {picked ? (
+        <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
+          <BottomSheetHeader>
+            <BottomSheetTitle className="sr-only">
+              <ClockRangeText
+                text={clockRangeFromLocals(picked.slot.startLocal, picked.slot.endLocal)}
+              />
+            </BottomSheetTitle>
+            <SlotFace slot={picked.slot} variant="idle" locale={locale} onSurface />
+            <BottomSheetDescription>{picked.pitchName}</BottomSheetDescription>
+          </BottomSheetHeader>
+          <BottomSheetBody>
+            <RequestForm
+              pitchId={picked.pitchId}
+              slot={picked.slot}
+              action={action}
+              hiddenFields={hiddenFields}
+              submitLabel={submitLabel}
+              locale={locale}
+              policyLine={policyLine}
+            />
+          </BottomSheetBody>
+        </BottomSheetContent>
+      ) : null}
+    </BottomSheet>
   );
 }
 

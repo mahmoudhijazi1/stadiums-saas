@@ -581,6 +581,34 @@ export async function listApprovedRanges(
 }
 
 /**
+ * PENDING requests per pitch and slot start inside [from, to), one grouped query
+ * (Today free strip badge). Never a row per request, never one query per slot.
+ */
+export async function countPendingBySlot(
+  tx: TenantTx,
+  from: Date,
+  to: Date,
+): Promise<{ pitchId: string; start: Date; count: number }[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<
+    { pitchId: string; start: Date | string; count: bigint | number }[]
+  >`
+    SELECT "pitchId", lower(during) AS start, COUNT(*) AS count
+    FROM "Booking"
+    WHERE "tenantId" = ${tenantId}
+      AND status = 'PENDING'::"BookingStatus"
+      AND lower(during) >= ${from}
+      AND lower(during) < ${to}
+    GROUP BY "pitchId", lower(during)
+  `;
+  return rows.map((row) => ({
+    pitchId: row.pitchId,
+    start: asDate(row.start),
+    count: Number(row.count),
+  }));
+}
+
+/**
  * Lock these booking rows in one fixed order (by id) and return the ones still
  * PENDING. Every path that decides several pending rows ("They played", approve,
  * owner-create siblings, dismiss missed) locks through here first, so two of them can

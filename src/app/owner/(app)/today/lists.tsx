@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Bell, ChevronRight } from "lucide-react";
+import { Suspense } from "react";
+import { FreeStripSection } from "./free-strip-section";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, BOOKINGS_NO_SHOW, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import {
@@ -92,7 +94,6 @@ export async function OwnerToday({
           {ui("owner.afterMidnightToday", locale)}
         </p>
       ) : null}
-      <DaySummaryLine summary={summary} locale={locale} />
 
       {ownerDay.isToday && pending.length > 0 && earliest ? (
         <Link
@@ -127,6 +128,19 @@ export async function OwnerToday({
             : []
         }
         toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
+        toCollectTotal={formatUsdCompact(
+          ownerDay.isToday
+            ? ownerDay.toCollect.reduce((sum, row) => sum.plus(row.remaining), new Decimal(0))
+            : new Decimal(0),
+        )}
+        between={
+          <>
+            <DaySummaryLine summary={summary} locale={locale} />
+            <Suspense fallback={null}>
+              <FreeStripSection membership={membership} locale={locale} date={date} />
+            </Suspense>
+          </>
+        }
         games={toUpcomingViews(
           ownerDay.games,
           now,

@@ -76,6 +76,7 @@ Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`)
 ### Design system
 - [UI foundations](./ui-foundations.md) — roles and rules
 - [UI components](./ui-components.md) — per-component contracts
+- [UI rules](./ui-rules.md) — what every owner screen says and how it ranks things (proposed), with a screen audit
 - [Theme](./theme.md) — concrete token values
 - [Design-system migration log](./MIGRATION.md) — what has been converted (source of truth for fonts)
 

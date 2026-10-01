@@ -1,7 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type Ref } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
@@ -22,6 +23,7 @@ import {
   NoShowDecisionForm,
 } from "./fee-forms";
 import { submitCollectPayment } from "./actions";
+import { PersonLink } from "@/app/owner/person-link";
 import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";
 import {
   BottomSheet,
@@ -259,6 +261,8 @@ type SheetStep = "details" | "cancel" | "noshow" | "adjust";
 export function UpcomingPanel({
   toCollect,
   toCollectHasMore,
+  toCollectTotal,
+  between,
   games,
   locale,
   mayCollect,
@@ -271,6 +275,10 @@ export function UpcomingPanel({
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
+  /** Compact USD sum of the listed To collect rows. */
+  toCollectTotal: string;
+  /** Rendered between To collect and the day's games (summary line, free strip). */
+  between?: ReactNode;
   games: UpcomingRowView[];
   locale: UiLocale;
   mayCollect: boolean;
@@ -285,9 +293,14 @@ export function UpcomingPanel({
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
   const [sheetStep, setSheetStep] = useState<SheetStep>("details");
   const [interestOpen, setInterestOpen] = useState(false);
+  const [collectOpen, setCollectOpen] = useState(false);
   const openRow =
     [...toCollect, ...games].find((row) => row.id === openId) ?? null;
   const sheetRow = openRow ?? heldRow;
+  // Amber and never hidden: a highlighted or opened card forces the list open.
+  const collectShown =
+    collectOpen ||
+    toCollect.some((row) => row.id === openId || row.id === highlight);
   const confirmSubmitRef = useRef<HTMLButtonElement>(null);
   const cancelBookingRef = useRef<HTMLButtonElement>(null);
   const pendingFocusRef = useRef<"confirm" | "cancel" | null>(null);
@@ -360,30 +373,53 @@ export function UpcomingPanel({
     <div className="flex flex-col gap-3">
       {toCollect.length > 0 ? (
         <>
-          <h3 className="text-sm font-medium text-muted-foreground">
-            {ui("owner.toCollect", locale)}
-          </h3>
-          <UpcomingRows
-            rows={toCollect}
-            showDate
-            openId={openId}
-            onOpen={openRowSheet}
-            onOpenInterests={openInterestSheet}
-            locale={locale}
-            highlight={highlight}
-            mayCollect={mayCollect}
-            rowKeyPrefix="collect"
-          />
-          {toCollectHasMore ? (
-            <Link
-              href="/owner/money"
-              className="inline-flex min-h-11 items-center self-start text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              {ui("owner.seeAll", locale)}
-            </Link>
+          <button
+            type="button"
+            aria-expanded={collectShown}
+            aria-controls="to-collect-list"
+            onClick={() => setCollectOpen((open) => !open)}
+            className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-start text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <span className="min-w-0 flex-1">
+              <CollectCount
+                text={uiCount("owner.toCollectGames", toCollect.length, locale)}
+                plus={toCollectHasMore}
+              />
+              <span aria-hidden> · </span>
+              <LtrIsolate>{`$${toCollectTotal}${toCollectHasMore ? "+" : ""}`}</LtrIsolate>
+            </span>
+            <ChevronDown
+              aria-hidden
+              className={cn("size-5 shrink-0 transition-transform", collectShown && "rotate-180")}
+            />
+          </button>
+          {collectShown ? (
+            <div id="to-collect-list" className="flex flex-col gap-3">
+              <UpcomingRows
+                rows={toCollect}
+                showDate
+                openId={openId}
+                onOpen={openRowSheet}
+                onOpenInterests={openInterestSheet}
+                locale={locale}
+                highlight={highlight}
+                mayCollect={mayCollect}
+                rowKeyPrefix="collect"
+              />
+              {toCollectHasMore ? (
+                <Link
+                  href="/owner/money"
+                  className="inline-flex min-h-11 items-center self-start text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  {ui("owner.seeAll", locale)}
+                </Link>
+              ) : null}
+            </div>
           ) : null}
         </>
       ) : null}
+
+      {between}
 
       {games.length > 0 ? (
         <UpcomingRows
@@ -450,14 +486,11 @@ export function UpcomingPanel({
                   ? ` · ${sheetRow.dateLabel}`
                   : null}
                 {sheetRow.nightHint ? ` · ${sheetRow.nightHint}` : null}
-                {" · "}
-                <Link
-                  href={`/owner/people/${sheetRow.requesterPersonId}`}
-                  className="underline-offset-2 hover:underline"
-                >
-                  {sheetRow.requesterName}
-                </Link>
               </BottomSheetDescription>
+              <PersonLink
+                personId={sheetRow.requesterPersonId}
+                name={sheetRow.requesterName}
+              />
             </BottomSheetHeader>
             {interestOpen ? (
               <BottomSheetBody className="flex flex-col gap-4 pb-4">
@@ -588,6 +621,18 @@ function stepTitle(step: SheetStep, locale: UiLocale): string {
   return ui("owner.cancel", locale);
 }
 
+function CollectCount({ text, plus }: { text: string; plus: boolean }) {
+  const match = /^(\D*)(\d+)(.*)$/.exec(text);
+  if (!match) return <>{text}</>;
+  return (
+    <>
+      {match[1]}
+      <LtrIsolate>{`${match[2]}${plus ? "+" : ""}`}</LtrIsolate>
+      {match[3]}
+    </>
+  );
+}
+
 function UpcomingRows({
   rows,
   showDate,
@@ -657,14 +702,11 @@ function UpcomingRows({
                       {showDate ? <span>{row.dateLabel}</span> : null}
                       {row.nightHint ? <span>{row.nightHint}</span> : null}
                     </span>
+                    <span className="mt-1.5 block truncate text-sm text-muted-foreground">
+                      {row.requesterName}
+                    </span>
                     <span className="sr-only">{ui("owner.openBooking", locale)}</span>
                   </button>
-                  <Link
-                    href={`/owner/people/${row.requesterPersonId}`}
-                    className="mt-1 block min-h-11 truncate py-2 text-sm text-muted-foreground underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    {row.requesterName}
-                  </Link>
                   {row.interested.length > 0 ? (
                     <button
                       type="button"

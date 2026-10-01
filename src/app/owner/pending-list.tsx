@@ -39,7 +39,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RequestedNameNotice } from "@/app/owner/requested-name-notice";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
-import Link from "next/link";
+import { PersonLink } from "@/app/owner/person-link";
 import { Clock, MapPin, Phone } from "lucide-react";
 
 type PendingRequest = Awaited<ReturnType<typeof listPendingRequests>>[number];
@@ -130,12 +130,7 @@ export function PendingRequestList({
                         className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
                       >
                         <div className="flex flex-col gap-1">
-                          <Link
-                            href={`/owner/people/${item.request.requesterPersonId}`}
-                            className="text-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                          >
-                            {item.request.requesterName}
-                          </Link>
+                          <PersonLink personId={item.request.requesterPersonId} name={item.request.requesterName} />
                           <RequestedNameNotice
                             requestedName={item.request.requestedName}
                             locale={locale}
@@ -283,12 +278,7 @@ export function MissedRequestSection({
                       className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
                     >
                       <div className="flex flex-col gap-1">
-                        <Link
-                          href={`/owner/people/${request.requesterPersonId}`}
-                          className="text-sm font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                        >
-                          {request.requesterName}
-                        </Link>
+                        <PersonLink personId={request.requesterPersonId} name={request.requesterName} />
                         <RequestedNameNotice
                           requestedName={request.requestedName}
                           locale={locale}

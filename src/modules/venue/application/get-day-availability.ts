@@ -5,7 +5,7 @@ import {
   type HourCycle,
 } from "@/lib/format-local-hm";
 import { logger } from "@/lib/logger";
-import { formatUsd } from "@/lib/money";
+import { formatUsd, parseUsd } from "@/lib/money";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
@@ -31,6 +31,8 @@ export type DaySlotView = {
 export type PitchDayAvailability = {
   id: string;
   name: string;
+  /** The pitch's base price; a slot priced differently is a rule price. */
+  defaultPriceUsd: string;
   slots: DaySlotView[];
   emptyKind: HoursEmptyKind | null;
 };
@@ -90,6 +92,7 @@ export async function getDayAvailability(input: {
       return {
         id: pitch.id,
         name: pitch.name,
+        defaultPriceUsd: formatUsd(parseUsd(config.defaultPriceUsd)),
         emptyKind: dayHoursEmptyKind({
           generatedCount: generated.length,
           remainingCount: slots.length,
