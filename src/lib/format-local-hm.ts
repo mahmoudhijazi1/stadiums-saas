@@ -156,6 +156,13 @@ export function clockRangeFromLocals(startLocal: string, endLocal: string): stri
   return `${start.digits}–${end.digits}`;
 }
 
+/** Short marker for a period word or marker ("مساءً" and "PM" both map to the short form). */
+export function shortPeriodOf(period: string): string {
+  const upper = period.toUpperCase();
+  if (upper === "PM" || upper === "AM") return upper;
+  return shortPeriod(period);
+}
+
 export function shortPeriod(period: string): string {
   if (period === "مساءً" || period === "م") return "م";
   if (period === "صباحاً" || period === "ص") return "ص";
