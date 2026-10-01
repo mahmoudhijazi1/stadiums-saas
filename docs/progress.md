@@ -5265,3 +5265,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** UI only. Branch `ui/tokens-and-rules` is stacked on `feat/today-free-slots` because `docs/ui-rules.md` is not on main yet.
 
 **How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Screenshots (Today, person page, Money; Arabic dark, English light) from a production build on the test database.
+
+## Trust fixes: labels on the sheet, person page and Today card
+
+**When:** 2026-10-01
+
+**What:** Applied `docs/ui-rules.md` to the three screens. Person page: stat labels are "N games played · N upcoming" and "Total paid"; each game row shows this person's own figure with its label and state colour (Owed / Paid / Expected / Share, with a status icon) and, on a per-player game, "Share $3 · Game $30". Booking sheet: the "Collect" heading renders only when a collect control is shown; the figure is Expected (neutral), Remaining (owed) or Paid (green); the Due box is labelled Game. Today card: the upcoming trail reads "Game $30".
+
+**Why:** Open audit rows from `ui-rules.md` (rules 1–4). Copy, headings and tokens only. The one data addition is a read-only `upcoming` count in `summarizePersonBookings`.
+
+**Files:** `people/[personId]/{stats,games}.tsx`, `today/upcoming-panel.tsx`, `booking/domain/person-stats.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** UI and one pure domain counter; no new imports across modules.
+
+**How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Dark screenshots in Arabic and English.
