@@ -142,7 +142,7 @@ export function DebtNoticeLine({
   return (
     <Link
       href={`/owner/people/${personId}`}
-      className="text-sm text-alert underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="text-sm text-owed underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       {ui("owner.debtLead", locale)}{" "}
       <LtrIsolate>${notice.totalCompact}</LtrIsolate>

@@ -40,7 +40,7 @@ import { RequestedNameNotice } from "@/app/owner/requested-name-notice";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { PersonLink } from "@/app/owner/person-link";
-import { Clock, MapPin, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 
 type PendingRequest = Awaited<ReturnType<typeof listPendingRequests>>[number];
 
@@ -92,10 +92,6 @@ export function PendingRequestList({
               <Card className="gap-3 py-4">
                 <CardHeader className="gap-2">
                   <div className="flex items-center gap-2">
-                    <Clock
-                      aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground"
-                    />
                     <ClockRangeText
                       text={formatLocalClockRange(
                         group.start,
@@ -107,14 +103,11 @@ export function PendingRequestList({
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin aria-hidden className="size-4 shrink-0" />
-                      {group.pitchName}
-                    </span>
+                    <span>{group.pitchName}</span>
                     <span>{formatSlotDateLabel(group.start, now, locale)}</span>
                   </div>
                   {soon === null ? null : (
-                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                    <p className="text-sm font-medium">
                       <CountedPhrase text={startsInLabel(soon, locale)} />
                     </p>
                   )}

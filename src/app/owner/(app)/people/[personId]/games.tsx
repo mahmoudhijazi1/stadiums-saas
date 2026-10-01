@@ -15,7 +15,6 @@ import { formatUsdCompact } from "@/lib/money";
 import Decimal from "decimal.js";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
-import { MapPin } from "lucide-react";
 
 export async function PersonGames({
   personId,
@@ -83,7 +82,7 @@ export async function PersonGames({
                     <LtrIsolate
                       className={
                         owed
-                          ? "text-sm font-medium text-alert"
+                          ? "text-sm font-medium text-owed"
                           : "text-sm"
                       }
                     >
@@ -100,10 +99,7 @@ export async function PersonGames({
                     {nightHint(row.start, locale) ? (
                       <span>{nightHint(row.start, locale)}</span>
                     ) : null}
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin aria-hidden className="size-4 shrink-0" />
-                      {row.pitchName}
-                    </span>
+                    <span>{row.pitchName}</span>
                     <span>{paymentLabel(display.kind, locale)}</span>
                   </p>
                 </Card>

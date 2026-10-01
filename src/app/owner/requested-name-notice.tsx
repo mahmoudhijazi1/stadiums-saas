@@ -15,7 +15,7 @@ export function RequestedNameNotice({
 }) {
   if (!requestedName) return null;
   return (
-    <p className="text-sm text-amber-800 dark:text-amber-200">
+    <p className="text-sm font-medium">
       {ui("owner.requestedNameDiffers", locale)} <bdi>{requestedName}</bdi>
     </p>
   );

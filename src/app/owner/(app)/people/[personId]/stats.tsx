@@ -114,7 +114,7 @@ function Stat({
       <dt className="text-xs text-muted-foreground">{label}</dt>
       {value ? (
         <dd className="text-sm font-medium">
-          <LtrIsolate className={alert ? "text-alert" : undefined}>
+          <LtrIsolate className={alert ? "text-owed" : undefined}>
             ${value}
           </LtrIsolate>
           {expected ? (

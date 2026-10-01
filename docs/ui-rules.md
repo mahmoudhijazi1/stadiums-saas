@@ -4,7 +4,21 @@ The rules every owner screen follows, on top of [ui-foundations.md](./ui-foundat
 
 Owner copy is Arabic first (DR-005). Every example gives both. All copy goes through `ui()` / `uiCount()`; numbers and currency sit in `LtrIsolate`.
 
-**Status:** rules 1–8 are proposed. Rule 1 needs an amber role that no doc defines yet (see "Conflicts"); until it is approved, treat it as a target.
+**Status:** rules 1–8 are **approved** (2026-10-01).
+
+**Decisions recorded 2026-10-01**
+
+1. **Display font: rule 7 wins.** `LtrIsolate` handles text direction only. Digits are tabular from the body (`font-variant-numeric: tabular-nums` in `globals.css`). `<Figure>` (`components/ui/figure.tsx`) is display + tabular + LTR-isolated, for the one big figure per screen. Used for: Remaining in the booking sheet, Net on Money. Page titles keep `font-display`. `ui-foundations.md` §2 and `theme.md` §3 carry a one-line "amended" note; their bodies are unchanged.
+2. **Money tokens** (`globals.css`, exposed to Tailwind as `paid`, `owed`, `expected`, each with `-subtle`): paid = green, owed = amber (never red), expected = neutral. Destructive stays `alert` (coral) and separate.
+
+   | Token | Light text / subtle | Dark text / subtle |
+   |---|---|---|
+   | `paid` | `#047857` / `#d6f0e4` | `#34d399` / `#123528` |
+   | `owed` | `#92400e` / `#fbe8c2` | `#fbbf24` / `#3b2e0c` |
+   | `expected` | `ink-muted` / `surface-2` | `carbon-300` / `carbon-700` |
+
+   WCAG AA (contrast of text on page, card and its own subtle background): light paid 5.0 / 5.5 / 4.6, owed 6.5 / 7.1 / 5.9, expected 5.8 / 6.3 / 5.1; dark paid 9.6 / 8.7 / 7.0, owed 11.1 / 10.0 / 8.0, expected 8.4 / 7.5 / 6.6. All at or above 4.5:1.
+3. **Money-in** uses `paid`. **Money-out and Net** are neutral; Net is labelled "Net = in − out" / "الصافي = الداخل − الخارج". Decorative leading icons on list rows are dropped (clock and pin on cards, the category tile on expenses); status icons stay (check, alert). Destructive actions in sheets stay last, as secondary red text, never primary.
 
 ---
 
@@ -129,11 +143,15 @@ Checked against the code on `feat/today-free-slots` (2026-10-01). "Verified" mea
 | All owner screens | `LtrIsolate` applies the display font to every number (`font-display tabular-nums`), so every amount, time and count is condensed display type | 7 | Make the body font with `tabular-nums` the `LtrIsolate` default and add an opt-in `display` prop for the one biggest figure and the page title |
 | Booking sheet | Money block repeats `Due`, `Remaining` and (per-player) `Unassigned` as three same-size boxes | 7, 8 | One biggest figure (what is owed now, or Expected), the other two as plain lines below |
 
+**Fixed in the tokens change (2026-10-01):** booking sheet Remaining now `paid` / `owed` / `expected` by state, with a check or alert icon; person page owed amounts `owed`, not coral; Today To collect row, Requests "starts in" (now neutral, not amber) and the requested-name notice; Money In (`paid`), Net (neutral, labelled), category tiles (removed); `LtrIsolate` typography; clock and pin icons on cards. **Still open (copy and labels, rules 2–4):** person page "Paid $3" vs row, "1 game", the "Collect" heading with no action, unlabeled `$30` on the Today card, Today summary counts, Money "In"/"Out" owners, the sheet's three same-size boxes.
+
 Not audited: Requests amounts (the cards carry no money), the Money expense sheet, and the Settings tabs.
 
 ---
 
 ## Conflicts with the existing docs
+
+**Resolved 2026-10-01:** 1 (rule 7 wins), 2 (amber is the `owed` token), 3 (green is `paid`, including money-in), 4 (decorative row icons dropped), 5 (destructive in sheets stays red secondary text). 6 stands: `owed` and `paid` were checked for contrast as text. The list below is kept as written.
 
 Nothing was changed in the three source docs. These are the places where a rule here either extends them or pulls against them, for a decision.
 

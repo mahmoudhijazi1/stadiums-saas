@@ -202,7 +202,7 @@ export function PerPlayerCollect({
                 {slot.paid ? (
                   <span
                     className={cn(
-                      "inline-flex min-h-11 min-w-20 items-center justify-center gap-1 text-sm font-medium text-success",
+                      "inline-flex min-h-11 min-w-20 items-center justify-center gap-1 text-sm font-medium text-paid",
                     )}
                   >
                     <Check aria-hidden className="size-4" />

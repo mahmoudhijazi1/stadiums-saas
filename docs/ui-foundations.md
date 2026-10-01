@@ -50,6 +50,8 @@ Tenants may override `accent` only, plus a contrast-derived `accent-ink`. Ground
 
 ## 2. Type roles
 
+> **Amended by [ui-rules.md](./ui-rules.md) rule 7 (2026-10-01):** the display font is for page titles and the one biggest figure per screen; other numbers use the body font with tabular digits.
+
 Three roles, three families. A component picks a role, never a font name.
 
 | Role | Family | Used for |

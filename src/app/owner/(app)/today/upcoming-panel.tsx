@@ -35,6 +35,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
+import { Figure } from "@/components/ui/figure";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -49,8 +50,6 @@ import {
   CircleAlert,
   CircleCheck,
   CircleDollarSign,
-  Clock,
-  MapPin,
   MessageCircle,
   Phone,
   Radio,
@@ -114,7 +113,7 @@ function CardTrail({
 }) {
   if (display.kind === "no_show_unpaid") {
     return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-alert">
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-owed">
         <CircleAlert aria-hidden className="size-4 shrink-0" />
         <span>{ui("owner.noShow", locale)}</span>
         <span aria-hidden>·</span>
@@ -128,7 +127,7 @@ function CardTrail({
       <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
         <span>{ui("owner.noShow", locale)}</span>
         <span aria-hidden>·</span>
-        <CircleCheck aria-hidden className="size-4 shrink-0 text-success" />
+        <CircleCheck aria-hidden className="size-4 shrink-0 text-paid" />
         <span>{ui("owner.paid", locale)}</span>
       </span>
     );
@@ -153,7 +152,7 @@ function CardTrail({
   }
   if (display.kind === "unpaid" || display.kind === "partial") {
     return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-alert">
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-owed">
         <CircleAlert aria-hidden className="size-4 shrink-0" />
         <LtrIsolate>${amountUsd}</LtrIsolate>
         <span>
@@ -167,7 +166,7 @@ function CardTrail({
   }
   if (display.kind === "paid") {
     return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-paid">
         <CircleCheck aria-hidden className="size-4 shrink-0" />
         <span>{ui("owner.paid", locale)}</span>
       </span>
@@ -181,45 +180,51 @@ function CardTrail({
   );
 }
 
+type MoneyTone = "paid" | "owed" | "expected";
+
+const TONE_TEXT: Record<MoneyTone, string> = {
+  paid: "text-paid",
+  owed: "text-owed",
+  expected: "text-expected",
+};
+const TONE_BG: Record<MoneyTone, string> = {
+  paid: "bg-paid-subtle",
+  owed: "bg-owed-subtle",
+  expected: "bg-expected-subtle",
+};
+
+/** Paid = settled, owed = the game ended and money is due, expected = not played yet. */
+function moneyTone(row: UpcomingRowView): MoneyTone {
+  if (row.remainingUsd === "0.00") return "paid";
+  return owesCash(row) ? "owed" : "expected";
+}
+
 function DueRemainingFigures({
   dueUsd,
   remainingUsd,
+  tone,
   locale,
 }: {
   dueUsd: string;
   remainingUsd: string;
+  tone: MoneyTone;
   locale: UiLocale;
 }) {
-  const owed = remainingUsd !== "0.00";
   const same = dueUsd === remainingUsd;
+  const Icon = tone === "paid" ? CircleCheck : tone === "owed" ? CircleAlert : null;
+  const remaining = (
+    <div className={cn("rounded-lg px-3 py-3 text-start", TONE_BG[tone])}>
+      <p className={cn("flex items-center gap-1 text-xs", TONE_TEXT[tone])}>
+        {Icon ? <Icon aria-hidden className="size-3.5 shrink-0" /> : null}
+        {ui("owner.remaining", locale)}
+      </p>
+      <Figure className={cn("mt-0.5 block text-2xl", TONE_TEXT[tone])}>
+        ${remainingUsd}
+      </Figure>
+    </div>
+  );
 
-  if (same) {
-    return (
-      <div
-        className={cn(
-          "rounded-lg px-3 py-3 text-start",
-          owed ? "bg-success/15" : "bg-muted",
-        )}
-      >
-        <p
-          className={cn(
-            "text-xs",
-            owed ? "text-success" : "text-muted-foreground",
-          )}
-        >
-          {ui("owner.remaining", locale)}
-        </p>
-        <p
-          className={cn(
-            "mt-0.5 text-2xl font-semibold",
-            owed ? "text-success" : "text-muted-foreground",
-          )}
-        >
-          <LtrIsolate>${remainingUsd}</LtrIsolate>
-        </p>
-      </div>
-    );
-  }
+  if (same) return remaining;
 
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -229,29 +234,7 @@ function DueRemainingFigures({
           <LtrIsolate>${dueUsd}</LtrIsolate>
         </p>
       </div>
-      <div
-        className={cn(
-          "rounded-lg px-3 py-2 text-start",
-          owed ? "bg-success/15" : "bg-muted",
-        )}
-      >
-        <p
-          className={cn(
-            "text-xs",
-            owed ? "text-success" : "text-muted-foreground",
-          )}
-        >
-          {ui("owner.remaining", locale)}
-        </p>
-        <p
-          className={cn(
-            "mt-0.5 text-base font-semibold",
-            owed ? "text-success" : "text-muted-foreground",
-          )}
-        >
-          <LtrIsolate>${remainingUsd}</LtrIsolate>
-        </p>
-      </div>
+      {remaining}
     </div>
   );
 }
@@ -378,7 +361,7 @@ export function UpcomingPanel({
             aria-expanded={collectShown}
             aria-controls="to-collect-list"
             onClick={() => setCollectOpen((open) => !open)}
-            className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-start text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-owed/60 bg-owed-subtle text-owed px-4 py-3 text-start text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <span className="min-w-0 flex-1">
               <CollectCount
@@ -681,10 +664,6 @@ function UpcomingRows({
                     )}
                   >
                     <span className="flex items-center gap-2">
-                      <Clock
-                        aria-hidden
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
                       <ClockRangeText
                         text={row.timeRange}
                         className={cn(
@@ -695,10 +674,7 @@ function UpcomingRows({
                       />
                     </span>
                     <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                      <span className="inline-flex items-center gap-1.5">
-                        <MapPin aria-hidden className="size-4 shrink-0" />
-                        {row.pitchName}
-                      </span>
+                      <span>{row.pitchName}</span>
                       {showDate ? <span>{row.dateLabel}</span> : null}
                       {row.nightHint ? <span>{row.nightHint}</span> : null}
                     </span>
@@ -800,6 +776,7 @@ function UpcomingRowActions({
         <DueRemainingFigures
           dueUsd={row.priceUsd}
           remainingUsd={row.remainingUsd}
+          tone={moneyTone(row)}
           locale={locale}
         />
         <PerPlayerCollect
