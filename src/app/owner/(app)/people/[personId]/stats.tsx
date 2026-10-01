@@ -47,7 +47,11 @@ export async function PersonStats({
     <div className="flex flex-col gap-3">
       <dl className="grid grid-cols-2 gap-3">
         <Stat
-          label={uiCount("owner.games", stats.gamesPlayed, locale)}
+          label={
+            stats.upcoming > 0
+              ? `${uiCount("owner.gamesPlayed", stats.gamesPlayed, locale)} · ${uiCount("owner.gamesUpcoming", stats.upcoming, locale)}`
+              : uiCount("owner.gamesPlayed", stats.gamesPlayed, locale)
+          }
           value={null}
         />
         <Stat

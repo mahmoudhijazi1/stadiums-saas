@@ -2,7 +2,7 @@ import Link from "next/link";
 import { listPersonBookings } from "@/modules/booking/application/list-person-bookings";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
-import { personOwedOnBooking } from "@/modules/booking/domain/person-owed";
+import { personOwedOnBooking, personPaidOnBooking } from "@/modules/booking/domain/person-owed";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { nightHint } from "@/modules/booking/application/night-hint";
@@ -10,6 +10,7 @@ import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
+import { CircleAlert, CircleCheck } from "lucide-react";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { formatUsdCompact } from "@/lib/money";
 import Decimal from "decimal.js";
@@ -63,6 +64,32 @@ export async function PersonGames({
               remaining: personRemaining,
               now,
             }) === "owed";
+            const perPlayer = row.collectionMode === "PER_PLAYER";
+            const ended = row.end.getTime() <= now.getTime();
+            const personPaid = personPaidOnBooking({
+              collectionMode: row.collectionMode,
+              isRequester: row.isRequester,
+              collectedUsd: row.collectedUsd,
+              allocatedUsd: row.allocatedUsd,
+            });
+            // This person's own figure, with its label (ui-rules 1 and 2).
+            const shareUsd = perPlayer
+              ? row.participantDueUsd
+              : row.isRequester
+                ? row.amountDueUsd
+                : new Decimal(0);
+            const figure: Figure =
+              row.status !== "APPROVED"
+                ? { tone: "neutral", label: "owner.gameWord", usd: row.priceUsd }
+                : owed
+                  ? { tone: "owed", label: "owner.owedLabel", usd: personRemaining }
+                  : ended && personRemaining.isZero()
+                    ? { tone: "paid", label: "owner.paid", usd: personPaid }
+                    : {
+                        tone: "expected",
+                        label: perPlayer ? "owner.shareWord" : "owner.expectedLabel",
+                        usd: shareUsd,
+                      };
             const display = deriveCardDisplay({
               start: row.start,
               end: row.end,
@@ -79,15 +106,10 @@ export async function PersonGames({
                       text={formatLocalClockRange(row.start, row.end, hourCycle, locale)}
                       className="text-sm font-semibold"
                     />
-                    <LtrIsolate
-                      className={
-                        owed
-                          ? "text-sm font-medium text-owed"
-                          : "text-sm"
-                      }
-                    >
-                      ${formatUsdCompact(owed ? personRemaining : row.priceUsd)}
-                    </LtrIsolate>
+                    <PersonFigure
+                      figure={figure}
+                      locale={locale}
+                    />
                   </div>
                   <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
                     <LtrIsolate>
@@ -100,7 +122,18 @@ export async function PersonGames({
                       <span>{nightHint(row.start, locale)}</span>
                     ) : null}
                     <span>{row.pitchName}</span>
-                    <span>{paymentLabel(display.kind, locale)}</span>
+                    {row.status !== "APPROVED" ? (
+                      <span>{paymentLabel(display.kind, locale)}</span>
+                    ) : null}
+                    {perPlayer ? (
+                      <span>
+                        {ui("owner.shareWord", locale)}{" "}
+                        <LtrIsolate>${formatUsdCompact(row.participantDueUsd)}</LtrIsolate>
+                        <span aria-hidden> · </span>
+                        {ui("owner.gameWord", locale)}{" "}
+                        <LtrIsolate>${formatUsdCompact(row.amountDueUsd)}</LtrIsolate>
+                      </span>
+                    ) : null}
                   </p>
                 </Card>
               </li>
@@ -136,4 +169,31 @@ function paymentLabel(
   }
   if (kind === "live") return ui("owner.live", locale);
   return ui("owner.upcomingTag", locale);
+}
+
+type Figure = {
+  tone: "owed" | "paid" | "expected" | "neutral";
+  label: "owner.owedLabel" | "owner.paid" | "owner.expectedLabel" | "owner.shareWord" | "owner.gameWord";
+  usd: Decimal;
+};
+
+const FIGURE_TEXT: Record<Figure["tone"], string> = {
+  owed: "text-owed",
+  paid: "text-paid",
+  expected: "text-expected",
+  neutral: "text-muted-foreground",
+};
+
+/** Label, then the amount, in the state colour with a status icon (never colour alone). */
+function PersonFigure({ figure, locale }: { figure: Figure; locale: UiLocale }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-sm font-medium ${FIGURE_TEXT[figure.tone]}`}
+    >
+      {figure.tone === "owed" ? <CircleAlert aria-hidden className="size-4 shrink-0" /> : null}
+      {figure.tone === "paid" ? <CircleCheck aria-hidden className="size-4 shrink-0" /> : null}
+      <span>{ui(figure.label, locale)}</span>
+      <LtrIsolate>${formatUsdCompact(figure.usd)}</LtrIsolate>
+    </span>
+  );
 }

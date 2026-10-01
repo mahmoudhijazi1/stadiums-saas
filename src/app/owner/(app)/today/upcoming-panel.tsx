@@ -49,7 +49,6 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
-  CircleDollarSign,
   MessageCircle,
   Phone,
   Radio,
@@ -174,7 +173,7 @@ function CardTrail({
   }
   return (
     <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-      <CircleDollarSign aria-hidden className="size-4 shrink-0" />
+      <span>{ui("owner.gameWord", locale)}</span>
       <LtrIsolate>${amountUsd}</LtrIsolate>
     </span>
   );
@@ -201,25 +200,35 @@ function moneyTone(row: UpcomingRowView): MoneyTone {
 
 function DueRemainingFigures({
   dueUsd,
+  paidUsd,
   remainingUsd,
   tone,
   locale,
 }: {
   dueUsd: string;
+  paidUsd: string;
   remainingUsd: string;
   tone: MoneyTone;
   locale: UiLocale;
 }) {
-  const same = dueUsd === remainingUsd;
+  // Paid shows what was taken; a split into Game / Owed only when they differ.
+  const same = tone === "paid" || dueUsd === remainingUsd;
   const Icon = tone === "paid" ? CircleCheck : tone === "owed" ? CircleAlert : null;
   const remaining = (
     <div className={cn("rounded-lg px-3 py-3 text-start", TONE_BG[tone])}>
       <p className={cn("flex items-center gap-1 text-xs", TONE_TEXT[tone])}>
         {Icon ? <Icon aria-hidden className="size-3.5 shrink-0" /> : null}
-        {ui("owner.remaining", locale)}
+        {ui(
+          tone === "paid"
+            ? "owner.paid"
+            : tone === "owed"
+              ? "owner.remaining"
+              : "owner.expectedLabel",
+          locale,
+        )}
       </p>
       <Figure className={cn("mt-0.5 block text-2xl", TONE_TEXT[tone])}>
-        ${remainingUsd}
+        ${tone === "paid" ? paidUsd : remainingUsd}
       </Figure>
     </div>
   );
@@ -229,7 +238,7 @@ function DueRemainingFigures({
   return (
     <div className="grid grid-cols-2 gap-2">
       <div className="rounded-lg bg-muted px-3 py-2 text-start">
-        <p className="text-xs text-muted-foreground">{ui("owner.due", locale)}</p>
+        <p className="text-xs text-muted-foreground">{ui("owner.gameWord", locale)}</p>
         <p className="mt-0.5 text-base font-semibold text-foreground">
           <LtrIsolate>${dueUsd}</LtrIsolate>
         </p>
@@ -770,11 +779,14 @@ function UpcomingRowActions({
   return (
     <>
       <div className="flex flex-col gap-4">
-        <h4 className="text-xs font-medium text-muted-foreground">
-          {ui("owner.moneyGroup", locale)}
-        </h4>
+        {canCollect || (perPlayer && mayCollect) ? (
+          <h4 className="text-xs font-medium text-muted-foreground">
+            {ui("owner.moneyGroup", locale)}
+          </h4>
+        ) : null}
         <DueRemainingFigures
           dueUsd={row.priceUsd}
+          paidUsd={row.collectedExact}
           remainingUsd={row.remainingUsd}
           tone={moneyTone(row)}
           locale={locale}

@@ -25,6 +25,8 @@ export type PersonStatRow = {
 export type PersonStats = {
   /** APPROVED participations whose start is already in the past. */
   gamesPlayed: number;
+  /** APPROVED participations that have not started yet. */
+  upcoming: number;
   noShows: number;
   totalPaidUsd: Decimal;
   /** classifyDue "owed" for this person's remaining. */
@@ -45,6 +47,7 @@ export function summarizePersonBookings(
 ): PersonStats {
   const nowMs = now.getTime();
   let gamesPlayed = 0;
+  let upcoming = 0;
   let noShows = 0;
   let totalPaidUsd = new Decimal(0);
   let owesNowUsd = new Decimal(0);
@@ -64,6 +67,9 @@ export function summarizePersonBookings(
     if (row.status === "NO_SHOW") noShows += 1;
     if (row.status === "APPROVED" && row.start.getTime() < nowMs) {
       gamesPlayed += 1;
+    }
+    if (row.status === "APPROVED" && row.start.getTime() >= nowMs) {
+      upcoming += 1;
     }
 
     const remaining = Decimal.max(
@@ -99,6 +105,7 @@ export function summarizePersonBookings(
 
   return {
     gamesPlayed,
+    upcoming,
     noShows,
     totalPaidUsd,
     owesNowUsd,
