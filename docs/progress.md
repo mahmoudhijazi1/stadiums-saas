@@ -5251,3 +5251,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** The rules are proposed. Rule 1 needs an amber `owed` role that no doc defines, and rule 7 narrows `ui-foundations.md` §2; both wait for a decision.
 
 **How to verify:** Read the audit rows against `people/[personId]/{stats,games}.tsx`, `today/upcoming-panel.tsx` (`DueRemainingFigures`, `UpcomingRowActions`), `pending-list.tsx` and `money/panel.tsx`.
+
+## Money tokens, Figure, and approved UI rules
+
+**When:** 2026-10-01
+
+**What:** `docs/ui-rules.md` rules 1–8 approved, decisions recorded there. `LtrIsolate` is direction-only; digits are tabular from the body; new `<Figure>` (display, tabular, LTR) for the one big figure (sheet Remaining, Money Net). New tokens `paid` / `owed` / `expected` (text and subtle, light and dark, AA checked, owed amber never red). Raw amber and coral-owed replaced on Today, Requests, Money and the person page. Money-in is `paid`; Out and Net are neutral, Net labelled "Net = in − out". The sheet's Remaining takes its colour from the game's state (paid / owed / expected) with a check or alert icon. Decorative row icons (clock, pin, expense category tile) dropped. Foundations §2 and theme §3 carry a one-line amended note.
+
+**Why:** User decisions on the ui-rules conflicts. Presentation only: no query, use case or rule changed.
+
+**Files:** `globals.css`, `components/ui/{ltr-isolate,figure}.tsx`, `today/{upcoming-panel,per-player-collect}.tsx`, `pending-list.tsx`, `requested-name-notice.tsx`, `notify-list.tsx`, `people/[personId]/{stats,games}.tsx`, `money/panel.tsx`, `lib/ui-copy.ts` (`owner.net`), `docs/{ui-rules,ui-foundations,theme}.md`.
+
+**How it connects:** UI only. Branch `ui/tokens-and-rules` is stacked on `feat/today-free-slots` because `docs/ui-rules.md` is not on main yet.
+
+**How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Screenshots (Today, person page, Money; Arabic dark, English light) from a production build on the test database.

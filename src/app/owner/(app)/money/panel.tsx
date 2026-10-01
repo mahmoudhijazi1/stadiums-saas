@@ -13,7 +13,6 @@ import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { formatUsdMoney, parseLbp } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
-import { cn } from "@/lib/utils";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { inOutBarPercents } from "./bars";
 import { Reveal } from "./reveal";
@@ -28,37 +27,11 @@ import {
 import { DateField } from "@/components/ui/date-field";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { Figure } from "@/components/ui/figure";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Label } from "@/components/ui/label";
 import { SelectField } from "@/components/ui/select-field";
-import {
-  Banknote,
-  Drill,
-  Droplets,
-  Ellipsis,
-  Wrench,
-  Zap,
-  type LucideIcon,
-} from "lucide-react";
 
-const CATEGORY_ICONS: Record<ExpenseCategory, LucideIcon> = {
-  ELECTRICITY: Zap,
-  WATER: Droplets,
-  MAINTENANCE: Wrench,
-  SALARY: Banknote,
-  EQUIPMENT: Drill,
-  OTHER: Ellipsis,
-};
-
-/** Soft tile tint so categories scan without grouping headers. */
-const CATEGORY_TILE: Record<ExpenseCategory, string> = {
-  ELECTRICITY: "bg-amber-500/15 text-amber-800 dark:text-amber-200",
-  WATER: "bg-sky-500/15 text-sky-800 dark:text-sky-200",
-  MAINTENANCE: "bg-orange-500/15 text-orange-800 dark:text-orange-200",
-  SALARY: "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200",
-  EQUIPMENT: "bg-slate-500/15 text-slate-700 dark:text-slate-200",
-  OTHER: "bg-muted text-muted-foreground",
-};
 
 function formatLocalDay(value: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
@@ -131,18 +104,16 @@ export async function OwnerMoney({
               </CardDescription>
               <div>
                 <p className="text-xs text-muted-foreground">
-                  {ui("owner.difference", locale)}
+                  {ui("owner.net", locale)}
                 </p>
-                <p className="mt-0.5 text-2xl font-semibold">
-                  <LtrIsolate>
-                    {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
-                  </LtrIsolate>
-                </p>
+                <Figure className="mt-0.5 block text-2xl">
+                  {formatPeriodAmount(summary.netUsd, showLbp, displayRate)}
+                </Figure>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-success/15 px-3 py-2">
-                  <p className="text-xs text-success">{ui("owner.in", locale)}</p>
-                  <p className="mt-0.5 text-base font-semibold text-success">
+                <div className="rounded-lg bg-paid-subtle px-3 py-2">
+                  <p className="text-xs text-paid">{ui("owner.in", locale)}</p>
+                  <p className="mt-0.5 text-base font-semibold text-paid">
                     <LtrIsolate>
                       {formatPeriodAmount(summary.inUsd, showLbp, displayRate)}
                     </LtrIsolate>
@@ -259,20 +230,10 @@ export async function OwnerMoney({
         ) : (
           <ul className="flex flex-col gap-2">
             {expenses.map((row) => {
-              const Icon = CATEGORY_ICONS[row.category];
               return (
                 <li key={row.id}>
                   <Card className="gap-0 py-0">
                     <div className="flex items-start gap-3 px-4 py-3">
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "flex size-10 shrink-0 items-center justify-center rounded-lg",
-                          CATEGORY_TILE[row.category],
-                        )}
-                      >
-                        <Icon className="size-5" strokeWidth={1.75} />
-                      </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <p className="min-w-0 text-sm font-medium leading-snug">
@@ -315,7 +276,7 @@ function InOutBars({
     <div className="flex flex-col gap-2" aria-hidden>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-2 rounded-full bg-success"
+          className="h-2 rounded-full bg-paid"
           style={{ width: `${inPct}%` }}
         />
       </div>
