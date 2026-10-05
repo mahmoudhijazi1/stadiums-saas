@@ -5279,3 +5279,26 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** UI and one pure domain counter; no new imports across modules.
 
 **How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Dark screenshots in Arabic and English.
+
+## Final audit pass: abuse probes and a short architecture review
+
+**When:** 2026-10-05
+
+**What:**
+- Resumed `docs/audits/security-audit-2.md` with runs:
+  - **a)** Staff `{}`: 19 of 19 flag-gated use cases refused. **N-6:** the expense list and person money totals are visible without `reports.view`.
+  - **b)** Public visitor: edge validation holds. **N-8:** the use case trusts its caller. **N-9:** no booking horizon (400 days ahead accepted). N-2 confirmed.
+  - **c)** Owner A with B's ids: every write refused, every read empty.
+  - **d)** Suspended tenant: every entry point refused or neutral.
+- New `docs/audits/architecture-review.md`: ten ranked items before owner #3, and five "do not touch" items.
+- N-1 (the `next` RCE advisory) is still open.
+
+**Why:** Final review before onboarding more owners (DR-001, DR-003, SPEC-08).
+
+**Files:** `docs/audits/security-audit-2.md` (appended), `docs/audits/architecture-review.md` (new). No code changed.
+
+**How it connects:** Docs only. The probe files and the seeded rows were deleted. `stadiums_dev` was not touched.
+
+**How to verify:**
+- The probes ran on `stadiums_test`: use cases through the Jest integration harness, and HTTP against a production build (`next start`).
+- Full suites were not run, per instructions.
