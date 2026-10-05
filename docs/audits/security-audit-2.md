@@ -94,3 +94,88 @@ The deferred items (S-12, S-15, S-17 global sweep, S-19, S-20, S-21, RLS, enforc
 Unchanged from security-audit.md, plus:
 - `TRUSTED_CLIENT_IP_HEADER` is set together with nginx `proxy_set_header X-Real-IP $remote_addr` (N-2).
 - The deployed `next` version, after the bump (N-1).
+
+---
+
+## Resumed 2026-10-05: abuse probes (final pass)
+
+**N-1 is still open:** `package.json` still pins `next` at `16.3.4`. It is not re-reported here as new; it remains the top item.
+
+**Method.**
+- **Use-case runs:** a throwaway Jest file against `stadiums_test` called every application function with mocked request edges (Host + cookie), the same harness as the integration suites.
+- **HTTP runs:** a production build (`next build` then `next start`, `NODE_ENV=production`, 127.0.0.1:3311) on `stadiums_test`, driven with Host headers.
+- Both probe files and the seeded rows were deleted afterwards (all tables truncated). `stadiums_dev` was not touched.
+- **Server Actions** were not invoked over HTTP. Each one is a thin `parse → use case` wrapper, so the use-case results stand for them. **UNVERIFIED:** an action that does something before its use case.
+
+### a) Malicious staff (membership with `permissions: {}`), tenant A
+**Refused (`access.not_allowed`), 19 of 19 flag-gated calls:**
+- approve, reject, dismiss-missed;
+- cancel, no-show, adjust due, switch to per-player, switch to whole;
+- collect, collect slot, collect all remaining, create booking;
+- record expense, set rate, set booking rules, set time display;
+- create pitch, update pitch;
+- `summarizeLedgerPeriod`.
+
+**Allowed (membership only, as designed in the matrix):**
+- `listOpenWaitlist`;
+- `listRecentExpenses`, `getCurrentRate`;
+- `getPersonBookingStats`, `listPersonBookings`, `listDebtWarnings`;
+- `loadOwnerDay`, `loadFreeStrip`, `getLiveQueue`, `listPendingRequests`;
+- `loadDecisionNotify`, `loadOutcomeNotify`;
+- `getPerson`, `searchPeople`;
+- `getPitchEditor`, `listPitchSummaries`, `listLivePitchWindows`.
+
+**HTTP, staff `{}`:** `/owner/money` returned 200 and showed the expense "SecretRent" with **777.00**, with no summary card. `/owner/people/<id>` showed the person's paid and owed dollar amounts. `/owner/search` showed names and phones.
+
+| ID | Severity | Finding (evidence) | Scenario | Fix | Effort |
+|---|---|---|---|---|---|
+| N-6 | Medium | `reports.view` hides only the period summary. `money/panel.tsx` `OwnerMoney` calls `listRecentExpenses()` (and `getCurrentRate`) for every member. `expense/application/list-recent-expenses.ts` `listRecentExpenses` checks membership only. Person money comes from `get-person-booking-stats.ts` `getPersonBookingStats` (paid / owes / expected), which is also membership-only. **Run:** staff `{}` saw 777.00 on `/owner/money` and a person's $ totals on `/owner/people/[id]`. | A gate-keeper hired only to open the pitch reads every expense amount (rent, salaries) and each player's payments. The OUT side of the books is fully visible, and the IN side can be rebuilt person by person. This matches SPEC-08's literal scope (summary only) but not its intent ("who sees the numbers"). | Gate `listRecentExpenses` on `reports.view` OR `expenses.record`, and skip the list in `OwnerMoney` otherwise. Hide `totalPaidUsd`/`expectedUsd` on the person page unless `reports.view` or `payments.collect` (owes-now can stay for the reminder). Owner decision: write it as a one-line DR note. | S |
+| N-7 | Info | Staff `{}` can read `getPitchEditor` (hours, prices) and `listOpenWaitlist`. | Read-only, same tenant, and needed to answer phone calls. | None. Listed so that it is not re-flagged. | — |
+
+### b) Malicious public visitor
+**Edge validation holds.** `app/(public)/request-slot.ts` → `parsePublicSlotRequest` (`booking/schemas/public-slot-request.ts`) caps the name at 60 after `cleanPersonName`, requires 8–15 phone digits, ISO UTC times, and a strict object.
+
+**Called directly, the use case accepted all of these:**
+- a 10,000-character name;
+- a name made only of spaces and zero-width characters;
+- the phone `abc`;
+- 200 zeros as a phone;
+- `‮<script>` in the name.
+
+**It refused** a pitch from another tenant, an off-grid start, and a past slot. Invalid dates threw a raw `RangeError` ("Invalid time value").
+
+**Same phone:** 3 accepted, then `booking.request_limit` (S-5 holds).
+
+**Rotating phones:** 6 of 6 accepted, with `x-real-ip` sent but not trusted (N-2, confirmed by a run).
+
+**Existing person's phone, other name:** accepted. Still one Person row, and the name is not overwritten (S-6 holds).
+
+**Leaks:**
+- `listApprovedOccupied` returns ranges only, with no names or phones.
+- The public page for tenant A does not contain a booked player's name or phone (**Run**).
+- The suspended tenant's manifest returns the generic `lebstads` name.
+
+| ID | Severity | Finding (evidence) | Scenario | Fix | Effort |
+|---|---|---|---|---|---|
+| N-8 | Low | `booking/application/request-public-slot.ts` `requestPublicSlot` trusts its caller for name and phone shape and for date parsing. Only the Server Action validates. **Run:** a 10k-char name and the phone `abc` were stored when the use case was called directly. | Today, none: the only caller parses first. The first new caller (an API route, a WhatsApp bot, a seed) that skips `parsePublicSlotRequest` stores unbounded names and junk phones. | Parse inside the use case: call `parsePublicSlotRequest(input)` at its top (it is cheap and idempotent). | S |
+| N-9 | Low | No booking horizon on the public path. **Run:** a slot **400 days ahead** was accepted. `resolveOfferedSlot` checks the grid and "not started" only. | A script files PENDING requests months ahead, under rotating phones (N-2). They sit beyond the inbox cap (200) or clutter it, and they block `findOrCreate` reuse of nothing. The cost is owner attention. | Reject `start > now + N days` (N = what the public chips show, e.g. 14) in `requestPublicSlot`. This needs a one-line owner decision. | S |
+
+### c) Owner of tenant A against tenant B's ids (A's session, A's host)
+- **Writes (13), all refused:** approve, reject, cancel, no-show, adjust, both switches, collect, collect slot (B booking, and **A booking + B participant**), collect all, create on B's pitch, update B's pitch. Each answered `booking.not_found` / `booking.pitch_not_found`.
+- **Public request** on A's host with B's `pitchId`: `booking.pitch_not_found`.
+- **Reads (9):** with B's person, booking or pitch ids they returned empty or null: stats zeros, `[]`, `null`. No B data came back.
+- **After the run:** B's 4 bookings and 2 payments were unchanged, and A's day and expense lists contained no B names.
+- **Payment, expense and interest ids:** no use case or action takes them as input (the expense list, ledger and interest are listed per tenant), so there is nothing to probe.
+- **No finding.**
+
+### d) Suspended tenant (suspended `cstad`, its owner's cookie)
+- **Use-case runs, all refused:**
+  - owner side (`access.not_allowed`): Today data, free strip, live queue, pending list, collect, cancel, expense, set rate, expenses list, rate, search;
+  - public side (`tenant.suspended`): `requestPublicSlot`, `listApprovedOccupied`.
+- **HTTP runs:**
+  - `/owner/today`, `/owner/today?date=…`, `/owner/money` and `/owner/login` → 307 to `/owner/suspended`;
+  - `/owner/requests/live` → 403 (with and without the cookie);
+  - `/manifest.webmanifest` → 200 with the generic name, so the tenant name is not exposed;
+  - `/sw.js` → 200, static and tenant-free;
+  - `/` and `/?date=…` → 200 `UnavailableNotice` without the stadium name (the 503 is deferred per ROADMAP).
+- **No finding.** The `/` 200 is already known and deferred.
