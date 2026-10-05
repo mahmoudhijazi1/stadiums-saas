@@ -5332,3 +5332,27 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** UI only. No imports were added.
 
 **How to verify:** `npx tsc --noEmit` is clean. eslint is clean on the touched files except `upcoming-panel.tsx` (its F-4 errors are older and not linted here). `npx jest test/components test/app` passes 10 of 10. The build and a browser check were not run.
+
+## Booking sheet: close when the booking leaves Today's lists (stale Pay on the last player)
+
+**When:** 2026-10-05
+
+**What:** Paying players one by one on a per-player game sometimes ended with "nothing is due" on the last player.
+- **Cause:** the sheet reads its booking from the live lists (`toCollect` + `games`), and falls back to `heldRow`, a snapshot taken when the sheet opened.
+- "To collect" lists only ended games with `amountDueUsd > collected` (`listEndedWithRemaining`). A game from an earlier day is not in `games`.
+- So once its last player was paid, the booking was in neither list. The sheet then showed the opening snapshot again, with Pay buttons on slots already paid. The next tap was refused by the server (`payment.nothing_due`).
+- Today's games stay in `games`, which is why it only happened sometimes.
+- The server was right throughout: it locks the booking, recomputes, and never charges twice.
+- **Fix:** when the open booking leaves both lists, the sheet closes. The exception is a sheet showing that booking's WhatsApp notify (`saved`), which still uses the snapshot. This also covers the same stale Collect after a full WHOLE collect or a due adjustment on an earlier day's game.
+
+**Why:** SPEC-15 §3.2, and RULE-12 (the sheet must never offer an action that is already done).
+
+**Files:** `app/owner/(app)/today/upcoming-panel.tsx`.
+
+**How it connects:** UI only. No server, query or rule changed.
+
+**How to verify:**
+- `npx tsc --noEmit` is clean.
+- eslint on `upcoming-panel.tsx` shows only its existing F-4 error.
+- `npm run build` is green.
+- Not exercised in a browser. Manual check: per-player game from yesterday, pay each player in turn; after the last one, the sheet closes and the card leaves "To collect".

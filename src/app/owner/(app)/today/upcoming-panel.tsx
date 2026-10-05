@@ -288,6 +288,15 @@ export function UpcomingPanel({
   const [collectOpen, setCollectOpen] = useState(false);
   const openRow =
     [...toCollect, ...games].find((row) => row.id === openId) ?? null;
+  // The open booking left both lists: an ended game from an earlier day leaves "To
+  // collect" once it is settled (last player paid, or due adjusted). heldRow is the
+  // snapshot from when the sheet opened, so it would offer Pay/Collect again on money
+  // already taken (the server then answers payment.nothing_due). Close instead, unless
+  // the sheet is showing this booking's WhatsApp notify, which needs the snapshot.
+  if (openId !== null && openRow === null && saved?.bookingId !== openId) {
+    setOpenId(null);
+    setInterestOpen(false);
+  }
   const sheetRow = openRow ?? heldRow;
   // Amber and never hidden: a highlighted or opened card forces the list open.
   const collectShown =
