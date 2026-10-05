@@ -5396,3 +5396,43 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - Integration `collect-notify-debt`, `slot-pages`, `free-strip`, `smoke`, `midnight`: 30 passed.
 - `npm run build` is green.
 - Not checked in a browser.
+
+## Mixed USD + LBP: live total and "left to complete" as the owner types
+
+**When:** 2026-10-05
+
+**What:**
+- **Collect (Today sheet):** the "pay in two currencies" form now shows a line under the fields as the owner types: the total, then one of:
+  - "Left to complete $10.00 · 895,000 LBP" (amber);
+  - "Covers the full amount" (green);
+  - "More than due by $1.17 · 104,715 LBP" (amber; warns, never blocks).
+- A "Complete with 895,000 LBP" button fills the LBP field with what the USD part leaves.
+- **Expense sheet:** shows the running total once an LBP amount is typed.
+- A format the server would refuse ("20.5", "895,000") gets a hint. LBP with no rate set shows the existing `payment.rate_required` text.
+
+**Why:** Owner request: for "$30 = $20 + 10 × rate", show the rest in both currencies while typing (RULE-12, DR-002 §2.18, SPEC-06).
+
+**Files:**
+- `modules/payment/domain/tender-preview.ts` (new: `previewTenders`, `lbpCovering`);
+- `app/owner/tender-balance.tsx` (new, client);
+- `app/owner/(app)/today/{upcoming-panel,lists}.tsx` (`MixedCollectForm`, rate passed in);
+- `app/owner/(app)/money/{expense-sheet,panel}.tsx`;
+- `lib/ui-copy.ts` (`owner.tender*`);
+- `docs/domain/money.md` §2;
+- `test/modules/payment/domain/tender-preview.test.ts`.
+
+**How it connects:** `previewTenders` is pure: `decimal.js` and `lib/money` parsers only. It runs in the browser and mirrors `usdEquivalent` rounding; a test checks them against each other. No server path changed: the actions, schemas and `freezeTenders` are as before. The rate comes from `getCurrentRate` (membership-only) on the Today and Money pages.
+
+**How to verify:**
+- `npm test`: 561 passed (8 new).
+- `npx tsc --noEmit` is clean.
+- eslint: only the existing F-4 error in `upcoming-panel.tsx`.
+- `npm run build` is green.
+- Browser (Playwright, production build on `stadiums_test`, rate 89,500, $30 due), each step showing:
+  - USD 20 → "Left to complete $10.00 · 895,000 LBP";
+  - fill → LBP 895000, "Covers the full amount";
+  - LBP 1000000 → "More than due by $1.17 · 104,715 LBP";
+  - "895,000" and "20.5" → hints.
+- Submitting $20 + 895,000 LBP recorded tenders USD 20.00 and LBP 895000 → 10.00, and one ledger IN of 30.00.
+- Expense: $10 + 447,500 LBP → "Total $15.00".
+- Probe data truncated afterwards.

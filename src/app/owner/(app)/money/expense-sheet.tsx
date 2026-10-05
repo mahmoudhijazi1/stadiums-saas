@@ -17,6 +17,7 @@ import {
 import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TenderBalance } from "@/app/owner/tender-balance";
 import { SelectField } from "@/components/ui/select-field";
 import { SubmitButton } from "@/components/ui/submit-button";
 
@@ -41,14 +42,19 @@ export function RecordExpenseSheet({
   periodQuery,
   today,
   locale,
+  lbpPerUsd,
   categoryOptions,
 }: {
   periodQuery: LedgerPeriodQuery;
   today: string;
   locale: UiLocale;
+  /** Current exchange rate for the live total; null when none is set. */
+  lbpPerUsd: string | null;
   categoryOptions: { value: ExpenseCategory; label: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const [usd, setUsd] = useState("");
+  const [lbp, setLbp] = useState("");
 
   return (
     <>
@@ -111,6 +117,8 @@ export function RecordExpenseSheet({
                   name="usdAmount"
                   inputMode="decimal"
                   placeholder="30.00"
+                  value={usd}
+                  onChange={(event) => setUsd(event.target.value)}
                   className="font-mono"
                 />
               </div>
@@ -121,9 +129,18 @@ export function RecordExpenseSheet({
                   type="text"
                   name="lbpAmount"
                   inputMode="numeric"
+                  value={lbp}
+                  onChange={(event) => setLbp(event.target.value)}
                   className="font-mono"
                 />
               </div>
+              <TenderBalance
+                usdText={usd}
+                lbpText={lbp}
+                lbpPerUsd={lbpPerUsd}
+                targetUsd={null}
+                locale={locale}
+              />
               <SubmitButton className="w-full">
                 {ui("owner.recordExpenseSubmit", locale)}
               </SubmitButton>

@@ -212,6 +212,7 @@ export async function OwnerMoney({
             periodQuery={periodQuery}
             today={today}
             locale={locale}
+            lbpPerUsd={rate ? rate.toString() : null}
             categoryOptions={EXPENSE_CATEGORIES.map((category) => ({
               value: category,
               label: categoryLabel(category, locale),

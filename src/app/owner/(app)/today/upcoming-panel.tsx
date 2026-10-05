@@ -43,6 +43,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
+import { TenderBalance } from "@/app/owner/tender-balance";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
 import {
@@ -265,6 +266,7 @@ export function UpcomingPanel({
   highlight,
   saved,
   date,
+  lbpPerUsd = null,
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
@@ -281,6 +283,8 @@ export function UpcomingPanel({
   highlight?: string;
   saved?: OutcomeNotify | null;
   date?: string;
+  /** Current exchange rate for the mixed-currency collect line; null when none is set. */
+  lbpPerUsd?: string | null;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
@@ -562,6 +566,7 @@ export function UpcomingPanel({
                 <UpcomingRowActions
                   key={`${sheetRow.id}:${sheetRow.remainingUsd}`}
                   row={sheetRow}
+                  lbpPerUsd={lbpPerUsd}
                   locale={locale}
                   mayCollect={mayCollect}
                   mayCancel={mayCancel}
@@ -767,6 +772,7 @@ function UpcomingRows({
 
 function UpcomingRowActions({
   row,
+  lbpPerUsd,
   locale,
   mayCollect,
   mayCancel,
@@ -778,6 +784,7 @@ function UpcomingRowActions({
   onAdjust,
 }: {
   row: UpcomingRowView;
+  lbpPerUsd: string | null;
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
@@ -836,38 +843,7 @@ function UpcomingRowActions({
                 : ui("owner.collectMixed", locale)}
             </Button>
             {mixedOpen ? (
-              <form action={submitCollectPayment} className="flex flex-col gap-4">
-                <input type="hidden" name="bookingId" value={row.id} />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`usd-${row.id}`}>
-                    {ui("owner.usdRemaining", locale)}
-                  </Label>
-                  <Input
-                    id={`usd-${row.id}`}
-                    type="text"
-                    name="usdAmount"
-                    inputMode="decimal"
-                    defaultValue={row.remainingUsd}
-                    placeholder={row.remainingUsd}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`lbp-${row.id}`}>
-                    {ui("owner.lbp", locale)}
-                  </Label>
-                  <Input
-                    id={`lbp-${row.id}`}
-                    type="text"
-                    name="lbpAmount"
-                    inputMode="numeric"
-                    className="font-mono"
-                  />
-                </div>
-                <SubmitButton className="w-full">
-                  {ui("owner.moneyGroup", locale)}
-                </SubmitButton>
-              </form>
+              <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} />
             ) : null}
           </>
         ) : null}
@@ -894,5 +870,62 @@ function UpcomingRowActions({
         </Button>
       ) : null}
     </>
+  );
+}
+
+/**
+ * USD + LBP collect. Both fields are controlled so the line under them shows the total
+ * and what is left as the owner types; "Complete with … LBP" fills the rest.
+ */
+function MixedCollectForm({
+  row,
+  lbpPerUsd,
+  locale,
+}: {
+  row: UpcomingRowView;
+  lbpPerUsd: string | null;
+  locale: UiLocale;
+}) {
+  const [usd, setUsd] = useState(row.remainingUsd);
+  const [lbp, setLbp] = useState("");
+
+  return (
+    <form action={submitCollectPayment} className="flex flex-col gap-4">
+      <input type="hidden" name="bookingId" value={row.id} />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`usd-${row.id}`}>{ui("owner.usdRemaining", locale)}</Label>
+        <Input
+          id={`usd-${row.id}`}
+          type="text"
+          name="usdAmount"
+          inputMode="decimal"
+          value={usd}
+          onChange={(event) => setUsd(event.target.value)}
+          placeholder={row.remainingUsd}
+          className="font-mono"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`lbp-${row.id}`}>{ui("owner.lbp", locale)}</Label>
+        <Input
+          id={`lbp-${row.id}`}
+          type="text"
+          name="lbpAmount"
+          inputMode="numeric"
+          value={lbp}
+          onChange={(event) => setLbp(event.target.value)}
+          className="font-mono"
+        />
+      </div>
+      <TenderBalance
+        usdText={usd}
+        lbpText={lbp}
+        lbpPerUsd={lbpPerUsd}
+        targetUsd={row.remainingUsd}
+        locale={locale}
+        onFillLbp={setLbp}
+      />
+      <SubmitButton className="w-full">{ui("owner.moneyGroup", locale)}</SubmitButton>
+    </form>
   );
 }
