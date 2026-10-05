@@ -192,7 +192,7 @@ export function InterestPanel({
   people: NotifyPerson[];
   locale: UiLocale;
   timeRange?: string;
-  pitchName?: string;
+  pitchName?: string | null;
 }) {
   return (
     <div className="flex flex-col gap-3">

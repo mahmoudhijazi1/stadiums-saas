@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listPersonBookings } from "@/modules/booking/application/list-person-bookings";
+import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { personOwedOnBooking, personPaidOnBooking } from "@/modules/booking/domain/person-owed";
@@ -29,6 +30,7 @@ export async function PersonGames({
   const tenant = await getCurrentTenant();
   const hourCycle: HourCycle = tenant.timeDisplay;
   const page = await listPersonBookings(personId, cursor);
+  const showPitch = await hasSeveralPitches();
   const now = new Date();
 
   return (
@@ -121,7 +123,7 @@ export async function PersonGames({
                     {nightHint(row.start, locale) ? (
                       <span>{nightHint(row.start, locale)}</span>
                     ) : null}
-                    <span>{row.pitchName}</span>
+                    {showPitch ? <span>{row.pitchName}</span> : null}
                     {row.status !== "APPROVED" ? (
                       <span>{paymentLabel(display.kind, locale)}</span>
                     ) : null}

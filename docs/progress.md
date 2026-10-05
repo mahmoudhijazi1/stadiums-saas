@@ -5356,3 +5356,43 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - eslint on `upcoming-panel.tsx` shows only its existing F-4 error.
 - `npm run build` is green.
 - Not exercised in a browser. Manual check: per-player game from yesterday, pay each player in turn; after the last one, the sheet closes and the card leaves "To collect".
+
+## One pitch: hide the pitch name everywhere it says nothing
+
+**When:** 2026-10-05
+
+**What:**
+- New `venue/application/has-several-pitches.ts` `hasSeveralPitches()`: one capped count per request (React `cache`, `countPitchesUpTo(2)` in `venue/infrastructure/pitches.ts`). It needs no membership because the public page lists pitches anyway.
+- With a single pitch, the pitch name is now left out of:
+  - Today card meta line (the line is dropped when empty) and the booking sheet subtitle (parts joined with " · ");
+  - requests inbox and missed groups;
+  - free-slot groups;
+  - person page game rows;
+  - public and owner slot pickers (pitch heading and booking-sheet line);
+  - the free-strip booking sheet;
+  - the WhatsApp "booking confirmed" message, where the "on <pitch>" / "على <pitch>" clause is omitted.
+- The free strip already hid its row labels for one pitch (`showPitchNames`).
+- Settings and the More hub still show the pitch.
+
+**Why:** Owner feedback: with one pitch, "Pitch 1" on every card and message is noise (RULE-12).
+
+**Files:**
+- `modules/venue/{application/has-several-pitches,infrastructure/pitches}.ts`;
+- `modules/booking/application/{load-owner-day,load-decision-notify}.ts`;
+- `modules/notification/domain/whatsapp-link.ts` (`pitchName` optional);
+- `app/owner/{pending-list,notify-list}.tsx`;
+- `app/owner/(app)/today/{lists,upcoming-panel,free-strip}.tsx`;
+- `app/owner/(app)/requests/{free-slots,free-slot-list}.tsx`;
+- `app/owner/(app)/people/[personId]/games.tsx`;
+- `components/slot-picker.tsx`;
+- `test/modules/notification/domain/whatsapp-link.test.ts`.
+
+**How it connects:** booking → venue/application, an allowed direction. `PendingRequestList`, `MissedRequestSection` and `FreeSlots` became async Server Components; they are rendered only from Server Components. `SlotPicker` counts its own `pitches` prop, which includes closed pitches.
+
+**How to verify:**
+- `npx tsc --noEmit` is clean.
+- eslint on touched files: only the existing F-4 error in `upcoming-panel.tsx`.
+- `npm test`: 553 passed (new: confirm message without a pitch).
+- Integration `collect-notify-debt`, `slot-pages`, `free-strip`, `smoke`, `midnight`: 30 passed.
+- `npm run build` is green.
+- Not checked in a browser.

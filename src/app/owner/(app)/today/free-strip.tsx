@@ -190,7 +190,7 @@ export function FreeStrip({
             picked && chip
               ? {
                   pitchId: picked.pitchId,
-                  pitchName: picked.pitchName,
+                  pitchName: showPitchNames ? picked.pitchName : null,
                   slot: {
                     startIso: chip.startIso,
                     endIso: chip.endIso,

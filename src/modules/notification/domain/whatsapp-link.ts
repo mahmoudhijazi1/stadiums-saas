@@ -39,13 +39,16 @@ export function bookingConfirmedMessage(input: {
   stadiumName: string;
   day: string;
   time: string;
-  pitchName: string;
+  /** Null or omitted when the stadium has one pitch: the clause is left out. */
+  pitchName?: string | null;
   locale?: MessageLocale;
 }): string {
   if (input.locale === "en") {
-    return `Hello ${embed(input.name)}, your booking at ${embed(input.stadiumName)} on ${embed(input.day)} at ${embed(input.time)} on ${embed(input.pitchName)} is confirmed. See you!`;
+    const pitch = input.pitchName ? ` on ${embed(input.pitchName)}` : "";
+    return `Hello ${embed(input.name)}, your booking at ${embed(input.stadiumName)} on ${embed(input.day)} at ${embed(input.time)}${pitch} is confirmed. See you!`;
   }
-  return `مرحبا ${embed(input.name)}، تأكد حجزك في ${embed(input.stadiumName)} يوم ${embed(input.day)} الساعة ${embed(input.time)} على ${embed(input.pitchName)}. منشوفك!`;
+  const pitch = input.pitchName ? ` على ${embed(input.pitchName)}` : "";
+  return `مرحبا ${embed(input.name)}، تأكد حجزك في ${embed(input.stadiumName)} يوم ${embed(input.day)} الساعة ${embed(input.time)}${pitch}. منشوفك!`;
 }
 
 /**

@@ -159,13 +159,18 @@ export function SlotPicker({
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const picked = findSelected(pitches, selected);
+  // Every pitch is listed, closed ones included, so this is the stadium's count.
+  // With one pitch its name is noise: no heading, no line in the sheet.
+  const showPitchNames = pitches.length > 1;
 
   return (
     <>
       <ul className="flex flex-col gap-6 lg:grid lg:grid-cols-2">
         {pitches.map((pitch) => (
           <li key={pitch.id} className="flex flex-col gap-3">
-            <p className="font-heading text-xl lg:text-2xl">{pitch.name}</p>
+            {showPitchNames ? (
+              <p className="font-heading text-xl lg:text-2xl">{pitch.name}</p>
+            ) : null}
             {pitch.slots.length === 0 ? (
               <EmptyState
                 {...hoursEmptyState(pitch.emptyKind ?? "closed", locale)}
@@ -197,7 +202,11 @@ export function SlotPicker({
       <SlotBookSheet
         picked={
           picked
-            ? { pitchId: picked.pitch.id, pitchName: picked.pitch.name, slot: picked.slot }
+            ? {
+                pitchId: picked.pitch.id,
+                pitchName: showPitchNames ? picked.pitch.name : null,
+                slot: picked.slot,
+              }
             : null
         }
         onClose={() => setSelected(null)}
@@ -224,7 +233,8 @@ export function SlotBookSheet({
   locale = "ar",
   policyLine = null,
 }: {
-  picked: { pitchId: string; pitchName: string; slot: SlotPickerSlot } | null;
+  /** pitchName is null when the stadium has one pitch. */
+  picked: { pitchId: string; pitchName: string | null; slot: SlotPickerSlot } | null;
   onClose: () => void;
   action: (formData: FormData) => void | Promise<void>;
   hiddenFields: Record<string, string>;

@@ -56,7 +56,8 @@ import {
 
 export type UpcomingRowView = {
   id: string;
-  pitchName: string;
+  /** Null when the stadium has one pitch: the name would say nothing. */
+  pitchName: string | null;
   timeRange: string;
   dateLabel: string;
   /** "night of Friday" for a 00:00–05:59 start, else null. */
@@ -482,11 +483,15 @@ export function UpcomingPanel({
                 </span>
               </BottomSheetTitle>
               <BottomSheetDescription>
-                {sheetRow.pitchName}
-                {toCollect.some((item) => item.id === sheetRow.id)
-                  ? ` · ${sheetRow.dateLabel}`
-                  : null}
-                {sheetRow.nightHint ? ` · ${sheetRow.nightHint}` : null}
+                {[
+                  sheetRow.pitchName,
+                  toCollect.some((item) => item.id === sheetRow.id)
+                    ? sheetRow.dateLabel
+                    : null,
+                  sheetRow.nightHint,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </BottomSheetDescription>
               <PersonLink
                 personId={sheetRow.requesterPersonId}
@@ -691,11 +696,13 @@ function UpcomingRows({
                         )}
                       />
                     </span>
-                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                      <span>{row.pitchName}</span>
-                      {showDate ? <span>{row.dateLabel}</span> : null}
-                      {row.nightHint ? <span>{row.nightHint}</span> : null}
-                    </span>
+                    {row.pitchName || showDate || row.nightHint ? (
+                      <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        {row.pitchName ? <span>{row.pitchName}</span> : null}
+                        {showDate ? <span>{row.dateLabel}</span> : null}
+                        {row.nightHint ? <span>{row.nightHint}</span> : null}
+                      </span>
+                    ) : null}
                     <span className="mt-1.5 block truncate text-sm text-muted-foreground">
                       <bdi>{row.requesterName}</bdi>
                     </span>

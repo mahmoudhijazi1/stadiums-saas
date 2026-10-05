@@ -1,3 +1,4 @@
+import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { messageDayLabel } from "@/modules/booking/application/night-hint";
@@ -133,6 +134,7 @@ export async function loadDecisionNotify(input: {
         return true;
       });
 
+    const showPitch = await hasSeveralPitches();
     return [
       toRow(
         {
@@ -145,7 +147,7 @@ export async function loadDecisionNotify(input: {
           stadiumName: tenant.name,
           day,
           time,
-          pitchName: booking.pitchName,
+          pitchName: showPitch ? booking.pitchName : null,
           locale,
         }),
         ui("owner.notifyConfirmed", locale),
