@@ -24,6 +24,12 @@ import {
 } from "@/modules/booking/infrastructure/bookings";
 import { createPerson } from "@/modules/people/infrastructure/persons";
 import {
+  addCalendarDays,
+  civilDateInTimeZone,
+  generateSlotsForDay,
+} from "@/modules/venue/domain/availability";
+import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import {
   clearRequestStubs,
   setSessionCookie,
   setTenantSlug,
@@ -74,14 +80,25 @@ async function slotInterestCount(pitchId: string): Promise<number> {
 
 describe("approveBooking (integration)", () => {
   let fixture: TestFixture;
-  /** Monday 2026-10-05 16:00–17:00 Asia/Beirut → 13:00–14:00 UTC. */
-  const start = new Date("2026-10-05T13:00:00.000Z");
-  const end = new Date("2026-10-05T14:00:00.000Z");
+  /** The first offered slot a week from now, so the request is never started. */
+  let start: Date;
+  let end: Date;
 
   beforeEach(async () => {
     await truncateAll();
     clearRequestStubs();
     fixture = await seedMinimalFixture();
+    const pitch = await platformDb.pitch.findUniqueOrThrow({
+      where: { id: fixture.pitchId },
+    });
+    const slot = generateSlotsForDay({
+      config: parseScheduleConfig(pitch.scheduleConfig),
+      localDate: addCalendarDays(civilDateInTimeZone(new Date(), "Asia/Beirut"), 7),
+      timeZone: "Asia/Beirut",
+      occupied: [],
+    })[0]!;
+    start = slot.start;
+    end = slot.end;
     setTenantSlug(fixture.tenantSlug);
     setSessionCookie(fixture.sessionId);
   });
