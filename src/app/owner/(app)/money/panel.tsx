@@ -237,7 +237,7 @@ export async function OwnerMoney({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <p className="min-w-0 text-sm font-medium leading-snug">
-                            {row.description}
+                            <bdi>{row.description}</bdi>
                           </p>
                           <p className="shrink-0 font-mono text-sm font-semibold tabular-nums">
                             <LtrIsolate>

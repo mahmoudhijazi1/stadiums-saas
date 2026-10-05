@@ -28,7 +28,7 @@ export function PersonLink({
       )}
     >
       <User aria-hidden className="size-4 shrink-0" />
-      <span className="truncate">{name}</span>
+      <bdi className="truncate">{name}</bdi>
       <ChevronRight aria-hidden className="size-4 shrink-0 rtl:rotate-180" />
     </Link>
   );

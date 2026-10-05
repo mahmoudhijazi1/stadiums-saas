@@ -77,7 +77,7 @@ export function NotifyPersonRow({
   const name = href ? (
     <PersonLink personId={person.personId} name={person.name} />
   ) : (
-    <span className="block truncate text-sm font-medium">{person.name}</span>
+    <span className="block truncate text-sm font-medium"><bdi>{person.name}</bdi></span>
   );
 
   return (

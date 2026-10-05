@@ -36,7 +36,7 @@ export async function SearchResults({
             href={`/owner/people/${hit.id}`}
             className="flex min-h-11 flex-col justify-center rounded-[var(--radius-control)] px-1 outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <span className="text-sm font-medium">{hit.name}</span>
+            <span className="text-sm font-medium"><bdi>{hit.name}</bdi></span>
             {hit.phone ? (
               <LtrIsolate className="text-sm text-muted-foreground">
                 {hit.phone}

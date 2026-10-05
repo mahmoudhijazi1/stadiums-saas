@@ -688,7 +688,7 @@ function UpcomingRows({
                       {row.nightHint ? <span>{row.nightHint}</span> : null}
                     </span>
                     <span className="mt-1.5 block truncate text-sm text-muted-foreground">
-                      {row.requesterName}
+                      <bdi>{row.requesterName}</bdi>
                     </span>
                     <span className="sr-only">{ui("owner.openBooking", locale)}</span>
                   </button>

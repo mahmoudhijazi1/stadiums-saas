@@ -53,7 +53,7 @@ export function RejectRequestButton({
         <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
           <BottomSheetHeader>
             <BottomSheetTitle>{ui("owner.rejectSheet", locale)}</BottomSheetTitle>
-            <BottomSheetDescription>{name}</BottomSheetDescription>
+            <BottomSheetDescription><bdi>{name}</bdi></BottomSheetDescription>
           </BottomSheetHeader>
           <BottomSheetBody className="pb-4">
             <form action={submitRejectBooking} className="flex flex-col gap-3">

@@ -5315,3 +5315,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** No imports from modules; the components take geometry and translated labels as props.
 
 **How to verify:** Open the route in `next dev` at 390px. With 3 pitches the 16:00 booking on A1 reads Owed, because "now" is after it. `npm test`: 552 tests; `npm run build` is green.
+
+## RTL: inputs pick their direction, typed names are isolated
+
+**When:** 2026-10-05
+
+**What:**
+- The shared `Input` sets `dir` itself. Phones, amounts, times, email and password fields (by `type` or `inputMode`) get `ltr`. Free text gets `auto`, so English typed on an Arabic page keeps its own order and caret.
+- On RTL pages every field stays aligned to the right (`rtl:text-right`). A caller's `dir` still wins.
+- Names and expense descriptions that people typed are wrapped in `<bdi>`: notify list, search results, reject sheet, Today card, person page title, `PersonLink`, and the Money expense rows.
+
+**Why:** DR-005 and SPEC-13: LTR-isolate Latin runs. Inputs had no `dir`, so English or digits typed in Arabic showed reordered punctuation and a jumping caret.
+
+**Files:** `components/ui/input.tsx`, `app/owner/{notify-list,person-link}.tsx`, `app/owner/(app)/{money/panel,search/results,requests/reject-sheet,today/upcoming-panel,people/[personId]/page}.tsx`.
+
+**How it connects:** UI only. No imports were added.
+
+**How to verify:** `npx tsc --noEmit` is clean. eslint is clean on the touched files except `upcoming-panel.tsx` (its F-4 errors are older and not linted here). `npx jest test/components test/app` passes 10 of 10. The build and a browser check were not run.
