@@ -5279,3 +5279,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** UI and one pure domain counter; no new imports across modules.
 
 **How to verify:** `npm test`: 552 tests. `npm run test:integration`: 192 tests. `npm run build` is green. Dark screenshots in Arabic and English.
+
+## Today schedule-grid mockup (dev only)
+
+**When:** 2026-10-01
+
+**What:** Dev-only preview at `/dev/mockups/today` (404 when `NODE_ENV` is production). Fake data, no database or use case. Reusable presentational components in `components/day-grid/`: `DayGrid` (time axis on the start side, one column per pitch, 30-minute rows, closed bands, past dimming, now line), `BookingBlock` (name, status by token + label + icon), `FreeCell` (quiet dashed "+"; inert without `onSelect`). `?pitches=2..5` (3+ adds A3 with a paid and an owed booking and a "now" of 18:45; more than 3 uses pitch filter chips), `?now=HH:MM`.
+
+**Why:** Explore Today as a grid against `docs/ui-rules.md` and the paid / owed / expected tokens. Not wired to the real Today.
+
+**Files:** `components/day-grid/*`, `app/dev/mockups/today/*`, `lib/ui-copy.ts` (`owner.closedCell`, `owner.nowLabel`), `lib/format-local-hm.ts` (`shortPeriodOf`).
+
+**How it connects:** No imports from modules; the components take geometry and translated labels as props.
+
+**How to verify:** Open the route in `next dev` at 390px. With 3 pitches the 16:00 booking on A1 reads Owed, because "now" is after it. `npm test`: 552 tests; `npm run build` is green.
