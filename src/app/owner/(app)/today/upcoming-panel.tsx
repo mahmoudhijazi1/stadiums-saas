@@ -43,6 +43,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
+import { TenderBalance } from "@/app/owner/tender-balance";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
 import {
@@ -56,7 +57,8 @@ import {
 
 export type UpcomingRowView = {
   id: string;
-  pitchName: string;
+  /** Null when the stadium has one pitch: the name would say nothing. */
+  pitchName: string | null;
   timeRange: string;
   dateLabel: string;
   /** "night of Friday" for a 00:00–05:59 start, else null. */
@@ -264,6 +266,7 @@ export function UpcomingPanel({
   highlight,
   saved,
   date,
+  lbpPerUsd = null,
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
@@ -280,6 +283,8 @@ export function UpcomingPanel({
   highlight?: string;
   saved?: OutcomeNotify | null;
   date?: string;
+  /** Current exchange rate for the mixed-currency collect line; null when none is set. */
+  lbpPerUsd?: string | null;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
@@ -288,6 +293,15 @@ export function UpcomingPanel({
   const [collectOpen, setCollectOpen] = useState(false);
   const openRow =
     [...toCollect, ...games].find((row) => row.id === openId) ?? null;
+  // The open booking left both lists: an ended game from an earlier day leaves "To
+  // collect" once it is settled (last player paid, or due adjusted). heldRow is the
+  // snapshot from when the sheet opened, so it would offer Pay/Collect again on money
+  // already taken (the server then answers payment.nothing_due). Close instead, unless
+  // the sheet is showing this booking's WhatsApp notify, which needs the snapshot.
+  if (openId !== null && openRow === null && saved?.bookingId !== openId) {
+    setOpenId(null);
+    setInterestOpen(false);
+  }
   const sheetRow = openRow ?? heldRow;
   // Amber and never hidden: a highlighted or opened card forces the list open.
   const collectShown =
@@ -473,11 +487,15 @@ export function UpcomingPanel({
                 </span>
               </BottomSheetTitle>
               <BottomSheetDescription>
-                {sheetRow.pitchName}
-                {toCollect.some((item) => item.id === sheetRow.id)
-                  ? ` · ${sheetRow.dateLabel}`
-                  : null}
-                {sheetRow.nightHint ? ` · ${sheetRow.nightHint}` : null}
+                {[
+                  sheetRow.pitchName,
+                  toCollect.some((item) => item.id === sheetRow.id)
+                    ? sheetRow.dateLabel
+                    : null,
+                  sheetRow.nightHint,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </BottomSheetDescription>
               <PersonLink
                 personId={sheetRow.requesterPersonId}
@@ -548,6 +566,7 @@ export function UpcomingPanel({
                 <UpcomingRowActions
                   key={`${sheetRow.id}:${sheetRow.remainingUsd}`}
                   row={sheetRow}
+                  lbpPerUsd={lbpPerUsd}
                   locale={locale}
                   mayCollect={mayCollect}
                   mayCancel={mayCancel}
@@ -682,13 +701,15 @@ function UpcomingRows({
                         )}
                       />
                     </span>
-                    <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                      <span>{row.pitchName}</span>
-                      {showDate ? <span>{row.dateLabel}</span> : null}
-                      {row.nightHint ? <span>{row.nightHint}</span> : null}
-                    </span>
+                    {row.pitchName || showDate || row.nightHint ? (
+                      <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        {row.pitchName ? <span>{row.pitchName}</span> : null}
+                        {showDate ? <span>{row.dateLabel}</span> : null}
+                        {row.nightHint ? <span>{row.nightHint}</span> : null}
+                      </span>
+                    ) : null}
                     <span className="mt-1.5 block truncate text-sm text-muted-foreground">
-                      {row.requesterName}
+                      <bdi>{row.requesterName}</bdi>
                     </span>
                     <span className="sr-only">{ui("owner.openBooking", locale)}</span>
                   </button>
@@ -751,6 +772,7 @@ function UpcomingRows({
 
 function UpcomingRowActions({
   row,
+  lbpPerUsd,
   locale,
   mayCollect,
   mayCancel,
@@ -762,6 +784,7 @@ function UpcomingRowActions({
   onAdjust,
 }: {
   row: UpcomingRowView;
+  lbpPerUsd: string | null;
   locale: UiLocale;
   mayCollect: boolean;
   mayCancel: boolean;
@@ -820,38 +843,7 @@ function UpcomingRowActions({
                 : ui("owner.collectMixed", locale)}
             </Button>
             {mixedOpen ? (
-              <form action={submitCollectPayment} className="flex flex-col gap-4">
-                <input type="hidden" name="bookingId" value={row.id} />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`usd-${row.id}`}>
-                    {ui("owner.usdRemaining", locale)}
-                  </Label>
-                  <Input
-                    id={`usd-${row.id}`}
-                    type="text"
-                    name="usdAmount"
-                    inputMode="decimal"
-                    defaultValue={row.remainingUsd}
-                    placeholder={row.remainingUsd}
-                    className="font-mono"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor={`lbp-${row.id}`}>
-                    {ui("owner.lbp", locale)}
-                  </Label>
-                  <Input
-                    id={`lbp-${row.id}`}
-                    type="text"
-                    name="lbpAmount"
-                    inputMode="numeric"
-                    className="font-mono"
-                  />
-                </div>
-                <SubmitButton className="w-full">
-                  {ui("owner.moneyGroup", locale)}
-                </SubmitButton>
-              </form>
+              <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} />
             ) : null}
           </>
         ) : null}
@@ -878,5 +870,62 @@ function UpcomingRowActions({
         </Button>
       ) : null}
     </>
+  );
+}
+
+/**
+ * USD + LBP collect. Both fields are controlled so the line under them shows the total
+ * and what is left as the owner types; "Complete with … LBP" fills the rest.
+ */
+function MixedCollectForm({
+  row,
+  lbpPerUsd,
+  locale,
+}: {
+  row: UpcomingRowView;
+  lbpPerUsd: string | null;
+  locale: UiLocale;
+}) {
+  const [usd, setUsd] = useState(row.remainingUsd);
+  const [lbp, setLbp] = useState("");
+
+  return (
+    <form action={submitCollectPayment} className="flex flex-col gap-4">
+      <input type="hidden" name="bookingId" value={row.id} />
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`usd-${row.id}`}>{ui("owner.usdRemaining", locale)}</Label>
+        <Input
+          id={`usd-${row.id}`}
+          type="text"
+          name="usdAmount"
+          inputMode="decimal"
+          value={usd}
+          onChange={(event) => setUsd(event.target.value)}
+          placeholder={row.remainingUsd}
+          className="font-mono"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor={`lbp-${row.id}`}>{ui("owner.lbp", locale)}</Label>
+        <Input
+          id={`lbp-${row.id}`}
+          type="text"
+          name="lbpAmount"
+          inputMode="numeric"
+          value={lbp}
+          onChange={(event) => setLbp(event.target.value)}
+          className="font-mono"
+        />
+      </div>
+      <TenderBalance
+        usdText={usd}
+        lbpText={lbp}
+        lbpPerUsd={lbpPerUsd}
+        targetUsd={row.remainingUsd}
+        locale={locale}
+        onFillLbp={setLbp}
+      />
+      <SubmitButton className="w-full">{ui("owner.moneyGroup", locale)}</SubmitButton>
+    </form>
   );
 }

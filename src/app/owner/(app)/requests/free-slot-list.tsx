@@ -22,7 +22,8 @@ export type FreeSlotView = {
   key: string;
   timeRange: string;
   dateLabel: string;
-  pitchName: string;
+  /** Null when the stadium has one pitch. */
+  pitchName: string | null;
   countLabel: string;
   people: NotifyPerson[];
 };
@@ -56,8 +57,12 @@ export function FreeSlotList({
                   className="text-lg font-semibold leading-none"
                 />
                 <span className="text-sm text-muted-foreground">
-                  {group.pitchName}
-                  <span aria-hidden> · </span>
+                  {group.pitchName ? (
+                    <>
+                      {group.pitchName}
+                      <span aria-hidden> · </span>
+                    </>
+                  ) : null}
                   {group.dateLabel}
                   <span aria-hidden> · </span>
                   <CountedPhrase text={group.countLabel} />

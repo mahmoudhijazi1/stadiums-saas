@@ -5315,3 +5315,124 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** No imports from modules; the components take geometry and translated labels as props.
 
 **How to verify:** Open the route in `next dev` at 390px. With 3 pitches the 16:00 booking on A1 reads Owed, because "now" is after it. `npm test`: 552 tests; `npm run build` is green.
+
+## RTL: inputs pick their direction, typed names are isolated
+
+**When:** 2026-10-05
+
+**What:**
+- The shared `Input` sets `dir` itself. Phones, amounts, times, email and password fields (by `type` or `inputMode`) get `ltr`. Free text gets `auto`, so English typed on an Arabic page keeps its own order and caret.
+- On RTL pages every field stays aligned to the right (`rtl:text-right`). A caller's `dir` still wins.
+- Names and expense descriptions that people typed are wrapped in `<bdi>`: notify list, search results, reject sheet, Today card, person page title, `PersonLink`, and the Money expense rows.
+
+**Why:** DR-005 and SPEC-13: LTR-isolate Latin runs. Inputs had no `dir`, so English or digits typed in Arabic showed reordered punctuation and a jumping caret.
+
+**Files:** `components/ui/input.tsx`, `app/owner/{notify-list,person-link}.tsx`, `app/owner/(app)/{money/panel,search/results,requests/reject-sheet,today/upcoming-panel,people/[personId]/page}.tsx`.
+
+**How it connects:** UI only. No imports were added.
+
+**How to verify:** `npx tsc --noEmit` is clean. eslint is clean on the touched files except `upcoming-panel.tsx` (its F-4 errors are older and not linted here). `npx jest test/components test/app` passes 10 of 10. The build and a browser check were not run.
+
+## Booking sheet: close when the booking leaves Today's lists (stale Pay on the last player)
+
+**When:** 2026-10-05
+
+**What:** Paying players one by one on a per-player game sometimes ended with "nothing is due" on the last player.
+- **Cause:** the sheet reads its booking from the live lists (`toCollect` + `games`), and falls back to `heldRow`, a snapshot taken when the sheet opened.
+- "To collect" lists only ended games with `amountDueUsd > collected` (`listEndedWithRemaining`). A game from an earlier day is not in `games`.
+- So once its last player was paid, the booking was in neither list. The sheet then showed the opening snapshot again, with Pay buttons on slots already paid. The next tap was refused by the server (`payment.nothing_due`).
+- Today's games stay in `games`, which is why it only happened sometimes.
+- The server was right throughout: it locks the booking, recomputes, and never charges twice.
+- **Fix:** when the open booking leaves both lists, the sheet closes. The exception is a sheet showing that booking's WhatsApp notify (`saved`), which still uses the snapshot. This also covers the same stale Collect after a full WHOLE collect or a due adjustment on an earlier day's game.
+
+**Why:** SPEC-15 §3.2, and RULE-12 (the sheet must never offer an action that is already done).
+
+**Files:** `app/owner/(app)/today/upcoming-panel.tsx`.
+
+**How it connects:** UI only. No server, query or rule changed.
+
+**How to verify:**
+- `npx tsc --noEmit` is clean.
+- eslint on `upcoming-panel.tsx` shows only its existing F-4 error.
+- `npm run build` is green.
+- Not exercised in a browser. Manual check: per-player game from yesterday, pay each player in turn; after the last one, the sheet closes and the card leaves "To collect".
+
+## One pitch: hide the pitch name everywhere it says nothing
+
+**When:** 2026-10-05
+
+**What:**
+- New `venue/application/has-several-pitches.ts` `hasSeveralPitches()`: one capped count per request (React `cache`, `countPitchesUpTo(2)` in `venue/infrastructure/pitches.ts`). It needs no membership because the public page lists pitches anyway.
+- With a single pitch, the pitch name is now left out of:
+  - Today card meta line (the line is dropped when empty) and the booking sheet subtitle (parts joined with " · ");
+  - requests inbox and missed groups;
+  - free-slot groups;
+  - person page game rows;
+  - public and owner slot pickers (pitch heading and booking-sheet line);
+  - the free-strip booking sheet;
+  - the WhatsApp "booking confirmed" message, where the "on <pitch>" / "على <pitch>" clause is omitted.
+- The free strip already hid its row labels for one pitch (`showPitchNames`).
+- Settings and the More hub still show the pitch.
+
+**Why:** Owner feedback: with one pitch, "Pitch 1" on every card and message is noise (RULE-12).
+
+**Files:**
+- `modules/venue/{application/has-several-pitches,infrastructure/pitches}.ts`;
+- `modules/booking/application/{load-owner-day,load-decision-notify}.ts`;
+- `modules/notification/domain/whatsapp-link.ts` (`pitchName` optional);
+- `app/owner/{pending-list,notify-list}.tsx`;
+- `app/owner/(app)/today/{lists,upcoming-panel,free-strip}.tsx`;
+- `app/owner/(app)/requests/{free-slots,free-slot-list}.tsx`;
+- `app/owner/(app)/people/[personId]/games.tsx`;
+- `components/slot-picker.tsx`;
+- `test/modules/notification/domain/whatsapp-link.test.ts`.
+
+**How it connects:** booking → venue/application, an allowed direction. `PendingRequestList`, `MissedRequestSection` and `FreeSlots` became async Server Components; they are rendered only from Server Components. `SlotPicker` counts its own `pitches` prop, which includes closed pitches.
+
+**How to verify:**
+- `npx tsc --noEmit` is clean.
+- eslint on touched files: only the existing F-4 error in `upcoming-panel.tsx`.
+- `npm test`: 553 passed (new: confirm message without a pitch).
+- Integration `collect-notify-debt`, `slot-pages`, `free-strip`, `smoke`, `midnight`: 30 passed.
+- `npm run build` is green.
+- Not checked in a browser.
+
+## Mixed USD + LBP: live total and "left to complete" as the owner types
+
+**When:** 2026-10-05
+
+**What:**
+- **Collect (Today sheet):** the "pay in two currencies" form now shows a line under the fields as the owner types: the total, then one of:
+  - "Left to complete $10.00 · 895,000 LBP" (amber);
+  - "Covers the full amount" (green);
+  - "More than due by $1.17 · 104,715 LBP" (amber; warns, never blocks).
+- A "Complete with 895,000 LBP" button fills the LBP field with what the USD part leaves.
+- **Expense sheet:** shows the running total once an LBP amount is typed.
+- A format the server would refuse ("20.5", "895,000") gets a hint. LBP with no rate set shows the existing `payment.rate_required` text.
+
+**Why:** Owner request: for "$30 = $20 + 10 × rate", show the rest in both currencies while typing (RULE-12, DR-002 §2.18, SPEC-06).
+
+**Files:**
+- `modules/payment/domain/tender-preview.ts` (new: `previewTenders`, `lbpCovering`);
+- `app/owner/tender-balance.tsx` (new, client);
+- `app/owner/(app)/today/{upcoming-panel,lists}.tsx` (`MixedCollectForm`, rate passed in);
+- `app/owner/(app)/money/{expense-sheet,panel}.tsx`;
+- `lib/ui-copy.ts` (`owner.tender*`);
+- `docs/domain/money.md` §2;
+- `test/modules/payment/domain/tender-preview.test.ts`.
+
+**How it connects:** `previewTenders` is pure: `decimal.js` and `lib/money` parsers only. It runs in the browser and mirrors `usdEquivalent` rounding; a test checks them against each other. No server path changed: the actions, schemas and `freezeTenders` are as before. The rate comes from `getCurrentRate` (membership-only) on the Today and Money pages.
+
+**How to verify:**
+- `npm test`: 561 passed (8 new).
+- `npx tsc --noEmit` is clean.
+- eslint: only the existing F-4 error in `upcoming-panel.tsx`.
+- `npm run build` is green.
+- Browser (Playwright, production build on `stadiums_test`, rate 89,500, $30 due), each step showing:
+  - USD 20 → "Left to complete $10.00 · 895,000 LBP";
+  - fill → LBP 895000, "Covers the full amount";
+  - LBP 1000000 → "More than due by $1.17 · 104,715 LBP";
+  - "895,000" and "20.5" → hints.
+- Submitting $20 + 895,000 LBP recorded tenders USD 20.00 and LBP 895000 → 10.00, and one ledger IN of 30.00.
+- Expense: $10 + 447,500 LBP → "Total $15.00".
+- Probe data truncated afterwards.

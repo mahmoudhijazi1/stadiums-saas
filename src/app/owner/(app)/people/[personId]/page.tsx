@@ -35,7 +35,7 @@ export default async function PersonPage({
     <section className="flex flex-col gap-6">
       <OwnerBackLink href="/owner/today" locale={locale} />
       <header className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl leading-none font-extrabold">{person.name}</h1>
+        <h1 className="font-display text-3xl leading-none font-extrabold"><bdi>{person.name}</bdi></h1>
         {person.phone ? (
           <LtrIsolate className="text-sm text-muted-foreground">{person.phone}</LtrIsolate>
         ) : null}

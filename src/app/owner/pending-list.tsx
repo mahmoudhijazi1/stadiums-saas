@@ -2,6 +2,7 @@ import type { CurrentMembership } from "@/modules/access/application/get-current
 import { BOOKINGS_APPROVE, can } from "@/modules/access/domain/can";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import type { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
+import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { groupPendingBySlot } from "@/modules/booking/domain/home-inbox";
 import type { UiLocale } from "@/lib/locale";
 import { missedRequestsCount, requestsCount, startsInLabel, ui } from "@/lib/ui-copy";
@@ -48,7 +49,7 @@ type PendingRequest = Awaited<ReturnType<typeof listPendingRequests>>[number];
  * Pending inbox on Requests. Approve and Reject stay available.
  * Debt is a warning on the row, loaded once for everyone on the screen.
  */
-export function PendingRequestList({
+export async function PendingRequestList({
   membership,
   locale,
   hourCycle,
@@ -68,6 +69,7 @@ export function PendingRequestList({
 }) {
   const groups = groupPendingBySlot(pending);
   const now = new Date();
+  const showPitch = await hasSeveralPitches();
   const mayDecide = can(membership, BOOKINGS_APPROVE);
   if (pending.length === 0 && !showEmpty) return null;
 
@@ -103,7 +105,7 @@ export function PendingRequestList({
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span>{group.pitchName}</span>
+                    {showPitch ? <span>{group.pitchName}</span> : null}
                     <span>{formatSlotDateLabel(group.start, now, locale)}</span>
                   </div>
                   {soon === null ? null : (
@@ -213,7 +215,7 @@ export function PendingRequestList({
  * Collapsed missed requests. No Approve or Reject.
  * "They played" is the only approve path for a started slot.
  */
-export function MissedRequestSection({
+export async function MissedRequestSection({
   membership,
   locale,
   hourCycle,
@@ -227,6 +229,7 @@ export function MissedRequestSection({
   if (missed.length === 0) return null;
   const groups = groupPendingBySlot(missed);
   const now = new Date();
+  const showPitch = await hasSeveralPitches();
   const mayDecide = can(membership, BOOKINGS_APPROVE);
 
   return (
@@ -259,8 +262,12 @@ export function MissedRequestSection({
                     className="text-lg font-semibold leading-none"
                   />
                   <p className="text-sm text-muted-foreground">
-                    {group.pitchName}
-                    <span aria-hidden> · </span>
+                    {showPitch ? (
+                      <>
+                        {group.pitchName}
+                        <span aria-hidden> · </span>
+                      </>
+                    ) : null}
                     {formatSlotDateLabel(group.start, now, locale)}
                   </p>
                 </CardHeader>

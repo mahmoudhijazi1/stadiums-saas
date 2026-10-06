@@ -18,6 +18,8 @@ import {
   suggestFee,
 } from "@/modules/booking/domain/suggest-fee";
 import { planSlotCharge, slotPayState } from "@/modules/booking/domain/slot-charge";
+import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
+import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import type { DaySummary } from "@/modules/booking/domain/day-summary";
@@ -67,6 +69,8 @@ export async function OwnerToday({
   const tenant = await getCurrentTenant();
   const hourCycle: HourCycle = tenant.timeDisplay;
   const ownerDay = await loadOwnerDay(date);
+  const showPitch = await hasSeveralPitches();
+  const rate = await getCurrentRate();
   const openWaitlist = await listOpenWaitlist();
   const now = new Date();
   const pending = ownerDay.isToday
@@ -124,6 +128,7 @@ export async function OwnerToday({
                 openWaitlist,
                 policy,
                 tenant.name,
+                showPitch,
               )
             : []
         }
@@ -149,6 +154,7 @@ export async function OwnerToday({
           openWaitlist,
           policy,
           tenant.name,
+          showPitch,
         )}
         locale={locale}
         mayCollect={mayCollect}
@@ -158,6 +164,7 @@ export async function OwnerToday({
         highlight={highlight}
         saved={saved}
         date={date}
+        lbpPerUsd={rate ? rate.toString() : null}
       />
     </>
   );
@@ -243,6 +250,7 @@ function toUpcomingViews(
     noShowFeePercent: number;
   },
   stadiumName: string,
+  showPitch: boolean,
 ): UpcomingRowView[] {
   return rows.map((row) => {
     const display = deriveCardDisplay({
@@ -270,7 +278,7 @@ function toUpcomingViews(
     );
     return {
       id: row.id,
-      pitchName: row.pitchName,
+      pitchName: showPitch ? row.pitchName : null,
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
       dateLabel: formatSlotDateLabel(row.start, now, locale),
       nightHint: nightHint(row.start, locale),

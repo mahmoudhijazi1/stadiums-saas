@@ -1,3 +1,4 @@
+import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
@@ -120,6 +121,7 @@ export async function loadOwnerDay(
     ]);
     const summary = summarizeDay(gameRows, now);
     const locale = await getUiLocale();
+    const showPitch = await hasSeveralPitches();
     const slotsByBooking = groupSlots(
       await listSlotsForBookings(
         db,
@@ -136,12 +138,12 @@ export async function loadOwnerDay(
       afterMidnight,
       summary,
       games: gameRows.map((row) =>
-        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking),
+        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch),
       ),
       toCollect: collectRows
         .slice(0, TO_COLLECT_LIMIT)
         .map((row) =>
-          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking),
+          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch),
         ),
       toCollectHasMore: collectRows.length > TO_COLLECT_LIMIT,
     };
@@ -175,6 +177,7 @@ function toOwnerDayBooking(
   locale: "ar" | "en",
   hourCycle: "h23" | "h12",
   slotsByBooking: Map<string, OwnerSlot[]>,
+  showPitch: boolean,
 ): OwnerDayBooking {
   const slots = slotsByBooking.get(row.id) ?? [];
   const allocated = slots.reduce((sum, slot) => sum.plus(slot.paidUsd), new Decimal(0));
@@ -201,7 +204,7 @@ function toOwnerDayBooking(
     requesterPhone: row.requesterPhone,
     confirmWhatsAppHref:
       row.status === "APPROVED"
-        ? confirmHref(row, stadiumName, tenantId, locale, hourCycle)
+        ? confirmHref(row, stadiumName, tenantId, locale, hourCycle, showPitch)
         : null,
   };
 }
@@ -212,6 +215,7 @@ function confirmHref(
   tenantId: string,
   locale: "ar" | "en",
   hourCycle: "h23" | "h12",
+  showPitch: boolean,
 ): string | null {
   if (!row.requesterPhone) return null;
   try {
@@ -222,7 +226,7 @@ function confirmHref(
         stadiumName,
         day: messageDayLabel(row.start, locale),
         time: formatLocalHm(row.start, TIME_ZONE, hourCycle, locale),
-        pitchName: row.pitchName,
+        pitchName: showPitch ? row.pitchName : null,
         locale,
       }),
     );

@@ -71,3 +71,8 @@ export async function updatePitchRow(
 export async function findPitchById(tx: TenantTx, pitchId: string) {
   return findPitch(tx, pitchId);
 }
+
+/** How many pitches this tenant has, counting at most `limit` rows. */
+export async function countPitchesUpTo(limit: number): Promise<number> {
+  return db.pitch.count({ take: limit });
+}

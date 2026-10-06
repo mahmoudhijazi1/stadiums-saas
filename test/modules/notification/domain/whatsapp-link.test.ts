@@ -74,6 +74,31 @@ describe("bookingConfirmedMessage", () => {
       `مرحبا ${embed("أحمد")}، تأكد حجزك في ${embed("Ahmad Stadium")} يوم ${embed("الجمعة")} الساعة ${embed("21:00")} على ${embed("Pitch 1")}. منشوفك!`,
     );
   });
+
+  it("leaves the pitch out when the stadium has one pitch", () => {
+    expect(
+      bookingConfirmedMessage({
+        name: "أحمد",
+        stadiumName: "Ahmad Stadium",
+        day: "الجمعة",
+        time: "21:00",
+        pitchName: null,
+      }),
+    ).toBe(
+      `مرحبا ${embed("أحمد")}، تأكد حجزك في ${embed("Ahmad Stadium")} يوم ${embed("الجمعة")} الساعة ${embed("21:00")}. منشوفك!`,
+    );
+    expect(
+      bookingConfirmedMessage({
+        name: "Ahmad",
+        stadiumName: "Ahmad Stadium",
+        day: "Friday",
+        time: "21:00",
+        locale: "en",
+      }),
+    ).toBe(
+      `Hello ${embed("Ahmad")}, your booking at ${embed("Ahmad Stadium")} on ${embed("Friday")} at ${embed("21:00")} is confirmed. See you!`,
+    );
+  });
 });
 
 describe("bookingMissedMessage", () => {

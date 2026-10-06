@@ -77,7 +77,7 @@ export function NotifyPersonRow({
   const name = href ? (
     <PersonLink personId={person.personId} name={person.name} />
   ) : (
-    <span className="block truncate text-sm font-medium">{person.name}</span>
+    <span className="block truncate text-sm font-medium"><bdi>{person.name}</bdi></span>
   );
 
   return (
@@ -192,7 +192,7 @@ export function InterestPanel({
   people: NotifyPerson[];
   locale: UiLocale;
   timeRange?: string;
-  pitchName?: string;
+  pitchName?: string | null;
 }) {
   return (
     <div className="flex flex-col gap-3">

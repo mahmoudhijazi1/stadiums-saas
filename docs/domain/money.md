@@ -40,6 +40,8 @@ Input formats are checked at the edge, not in the domain:
 
 They are called from the Server Actions (`app/owner/(app)/today/actions.ts` `submitCollectPayment`).
 
+While the owner types, the mixed USD + LBP forms (the collect sheet on Today, and the expense sheet) show a live total and what is left to complete. It comes from `payment/domain/tender-preview.ts` `previewTenders`, which uses the same parsing ("20" means "20.00"; LBP in whole pounds) and the same LBP rounding as `usdEquivalent`, so the figure shown is the figure recorded. "Complete with … LBP" fills `lbpCovering` = ceil(left × rate): the fewest pounds that freeze to at least what is left. The preview warns and never blocks: an overpay is shown, not refused (RULE-9/10). UI: `app/owner/tender-balance.tsx`.
+
 ## 3. Per-player (PER_PLAYER mode)
 
 - **Split** (`switch-collection-mode.ts` `switchToPerPlayer`):
