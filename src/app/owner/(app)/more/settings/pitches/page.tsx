@@ -8,7 +8,9 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
+import { formatHoursSummary, hoursToRows } from "@/modules/venue/domain/pitch-form-model";
 
 /**
  * Pitch list. Create and edit stay on the routes under this folder.
@@ -17,6 +19,7 @@ export default async function PitchListPage() {
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
   const pitches = await listPitchSummaries();
+  const tenant = await getCurrentTenant();
   const mayManage = can(membership, SETTINGS_MANAGE);
 
   return (
@@ -45,42 +48,15 @@ export default async function PitchListPage() {
             const body = (
               <>
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium">{pitch.name}</span>
-                  {pitch.hoursGroups.length === 0 &&
-                  pitch.closedDays.length === 7 ? (
-                    <span className="block text-sm text-muted-foreground">
-                      {ui("owner.pitchAllClosed", locale)}
-                    </span>
-                  ) : (
-                    <span className="block text-sm text-muted-foreground">
-                      {pitch.hoursGroups.map((group) => (
-                        <span key={group.days.join("-")} className="block">
-                          <LtrIsolate>
-                            {`${group.open}–${group.close}`}
-                          </LtrIsolate>
-                          {" · "}
-                          {group.days
-                            .map((day) => ui(`owner.wd.${day}`, locale))
-                            .join(" · ")}
-                        </span>
-                      ))}
-                      {pitch.closedDays.length > 0 ? (
-                        <span className="block">
-                          {pitch.closedDays
-                            .map(
-                              (day) =>
-                                `${ui(`owner.wd.${day}`, locale)}: ${ui("owner.pitchClosed", locale)}`,
-                            )
-                            .join(" · ")}
-                        </span>
-                      ) : null}
-                      <span className="block">
-                        <LtrIsolate>
-                          {`${pitch.slotDurationMinutes} ${ui("owner.pitchMinutes", locale)} · $${pitch.defaultPriceUsd}`}
-                        </LtrIsolate>
-                      </span>
-                    </span>
-                  )}
+                  <span className="block text-base font-semibold">{pitch.name}</span>
+                  <span className="block text-sm text-muted-foreground">
+                    {formatHoursSummary(hoursToRows(pitch.hoursGroups), locale, tenant.timeDisplay)}
+                  </span>
+                  <span className="block text-sm text-muted-foreground">
+                    <LtrIsolate>{pitch.slotDurationMinutes}</LtrIsolate> {ui("owner.pitchMinutesFull", locale)}
+                    {" · "}
+                    <LtrIsolate>${pitch.defaultPriceUsd}</LtrIsolate>
+                  </span>
                 </span>
                 {mayManage ? (
                   <ChevronRight

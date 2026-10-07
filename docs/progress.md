@@ -5695,3 +5695,11 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/more/settings/pitches/{form,money-input,price-cards,preview-card}.tsx`, `new/page.tsx`, `components/ui/submit-button.tsx`, `lib/ui-copy.ts`, `docs/ROADMAP.md`, `test/app/owner/pitch-money-input.test.ts`.
 
 **How to verify:** `npm test`: 668 passed. `npm run test:integration`: 237 passed. `npm run build` is green; eslint clean on the pitches folder. Not rendered (no browser).
+
+## Pitch editor, part 4 of 4: the pitch list
+
+**What:** More > Pitches cards now show the human summary from `formatHoursSummary` ("Mon–Thu 4:00–10:00 PM · Fri–Sat until 11:00 PM · Sun closed", 12 or 24 hour per the tenant setting), then the game length and the price ("90 minutes · $25"), instead of the day-by-day lines. The name uses the 16px / 600 scale.
+
+**Files:** `app/owner/(app)/more/settings/pitches/page.tsx`.
+
+**How to verify:** `npm test`: 668 passed. `npm run test:integration`: 237 passed. `npm run build` is green. Not rendered (no browser).
