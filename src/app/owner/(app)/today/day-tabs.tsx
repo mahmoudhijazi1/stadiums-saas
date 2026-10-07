@@ -46,7 +46,7 @@ export function DayTabs({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
       <div
         ref={listRef}
         role="tablist"
@@ -72,7 +72,7 @@ export function DayTabs({
                 active ? "font-bold text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <span className="inline-flex flex-col items-center">
+              <span className="relative inline-flex">
                 {/* The after: copy is bold and invisible, so selecting a tab never changes its width. */}
                 <span
                   data-label={tab.label}
@@ -80,11 +80,12 @@ export function DayTabs({
                 >
                   {tab.label}
                 </span>
-                {/* Active marker. Always rendered so tabs never shift; ink in light, lime in dark. */}
+                {/* Active marker: full label width, 6px under it, out of flow so the label stays centred
+                    in the tab. Always rendered so tabs never shift; ink in light, lime in dark. */}
                 <span
                   aria-hidden
                   className={cn(
-                    "mt-1.5 h-[3px] w-3/5 rounded-full bg-action-ink transition-opacity duration-150 motion-reduce:transition-none",
+                    "absolute inset-x-0 top-full mt-1.5 h-[3px] rounded-full bg-action-ink transition-opacity duration-150 motion-reduce:transition-none",
                     active ? "opacity-100" : "opacity-0",
                   )}
                 />
@@ -93,7 +94,8 @@ export function DayTabs({
           );
         })}
       </div>
-      <div className="relative shrink-0">
+      {/* Fixed 44px slot outside the scroller; the edge fade ends at the scroller's edge. */}
+      <div className="relative size-11 shrink-0">
         <button
           type="button"
           aria-label={calendarLabel}
@@ -109,7 +111,7 @@ export function DayTabs({
           }}
           className="relative grid size-11 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <Calendar aria-hidden className="size-6 text-muted-foreground" />
+          <Calendar aria-hidden className="size-5 text-muted-foreground" />
           <span
             aria-hidden
             className="absolute inset-0 grid place-items-center pt-1 text-[10px] font-bold leading-none"
