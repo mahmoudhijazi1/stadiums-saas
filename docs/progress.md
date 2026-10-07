@@ -5653,3 +5653,18 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `components/ui/bottom-sheet.tsx`.
 
 **How to verify:** build is green. Not rendered (no browser): open a sheet with one line (e.g. the language sheet) at 390px; it should be about 15rem or 38% of the screen tall, and a tall sheet should still cap at 92% of the viewport.
+
+## Pitch editor, part 1 of 4: the pure model
+
+**When:** 2026-10-08
+
+**What:** `venue/domain/pitch-form-model.ts`, no UI yet. `hoursToRows` (seven Mon..Sun rows, closed days keep the first group's times) and `rowsToHours` (merge identical windows); `rulesToPriceCards` and `priceCardsToRules` (non-overlapping day cards: a day that a later all-day rule also covers is removed from the earlier one, which is exactly the engine's last-matching-rule-wins, so prices do not change); `formatHoursSummary` / `formatDays` / `formatClock` (consecutive-day compression, "every day", "until 11:00 PM", AR and EN, 12 or 24 hour).
+- **Not expressible, kept as it is:** price rules with a time range (`start`/`end`) have no control in the editor. They are carried aside with their position (`TimedRule.at`) and put back in the same place on save, and the form shows them as a read-only line. A day with a second hours window cannot be expressed either: the stored-to-form step (`collapseHoursGroups`) has always kept only the first window, and the writer rebuilds hours from groups, so a second window is dropped on save as before. That is a known limit of the existing writer; fixing it needs a writer change, which this task forbids. Nothing in the UI creates one.
+- **One validation change, agreed:** `pitchDraftSchema` refused any window where close is not after open, so 22:00 to 02:00 could not be saved from the form (only seed data had them). It now refuses only open == close. The engine, schedule schema and everything else are untouched.
+- Property test: 500 seeded configs (windows that cross midnight, overlapping rules, timed rules, 30/45/60/90/120 minute games) go through hours -> rows -> groups and rules -> cards -> rules; every slot and its price is identical for a normal week and for the spring-forward week, and again with 15-minute games (price and availability at every 15-minute time).
+
+**Step 0 answers (for the editor):** stored hours are `hours.{mon..sun}: [{start, end}]`; groups are `{days, open, close}`, one per distinct window. Price rules are `{days, priceUsd, start?, end?}` (start and end together or neither; no minimum length). Game length is any positive integer (no maximum); the engine needs `duration <= window` to offer a slot. Today, saving hours that leave a future APPROVED booking outside the new windows is refused (`venue.hours_approved`); future PENDING ones need a confirm checkbox (`venue.hours_pending`). `Players per game` is shown only when the tenant's `perPlayerSplitEnabled` is on; otherwise a hidden input keeps the stored value.
+
+**Files:** `modules/venue/domain/pitch-form-model.ts`, `modules/venue/schemas/pitch-draft.ts` (the one refine), `lib/ui-copy.ts`, tests `test/modules/venue/domain/pitch-form-model.test.ts`, `test/modules/venue/schemas/pitch-draft.test.ts`.
+
+**How to verify:** `npm test`: 652 passed. `npm run test:integration`: 232 passed. `npm run build` is green.

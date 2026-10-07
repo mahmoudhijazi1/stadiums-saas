@@ -57,8 +57,10 @@ const hoursGroupDraftSchema = z
     open: clockTime,
     close: clockTime,
   })
-  .refine((group) => hhmmToMinutes(group.open) < hhmmToMinutes(group.close), {
-    error: "Open must be before close",
+  // Close at or before open is a window that runs past midnight (BR-7, e.g. 22:00 to
+  // 02:00); only open == close (a zero or 24-hour window) is refused.
+  .refine((group) => hhmmToMinutes(group.open) !== hhmmToMinutes(group.close), {
+    error: "Open and close must differ",
   });
 
 export type HoursGroupDraft = z.infer<typeof hoursGroupDraftSchema>;
