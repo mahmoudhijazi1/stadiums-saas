@@ -5473,3 +5473,21 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `buildDayTabs` is pure (date maths + `ui()` / `formatDisplayDate`); `today` is the business date, so the 06:00 rule comes from `loadOwnerDay`. `DebtRow` is presentational and opens the same booking sheet as the cards. `owner.prevDay` / `owner.nextDay` copy is now unused.
 
 **How to verify:** `npm test`: 566 passed (5 new in `day-tabs`). `npm run build` is green. eslint shows only the existing F-4 errors (`fee-forms`, `upcoming-panel`). Integration suite not run: only components and one pure domain file changed. Not done: the 390px screenshots (no browser tool in this session).
+
+## Today date strip: hidden scrollbar, active marker, edge fades
+
+**When:** 2026-10-07
+
+**What:**
+- The lime bar under the strip was the native scrollbar thumb. The scrollbar is now hidden in all browsers (`scrollbar-width: none`, `::-webkit-scrollbar` hidden); the strip still scrolls by touch, drag, trackpad and wheel.
+- The selected tab now has a bold label and a 3px rounded bar (60% of the label width, centred, 6px below). The bar is on every tab and only fades in (150ms, none under reduced motion), so tabs never shift. A hidden bold copy of each label keeps the width the same when it turns bold.
+- The bar and the mask use `action-ink`: ink on light backgrounds (the volt lime is about 1.2:1 there), lime in dark.
+- 24px gradient mask at both ends of the strip; the calendar button is outside it.
+- `aria-current="date"` on today's tab (`role="tab"` and `aria-selected` kept).
+- Bottom padding: `<main>` already has `pb-[calc(88px+env(safe-area-inset-bottom))]` on mobile, and the nav is about 86px plus `max(12px, inset)`, so the last block clears the nav. No change.
+
+**Why:** Owner feedback on the strip. Styling only, no logic change.
+
+**Files:** `app/owner/(app)/today/day-tabs.tsx`.
+
+**How to verify:** `npm test`: 566 passed. `npm run build` is green. Screenshots not taken (no browser tool in this session).

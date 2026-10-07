@@ -50,7 +50,12 @@ export function DayTabs({
       <div
         ref={listRef}
         role="tablist"
-        className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "no-scrollbar flex min-w-0 flex-1 overflow-x-auto",
+          // 24px fade at both ends: cut-off tabs read as "more days", not clipped text.
+          "[-webkit-mask-image:linear-gradient(to_right,transparent,#000_24px,#000_calc(100%-24px),transparent)]",
+          "[mask-image:linear-gradient(to_right,transparent,#000_24px,#000_calc(100%-24px),transparent)]",
+        )}
       >
         {tabs.map((tab) => {
           const active = tab.date === selected;
@@ -59,16 +64,31 @@ export function DayTabs({
               key={tab.date}
               role="tab"
               aria-selected={active}
+              aria-current={tab.kind === "today" ? "date" : undefined}
               scroll={false}
               href={tab.kind === "today" ? "/owner/today" : `/owner/today?date=${tab.date}`}
               className={cn(
-                "inline-flex min-h-11 shrink-0 items-center whitespace-nowrap border-b-2 px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                active
-                  ? "border-accent-brand font-bold text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
+                "inline-flex min-h-11 shrink-0 items-center justify-center px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                active ? "font-bold text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {tab.label}
+              <span className="inline-flex flex-col items-center">
+                {/* The after: copy is bold and invisible, so selecting a tab never changes its width. */}
+                <span
+                  data-label={tab.label}
+                  className="whitespace-nowrap after:invisible after:block after:h-0 after:overflow-hidden after:font-bold after:content-[attr(data-label)]"
+                >
+                  {tab.label}
+                </span>
+                {/* Active marker. Always rendered so tabs never shift; ink in light, lime in dark. */}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "mt-1.5 h-[3px] w-3/5 rounded-full bg-action-ink transition-opacity duration-150 motion-reduce:transition-none",
+                    active ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              </span>
             </Link>
           );
         })}
