@@ -5644,3 +5644,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `modules/access/{domain/identifier,application/change-own-identifier}.ts`, `app/owner/(app)/more/{hub.tsx,page.tsx,account/*}`, `lib/{ui-copy,error-messages}.ts`, tests `test/modules/access/domain/local-part.test.ts` and `test/integration/account-credentials.integration.test.ts`, docs.
 
 **How to verify:** `npm test`: 628 passed. `npm run test:integration`: 232 passed (13 new for the login change; the full run was before moving the user update into `infrastructure/users.ts`, after which `account-credentials` was re-run: 27 passed). `npm run build` is green. Not rendered (no browser).
+## Bottom sheets: a minimum height on phones
+
+**When:** 2026-10-08
+
+**What:** `BottomSheetContent` gets `max-lg:min-h-[max(15rem,38dvh)]` (at least 15rem, or 38% of the viewport, whichever is larger), so a one-line sheet no longer hugs the bottom edge. Content stays at the top of the sheet. From `lg` up the sheet is a centred dialog and keeps sizing to its content. Applies to every bottom sheet (they all use this component).
+
+**Files:** `components/ui/bottom-sheet.tsx`.
+
+**How to verify:** build is green. Not rendered (no browser): open a sheet with one line (e.g. the language sheet) at 390px; it should be about 15rem or 38% of the screen tall, and a tall sheet should still cap at 92% of the viewport.
