@@ -281,10 +281,18 @@ const ARABIC: Record<string, string> = {
   "owner.pitchClose": "يغلق",
   "owner.pitchDuration": "مدة المباراة (دقائق)",
   "owner.pitchPlayers": "عدد اللاعبين في المباراة",
-  "owner.pitchPrice": "السعر الافتراضي (دولار)",
-  "owner.pitchPriceRules": "سعر حسب اليوم",
-  "owner.pitchPriceRuleHint": "الصف الأخير يغلب إذا تداخلت الأيام.",
-  "owner.pitchPriceRuleAdd": "إضافة سعر",
+  "owner.pitchPrice": "سعر المباراة",
+  "owner.pitchPriceRules": "سعر مختلف في بعض الأيام",
+  "owner.pitchPriceRuleAdd": "+ إضافة سعر",
+  "owner.pitchGameLength": "مدة المباراة",
+  "owner.pitchOtherLength": "غير ذلك",
+  "owner.pitchMinutesFull": "دقيقة",
+  "owner.pitchPriceNeeded": "اكتب سعراً لهذه الأيام.",
+  "owner.pitchKeptRules": "أسعار خاصة بساعات محددة (محفوظة كما هي)",
+  "owner.pitchPriceRuleConfirmDelete": "نعم، احذف",
+  "owner.pitchPreview": "معاينة",
+  "owner.saveChanges": "حفظ التعديلات",
+  "owner.pitchLeaveConfirm": "عندك تعديلات غير محفوظة. هل تريد المغادرة بدون حفظ؟",
   "owner.pitchPriceRuleRemove": "حذف",
   "owner.pitchPriceRuleAmount": "السعر (دولار)",
   "owner.pitchHours": "ساعات الفتح",
@@ -628,10 +636,18 @@ const ENGLISH: Record<string, string> = {
   "owner.pitchClose": "Closes",
   "owner.pitchDuration": "Game length (minutes)",
   "owner.pitchPlayers": "Players per game",
-  "owner.pitchPrice": "Default price (USD)",
-  "owner.pitchPriceRules": "Day prices",
-  "owner.pitchPriceRuleHint": "The last row wins when days overlap.",
-  "owner.pitchPriceRuleAdd": "Add price",
+  "owner.pitchPrice": "Price per game",
+  "owner.pitchPriceRules": "Different price on some days",
+  "owner.pitchPriceRuleAdd": "+ Add a price",
+  "owner.pitchGameLength": "Game length",
+  "owner.pitchOtherLength": "Other",
+  "owner.pitchMinutesFull": "minutes",
+  "owner.pitchPriceNeeded": "Enter a price for these days.",
+  "owner.pitchKeptRules": "Special prices for set hours (kept as they are)",
+  "owner.pitchPriceRuleConfirmDelete": "Yes, delete",
+  "owner.pitchPreview": "Preview",
+  "owner.saveChanges": "Save changes",
+  "owner.pitchLeaveConfirm": "You have unsaved changes. Leave without saving?",
   "owner.pitchPriceRuleRemove": "Remove",
   "owner.pitchPriceRuleAmount": "Price (USD)",
   "owner.pitchHours": "Opening hours",
@@ -1041,6 +1057,34 @@ export function devicesClosedLabel(count: number, locale: UiLocale = "ar"): stri
       : `Logged out of ${count} other ${count === 1 ? "device" : "devices"}.`;
   }
   return count === 0 ? "لا توجد أجهزة أخرى مسجّلة." : `تم تسجيل الخروج من ${count} جهاز.`;
+}
+
+/** Preview line: "5 games · $20 each" or "5 games · $20–$30". Prices are already "20.00". */
+export function previewSummaryLabel(
+  games: number,
+  min: string,
+  max: string,
+  locale: UiLocale = "ar",
+): string {
+  const price = (value: string) => (value.endsWith(".00") ? value.slice(0, -3) : value);
+  const range = min === max ? price(min) : `${price(min)}–$${price(max)}`;
+  if (locale === "en") {
+    return `${games} ${games === 1 ? "game" : "games"} · $${range}${min === max ? " each" : ""}`;
+  }
+  return `${games} ${games === 1 ? "مباراة" : "مباريات"} · $${range}${min === max ? " للمباراة" : ""}`;
+}
+
+/** Muted note when the end of the opening hours cannot fit another game. */
+export function unusedTimeLabel(minutes: number, locale: UiLocale = "ar"): string {
+  return locale === "en"
+    ? `The last ${minutes} min of the opening hours are too short for a game.`
+    : `آخر ${minutes} دقيقة من ساعات الفتح لا تكفي لمباراة.`;
+}
+
+export function gameLongerLabel(minutes: number, locale: UiLocale = "ar"): string {
+  return locale === "en"
+    ? `A game of ${minutes} min does not fit in these hours.`
+    : `مباراة من ${minutes} دقيقة لا تتسع لهذه الساعات.`;
 }
 
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {

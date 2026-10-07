@@ -5679,3 +5679,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/more/settings/pitches/{hours-rows,time-sheet,form}.tsx`, `new/page.tsx`, `[pitchId]/page.tsx`, `lib/ui-copy.ts`, `test/integration/pitch-editor.integration.test.ts`.
 
 **How to verify:** `npm test`: 652 passed. `npm run test:integration`: 237 passed (5 new). `npm run build` is green. Not rendered (no browser).
+
+## Pitch editor, part 3 of 4: game length, price, price cards, preview, save bar
+
+**What:**
+- **Game length:** a segmented 60 / 90 / 120 / Other (Other = a numeric field, in minutes). "Players per game" keeps its gating (shown only when the tenant's per-player split is on, otherwise a hidden input) and sits under the game length.
+- **Price per game:** a currency field with a "$" prefix; text only (digits, one dot, two decimals), padded to cents on blur ("25" becomes "25.00"); no floats anywhere.
+- **Different price on some days:** a list of cards, each with day chips and a price; a day another card uses is disabled in the rest, so overlap cannot happen. Delete asks for a second tap; "+ Add a price" at the end. The sentence "last row wins when days overlap" is gone. Rules with a time range are kept as they are and listed read-only ("Special prices for set hours (kept as they are)").
+- **Preview:** a weekday selector (default the next open day) and the slots `generateSlotsForDay` returns for the next date of that weekday, computed in the browser from the form's current state with `scheduleFromHoursGroups` (the same functions the booking pages use; no query). It shows "N games · $X each" (or a price range, with each chip's price) and a muted note when the end of the opening hours is too short for another game (or the game does not fit at all).
+- **Save bar:** sticky, above the floating bottom nav and its safe-area inset, "Save changes" appears only when the form is dirty (always on a new pitch, "Add pitch"); one primary button, disabled while a required value is missing. Leaving with unsaved changes asks for confirmation (browser prompt on reload or close, a confirm on in-app links). `SubmitButton` now also honours a `disabled` prop.
+- **New pitch defaults:** every day 4:00 PM to 11:00 PM, 60 minutes, $20.
+- **Upcoming bookings outside the new hours:** not added. The save already refuses it when an APPROVED booking would fall outside the new hours (`venue.hours_approved`) and asks for a confirm for PENDING ones, so a note saying they "stay booked" would be wrong. A pre-save count needs a new query path; recorded in `docs/ROADMAP.md` (12a).
+- Deleted `price-rules.tsx`. `form.tsx` is now a client component holding the whole form state; it still posts the same fields.
+
+**Files:** `app/owner/(app)/more/settings/pitches/{form,money-input,price-cards,preview-card}.tsx`, `new/page.tsx`, `components/ui/submit-button.tsx`, `lib/ui-copy.ts`, `docs/ROADMAP.md`, `test/app/owner/pitch-money-input.test.ts`.
+
+**How to verify:** `npm test`: 668 passed. `npm run test:integration`: 237 passed. `npm run build` is green; eslint clean on the pitches folder. Not rendered (no browser).

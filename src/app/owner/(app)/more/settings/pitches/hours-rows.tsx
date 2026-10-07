@@ -6,13 +6,11 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
-import type { HoursGroup } from "@/modules/venue/domain/daily-schedule";
 import { startHoursInsideWindows } from "@/modules/booking/domain/business-day";
 import {
   crossesMidnight,
   formatClock,
   formatHoursSummary,
-  hoursToRows,
   rowsToHours,
   sameHoursEveryDay,
   type DayRow,
@@ -69,16 +67,19 @@ function DaySwitch({
  */
 export function HoursRows({
   locale,
-  initial,
+  rows,
+  onChange,
   hourCycle,
   dayStartHour,
 }: {
   locale: UiLocale;
-  initial: HoursGroup[];
+  rows: DayRow[];
+  onChange: (rows: DayRow[]) => void;
   hourCycle: HourCycleChoice;
   dayStartHour: number;
 }) {
-  const [rows, setRows] = useState<DayRow[]>(() => hoursToRows(initial));
+  const setRows = (next: DayRow[] | ((current: DayRow[]) => DayRow[])) =>
+    onChange(typeof next === "function" ? next(rows) : next);
   const [picking, setPicking] = useState<Picking>(null);
 
   const groups = rowsToHours(rows);
