@@ -33,7 +33,7 @@ export default async function PersonPage({
 
   return (
     <section className="flex flex-col gap-6">
-      <OwnerBackLink href="/owner/today" locale={locale} />
+      <OwnerBackLink href="/owner/today" locale={locale} history />
       <header className="flex flex-col gap-1">
         <h1 className="font-display text-3xl leading-none font-extrabold"><bdi>{person.name}</bdi></h1>
         {person.phone ? (

@@ -5585,3 +5585,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `lib/{tenant-settings,tenant-context,ui-copy}.ts`, `modules/booking/domain/business-day.ts`, `modules/booking/application/{load-owner-day,load-free-strip,night-hint,list-open-waitlist,load-decision-notify,load-outcome-notify}.ts`, `modules/platform/{domain/inputs,application/create-tenant}.ts`, `scripts/platform-cli.ts`, `app/(public)/page.tsx`, `app/owner/(app)/{book/page,more/*,today/*,people/[personId]/games}.tsx`, `components/ui/select-field.tsx`, docs (RUNBOOK, NOW, ux-02-history banner).
 
 **How to verify:** `npm test`: 578 passed. `npm run test:integration`: 205 passed (day-start integration file, CLI cases). `npm run build` is green. No `docs/domain/booking-lifecycle.md` exists, so nothing to update there.
+
+## Back from a person page returns to where the owner came from
+
+**When:** 2026-10-08
+
+**What:** The "Back" link on the person page, search and Book always went to `/owner/today`, so a past or future Today day (or a search) was lost. `OwnerBackLink` gained a `history` prop: it calls `router.back()` when the browser has history, and follows its `href` (`/owner/today`) only for a fresh tab or shared link. Used on the person page, search and Book. Settings pages keep their fixed parents.
+
+**Files:** `app/owner/back-link.tsx` (now a client component), `app/owner/(app)/{people/[personId],search,book}/page.tsx`.
+
+**How to verify:** build is green. Not run in a browser: open Today on another day, tap a player name, tap Back; you should land on that same day. Open the person page in a new tab; Back should go to Today.

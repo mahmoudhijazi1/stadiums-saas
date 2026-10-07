@@ -21,7 +21,7 @@ export default async function OwnerSearchPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <OwnerBackLink href="/owner/today" locale={locale} />
+      <OwnerBackLink href="/owner/today" locale={locale} history />
       <SearchField locale={locale} query={query} />
       <Suspense fallback={<Skeleton className="h-16 w-full rounded-xl" />}>
         <SearchResults locale={locale} query={query} />

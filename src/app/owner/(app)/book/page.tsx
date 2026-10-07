@@ -40,7 +40,7 @@ export default async function OwnerBookPage({
 
   return (
     <section className="flex flex-col gap-4">
-      <OwnerBackLink href="/owner/today" locale={locale} />
+      <OwnerBackLink href="/owner/today" locale={locale} history />
       <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.bookHeading", locale)}</h2>
       <DayChips
         today={todayCivil}
