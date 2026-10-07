@@ -33,6 +33,7 @@ import {
 import type { TimeDisplay } from "@/lib/tenant-settings";
 import { dayStartClock, ui, uiCount } from "@/lib/ui-copy";
 import { SelectField } from "@/components/ui/select-field";
+import { AccountSheetContent } from "./account/account-sheet";
 import { cn } from "cn";
 
 type SheetId =
@@ -473,14 +474,7 @@ export function MoreHub({
           ) : null}
 
           {sheet === "account" ? (
-            <>
-              <BottomSheetHeader>
-                <BottomSheetTitle>{ui("owner.identifier", locale)}</BottomSheetTitle>
-              </BottomSheetHeader>
-              <BottomSheetBody>
-                <LtrIsolate className="text-lg font-medium">{identifier}</LtrIsolate>
-              </BottomSheetBody>
-            </>
+            <AccountSheetContent locale={locale} identifier={identifier} />
           ) : null}
         </BottomSheetContent>
       </BottomSheet>

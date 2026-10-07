@@ -5608,3 +5608,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** No module imports. The guard lives in `guard.ts` (a Next page file may only export its page), and the test runs it, and the page, with NODE_ENV=production.
 
 **How to verify:** `npm test`: 561 tests. `npm run build` is green. Screenshots were taken from a production build with the guard temporarily bypassed (restored before commit).
+
+## Account: change your own password (commit 1 of 3)
+
+**When:** 2026-10-08
+
+**What:**
+- **One password policy**, `access/domain/password-policy.ts` `checkPassword`: at least 12 characters (counted as characters), not equal (case-insensitive, trimmed) to the login, its local part or the tenant slug, not on a small denylist; no composition rules, spaces allowed. The app, `scripts/set-password.ts` and `scripts/platform.ts` (`tenants create`) all call it (`askNewPassword` and `requireOwnerPassword` now take the identifier and slug). New copy keys `access.password_*`, `platform.password_weak`.
+- **Use case `changeOwnPassword({ currentPassword, newPassword })`**: the user comes from the session (`getCurrentMembership` + the cookie), never from the client; any role may change its OWN password. A suspended tenant has no membership, so it is refused at the existing choke point. Order: policy (reveals nothing), block check, current password. A wrong current password counts under `pwchange:<userId>` (5 failures in 15 minutes, then a 15-minute block, key `pwchange:block:<userId>`, generic message), separate from the login counter; success resets it. On success one `platformDb.$transaction` stores the new hash (current cost) and deletes every OTHER session of the user, matched by the hash of the cookie token; the current one stays.
+- **UI:** More > Account row opens a sheet with the login (read-only) and "Change password". The password step has current password, new password with show/hide (no confirm), the hint "12+ characters; a phrase works", the exact refusal inline, one primary Save, and a toast "Password changed. Other devices were logged out." Fields use `current-password` / `new-password`; the action never logs or echoes a password.
+- No migration.
+
+**Files:** `modules/access/{domain/{password-policy,credential-limits},application/{own-credentials,change-own-password},infrastructure/users}.ts`, `modules/platform/{domain/inputs,application/create-tenant}.ts`, `scripts/{lib/operator-io,set-password-core,platform-cli}.ts`, `app/owner/(app)/more/{hub.tsx,account/*}`, `lib/{ui-copy,error-messages}.ts`, tests `test/modules/access/domain/password-policy.test.ts`, `test/integration/account-credentials.integration.test.ts`.
+
+**How to verify:** see the results line appended below. Not rendered (no browser in this session).
+
+- `npm test`: 605 passed. `npm run test:integration`: 216 passed (11 new in `account-credentials`). `npm run build` is green.

@@ -1,4 +1,4 @@
-import { MIN_PASSWORD_LENGTH } from "@/modules/access/domain/password-policy";
+import { checkPassword, describePasswordRefusal } from "@/modules/access/domain/password-policy";
 import { databaseNameFromUrl } from "@/prisma/seed-guard";
 
 /**
@@ -38,15 +38,17 @@ export async function confirmTyped(io: OperatorIo, label: string, expected: stri
 }
 
 /**
- * New password: hidden prompt twice, at least 12 characters. Never from an
- * argument or an environment variable.
+ * New password: hidden prompt twice, checked with the one shared policy
+ * (access/domain/password-policy.ts). Never from an argument or an environment variable.
  */
-export async function askNewPassword(io: OperatorIo): Promise<string> {
+export async function askNewPassword(
+  io: OperatorIo,
+  context: { identifier: string; slug?: string },
+): Promise<string> {
   const password = await io.ask("New password: ", { hidden: true });
   const again = await io.ask("Repeat new password: ", { hidden: true });
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    throw new Error(`Refused: the password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-  }
+  const refusal = checkPassword(password, context);
+  if (refusal) throw new Error(`Refused: ${describePasswordRefusal(refusal)}`);
   if (password !== again) throw new Error("Refused: the two passwords do not match.");
   return password;
 }

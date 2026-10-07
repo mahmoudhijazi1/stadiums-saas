@@ -22,7 +22,7 @@ export async function setPassword(
   });
   if (!user) throw new Error(`Refused: no user ${identifier}.`);
 
-  const password = await askNewPassword(io);
+  const password = await askNewPassword(io, { identifier: user.identifier });
   const passwordHash = await hashPassword(password);
   await platformDb.$transaction([
     platformDb.user.update({ where: { id: user.id }, data: { passwordHash } }),

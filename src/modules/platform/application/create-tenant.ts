@@ -57,7 +57,10 @@ export async function createTenant(input: CreateTenantInput): Promise<{
 }> {
   const checked = validateCreateTenantInput(input);
   // Hash outside the transaction (about 100–200 ms).
-  const passwordHash = await hashPassword(requireOwnerPassword(input.ownerPassword));
+  const passwordHash = await hashPassword(requireOwnerPassword(input.ownerPassword, {
+    identifier: checked.ownerIdentifier,
+    slug: checked.slug,
+  }));
   const now = new Date();
 
   try {

@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
-import { MIN_PASSWORD_LENGTH } from "@/modules/access/domain/password-policy";
+import { checkPassword } from "@/modules/access/domain/password-policy";
 import { parseLoginIdentifier } from "@/modules/access/domain/identifier";
 import { validateSlug } from "@/modules/platform/domain/slug";
 
@@ -68,7 +68,12 @@ export function ownerIdentifierFor(slug: string, override?: string | null): stri
   return `${parsed.local}@${parsed.slug}`;
 }
 
-export function requireOwnerPassword(password: string): string {
-  if (password.length < MIN_PASSWORD_LENGTH) throw new DomainError("platform.password_too_short");
+export function requireOwnerPassword(
+  password: string,
+  context: { identifier: string; slug: string },
+): string {
+  const refusal = checkPassword(password, context);
+  if (refusal === "too_short") throw new DomainError("platform.password_too_short");
+  if (refusal) throw new DomainError("platform.password_weak");
   return password;
 }

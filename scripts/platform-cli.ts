@@ -61,6 +61,7 @@ const MESSAGES: Record<string, string> = {
   "platform.name_required": "Refused: --name is required.",
   "platform.name_too_long": "Refused: --name is too long (80 characters max).",
   "platform.day_start_hour_invalid": "Refused: --day-start-hour must be a whole hour from 0 to 6.",
+  "platform.password_weak": "Refused: that password is too easy to guess (the login, the stadium slug or a common password).",
   "platform.plan_required": "Refused: --plan is required.",
   "platform.plan_too_long": "Refused: --plan is too long (40 characters max).",
   "platform.note_too_long": "Refused: --note is too long (200 characters max).",
@@ -139,9 +140,9 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
         actor: ctx.actor,
       };
       // Fail on bad arguments before asking anything.
-      validateCreateTenantInput(input);
+      const validated = validateCreateTenantInput(input);
       await confirmDatabase(io, ctx.databaseUrl);
-      const ownerPassword = await askNewPassword(io);
+      const ownerPassword = await askNewPassword(io, { identifier: validated.ownerIdentifier, slug: validated.slug });
       const created = await createTenant({ ...input, ownerPassword });
       io.print(`created ${created.slug} (owner login: ${created.ownerIdentifier})`);
       return;
