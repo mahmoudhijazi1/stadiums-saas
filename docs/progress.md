@@ -5624,3 +5624,11 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How to verify:** see the results line appended below. Not rendered (no browser in this session).
 
 - `npm test`: 605 passed. `npm run test:integration`: 216 passed (11 new in `account-credentials`). `npm run build` is green.
+
+## Account: log out other devices (commit 2 of 3)
+
+**What:** `logOutOtherDevices()` deletes every session of the logged-in user except the current one (matched by the hash of the cookie token) and returns how many it closed. The user comes from the session; any role may do it for itself; a suspended tenant is refused by the existing choke point. In the Account sheet a secondary "Log out other devices" button opens a confirm step ("Every other device will be logged out. This one stays logged in."), then a toast with the count ("Logged out of 2 other devices." / zero: "No other devices were logged in."). No migration.
+
+**Files:** `modules/access/{application/log-out-other-devices,infrastructure/sessions}.ts`, `app/owner/(app)/more/account/{actions,account-sheet}.tsx`, `lib/ui-copy.ts`, tests added to `test/integration/account-credentials.integration.test.ts`.
+
+**How to verify:** `npm test`: 605 passed. `npm run test:integration`: 219 passed (3 new). `npm run build` is green. Not rendered (no browser).

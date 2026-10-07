@@ -42,3 +42,11 @@ export async function extendSession(id: string, expiresAt: Date) {
 export async function deleteExpiredSessions(userId: string, now: Date) {
   await platformDb.session.deleteMany({ where: { userId, expiresAt: { lte: now } } });
 }
+
+/** Every session of the user except the one with this cookie token. Returns how many. */
+export async function deleteOtherSessions(userId: string, currentToken: string): Promise<number> {
+  const result = await platformDb.session.deleteMany({
+    where: { userId, tokenHash: { not: hashSessionToken(currentToken) } },
+  });
+  return result.count;
+}

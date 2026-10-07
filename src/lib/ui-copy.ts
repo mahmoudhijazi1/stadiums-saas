@@ -991,6 +991,16 @@ export function dayStartClock(hour: number, locale: UiLocale = "ar"): string {
   return `${hour === 0 ? 12 : hour}:00 ${locale === "en" ? "AM" : "ص"}`;
 }
 
+/** Toast after "log out other devices": how many were closed. */
+export function devicesClosedLabel(count: number, locale: UiLocale = "ar"): string {
+  if (locale === "en") {
+    return count === 0
+      ? "No other devices were logged in."
+      : `Logged out of ${count} other ${count === 1 ? "device" : "devices"}.`;
+  }
+  return count === 0 ? "لا توجد أجهزة أخرى مسجّلة." : `تم تسجيل الخروج من ${count} جهاز.`;
+}
+
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {
   return locale === "en"
     ? `Booker pays all remaining $${amount}`

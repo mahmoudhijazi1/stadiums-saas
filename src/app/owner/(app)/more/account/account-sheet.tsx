@@ -15,9 +15,10 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
-import { submitChangePassword } from "./actions";
+import { devicesClosedLabel } from "@/lib/ui-copy";
+import { submitChangePassword, submitLogOutOtherDevices } from "./actions";
 
-type Step = "home" | "password";
+type Step = "home" | "password" | "logout";
 
 /**
  * More > Account sheet: the login (read-only here) and the actions on your own
@@ -36,7 +37,11 @@ export function AccountSheetContent({
     <>
       <BottomSheetHeader>
         <BottomSheetTitle>
-          {step === "password" ? ui("owner.changePassword", locale) : ui("owner.identifier", locale)}
+          {step === "password"
+            ? ui("owner.changePassword", locale)
+            : step === "logout"
+              ? ui("owner.logoutOthers", locale)
+              : ui("owner.identifier", locale)}
         </BottomSheetTitle>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-4 pb-4">
@@ -46,7 +51,12 @@ export function AccountSheetContent({
             <Button type="button" className="w-full" onClick={() => setStep("password")}>
               {ui("owner.changePassword", locale)}
             </Button>
+            <Button type="button" variant="outline" className="w-full" onClick={() => setStep("logout")}>
+              {ui("owner.logoutOthers", locale)}
+            </Button>
           </>
+        ) : step === "logout" ? (
+          <LogoutOthers locale={locale} onDone={() => setStep("home")} />
         ) : (
           <PasswordForm locale={locale} onDone={() => setStep("home")} onBack={() => setStep("home")} />
         )}
@@ -136,5 +146,41 @@ function PasswordForm({
         {ui("owner.back", locale)}
       </Button>
     </form>
+  );
+}
+
+/** Confirm step, then the count of devices that were closed. */
+function LogoutOthers({ locale, onDone }: { locale: UiLocale; onDone: () => void }) {
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function confirm() {
+    setError(null);
+    startTransition(async () => {
+      const result = await submitLogOutOtherDevices();
+      if ("error" in result) {
+        setError(errorMessage(result.error, locale));
+        return;
+      }
+      toast.success(devicesClosedLabel(result.closed, locale));
+      onDone();
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm">{ui("owner.logoutOthersAsk", locale)}</p>
+      {error ? (
+        <p role="alert" className="text-sm text-owed">
+          {error}
+        </p>
+      ) : null}
+      <Button type="button" className="w-full" onClick={confirm} disabled={pending}>
+        {ui("owner.logoutOthersConfirm", locale)}
+      </Button>
+      <Button type="button" variant="ghost" className="w-full" onClick={onDone} disabled={pending}>
+        {ui("owner.notNow", locale)}
+      </Button>
+    </div>
   );
 }

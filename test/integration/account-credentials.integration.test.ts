@@ -3,6 +3,7 @@ import { platformDb } from "@/lib/platform-db";
 import { hitRateLimit } from "@/lib/rate-limit";
 import { changeOwnPassword } from "@/modules/access/application/change-own-password";
 import { login } from "@/modules/access/application/login";
+import { logOutOtherDevices } from "@/modules/access/application/log-out-other-devices";
 import { pwChangeKeys } from "@/modules/access/domain/credential-limits";
 import { verifyPassword } from "@/modules/access/infrastructure/password";
 import { hashSessionToken } from "@/modules/access/infrastructure/session-token";
@@ -172,5 +173,46 @@ describe("changeOwnPassword", () => {
       key: "access.not_allowed",
     });
     expect(await verifyPassword(OLD, await hashOf(fixture.ownerUserId))).toBe(true);
+  });
+});
+
+describe("logOutOtherDevices", () => {
+  it("closes the user's other sessions, reports how many, and keeps the current one", async () => {
+    await createSession(fixture.ownerUserId, future());
+    await createSession(fixture.ownerUserId, future());
+
+    expect(await logOutOtherDevices()).toEqual({ closed: 2 });
+
+    const remaining = await platformDb.session.findMany({ where: { userId: fixture.ownerUserId } });
+    expect(remaining.map((row) => row.tokenHash)).toEqual([hashSessionToken(fixture.sessionId)]);
+    expect(await logOutOtherDevices()).toEqual({ closed: 0 });
+  });
+
+  it("leaves other users' sessions alone", async () => {
+    const staffToken = await createStaffSession(fixture.tenantId, {});
+    const staff = await platformDb.session.findFirstOrThrow({ where: { tokenHash: hashSessionToken(staffToken) } });
+    await createSession(staff.userId, future());
+
+    await logOutOtherDevices();
+
+    expect(await sessionCount(staff.userId)).toBe(2);
+  });
+
+  it("works for staff with no flags, is refused without a session and on a suspended tenant", async () => {
+    const staffToken = await createStaffSession(fixture.tenantId, {});
+    const staff = await platformDb.session.findFirstOrThrow({ where: { tokenHash: hashSessionToken(staffToken) } });
+    await createSession(staff.userId, future());
+    actAs(staffToken);
+    expect(await logOutOtherDevices()).toEqual({ closed: 1 });
+
+    clearRequestStubs();
+    setTenantSlug(fixture.tenantSlug);
+    await expect(logOutOtherDevices()).rejects.toMatchObject({ key: "access.not_allowed" });
+
+    await platformDb.tenant.update({ where: { id: fixture.tenantId }, data: { suspendedAt: new Date() } });
+    actAs(fixture.sessionId);
+    await createSession(fixture.ownerUserId, future());
+    await expect(logOutOtherDevices()).rejects.toMatchObject({ key: "access.not_allowed" });
+    expect(await sessionCount(fixture.ownerUserId)).toBe(2);
   });
 });
