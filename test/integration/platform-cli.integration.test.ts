@@ -91,6 +91,27 @@ describe("tenants create", () => {
     expect(await platformDb.tenant.count()).toBe(0);
   });
 
+  it("stores --day-start-hour in the tenant settings", async () => {
+    const { promise } = run(
+      ["tenants", "create", "--slug", "al-nour", "--name", "Al Nour", "--day-start-hour", "3"],
+      ["stadiums_test", PASSWORD, PASSWORD],
+    );
+    await promise;
+    const tenant = await platformDb.tenant.findUniqueOrThrow({ where: { slug: "al-nour" } });
+    expect((tenant.settings as { dayStartHour?: number }).dayStartHour).toBe(3);
+  });
+
+  it("refuses --day-start-hour outside 0 to 6 before any prompt", async () => {
+    for (const bad of ["7", "-1", "2.5", "six"]) {
+      const { promise, asked } = run(
+        ["tenants", "create", "--slug", "al-nour", "--name", "Al Nour", "--day-start-hour", bad],
+      );
+      await expect(promise).rejects.toThrow(/day-start-hour/);
+      expect(asked).toEqual([]);
+    }
+    expect(await platformDb.tenant.count()).toBe(0);
+  });
+
   it("refuses an invalid slug before any prompt", async () => {
     const { promise, asked } = run(["tenants", "create", "--slug", "www", "--name", "X"]);
     await expect(promise).rejects.toThrow(/slug/i);

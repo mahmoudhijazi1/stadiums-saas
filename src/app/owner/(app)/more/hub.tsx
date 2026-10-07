@@ -31,7 +31,8 @@ import {
   type UiLocale,
 } from "@/lib/locale";
 import type { TimeDisplay } from "@/lib/tenant-settings";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { dayStartClock, ui, uiCount } from "@/lib/ui-copy";
+import { SelectField } from "@/components/ui/select-field";
 import { cn } from "cn";
 
 type SheetId =
@@ -125,6 +126,8 @@ export function MoreHub({
   lateCancellationFeePercent,
   noShowFeePercent,
   perPlayerSplitEnabled,
+  dayStartHour,
+  riskyDayStartHours,
   identifier,
 }: {
   locale: UiLocale;
@@ -138,10 +141,14 @@ export function MoreHub({
   lateCancellationFeePercent: number;
   noShowFeePercent: number;
   perPlayerSplitEnabled: boolean;
+  dayStartHour: number;
+  /** Day-start hours (0..6) that fall inside some pitch's opening window. */
+  riskyDayStartHours: number[];
   identifier: string;
 }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<SheetId | null>(null);
+  const [dayStart, setDayStart] = useState(String(dayStartHour));
   const timeLabel =
     timeDisplay === "h12"
       ? ui("owner.timeDisplayH12", locale)
@@ -344,6 +351,25 @@ export function MoreHub({
                     label={ui("owner.noShowFeeSetting", locale)}
                     current={noShowFeePercent}
                   />
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="dayStartHour">{ui("owner.dayStartLabel", locale)}</Label>
+                    <SelectField
+                      id="dayStartHour"
+                      name="dayStartHour"
+                      defaultValue={String(dayStartHour)}
+                      onValueChange={setDayStart}
+                      options={[0, 1, 2, 3, 4, 5, 6].map((hour) => ({
+                        value: String(hour),
+                        label: hour === 0 ? ui("owner.dayStartMidnight", locale) : dayStartClock(hour, locale),
+                      }))}
+                    />
+                    {riskyDayStartHours.includes(Number(dayStart)) ? (
+                      <p role="status" className="text-sm text-owed">
+                        {ui("owner.dayStartWarning", locale)}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">{ui("owner.dayStartNote", locale)}</p>
+                  </div>
                   <label className="flex items-start gap-3 text-sm">
                     <input
                       type="checkbox"

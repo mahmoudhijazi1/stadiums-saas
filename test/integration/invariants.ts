@@ -63,7 +63,7 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
     const rows = await listPersonStatRows(db, personId);
     const byDay = new Map<string, DaySummaryRow[]>();
     for (const row of rows) {
-      const day = businessDate(row.start);
+      const day = businessDate(row.start, 6);
       const key = `${day.year}-${day.month}-${day.day}`;
       const group = byDay.get(key) ?? [];
       group.push({

@@ -22,7 +22,7 @@ import {
 export const USAGE = [
   "Usage: tsx scripts/platform.ts <command>",
   "  tenants list",
-  "  tenants create --slug <slug> --name <name> [--plan <label>] [--paid-until YYYY-MM-DD] [--owner-identifier <local@slug>]",
+  "  tenants create --slug <slug> --name <name> [--plan <label>] [--paid-until YYYY-MM-DD] [--owner-identifier <local@slug>] [--day-start-hour <0-6>]",
   "  tenants suspend <slug> --reason <text>",
   "  tenants resume <slug>",
   "  subscriptions set <slug> --plan <label> --paid-until YYYY-MM-DD [--amount <usd>] [--note <text>]",
@@ -44,6 +44,7 @@ const OPTIONS = {
   plan: { type: "string" },
   "paid-until": { type: "string" },
   "owner-identifier": { type: "string" },
+  "day-start-hour": { type: "string" },
   reason: { type: "string" },
   amount: { type: "string" },
   note: { type: "string" },
@@ -59,6 +60,7 @@ const MESSAGES: Record<string, string> = {
   "platform.password_too_short": "Refused: the password must be at least 12 characters.",
   "platform.name_required": "Refused: --name is required.",
   "platform.name_too_long": "Refused: --name is too long (80 characters max).",
+  "platform.day_start_hour_invalid": "Refused: --day-start-hour must be a whole hour from 0 to 6.",
   "platform.plan_required": "Refused: --plan is required.",
   "platform.plan_too_long": "Refused: --plan is too long (40 characters max).",
   "platform.note_too_long": "Refused: --note is too long (200 characters max).",
@@ -133,6 +135,7 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
         plan: values.plan ?? null,
         paidUntil: paidUntilDate(values["paid-until"], false),
         ownerIdentifier: values["owner-identifier"] ?? null,
+        dayStartHour: values["day-start-hour"] ?? null,
         actor: ctx.actor,
       };
       // Fail on bad arguments before asking anything.

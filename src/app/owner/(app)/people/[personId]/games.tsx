@@ -117,8 +117,8 @@ export async function PersonGames({
                       <ClockRangeText
                         text={formatLocalClockRange(row.start, row.end, hourCycle, locale)}
                       />
-                      {nightHint(row.start, locale) ? (
-                        <span>{nightHint(row.start, locale)}</span>
+                      {nightHint(row.start, locale, tenant.dayStartHour) ? (
+                        <span>{nightHint(row.start, locale, tenant.dayStartHour)}</span>
                       ) : null}
                       {showPitch ? <span>{row.pitchName}</span> : null}
                       {row.status !== "APPROVED" ? (

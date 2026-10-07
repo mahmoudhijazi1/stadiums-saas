@@ -6,13 +6,17 @@ import { businessDate, isNightStart } from "@/modules/booking/domain/business-da
 const TIME_ZONE = "Asia/Beirut";
 
 /**
- * "night of Friday" / "ليلة الجمعة" for a game that starts 00:00–05:59 local, else null.
+ * "night of Friday" / "ليلة الجمعة" for a game that starts between midnight and the tenant's day start, else null.
  * The weekday is the game's business date (the evening it belongs to). Dates and clock
  * times elsewhere stay real; this is only a hint beside them.
  */
-export function nightHint(start: Date, locale: UiLocale): string | null {
-  if (!isNightStart(start, TIME_ZONE)) return null;
-  const date = businessDate(start, TIME_ZONE);
+export function nightHint(
+  start: Date,
+  locale: UiLocale,
+  dayStartHour: number,
+): string | null {
+  if (!isNightStart(start, dayStartHour, TIME_ZONE)) return null;
+  const date = businessDate(start, dayStartHour, TIME_ZONE);
   const weekday = formatDisplayDate(
     new Date(Date.UTC(date.year, date.month - 1, date.day, 12)),
     locale,
@@ -26,12 +30,16 @@ export function nightHint(start: Date, locale: UiLocale): string | null {
  * The `{day}` of every WhatsApp message: the real calendar date, plus the night hint
  * for a 00:00–05:59 start ("السبت، 26 أيلول (ليلة الجمعة)").
  */
-export function messageDayLabel(start: Date, locale: UiLocale): string {
+export function messageDayLabel(
+  start: Date,
+  locale: UiLocale,
+  dayStartHour: number,
+): string {
   const day = formatDisplayDate(start, locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
   });
-  const hint = nightHint(start, locale);
+  const hint = nightHint(start, locale, dayStartHour);
   return hint ? `${day} (${hint})` : day;
 }

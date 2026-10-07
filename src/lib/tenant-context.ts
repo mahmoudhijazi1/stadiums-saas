@@ -20,6 +20,8 @@ export type CurrentTenant = {
   lateCancellationFeePercent: number;
   noShowFeePercent: number;
   perPlayerSplitEnabled: boolean;
+  /** Local hour a business day starts (0..6). */
+  dayStartHour: number;
   /** Suspended by the platform operator (decision 7). Loaded in the same query. */
   suspended: boolean;
 };
@@ -64,6 +66,7 @@ async function loadTenant(): Promise<CurrentTenant> {
     lateCancellationFeePercent: settings.lateCancellationFeePercent,
     noShowFeePercent: settings.noShowFeePercent,
     perPlayerSplitEnabled: settings.perPlayerSplitEnabled,
+    dayStartHour: settings.dayStartHour,
     suspended: tenant.suspendedAt !== null,
   };
 }

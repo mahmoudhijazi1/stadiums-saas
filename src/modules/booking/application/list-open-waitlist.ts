@@ -85,7 +85,7 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
         groups.set(groupKey, group);
       }
 
-      const day = messageDayLabel(row.start, locale);
+      const day = messageDayLabel(row.start, locale, tenant.dayStartHour);
       let href: string | null = null;
       try {
         href = whatsAppHref(

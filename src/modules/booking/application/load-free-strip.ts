@@ -36,7 +36,7 @@ export type FreeStrip =
     };
 
 /**
- * Free slots for one Today business day (06:00 to 06:00 Beirut). Three reads, all
+ * Free slots for one Today business day (Beirut, from the tenant's day start hour). Three reads, all
  * batched: pitches, APPROVED ranges, PENDING counts per slot. The slots come from
  * the availability engine; Booking decides which are still free. `now` is injectable.
  */
@@ -50,13 +50,13 @@ export async function loadFreeStrip(
   }
 
   try {
-    const today = businessDate(now, TIME_ZONE);
+    const tenant = await getCurrentTenant();
+    const today = businessDate(now, tenant.dayStartHour, TIME_ZONE);
     const day = resolveOwnerDay(dateParam, today);
     if (compareCivilDate(day, today) < 0) return { kind: "none" };
 
-    const tenant = await getCurrentTenant();
     const locale = await getUiLocale();
-    const range = businessDayUtcRange(day, TIME_ZONE);
+    const range = businessDayUtcRange(day, tenant.dayStartHour, TIME_ZONE);
     const [pitches, approved, pendingRows] = await Promise.all([
       getDayAvailability({
         localDate: day,

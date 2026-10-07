@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const now = new Date();
-  const today = businessDate(now, "Asia/Beirut");
+  const today = businessDate(now, tenant.dayStartHour, "Asia/Beirut");
   const localDate = parseCivilDate(dateParam) ?? today;
   const dateValue = formatCivilDate(localDate);
 

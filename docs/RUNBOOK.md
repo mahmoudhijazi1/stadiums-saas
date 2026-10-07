@@ -104,7 +104,7 @@ npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 
 
 ### Onboarding checklist
 
-1. `tenants create --slug <slug> --name "<name>" --paid-until <date>`, then give the owner their login (`owner@<slug>`) and password in person.
+1. Ask the owner: **"When does your business day start?"** (the hour after which a late game stops counting as last night's: midnight, or 1 to 6 AM; most answer 6 AM). Then `tenants create --slug <slug> --name "<name>" --paid-until <date> [--day-start-hour <0-6>]` (omit it for the default, 6), and give the owner their login (`owner@<slug>`) and password in person. They can change it later: More → Business → Booking rules.
 2. The owner opens `https://<slug>.<APP_BASE_DOMAIN>/owner/login` and logs in.
 3. The owner sets the exchange rate: More → Settings.
 4. The owner adds pitches, with hours and prices: More → Settings → Pitches.

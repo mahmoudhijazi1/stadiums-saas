@@ -5568,3 +5568,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Kept on purpose:** the existing `:lang(ar)` size bump (`text-xs/sm/base` become 13/15/17 px) from the Arabic reading-size rule. Headings elsewhere keep their larger sizes (`text-3xl` page titles).
 
 **How to verify:** `npm test`: 567 passed. `npm run build` green after each commit. Not rendered (no browser in this session): see the DevTools checks given with this change.
+
+## Business-day start hour is a per-tenant setting
+
+**When:** 2026-10-08
+
+**What:**
+- New tenant setting `dayStartHour` (integer 0 to 6, default 6 when absent or junk, so existing tenants are unchanged). No migration. It rides on `getCurrentTenant()` (the row it already loads): no extra query.
+- `businessDate`, `businessDayUtcRange` and `isNightStart` now take the hour as an explicit required parameter (the range is [D at hour, D+1 at hour) in wall-clock time, so DST days keep the boundary at that local hour; the query still filters on `lower(during)`). `BUSINESS_DAY_ROLLOVER_HOUR` stays only as the default value. Call sites pass `tenant.dayStartHour`: Today's day and range, the free-hour strip, the earlier-debts filter and its day labels, the "night of" hint, the WhatsApp day labels, the public page and the Book page. The date strip follows through the business `today` it is given; the day summary through the day's games. The "after midnight" notice now names the tenant's hour.
+- Booking rules sheet: a select "When does your business day start?" (12 midnight, then 1 to 6 AM), saved with the existing Save under `settings.manage`. It shows a warning when the chosen hour falls inside a pitch's opening window (`startHoursInsideWindows`), and always the note "Changing this changes which day games after midnight appear under. It changes no amounts."
+- `tenants create --day-start-hour <0-6>` (refused outside 0 to 6 before any prompt), added to the RUNBOOK onboarding checklist with the question to ask the owner.
+- Untouched: instant logic (live, ended, owed, expired, cancel, no-show), the schedule engine, the ledger and the Money tab (cash stays bucketed by calendar day).
+
+**Why:** a stadium that opens before 06:00 saw its early games on the previous day (NOW.md trade-off, UX-02 §2.3).
+
+**Files:** `lib/{tenant-settings,tenant-context,ui-copy}.ts`, `modules/booking/domain/business-day.ts`, `modules/booking/application/{load-owner-day,load-free-strip,night-hint,list-open-waitlist,load-decision-notify,load-outcome-notify}.ts`, `modules/platform/{domain/inputs,application/create-tenant}.ts`, `scripts/platform-cli.ts`, `app/(public)/page.tsx`, `app/owner/(app)/{book/page,more/*,today/*,people/[personId]/games}.tsx`, `components/ui/select-field.tsx`, docs (RUNBOOK, NOW, ux-02-history banner).
+
+**How to verify:** `npm test`: 578 passed. `npm run test:integration`: 205 passed (day-start integration file, CLI cases). `npm run build` is green. No `docs/domain/booking-lifecycle.md` exists, so nothing to update there.

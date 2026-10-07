@@ -2,6 +2,7 @@ import { DomainError } from "@/lib/errors";
 import { parseTenantSettings } from "@/lib/tenant-settings";
 import { hashPassword } from "@/modules/access/infrastructure/password";
 import {
+  optionalDayStartHour,
   ownerIdentifierFor,
   requireActor,
   requireOwnerPassword,
@@ -24,6 +25,8 @@ export type CreateTenantInput = {
   plan?: string | null;
   paidUntil?: Date | null;
   ownerIdentifier?: string | null;
+  /** Local hour a business day starts, 0..6 (a string from the CLI). Absent: 6. */
+  dayStartHour?: string | number | null;
   ownerPassword: string;
   actor: string;
 };
@@ -37,6 +40,7 @@ export function validateCreateTenantInput(input: Omit<CreateTenantInput, "ownerP
     plan: requirePlan(input.plan ?? DEFAULT_PLAN),
     paidUntil: input.paidUntil ?? null,
     ownerIdentifier: ownerIdentifierFor(slug, input.ownerIdentifier),
+    dayStartHour: optionalDayStartHour(input.dayStartHour),
     actor: requireActor(input.actor),
   };
 }
@@ -59,7 +63,10 @@ export async function createTenant(input: CreateTenantInput): Promise<{
   try {
     return await platformTransaction(async (tx) => {
       const tenant = await tx.tenant.create({
-        data: { slug: checked.slug, name: checked.name, settings: parseTenantSettings({}) },
+        data: { slug: checked.slug, name: checked.name, settings: parseTenantSettings(
+            checked.dayStartHour === null ? {} : { dayStartHour: checked.dayStartHour },
+          ),
+        },
         select: { id: true },
       });
       const user = await tx.user.create({
@@ -88,6 +95,7 @@ export async function createTenant(input: CreateTenantInput): Promise<{
           plan: checked.plan,
           paidUntil: checked.paidUntil?.toISOString() ?? null,
           ownerIdentifier: checked.ownerIdentifier,
+          dayStartHour: checked.dayStartHour,
         },
       });
       return { tenantId: tenant.id, slug: checked.slug, ownerIdentifier: checked.ownerIdentifier };

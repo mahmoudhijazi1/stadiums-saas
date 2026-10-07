@@ -27,7 +27,7 @@ import Decimal from "decimal.js";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { formatUsd, formatUsdCompact } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { dayStartClock, ui, uiCount } from "@/lib/ui-copy";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";
@@ -93,7 +93,7 @@ export async function OwnerToday({
   // Games from earlier business days that are still owed. Today's own ended games stay in Games.
   const earlierDebts = ownerDay.isToday
     ? ownerDay.toCollect.filter(
-        (row) => compareCivilDate(businessDate(row.start), ownerDay.today) < 0,
+        (row) => compareCivilDate(businessDate(row.start, tenant.dayStartHour), ownerDay.today) < 0,
       )
     : [];
   const earlierTotal = earlierDebts.reduce(
@@ -110,7 +110,7 @@ export async function OwnerToday({
       <DayContent date={formatCivilDate(ownerDay.day)}>
       {ownerDay.isToday && ownerDay.afterMidnight ? (
         <p className="text-center text-xs text-muted-foreground">
-          {ui("owner.afterMidnightToday", locale)}
+          {ui("owner.afterMidnightToday", locale).replace("{time}", dayStartClock(tenant.dayStartHour, locale))}
         </p>
       ) : null}
 
@@ -156,6 +156,7 @@ export async function OwnerToday({
           tenant.name,
           showPitch,
           tenant.perPlayerSplitEnabled,
+          tenant.dayStartHour,
         )}
         toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
         toCollectTotal={formatUsdCompact(earlierTotal)}
@@ -174,6 +175,7 @@ export async function OwnerToday({
           tenant.name,
           showPitch,
           tenant.perPlayerSplitEnabled,
+          tenant.dayStartHour,
         )}
         locale={locale}
         mayCollect={mayCollect}
@@ -272,6 +274,7 @@ function toUpcomingViews(
   stadiumName: string,
   showPitch: boolean,
   splitEnabled: boolean,
+  dayStartHour: number,
 ): UpcomingRowView[] {
   return rows.map((row) => {
     const display = deriveCardDisplay({
@@ -301,9 +304,9 @@ function toUpcomingViews(
       id: row.id,
       pitchName: showPitch ? row.pitchName : null,
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
-      dayLabel: formatEarlierDayLabel(row.start, now, locale),
+      dayLabel: formatEarlierDayLabel(row.start, now, locale, dayStartHour),
       dateLabel: formatSlotDateLabel(row.start, now, locale),
-      nightHint: nightHint(row.start, locale),
+      nightHint: nightHint(row.start, locale, dayStartHour),
       requesterPersonId: row.requesterPersonId,
       requesterName: row.requesterName,
       requesterPhone: row.requesterPhone,
@@ -386,7 +389,7 @@ function toUpcomingViews(
       collectedExact: formatUsd(row.collectedUsd),
       collectedCompact: formatUsdCompact(row.collectedUsd),
       stadiumName,
-      waDay: messageDayLabel(row.start, locale),
+      waDay: messageDayLabel(row.start, locale, dayStartHour),
       waTime: formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale),
     };
   });

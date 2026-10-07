@@ -59,6 +59,7 @@ There is **no History tab** and no global activity feed. Every view that answers
 
 ### 2.3 Which day a game belongs to
 > **Amended 2026-09-30:** a game now belongs to its **business day** (06:00 to 06:00 Beirut), not the calendar day of its start. See `docs/NOW.md` "Business day" and progress.md "Business day: 06:00 rollover".
+> **Amended 2026-10-08:** the 06:00 start is now a per-tenant setting (`dayStartHour`, 0 to 6, default 6) in Booking rules.
 
 A game belongs to the day it **starts** in `Asia/Beirut`. A game from 23:00 to 00:30 appears on its start day only.
 This rule lives once, as a pure domain function, and is used by the day view, the day summary, and the month overview.

@@ -37,6 +37,7 @@ const RULES = {
   cancellationWindowHours: 24,
   lateCancellationFeePercent: 0,
   noShowFeePercent: 100,
+  dayStartHour: 6,
 } as const;
 
 let fixture: TestFixture;

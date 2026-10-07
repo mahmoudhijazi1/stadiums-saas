@@ -8,6 +8,10 @@ import { z } from "zod";
 export const TIME_DISPLAY = ["h23", "h12"] as const;
 export type TimeDisplay = (typeof TIME_DISPLAY)[number];
 
+/** The business day starts at this local hour (0 = midnight .. 6). 6 for tenants that never set it. */
+export const DEFAULT_DAY_START_HOUR = 6;
+export const DAY_START_HOURS = [0, 1, 2, 3, 4, 5, 6] as const;
+
 /** Integer 0–100. Junk or a missing key falls back so old jsonb rows still parse. */
 function feePercent(fallback: number) {
   return z.number().int().min(0).max(100).catch(fallback);
@@ -24,6 +28,8 @@ const tenantSettingsSchema = z
     noShowFeePercent: feePercent(100),
     /** Off until the owner turns it on: offers the Whole / Per player switch. Old rows parse as off. */
     perPlayerSplitEnabled: z.boolean().catch(false),
+    /** Local hour a business day starts (0..6). Absent or junk: 6, so old rows are unchanged. */
+    dayStartHour: z.number().int().min(0).max(6).catch(DEFAULT_DAY_START_HOUR),
   })
   .strip();
 
@@ -48,6 +54,7 @@ const bookingRulesFormSchema = z.strictObject({
   noShowFeePercent: z.enum(["0", "50", "100"]),
   /** A checkbox: present ("true") when ticked, absent when not. */
   perPlayerSplitEnabled: z.enum(["true"]).optional(),
+  dayStartHour: z.enum(["0", "1", "2", "3", "4", "5", "6"]),
 });
 
 export type BookingRulesInput = {
@@ -55,6 +62,7 @@ export type BookingRulesInput = {
   lateCancellationFeePercent: (typeof FEE_PERCENTS)[number];
   noShowFeePercent: (typeof FEE_PERCENTS)[number];
   perPlayerSplitEnabled: boolean;
+  dayStartHour: (typeof DAY_START_HOURS)[number];
 };
 
 /** Throws ZodError if the rules form is missing or not an allowed percent. */
@@ -65,6 +73,7 @@ export function parseBookingRulesForm(input: unknown): BookingRulesInput {
     lateCancellationFeePercent: Number(parsed.lateCancellationFeePercent) as BookingRulesInput["lateCancellationFeePercent"],
     noShowFeePercent: Number(parsed.noShowFeePercent) as BookingRulesInput["noShowFeePercent"],
     perPlayerSplitEnabled: parsed.perPlayerSplitEnabled === "true",
+    dayStartHour: Number(parsed.dayStartHour) as BookingRulesInput["dayStartHour"],
   };
 }
 

@@ -6,6 +6,7 @@ import {
   getExchangeRateChangedAt,
 } from "@/modules/payment/application/get-current-rate";
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
+import { startHoursInsideWindows } from "@/modules/booking/domain/business-day";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { formatRelativeTime } from "@/lib/format-relative-time";
@@ -45,6 +46,12 @@ export default async function OwnerMorePage() {
       lateCancellationFeePercent={tenant.lateCancellationFeePercent}
       noShowFeePercent={tenant.noShowFeePercent}
       perPlayerSplitEnabled={tenant.perPlayerSplitEnabled}
+      dayStartHour={tenant.dayStartHour}
+      riskyDayStartHours={startHoursInsideWindows(
+        pitches.flatMap((pitch) =>
+          pitch.hoursGroups.map((group) => ({ open: group.open, close: group.close })),
+        ),
+      )}
       identifier={membership.identifier}
     />
   );

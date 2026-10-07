@@ -58,7 +58,7 @@ export async function loadOutcomeNotify(input: {
     if (!booking) return null;
 
     const locale = await getUiLocale();
-    const day = messageDayLabel(booking.start, locale);
+    const day = messageDayLabel(booking.start, locale, tenant.dayStartHour);
     const time = formatLocalHm(
       booking.start,
       TIME_ZONE,

@@ -16,19 +16,27 @@ function SelectField({
   defaultValue,
   options,
   required,
+  onValueChange,
 }: {
   name: string
   id?: string
   defaultValue?: string
   required?: boolean
   options: { value: string; label: string }[]
+  onValueChange?: (value: string) => void
 }) {
   const [value, setValue] = React.useState(defaultValue ?? "")
 
   return (
     <>
       <input type="hidden" name={name} value={value} required={required} />
-      <Select value={value} onValueChange={setValue}>
+      <Select
+        value={value}
+        onValueChange={(next) => {
+          setValue(next)
+          onValueChange?.(next)
+        }}
+      >
         <SelectTrigger id={id} className="w-full">
           <SelectValue />
         </SelectTrigger>

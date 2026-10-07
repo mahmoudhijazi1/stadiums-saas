@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
@@ -32,8 +33,8 @@ export default async function OwnerBookPage({
     );
   }
 
-  // Business date, like Today and the public page: before 06:00 it is last night.
-  const todayCivil = businessDate(new Date(), OWNER_TIME_ZONE);
+  // Business date, like Today and the public page: before the tenant's day start it is last night.
+  const todayCivil = businessDate(new Date(), (await getCurrentTenant()).dayStartHour, OWNER_TIME_ZONE);
   const today = formatCivilDate(todayCivil);
   const bookOn = parseOwnerBookOn(queryString(params.bookOn)) ?? today;
 

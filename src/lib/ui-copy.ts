@@ -211,7 +211,11 @@ const ARABIC: Record<string, string> = {
   "owner.moreSlots": "أخرى",
   "owner.allPitches": "الكل",
   "owner.prevDay": "اليوم السابق",
-  "owner.afterMidnightToday": "بعد منتصف الليل: اليوم مستمر حتى 6:00 ص.",
+  "owner.afterMidnightToday": "بعد منتصف الليل: اليوم مستمر حتى {time}.",
+  "owner.dayStartLabel": "متى يبدأ يوم الشغل عندك؟",
+  "owner.dayStartMidnight": "منتصف الليل (12:00 ص)",
+  "owner.dayStartNote": "تغيير هذا يغيّر اليوم الذي تظهر تحته المباريات بعد منتصف الليل. لا يغيّر أي مبلغ.",
+  "owner.dayStartWarning": "عندك ساعات مفتوحة تمتد بعد هذه الساعة: المباريات بعدها ستظهر في اليوم التالي.",
   "owner.nextDay": "اليوم التالي",
   "owner.monthCalendar": "الشهر",
   "owner.gamesWord": "مباريات",
@@ -522,7 +526,11 @@ const ENGLISH: Record<string, string> = {
   "owner.moreSlots": "more",
   "owner.allPitches": "All",
   "owner.prevDay": "Previous day",
-  "owner.afterMidnightToday": "After midnight: Today runs until 6:00 AM.",
+  "owner.afterMidnightToday": "After midnight: Today runs until {time}.",
+  "owner.dayStartLabel": "When does your business day start?",
+  "owner.dayStartMidnight": "Midnight (12:00 AM)",
+  "owner.dayStartNote": "Changing this changes which day games after midnight appear under. It changes no amounts.",
+  "owner.dayStartWarning": "Some pitch hours run past this hour: games after it will show on the next day.",
   "owner.nextDay": "Next day",
   "owner.monthCalendar": "Month",
   "owner.gamesWord": "games",
@@ -941,6 +949,11 @@ export function paidOfLine(
 /** Night hint beside a real date for a 00:00–05:59 start. `weekday` is already localized. */
 export function nightOfLabel(weekday: string, locale: UiLocale = "ar"): string {
   return locale === "en" ? `night of ${weekday}` : `ليلة ${weekday}`;
+}
+
+/** The day-start hour as a clock label: "6:00 ص" / "6:00 AM"; 0 is "12:00". */
+export function dayStartClock(hour: number, locale: UiLocale = "ar"): string {
+  return `${hour === 0 ? 12 : hour}:00 ${locale === "en" ? "AM" : "ص"}`;
 }
 
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {

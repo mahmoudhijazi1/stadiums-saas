@@ -79,7 +79,7 @@ export type OwnerDayBooking = {
 export type OwnerDay = {
   /** Business date shown (06:00 to 06:00 Beirut). */
   day: CivilDate;
-  /** Today's business date: before 06:00 it is still yesterday's calendar date. */
+  /** Today's business date: before the tenant's day start hour it is still yesterday's calendar date. */
   today: CivilDate;
   isToday: boolean;
   /** Now is between midnight and the rollover: Today is still the previous night. */
@@ -91,7 +91,7 @@ export type OwnerDay = {
 };
 
 /**
- * One Beirut business day for Today (06:00 to 06:00, `businessDate`), plus today's To
+ * One Beirut business day for Today (from the tenant's day start hour, `businessDate`), plus today's To
  * collect inbox. A game starting at 00:30 Saturday is on Friday. `now` is injectable for tests.
  */
 export async function loadOwnerDay(
@@ -106,9 +106,9 @@ export async function loadOwnerDay(
   const tenant = await getCurrentTenant();
 
   try {
-    const today = businessDate(now, TIME_ZONE);
+    const today = businessDate(now, tenant.dayStartHour, TIME_ZONE);
     const day = resolveOwnerDay(dateParam, today);
-    const range = businessDayUtcRange(day, TIME_ZONE);
+    const range = businessDayUtcRange(day, tenant.dayStartHour, TIME_ZONE);
     const isToday = compareCivilDate(day, today) === 0;
     const afterMidnight =
       compareCivilDate(civilDateInTimeZone(now, TIME_ZONE), today) !== 0;
@@ -138,12 +138,12 @@ export async function loadOwnerDay(
       afterMidnight,
       summary,
       games: gameRows.map((row) =>
-        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch),
+        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch, tenant.dayStartHour),
       ),
       toCollect: collectRows
         .slice(0, TO_COLLECT_LIMIT)
         .map((row) =>
-          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch),
+          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch, tenant.dayStartHour),
         ),
       toCollectHasMore: collectRows.length > TO_COLLECT_LIMIT,
     };
@@ -178,6 +178,7 @@ function toOwnerDayBooking(
   hourCycle: "h23" | "h12",
   slotsByBooking: Map<string, OwnerSlot[]>,
   showPitch: boolean,
+  dayStartHour: number,
 ): OwnerDayBooking {
   const slots = slotsByBooking.get(row.id) ?? [];
   const allocated = slots.reduce((sum, slot) => sum.plus(slot.paidUsd), new Decimal(0));
@@ -204,7 +205,7 @@ function toOwnerDayBooking(
     requesterPhone: row.requesterPhone,
     confirmWhatsAppHref:
       row.status === "APPROVED"
-        ? confirmHref(row, stadiumName, tenantId, locale, hourCycle, showPitch)
+        ? confirmHref(row, stadiumName, tenantId, locale, hourCycle, showPitch, dayStartHour)
         : null,
   };
 }
@@ -216,6 +217,7 @@ function confirmHref(
   locale: "ar" | "en",
   hourCycle: "h23" | "h12",
   showPitch: boolean,
+  dayStartHour: number,
 ): string | null {
   if (!row.requesterPhone) return null;
   try {
@@ -224,7 +226,7 @@ function confirmHref(
       bookingConfirmedMessage({
         name: row.requesterName,
         stadiumName,
-        day: messageDayLabel(row.start, locale),
+        day: messageDayLabel(row.start, locale, dayStartHour),
         time: formatLocalHm(row.start, TIME_ZONE, hourCycle, locale),
         pitchName: showPitch ? row.pitchName : null,
         locale,

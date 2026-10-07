@@ -66,7 +66,7 @@ describe("slot pages before and after 06:00", () => {
 
   it("at 00:30 Saturday opens on Friday and offers only the 01:00 slot still ahead", async () => {
     const now = localTimeToUtc(saturday, 0, 30, TIME_ZONE);
-    const today = businessDate(now, TIME_ZONE);
+    const today = businessDate(now, 6, TIME_ZONE);
     expect(today).toEqual(friday);
 
     const slots = await slotsOn(today, now, today);
@@ -79,7 +79,7 @@ describe("slot pages before and after 06:00", () => {
 
   it("at 02:30 Saturday Friday is still Today, with hours ended (not a past day)", async () => {
     const now = localTimeToUtc(saturday, 2, 30, TIME_ZONE);
-    const today = businessDate(now, TIME_ZONE);
+    const today = businessDate(now, 6, TIME_ZONE);
     expect(today).toEqual(friday);
     const slots = await slotsOn(today, now, today);
     expect(slots.clocks).toEqual([]);
@@ -88,7 +88,7 @@ describe("slot pages before and after 06:00", () => {
 
   it("at 06:30 Saturday opens on Saturday; Friday is a past day with nothing offered", async () => {
     const now = localTimeToUtc(saturday, 6, 30, TIME_ZONE);
-    const today = businessDate(now, TIME_ZONE);
+    const today = businessDate(now, 6, TIME_ZONE);
     expect(today).toEqual(saturday);
 
     expect((await slotsOn(today, now, today)).clocks).toEqual(["16:00", "17:00"]);

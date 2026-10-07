@@ -32,9 +32,10 @@ export function formatEarlierDayLabel(
   start: Date,
   now: Date,
   locale: UiLocale,
+  dayStartHour: number,
 ): string {
-  const day = businessDate(start, OWNER_TIME_ZONE);
-  const ago = civilDaysBetween(day, businessDate(now, OWNER_TIME_ZONE));
+  const day = businessDate(start, dayStartHour, OWNER_TIME_ZONE);
+  const ago = civilDaysBetween(day, businessDate(now, dayStartHour, OWNER_TIME_ZONE));
   if (ago <= 0) return ui("public.today", locale);
   if (ago === 1) return ui("owner.yesterday", locale);
   const noon = new Date(Date.UTC(day.year, day.month - 1, day.day, 12));

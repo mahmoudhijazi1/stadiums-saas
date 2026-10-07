@@ -60,11 +60,11 @@ describe("buildDayTabs", () => {
 
   it("follows the 06:00 business-day rule for today", () => {
     // 00:30 Beirut on Sat 12 Sep is 21:30 UTC on Fri 11 Sep: still Friday's business day.
-    const early = businessDate(new Date("2026-09-11T21:30:00Z"));
+    const early = businessDate(new Date("2026-09-11T21:30:00Z"), 6);
     const earlyTabs = buildDayTabs({ today: early, selected: early, locale: "en" });
     expect(earlyTabs.find((tab) => tab.kind === "today")?.date).toBe("2026-09-11");
     // 06:30 Beirut on Sat 12 Sep is 03:30 UTC: Saturday.
-    const later = businessDate(new Date("2026-09-12T03:30:00Z"));
+    const later = businessDate(new Date("2026-09-12T03:30:00Z"), 6);
     const laterTabs = buildDayTabs({ today: later, selected: later, locale: "en" });
     expect(laterTabs.find((tab) => tab.kind === "today")?.date).toBe("2026-09-12");
   });

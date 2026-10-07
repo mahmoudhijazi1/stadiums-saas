@@ -12,6 +12,7 @@ const feeDefaults = {
   lateCancellationFeePercent: 0,
   noShowFeePercent: 100,
   perPlayerSplitEnabled: false,
+  dayStartHour: 6,
 };
 
 describe("parseTenantSettings", () => {
@@ -86,12 +87,14 @@ describe("parseBookingRulesForm", () => {
         cancellationWindowHours: "24",
         lateCancellationFeePercent: "50",
         noShowFeePercent: "100",
+        dayStartHour: "6",
       }),
     ).toEqual({
       cancellationWindowHours: 24,
       lateCancellationFeePercent: 50,
       noShowFeePercent: 100,
       perPlayerSplitEnabled: false,
+      dayStartHour: 6,
     });
   });
 
@@ -116,6 +119,7 @@ describe("mergeBookingRules", () => {
           lateCancellationFeePercent: 50,
           noShowFeePercent: 0,
           perPlayerSplitEnabled: false,
+          dayStartHour: 6,
         },
       ),
     ).toEqual({
@@ -124,6 +128,7 @@ describe("mergeBookingRules", () => {
       lateCancellationFeePercent: 50,
       noShowFeePercent: 0,
       perPlayerSplitEnabled: false,
+      dayStartHour: 6,
     });
   });
 });
@@ -137,5 +142,34 @@ describe("parseTimeDisplayForm", () => {
 
   it("rejects invalid", () => {
     expect(() => parseTimeDisplayForm({ timeDisplay: "h24" })).toThrow();
+  });
+});
+
+describe("dayStartHour", () => {
+  it("is 6 when absent, so existing tenants are unchanged", () => {
+    expect(parseTenantSettings({}).dayStartHour).toBe(6);
+    expect(parseTenantSettings(null).dayStartHour).toBe(6);
+  });
+
+  it("keeps 0 to 6 and falls back to 6 for junk in a stored row", () => {
+    for (const hour of [0, 1, 3, 6]) {
+      expect(parseTenantSettings({ dayStartHour: hour }).dayStartHour).toBe(hour);
+    }
+    for (const junk of [7, -1, 2.5, "3", null]) {
+      expect(parseTenantSettings({ dayStartHour: junk }).dayStartHour).toBe(6);
+    }
+  });
+
+  it("is refused by the rules form when it is 7, -1 or 2.5, and when it is missing", () => {
+    const base = {
+      cancellationWindowHours: "24",
+      lateCancellationFeePercent: "0",
+      noShowFeePercent: "100",
+    };
+    for (const bad of ["7", "-1", "2.5", ""]) {
+      expect(() => parseBookingRulesForm({ ...base, dayStartHour: bad })).toThrow();
+    }
+    expect(() => parseBookingRulesForm(base)).toThrow();
+    expect(parseBookingRulesForm({ ...base, dayStartHour: "0" }).dayStartHour).toBe(0);
   });
 });

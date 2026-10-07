@@ -39,6 +39,14 @@ export function requirePlan(plan: string): string {
   return trimmed;
 }
 
+/** `--day-start-hour`: a whole hour 0..6, or null to keep the default (6). */
+export function optionalDayStartHour(value: string | number | null | undefined): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const text = String(value).trim();
+  if (!/^[0-6]$/.test(text)) throw new DomainError("platform.day_start_hour_invalid");
+  return Number(text);
+}
+
 export function optionalNote(note: string | null | undefined): string | null {
   const trimmed = note?.trim() ?? "";
   if (trimmed.length > NOTE_MAX) throw new DomainError("platform.note_too_long");
