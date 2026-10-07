@@ -22,7 +22,6 @@ export function OwnerDayStrip({
   return (
     <DayTabs
       tabs={buildDayTabs({ today, selected: day, locale })}
-      selected={formatCivilDate(day)}
       todayDate={formatCivilDate(today)}
       todayNumber={today.day}
       maxDate={formatCivilDate(addCalendarDays(today, OWNER_FUTURE_DAYS))}

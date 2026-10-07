@@ -32,6 +32,8 @@ import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";
 import { OwnerDayStrip } from "./day-strip";
+import { DayContent, DayNavProvider } from "./day-nav";
+import { formatCivilDate } from "@/modules/venue/domain/availability";
 import {
   messageDayLabel,
   nightHint,
@@ -103,8 +105,9 @@ export async function OwnerToday({
     notify && bookingId ? await loadOutcomeNotify({ bookingId, kind: notify }) : null;
 
   return (
-    <>
+    <DayNavProvider selected={formatCivilDate(ownerDay.day)}>
       <OwnerDayStrip day={ownerDay.day} today={ownerDay.today} locale={locale} />
+      <DayContent date={formatCivilDate(ownerDay.day)}>
       {ownerDay.isToday && ownerDay.afterMidnight ? (
         <p className="text-center text-xs text-muted-foreground">
           {ui("owner.afterMidnightToday", locale)}
@@ -182,7 +185,8 @@ export async function OwnerToday({
         date={date}
         lbpPerUsd={rate ? rate.toString() : null}
       />
-    </>
+      </DayContent>
+    </DayNavProvider>
   );
 }
 

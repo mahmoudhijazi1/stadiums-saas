@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Calendar } from "lucide-react";
 import { cn } from "cn";
 import type { DayTab } from "@/modules/booking/domain/day-tabs";
+import { useDayNav } from "./day-nav";
 
 /**
  * Horizontally scrollable day tabs. Past sits on the right in Arabic, future on the left
@@ -13,14 +13,12 @@ import type { DayTab } from "@/modules/booking/domain/day-tabs";
  */
 export function DayTabs({
   tabs,
-  selected,
   todayDate,
   todayNumber,
   maxDate,
   calendarLabel,
 }: {
   tabs: DayTab[];
-  selected: string;
   todayDate: string;
   todayNumber: number;
   maxDate: string;
@@ -28,7 +26,8 @@ export function DayTabs({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
+  const { selected, go } = useDayNav();
+  const selectedIndex = tabs.findIndex((tab) => tab.date === selected);
 
   useEffect(() => {
     const list = listRef.current;
@@ -42,7 +41,7 @@ export function DayTabs({
 
   function pickDate(value: string) {
     if (!value || value > maxDate) return;
-    router.push(value === todayDate ? "/owner/today" : `/owner/today?date=${value}`);
+    go(value, value === todayDate ? "/owner/today" : `/owner/today?date=${value}`);
   }
 
   return (
@@ -57,8 +56,9 @@ export function DayTabs({
           "[mask-image:linear-gradient(to_right,transparent,#000_24px,#000_calc(100%-24px),transparent)]",
         )}
       >
-        {tabs.map((tab) => {
+        {tabs.map((tab, index) => {
           const active = tab.date === selected;
+          const href = tab.kind === "today" ? "/owner/today" : `/owner/today?date=${tab.date}`;
           return (
             <Link
               key={tab.date}
@@ -66,7 +66,15 @@ export function DayTabs({
               aria-selected={active}
               aria-current={tab.kind === "today" ? "date" : undefined}
               scroll={false}
-              href={tab.kind === "today" ? "/owner/today" : `/owner/today?date=${tab.date}`}
+              // Only the days next to the selected one are prefetched; the rest wait for hover.
+              prefetch={Math.abs(index - selectedIndex) === 1 ? null : false}
+              href={href}
+              onClick={(event) => {
+                if (event.defaultPrevented || event.button !== 0) return;
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                event.preventDefault();
+                go(tab.date, href);
+              }}
               className={cn(
                 "inline-flex min-h-11 shrink-0 items-center justify-center px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 active ? "font-bold text-foreground" : "text-muted-foreground hover:text-foreground",

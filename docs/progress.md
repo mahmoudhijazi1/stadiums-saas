@@ -5491,3 +5491,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/day-tabs.tsx`.
 
 **How to verify:** `npm test`: 566 passed. `npm run build` is green. Screenshots not taken (no browser tool in this session).
+
+## Today strip details, scrollbars, day transition
+
+**When:** 2026-10-07
+
+**What:**
+- **Strip details:** the active bar is the full label width (3px, rounded) and sits out of flow under the label, so the label is centred in the tab. The calendar button is a fixed 44px slot outside the scroller with an 8px gap, centred on the labels; the edge fade lives inside the scroller, so it never covers the slot.
+- **Scrollbars:** the global lime `*::-webkit-scrollbar` rules and the global `scrollbar-width: thin` on `html` are gone. Below `lg` the page scrollbar is hidden (wheel, touch and keyboard still scroll); from `lg` it is thin and neutral with `scrollbar-gutter: stable`. Inner scroll areas use the same neutral thin style. `.no-scrollbar` stays for the date strip.
+- **Day change:** the selected tab updates at once (`useOptimistic` in a transition). The old day stays visible at 60% opacity until the new one has rendered. The new content slides in 16px from the side of the new day (future side; mirrored in RTL) with opacity, 200ms ease-out, via the Web Animations API (transform and opacity only). It plays only when the selected date changes, never on `router.refresh()` or a same-day booking, and not under reduced motion. Only the days next to the selected one are prefetched.
+- **Choice:** a small client wrapper (`day-nav.tsx`), not `<ViewTransition>`. The Next guide says `<ViewTransition>` runs on every transition and Suspense reveal, so the live poll's `router.refresh()` would animate, and it relies on React canary. The wrapper keys the animation on the date alone.
+
+**Files:** `app/globals.css`, `app/owner/(app)/today/{day-nav,day-tabs,day-strip,lists}.tsx`.
+
+**How to verify:** `npm test`: 566 passed. `npm run build` is green. Not rendered (no browser tool in this session): see the DevTools checks given with this change.
