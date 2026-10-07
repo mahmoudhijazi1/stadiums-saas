@@ -5515,3 +5515,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/globals.css`, `components/scrollbar-peek.tsx`, `app/layout.tsx`.
 
 **How to verify:** build is green. Not rendered (no browser in this session): on desktop, `html` should show `scrollbar-gutter: stable` and `scrollbar-width: thin`; the `data-scrolling` attribute should appear on scroll and disappear about 0.8s after.
+
+## Correction: page scrollbar is now a true overlay (takes no width)
+
+**When:** 2026-10-07
+
+**What:** The previous entry kept `scrollbar-gutter: stable`, which still reserved a blank strip. The native page scrollbar is now hidden (`scrollbar-width: none`, `::-webkit-scrollbar` hidden), so it never takes width. `ScrollbarPeek` draws a 3px fixed thumb over the content while the page scrolls (height and position from `scrollTop` / `scrollHeight`) and fades it out 800ms after the last scroll event. It is an indicator only (`pointer-events: none`), so it cannot be dragged. Inner scroll areas are unchanged.
+
+**Files:** `app/globals.css`, `components/scrollbar-peek.tsx`.
+
+**How to verify:** build is green. Not rendered (no browser in this session): `html` should compute `scrollbar-width: none`; a fixed 3px element should fade in at the inline-end edge while scrolling and out about 0.8s later; page content width should not change.

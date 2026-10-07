@@ -446,34 +446,14 @@
   }
 }
 /*
- * Page scrollbar: very thin, shown only while the page scrolls (ScrollbarPeek sets
- * data-scrolling on <html>), transparent otherwise. The gutter is always reserved, so
- * showing or hiding it never moves content. Touch devices use the OS overlay scrollbar.
- * Unlayered so it beats the base-layer `*` rule.
+ * Page scrollbar: the native one is hidden so it never takes width. ScrollbarPeek draws a
+ * thin overlay thumb while the page scrolls. Unlayered so it beats the base-layer `*` rule.
  */
 html {
-  scrollbar-width: thin;
-  scrollbar-gutter: stable;
-  scrollbar-color: transparent transparent;
-}
-html[data-scrolling] {
-  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 55%, transparent) transparent;
+  scrollbar-width: none;
 }
 html::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-html::-webkit-scrollbar-track {
-  background: transparent;
-}
-html::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  background-clip: padding-box;
-  border: 2px solid transparent;
-  border-radius: 9999px;
-}
-html[data-scrolling]::-webkit-scrollbar-thumb {
-  background-color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
+  display: none;
 }
 
 /*
