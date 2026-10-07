@@ -446,35 +446,34 @@
   }
 }
 /*
- * Page scrollbar. Below lg it is hidden completely (wheel, touch and keyboard scrolling
- * still work). From lg up it is thin and neutral, and the gutter is reserved so content
- * never shifts when it appears. Unlayered so it beats the base-layer `*` rule.
+ * Page scrollbar: very thin, shown only while the page scrolls (ScrollbarPeek sets
+ * data-scrolling on <html>), transparent otherwise. The gutter is always reserved, so
+ * showing or hiding it never moves content. Touch devices use the OS overlay scrollbar.
+ * Unlayered so it beats the base-layer `*` rule.
  */
 html {
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: transparent transparent;
+}
+html[data-scrolling] {
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 55%, transparent) transparent;
 }
 html::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+  height: 8px;
 }
-@media (min-width: 64rem) {
-  html {
-    scrollbar-width: thin;
-    scrollbar-gutter: stable;
-  }
-  html::-webkit-scrollbar {
-    display: block;
-    width: 10px;
-    height: 10px;
-  }
-  html::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  html::-webkit-scrollbar-thumb {
-    background-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
-    background-clip: padding-box;
-    border: 3px solid transparent;
-    border-radius: 9999px;
-  }
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+html[data-scrolling]::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
 }
 
 /*

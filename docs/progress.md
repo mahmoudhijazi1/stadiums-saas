@@ -5505,3 +5505,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/globals.css`, `app/owner/(app)/today/{day-nav,day-tabs,day-strip,lists}.tsx`.
 
 **How to verify:** `npm test`: 566 passed. `npm run build` is green. Not rendered (no browser tool in this session): see the DevTools checks given with this change.
+
+## Page scrollbar: thin, shown only while scrolling
+
+**When:** 2026-10-07
+
+**What:** The page (`html`) scrollbar is very thin (8px) and transparent at rest. `ScrollbarPeek` (`components/scrollbar-peek.tsx`, in the root layout) sets `data-scrolling` on `<html>` while the page scrolls and removes it 800ms after the last scroll event; `globals.css` shows the thumb only while it is set. `scrollbar-gutter: stable` keeps the gutter reserved, so content never shifts. This replaces the "hidden below lg, thin from lg" rule from the previous entry. Touch devices keep their OS overlay scrollbar.
+
+**Files:** `app/globals.css`, `components/scrollbar-peek.tsx`, `app/layout.tsx`.
+
+**How to verify:** build is green. Not rendered (no browser in this session): on desktop, `html` should show `scrollbar-gutter: stable` and `scrollbar-width: thin`; the `data-scrolling` attribute should appear on scroll and disappear about 0.8s after.

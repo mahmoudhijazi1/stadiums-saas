@@ -7,6 +7,7 @@ import {
   Noto_Kufi_Arabic,
 } from "next/font/google";
 import { OwnerServiceWorker } from "@/components/owner-service-worker";
+import { ScrollbarPeek } from "@/components/scrollbar-peek";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUiLocale } from "@/lib/get-ui-locale";
@@ -83,6 +84,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-svh flex flex-col">
         <ThemeProvider>
           <OwnerServiceWorker />
+          <ScrollbarPeek />
           {children}
           <Toaster
             dir={htmlDir(locale)}
