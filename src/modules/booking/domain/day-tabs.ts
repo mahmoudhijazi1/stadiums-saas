@@ -20,6 +20,9 @@ export type DayTab = {
   kind: "yesterday" | "today" | "tomorrow" | "day";
   /** "أمس" / "اليوم" / "غداً", or weekday + number ("الجمعة 9" / "Fri 9"). */
   label: string;
+  /** Top line of the stacked tab: the relative word, or the weekday name. */
+  topLabel: string;
+  /** Bottom line of the stacked tab, Western digits. */
   dayNumber: number;
 };
 
@@ -52,6 +55,7 @@ export function buildDayTabs(input: {
       date: formatCivilDate(cursor),
       kind,
       label: tabLabel(cursor, kind, locale),
+      topLabel: kind === "day" ? weekdayName(cursor, locale) : tabLabel(cursor, kind, locale),
       dayNumber: cursor.day,
     });
   }
@@ -65,11 +69,14 @@ export function civilDaysBetween(from: CivilDate, to: CivilDate): number {
   return Math.round((b - a) / 86_400_000);
 }
 
+function weekdayName(day: CivilDate, locale: UiLocale): string {
+  const noon = new Date(Date.UTC(day.year, day.month - 1, day.day, 12));
+  return formatDisplayDate(noon, locale, { weekday: "short" }, OWNER_TIME_ZONE);
+}
+
 function tabLabel(day: CivilDate, kind: DayTab["kind"], locale: UiLocale): string {
   if (kind === "yesterday") return ui("owner.yesterday", locale);
   if (kind === "today") return ui("public.today", locale);
   if (kind === "tomorrow") return ui("public.tomorrow", locale);
-  const noon = new Date(Date.UTC(day.year, day.month - 1, day.day, 12));
-  const weekday = formatDisplayDate(noon, locale, { weekday: "short" }, OWNER_TIME_ZONE);
-  return `${weekday} ${day.day}`;
+  return `${weekdayName(day, locale)} ${day.day}`;
 }

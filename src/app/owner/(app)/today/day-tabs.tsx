@@ -85,20 +85,25 @@ export function DayTabs({
                 go(tab.date, href);
               }}
               className={cn(
-                "inline-flex min-h-11 shrink-0 items-center justify-center px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
+                "relative inline-flex h-14 w-16 shrink-0 flex-col items-center justify-center text-center outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <span className="relative inline-flex">
-                {/* The after: copy is bold and invisible, so selecting a tab never changes its width. */}
+              {/* Two lines, never mixed scripts on one line: label on top, Western digits below. */}
+              <span className="relative inline-flex flex-col items-center whitespace-nowrap">
                 <span
-                  data-label={tab.label}
-                  className="whitespace-nowrap after:invisible after:block after:h-0 after:overflow-hidden after:font-semibold after:content-[attr(data-label)]"
+                  className={cn(
+                    "text-xs leading-5",
+                    active ? "font-semibold" : "font-normal",
+                  )}
                 >
-                  {tab.label}
+                  {tab.topLabel}
                 </span>
-                {/* Active marker: full label width, 6px under it, out of flow so the label stays centred
-                    in the tab. Always rendered so tabs never shift; ink in light, lime in dark. */}
+                <span className="text-base leading-6 font-semibold tabular-nums">
+                  {tab.dayNumber}
+                </span>
+                {/* Active marker: 6px under the number, out of flow so the two lines stay centred.
+                    Always rendered so tabs never shift; ink in light, lime in dark. */}
                 <span
                   aria-hidden
                   className={cn(

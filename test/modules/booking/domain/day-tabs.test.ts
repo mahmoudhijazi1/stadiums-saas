@@ -32,6 +32,19 @@ describe("buildDayTabs", () => {
     expect(ar?.label).toMatch(/18$/);
   });
 
+  it("gives the stacked tab a top label and a day number", () => {
+    const en = tabs("en");
+    const ar = tabs("ar");
+    const at = (list: typeof en, date: string) => list.find((tab) => tab.date === date)!;
+    expect(at(en, "2026-09-11")).toMatchObject({ topLabel: "Yesterday", dayNumber: 11 });
+    expect(at(en, "2026-09-12")).toMatchObject({ topLabel: "Today", dayNumber: 12 });
+    expect(at(en, "2026-09-13")).toMatchObject({ topLabel: "Tomorrow", dayNumber: 13 });
+    expect(at(en, "2026-09-18")).toMatchObject({ topLabel: "Fri", dayNumber: 18 });
+    expect(at(ar, "2026-09-11").topLabel).toBe("أمس");
+    expect(at(ar, "2026-09-18").topLabel).toBe("الجمعة");
+    expect(at(ar, "2026-09-18").topLabel).not.toMatch(/\d/);
+  });
+
   it("runs 14 days back to the future limit, oldest first", () => {
     const list = tabs("en");
     expect(list[0]?.date).toBe("2026-08-29");
