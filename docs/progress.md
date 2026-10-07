@@ -5553,3 +5553,18 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/booking-row.tsx` (new), `today/{upcoming-panel,debt-row}.tsx`, `people/[personId]/games.tsx`, `docs/ui-rules.md`.
 
 **How to verify:** `npm test`: 566 passed (no test asserted the removed copy). `npm run build` is green. eslint: only the existing F-4 errors. Not rendered (no browser in this session).
+
+## Typography: self-hosted fonts, one stack per language, stacked day tabs
+
+**When:** 2026-10-08
+
+**What:**
+- **Before (step 0):** `next/font/google`. Sans = Manrope (400–800, latin) then Plex Arabic (400–700, arabic + latin); heading and display = Big Shoulders (700–900) then Noto Kufi Arabic then Plex Arabic; mono = Plex Mono (400–600). The display face was on every `h1–h3` (base layer) and on `font-display` uses (Figure, empty state, person title, day chips, slot picker). Body had tabular digits everywhere. Arabic text set in `font-extrabold` (800) had no Plex face (Plex Arabic stops at 700); it only worked where the display stack fell through to Kufi.
+- **Commit 1:** all fonts self-hosted with `next/font/local` from woff2 files in `src/fonts/` with their OFL licences (from the `@fontsource/*` packages, which repackage the official Google Fonts OFL releases). Sizes: Plex Arabic arabic 400/600 = 43 KB / 46 KB, latin 400/600 = 19 KB / 21 KB; Manrope 400/600 = 14 KB each; Big Shoulders 800 = 15 KB; Plex Mono 400/600 = 15 KB / 16 KB. Noto Kufi Arabic removed. The Plex files are two loaders (`--font-plex-arabic`, `--font-plex-arabic-latin`) because `next/font/local` has no per-face `unicode-range`; the stack falls through per glyph. The build output has no Google Fonts URL. RUNBOOK "Fonts" and MIGRATION updated.
+- **Commit 2:** `--font-ui` per language: English Manrope, Plex Arabic; Arabic (`html:lang(ar)`, `[dir=rtl]`) Plex Arabic (arabic + latin) then Manrope. `--font-sans` and `--font-heading` use it; headings are 600. `--font-display` (Big Shoulders) is for the one big figure; in Arabic `.font-display` falls back to the UI face. Today surface, booking row, pill, date strip and sheet use sizes 12/14/16/20 and weights 400/600 only. `font-synthesis: none` on `html`. Tabular digits moved from `body` to `LtrIsolate` (times and amounts).
+- **Commit 3:** stacked day tab: top line `topLabel` (relative word or weekday name), bottom line the day number (16px, 600), fixed 64px wide, bar under the number. `buildDayTabs` gained `topLabel` (test added).
+- **Commit 4:** after-midnight notice reads "6:00 ص" / "6:00 AM", 12px muted caption.
+
+**Kept on purpose:** the existing `:lang(ar)` size bump (`text-xs/sm/base` become 13/15/17 px) from the Arabic reading-size rule. Headings elsewhere keep their larger sizes (`text-3xl` page titles).
+
+**How to verify:** `npm test`: 567 passed. `npm run build` green after each commit. Not rendered (no browser in this session): see the DevTools checks given with this change.
