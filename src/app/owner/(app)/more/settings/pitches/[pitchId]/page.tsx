@@ -29,6 +29,7 @@ export default async function EditPitchPage({
   const query = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
+  const tenant = await getCurrentTenant();
 
   if (!can(membership, SETTINGS_MANAGE)) {
     return (
@@ -72,7 +73,9 @@ export default async function EditPitchPage({
             editor.priceRules,
         }}
         showPending={needPending}
-        splitEnabled={(await getCurrentTenant()).perPlayerSplitEnabled}
+        splitEnabled={tenant.perPlayerSplitEnabled}
+        hourCycle={tenant.timeDisplay}
+        dayStartHour={tenant.dayStartHour}
       />
     </section>
   );

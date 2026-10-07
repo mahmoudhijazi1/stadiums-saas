@@ -5668,3 +5668,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `modules/venue/domain/pitch-form-model.ts`, `modules/venue/schemas/pitch-draft.ts` (the one refine), `lib/ui-copy.ts`, tests `test/modules/venue/domain/pitch-form-model.test.ts`, `test/modules/venue/schemas/pitch-draft.test.ts`.
 
 **How to verify:** `npm test`: 652 passed. `npm run test:integration`: 232 passed. `npm run build` is green.
+
+## Pitch editor, part 2 of 4: opening hours as seven day rows
+
+**What:** The hours-groups UI (checkbox groups with `<input type="time">`) is replaced by `HoursRows`: Monday to Sunday, the full day name in Arabic, an Open / Closed switch with a text label (role="switch", never colour alone) and, when open, two chips "From 4:00 PM" and "To 10:00 PM". Rows are at least 56px. A summary line on top (`formatHoursSummary`, 12 or 24 hour per the tenant setting) and a "Same hours every day" button (the first open day's times on all days). The chips open a bottom sheet (`TimeSheet`): 30-minute steps, the current value centred, "Other time…" for the native picker; for "To", times at or before "From" are labelled "(next day)" and the opening time itself cannot be picked. Digits are Western and LTR-isolated. If the day-start hour falls inside a window, the existing Booking-rules warning is shown under the rows (it never blocks).
+- The form still posts `hoursGroupsJson` (`rowsToHours`), so the server parses and validates exactly what it did; all error keys are unchanged.
+- Deleted `hours-groups.tsx`. New copy: `owner.dayFull.*`, `owner.dayOpen`, `owner.dayClosed`, `owner.fromLabel`, `owner.toLabel`, `owner.pitchNextDay`, `owner.otherTime`, `owner.sameHoursEveryDay`.
+- Integration tests (`pitch-editor`): a pitch saved with the new editor's fields has the same stored config, slots and prices as one saved with the old form's output (week and weekend hours, a window closing at 02:00, overlapping price rows); staff without `settings.manage` cannot create or save; another tenant's pitch id is refused; a suspended tenant is refused.
+
+**Files:** `app/owner/(app)/more/settings/pitches/{hours-rows,time-sheet,form}.tsx`, `new/page.tsx`, `[pitchId]/page.tsx`, `lib/ui-copy.ts`, `test/integration/pitch-editor.integration.test.ts`.
+
+**How to verify:** `npm test`: 652 passed. `npm run test:integration`: 237 passed (5 new). `npm run build` is green. Not rendered (no browser).

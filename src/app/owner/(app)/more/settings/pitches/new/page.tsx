@@ -24,6 +24,7 @@ export default async function NewPitchPage({
   const params = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
+  const tenant = await getCurrentTenant();
 
   if (!can(membership, SETTINGS_MANAGE)) {
     return (
@@ -53,7 +54,9 @@ export default async function NewPitchPage({
             readPriceRulesDraft(queryString(params.priceRulesJson)) ?? [],
         }}
         showPending={false}
-        splitEnabled={(await getCurrentTenant()).perPlayerSplitEnabled}
+        splitEnabled={tenant.perPlayerSplitEnabled}
+        hourCycle={tenant.timeDisplay}
+        dayStartHour={tenant.dayStartHour}
       />
     </section>
   );

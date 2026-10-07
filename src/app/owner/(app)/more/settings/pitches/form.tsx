@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { HoursGroup } from "@/modules/venue/domain/daily-schedule";
 import type { PitchPriceRule } from "@/modules/venue/schemas/pitch-draft";
-import { HoursGroupRows } from "./hours-groups";
+import { HoursRows } from "./hours-rows";
 import { PriceRuleRows } from "./price-rules";
 
 export type PitchFormDefaults = {
@@ -29,6 +29,8 @@ export function PitchDraftForm({
   defaults,
   showPending,
   splitEnabled,
+  hourCycle,
+  dayStartHour,
 }: {
   locale: UiLocale;
   action: (formData: FormData) => Promise<void>;
@@ -37,6 +39,8 @@ export function PitchDraftForm({
   showPending: boolean;
   /** Off: the field is hidden but its stored value still posts (hidden input). */
   splitEnabled: boolean;
+  hourCycle: "h12" | "h23";
+  dayStartHour: number;
 }) {
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -53,10 +57,12 @@ export function PitchDraftForm({
         />
       </div>
 
-      <HoursGroupRows
+      <HoursRows
         key={JSON.stringify(defaults.hoursGroups)}
         locale={locale}
         initial={defaults.hoursGroups}
+        hourCycle={hourCycle}
+        dayStartHour={dayStartHour}
       />
 
       <div className="flex flex-col gap-2">
