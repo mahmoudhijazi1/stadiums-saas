@@ -11,7 +11,8 @@ import {
  */
 function LtrIsolate({ className, ...props }: ComponentProps<"bdi">) {
   return (
-    <bdi dir="ltr" className={className} {...props} />
+    // Digits in times and amounts line up (tabular); other text stays proportional.
+    <bdi dir="ltr" className={className ? `tabular-nums ${className}` : "tabular-nums"} {...props} />
   )
 }
 

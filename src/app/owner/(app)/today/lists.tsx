@@ -119,7 +119,7 @@ export async function OwnerToday({
         {earlierDebts.length > 0 ? (
           <a
             href="#earlier-debts"
-            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-owed/60 bg-owed-subtle px-3 text-xs font-medium text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-owed/60 bg-owed-subtle px-3 text-xs font-semibold text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <LtrIsolate>{`$${formatUsdCompact(earlierTotal)}${ownerDay.toCollectHasMore ? "+" : ""}`}</LtrIsolate>
             <span>{ui("owner.owedFromEarlier", locale)}</span>
@@ -130,7 +130,7 @@ export async function OwnerToday({
       {ownerDay.isToday && pending.length > 0 && earliest ? (
         <Link
           href="/owner/requests"
-          className="flex min-h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-medium outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="flex min-h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm font-semibold outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <Bell aria-hidden className="size-5 shrink-0" />
           <span className="min-w-0 flex-1">

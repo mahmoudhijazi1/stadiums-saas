@@ -72,13 +72,11 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Latin first, Arabic fallback. No lang() branching — missing glyphs fall through. */
-  --font-sans: var(--font-manrope), var(--font-plex-arabic), var(--font-plex-arabic-latin),
-    system-ui, sans-serif;
-  --font-heading: var(--font-big-shoulders), var(--font-plex-arabic),
-    var(--font-plex-arabic-latin), sans-serif;
-  --font-display: var(--font-big-shoulders), var(--font-plex-arabic),
-    var(--font-plex-arabic-latin), sans-serif;
+  /* --font-ui is set per language below: Manrope for English, Plex Arabic first for Arabic. */
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-ui);
+  /* Display (Big Shoulders) is for the one big figure per screen, English only. */
+  --font-display: var(--font-big-shoulders), var(--font-ui);
   --font-mono: var(--font-plex-mono);
 
   --radius-sm: calc(var(--radius) * 0.6);
@@ -320,8 +318,20 @@
 }
 
 @layer base {
+  :root {
+    --font-ui: var(--font-manrope), var(--font-plex-arabic), var(--font-plex-arabic-latin),
+      system-ui, sans-serif;
+  }
+  /* Arabic: Plex Arabic first (its Latin subset covers digits, "$" and Latin names), then Manrope. */
+  html:lang(ar),
+  [dir="rtl"] {
+    --font-ui: var(--font-plex-arabic), var(--font-plex-arabic-latin), var(--font-manrope),
+      system-ui, sans-serif;
+  }
   html {
     @apply bg-background;
+    /* Never fake a bold or italic: only 400 and 600 are shipped. */
+    font-synthesis: none;
   }
   * {
     @apply border-border outline-ring/50;
@@ -331,7 +341,6 @@
   }
   body {
     @apply bg-background font-sans text-foreground;
-    font-variant-numeric: tabular-nums;
   }
   /* RemoveScroll must not add a layout gap. No scrollbar-gutter: the
      reserved lane was the white strip once the bar hid. */
@@ -356,9 +365,16 @@
   h1,
   h2,
   h3 {
-    /* Heading role: Big Shoulders, then Plex Arabic for Arabic words. */
+    /* Headings use the UI face at 600 (Arabic: Plex Arabic; English: Manrope). */
     font-family: var(--font-heading);
+    font-weight: 600;
   }
+}
+
+/* The display face is never used in Arabic: the UI face takes over. */
+:lang(ar) .font-display,
+[dir="rtl"] .font-display {
+  font-family: var(--font-ui);
 }
 
 /*

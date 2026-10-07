@@ -39,7 +39,7 @@ export function variantOf(display: CardDisplay): BookingRowVariant {
 }
 
 const PILL =
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-medium whitespace-nowrap";
+  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-semibold whitespace-nowrap";
 
 /**
  * Status pill for the trailing slot. Only states that need attention or confirm something

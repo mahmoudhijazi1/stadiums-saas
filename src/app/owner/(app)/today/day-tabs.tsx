@@ -86,14 +86,14 @@ export function DayTabs({
               }}
               className={cn(
                 "inline-flex min-h-11 shrink-0 items-center justify-center px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                active ? "font-bold text-foreground" : "text-muted-foreground hover:text-foreground",
+                active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
               <span className="relative inline-flex">
                 {/* The after: copy is bold and invisible, so selecting a tab never changes its width. */}
                 <span
                   data-label={tab.label}
-                  className="whitespace-nowrap after:invisible after:block after:h-0 after:overflow-hidden after:font-bold after:content-[attr(data-label)]"
+                  className="whitespace-nowrap after:invisible after:block after:h-0 after:overflow-hidden after:font-semibold after:content-[attr(data-label)]"
                 >
                   {tab.label}
                 </span>
@@ -120,10 +120,10 @@ export function DayTabs({
               aria-label={calendarLabel}
               className="relative grid size-11 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
-              <CalendarIcon aria-hidden className="size-5 text-muted-foreground" />
+              <CalendarIcon aria-hidden className="size-6 text-muted-foreground" />
               <span
                 aria-hidden
-                className="absolute inset-0 grid place-items-center pt-1 text-[10px] font-bold leading-none"
+                className="absolute inset-0 grid place-items-center pt-1 text-xs font-semibold leading-none"
               >
                 {todayNumber}
               </span>

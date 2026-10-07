@@ -151,7 +151,7 @@ function DueRemainingFigures({
           locale,
         )}
       </p>
-      <Figure className={cn("mt-0.5 block text-2xl", TONE_TEXT[tone])}>
+      <Figure className={cn("mt-0.5 block text-xl", TONE_TEXT[tone])}>
         ${tone === "paid" ? paidUsd : remainingUsd}
       </Figure>
     </div>
@@ -301,7 +301,7 @@ export function UpcomingPanel({
     <div className="flex flex-col gap-3">
       {games.length > 0 ? (
         <section aria-labelledby="today-games-heading" className="flex flex-col gap-2">
-          <h2 id="today-games-heading" className="text-sm font-medium text-muted-foreground">
+          <h2 id="today-games-heading" className="text-sm font-semibold text-muted-foreground">
             {ui("owner.gamesHeading", locale)}
           </h2>
           <UpcomingRows
@@ -326,7 +326,7 @@ export function UpcomingPanel({
           aria-labelledby="earlier-debts-heading"
           className="flex scroll-mt-4 flex-col gap-2"
         >
-          <h2 id="earlier-debts-heading" className="text-sm font-medium text-muted-foreground">
+          <h2 id="earlier-debts-heading" className="text-sm font-semibold text-muted-foreground">
             {ui("owner.earlierDebtsHeading", locale)}
           </h2>
           {toCollect.length > 1 ? (
@@ -335,7 +335,7 @@ export function UpcomingPanel({
               aria-expanded={collectShown}
               aria-controls="to-collect-list"
               onClick={() => setCollectOpen((open) => !open)}
-              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border border-owed/60 bg-owed-subtle px-3 py-2 text-start text-sm font-medium text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border border-owed/60 bg-owed-subtle px-3 py-2 text-start text-sm font-semibold text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <span className="min-w-0 flex-1">
                 <CollectCount
@@ -375,7 +375,7 @@ export function UpcomingPanel({
               {toCollectHasMore ? (
                 <Link
                   href="/owner/money"
-                  className="inline-flex min-h-11 items-center self-start text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  className="inline-flex min-h-11 items-center self-start text-sm font-semibold outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
                 >
                   {ui("owner.seeAll", locale)}
                 </Link>
@@ -420,7 +420,7 @@ export function UpcomingPanel({
                   >
                     <ClockRangeText
                       text={sheetRow.timeRange}
-                      className="text-xl font-bold leading-none"
+                      className="text-xl font-semibold leading-none"
                     />
                   </span>
                 </span>
@@ -677,7 +677,7 @@ function UpcomingRowActions({
     <>
       <div className="flex flex-col gap-4">
         {canCollect || (perPlayer && mayCollect) ? (
-          <h4 className="text-xs font-medium text-muted-foreground">
+          <h4 className="text-xs font-semibold text-muted-foreground">
             {ui("owner.moneyGroup", locale)}
           </h4>
         ) : null}

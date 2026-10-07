@@ -104,7 +104,7 @@ export function PerPlayerCollect({
     <div className="flex flex-col gap-3">
       {mayAdjust ? (
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium text-muted-foreground">
+          <p className="text-xs font-semibold text-muted-foreground">
             {ui("owner.modeLabel", locale)}
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -202,7 +202,7 @@ export function PerPlayerCollect({
                 {slot.paid ? (
                   <span
                     className={cn(
-                      "inline-flex min-h-11 min-w-20 items-center justify-center gap-1 text-sm font-medium text-paid",
+                      "inline-flex min-h-11 min-w-20 items-center justify-center gap-1 text-sm font-semibold text-paid",
                     )}
                   >
                     <Check aria-hidden className="size-4" />

@@ -33,7 +33,7 @@ function ChipTime({ text }: { text: string }) {
   return (
     <span className="inline-flex items-baseline gap-1">
       <LtrIsolate>{digits}</LtrIsolate>
-      {mark ? <span className="text-[10px] leading-none">{mark}</span> : null}
+      {mark ? <span className="text-xs leading-none">{mark}</span> : null}
     </span>
   );
 }
@@ -86,7 +86,7 @@ export function FreeStrip({
 
   return (
     <section aria-label={ui("owner.availableHours", locale)} className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium text-muted-foreground">
+      <h3 className="text-sm font-semibold text-muted-foreground">
         {ui("owner.availableHours", locale)} <LtrIsolate>{`(${total})`}</LtrIsolate>
       </h3>
 
@@ -121,7 +121,7 @@ export function FreeStrip({
         return (
           <div key={pitch.pitchId} className="flex flex-col gap-1">
             {showLabel ? (
-              <span className="text-xs font-medium text-muted-foreground">{pitch.pitchName}</span>
+              <span className="text-xs font-semibold text-muted-foreground">{pitch.pitchName}</span>
             ) : null}
             <ul className="flex flex-wrap gap-2">
               {shown.map((item) => {
