@@ -53,6 +53,7 @@ export default async function OwnerMorePage() {
         ),
       )}
       identifier={membership.identifier}
+      slug={tenant.slug}
     />
   );
 }

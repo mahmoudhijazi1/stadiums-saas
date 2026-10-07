@@ -5632,3 +5632,15 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `modules/access/{application/log-out-other-devices,infrastructure/sessions}.ts`, `app/owner/(app)/more/account/{actions,account-sheet}.tsx`, `lib/ui-copy.ts`, tests added to `test/integration/account-credentials.integration.test.ts`.
 
 **How to verify:** `npm test`: 605 passed. `npm run test:integration`: 219 passed (3 new). `npm run build` is green. Not rendered (no browser).
+
+## Account: change the part of your login before the @ (commit 3 of 3)
+
+**What:**
+- `changeOwnIdentifier({ localPart, currentPassword })`: the server builds `local@<tenant slug>` and drops any suffix the client typed (`parseLocalPart` cuts at the first `@`), so another tenant's identifier can never be claimed. The local part is lowercased and validated (letters and digits, a single `.` `_` `-` between parts, 1 to 32 characters, so `a--b` is refused); the full result must also pass `parseLoginIdentifier`. The current password is required and counted under the same `pwchange` counter. The update runs in a `platformDb.$transaction`; a unique violation becomes `access.identifier_taken`. Sessions stay valid. The user comes from the session; any role may change its own; a suspended tenant is refused.
+- UI: an input with a fixed `@slug` beside it, a live "From now on you log in with: <identifier>" line, the current password, one primary Save; success toast "Your login is now: …" and the row refreshes.
+- Docs: RUNBOOK "Owner account self-service" and the forgotten-password procedure (confirm by phone, `set-password.ts`, tell the owner to change it); NOW.md; ROADMAP (forced change at first login is the next job and needs a `User` flag, so a migration). `docs/domain/permissions.md` does not exist, so nothing to update there.
+- No migration was needed for any of the three commits.
+
+**Files:** `modules/access/{domain/identifier,application/change-own-identifier}.ts`, `app/owner/(app)/more/{hub.tsx,page.tsx,account/*}`, `lib/{ui-copy,error-messages}.ts`, tests `test/modules/access/domain/local-part.test.ts` and `test/integration/account-credentials.integration.test.ts`, docs.
+
+**How to verify:** `npm test`: 628 passed. `npm run test:integration`: 232 passed (13 new for the login change; the full run was before moving the user update into `infrastructure/users.ts`, after which `account-credentials` was re-run: 27 passed). `npm run build` is green. Not rendered (no browser).

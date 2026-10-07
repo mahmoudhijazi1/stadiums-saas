@@ -39,3 +39,14 @@ export async function replacePasswordKeepingSession(
     }),
   ]);
 }
+
+/**
+ * Set a user's login. Runs in a transaction; a taken identifier raises Prisma's unique
+ * violation (P2002), which the use case turns into a friendly error. Not a tenant
+ * transaction: User is global.
+ */
+export async function updateIdentifier(userId: string, identifier: string) {
+  await platformDb.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { identifier } });
+  });
+}

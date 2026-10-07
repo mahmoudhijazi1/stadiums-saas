@@ -4,7 +4,7 @@
 
 ## Passwords
 
-Set or reset a login's password with `scripts/set-password.ts`. The password is typed only at a hidden prompt, twice. It is never accepted as an argument or an environment variable, and it must be at least 12 characters. The tool hashes it with the app's own `hashPassword`, deletes **every** session of that user (they must log in again), and prints only `updated <identifier>`.
+Set or reset a login's password with `scripts/set-password.ts`. The password is typed only at a hidden prompt, twice. It is never accepted as an argument or an environment variable, and it must pass the shared password policy (at least 12 characters; not the login, its first part or the stadium slug; not a common password). The tool hashes it with the app's own `hashPassword`, deletes **every** session of that user (they must log in again), and prints only `updated <identifier>`.
 
 Before it changes anything, it shows the database name from `DATABASE_URL` and refuses to continue until you type that name exactly.
 
@@ -26,6 +26,22 @@ npx tsx scripts/set-password.ts owner@ahmad
 A wrong database name, a password under 12 characters, two entries that differ, or an unknown identifier all stop the tool with exit code 1 and change nothing.
 
 After the seed's `dev-owner` accounts have ever existed on a server, reset every one of them with this tool (security audit S-1).
+
+## Owner account self-service
+
+Any logged-in user (owner or staff, whatever their permissions) can change their OWN credentials in the app: **More → Account**. Nobody can change anyone else's there. The acting user always comes from the session; a suspended tenant is refused.
+
+- **Change password:** current password + new password (show/hide, no confirm field). Same policy as the scripts. On success every OTHER session of that user is logged out; the current one stays.
+- **Log out other devices:** closes every other session of the user (with a confirm step and the count).
+- **Change login:** only the part before the `@` is editable; the `@slug` suffix is the tenant's and is added by the server. Lowercase letters and digits, one `.` `_` or `-` between parts, up to 32 characters. Needs the current password. Sessions stay valid.
+- **Wrong current password:** 5 failures in 15 minutes block these two actions for 15 minutes (`RateLimit` keys `pwchange:<userId>` and `pwchange:block:<userId>`). It is separate from the login limit and never locks login. A success resets it.
+
+### Forgotten password (operator procedure)
+
+1. Confirm who is asking, by phone, against the number you have for the owner. Do not reset on a message alone.
+2. `npx tsx scripts/set-password.ts --list` shows the exact identifier (for example `owner@ahmad`).
+3. `npx tsx scripts/set-password.ts <identifier>`: type the database name, then the new password twice (hidden). It deletes all of that user's sessions.
+4. Tell the owner the new password on the phone and ask them to change it in the app (More → Account → Change password) straight away.
 
 ## Login lockout
 

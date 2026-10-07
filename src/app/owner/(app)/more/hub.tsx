@@ -130,6 +130,7 @@ export function MoreHub({
   dayStartHour,
   riskyDayStartHours,
   identifier,
+  slug,
 }: {
   locale: UiLocale;
   mayManage: boolean;
@@ -146,6 +147,8 @@ export function MoreHub({
   /** Day-start hours (0..6) that fall inside some pitch's opening window. */
   riskyDayStartHours: number[];
   identifier: string;
+  /** The tenant slug: the fixed suffix of the login. */
+  slug: string;
 }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<SheetId | null>(null);
@@ -474,7 +477,7 @@ export function MoreHub({
           ) : null}
 
           {sheet === "account" ? (
-            <AccountSheetContent locale={locale} identifier={identifier} />
+            <AccountSheetContent locale={locale} identifier={identifier} slug={slug} />
           ) : null}
         </BottomSheetContent>
       </BottomSheet>

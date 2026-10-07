@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import { platformDb } from "@/lib/platform-db";
 import { hitRateLimit } from "@/lib/rate-limit";
+import { changeOwnIdentifier } from "@/modules/access/application/change-own-identifier";
 import { changeOwnPassword } from "@/modules/access/application/change-own-password";
 import { login } from "@/modules/access/application/login";
 import { logOutOtherDevices } from "@/modules/access/application/log-out-other-devices";
@@ -214,5 +215,103 @@ describe("logOutOtherDevices", () => {
     await createSession(fixture.ownerUserId, future());
     await expect(logOutOtherDevices()).rejects.toMatchObject({ key: "access.not_allowed" });
     expect(await sessionCount(fixture.ownerUserId)).toBe(2);
+  });
+});
+
+describe("changeOwnIdentifier", () => {
+  const sessionStillWorks = async (token: string) => {
+    actAs(token);
+    const { getCurrentMembership } = await import("@/modules/access/application/get-current-membership");
+    return getCurrentMembership();
+  };
+
+  it("changes the part before the @ with the current password; sessions stay valid", async () => {
+    const other = await createSession(fixture.ownerUserId, future());
+    const result = await changeOwnIdentifier({ localPart: "Boss", currentPassword: OLD });
+    expect(result.identifier).toBe("boss@test-stadium");
+    expect((await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } })).identifier).toBe(
+      "boss@test-stadium",
+    );
+    expect((await sessionStillWorks(fixture.sessionId))?.identifier).toBe("boss@test-stadium");
+    expect((await sessionStillWorks(other.token))?.identifier).toBe("boss@test-stadium");
+    expect(await sessionCount(fixture.ownerUserId)).toBe(2);
+
+    // The new login works, the old one is gone.
+    clearRequestStubs();
+    setTenantSlug(fixture.tenantSlug);
+    await login({ identifier: "boss@test-stadium", password: OLD });
+    clearRequestStubs();
+    setTenantSlug(fixture.tenantSlug);
+    await expect(login({ identifier: fixture.ownerIdentifier, password: OLD })).rejects.toMatchObject({
+      key: "access.invalid_login",
+    });
+  });
+
+  it("a typed suffix is ignored: the tenant's slug is always used", async () => {
+    const result = await changeOwnIdentifier({ localPart: "boss@some-other-stadium", currentPassword: OLD });
+    expect(result.identifier).toBe("boss@test-stadium");
+  });
+
+  it("another tenant's identifier cannot be claimed", async () => {
+    const other = await seedMinimalFixture({
+      tenantSlug: "sami",
+      tenantName: "Sami",
+      ownerIdentifier: "owner@sami",
+    });
+    actAs(fixture.sessionId);
+    const result = await changeOwnIdentifier({ localPart: "owner@sami", currentPassword: OLD });
+    expect(result.identifier).toBe("owner@test-stadium");
+    expect((await platformDb.user.findUniqueOrThrow({ where: { id: other.ownerUserId } })).identifier).toBe(
+      "owner@sami",
+    );
+  });
+
+  it("a taken identifier on this tenant is refused with a friendly error and nothing changes", async () => {
+    await platformDb.user.update({ where: { id: fixture.ownerUserId }, data: { identifier: "owner@test-stadium" } });
+    const staffToken = await createStaffSession(fixture.tenantId, {});
+    actAs(staffToken);
+    await expect(changeOwnIdentifier({ localPart: "owner", currentPassword: "staff-password" })).rejects.toMatchObject({
+      key: "access.identifier_taken",
+    });
+    const staff = await platformDb.session.findFirstOrThrow({ where: { tokenHash: hashSessionToken(staffToken) } });
+    expect((await platformDb.user.findUniqueOrThrow({ where: { id: staff.userId } })).identifier).not.toBe(
+      "owner@test-stadium",
+    );
+  });
+
+  it.each([["bad name"], ["ali!"], ["a--b"], ["-ali"], [""], ["@sami"]])("refuses %j", async (localPart) => {
+    await expect(changeOwnIdentifier({ localPart, currentPassword: OLD })).rejects.toMatchObject({
+      key: "access.identifier_invalid",
+    });
+    expect(await platformDb.rateLimit.count()).toBe(0);
+  });
+
+  it("a wrong current password is refused and counted", async () => {
+    await expect(changeOwnIdentifier({ localPart: "boss", currentPassword: "nope" })).rejects.toMatchObject({
+      key: "access.current_password_wrong",
+    });
+    expect((await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } })).identifier).toBe(
+      fixture.ownerIdentifier,
+    );
+    const row = await platformDb.rateLimit.findUnique({ where: { key: pwChangeKeys(fixture.ownerUserId).failures } });
+    expect(row?.count).toBe(1);
+  });
+
+  it("staff with no flags can change their own, and only their own", async () => {
+    const staffToken = await createStaffSession(fixture.tenantId, {});
+    actAs(staffToken);
+    const result = await changeOwnIdentifier({ localPart: "cashier", currentPassword: "staff-password" });
+    expect(result.identifier).toBe("cashier@test-stadium");
+    expect((await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } })).identifier).toBe(
+      fixture.ownerIdentifier,
+    );
+  });
+
+  it("is refused on a suspended tenant", async () => {
+    await platformDb.tenant.update({ where: { id: fixture.tenantId }, data: { suspendedAt: new Date() } });
+    actAs(fixture.sessionId);
+    await expect(changeOwnIdentifier({ localPart: "boss", currentPassword: OLD })).rejects.toMatchObject({
+      key: "access.not_allowed",
+    });
   });
 });

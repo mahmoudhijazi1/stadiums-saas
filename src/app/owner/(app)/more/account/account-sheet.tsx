@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,9 @@ import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { devicesClosedLabel } from "@/lib/ui-copy";
-import { submitChangePassword, submitLogOutOtherDevices } from "./actions";
+import { submitChangeIdentifier, submitChangePassword, submitLogOutOtherDevices } from "./actions";
 
-type Step = "home" | "password" | "logout";
+type Step = "home" | "password" | "logout" | "identifier";
 
 /**
  * More > Account sheet: the login (read-only here) and the actions on your own
@@ -27,11 +28,14 @@ type Step = "home" | "password" | "logout";
 export function AccountSheetContent({
   locale,
   identifier,
+  slug,
 }: {
   locale: UiLocale;
   identifier: string;
+  slug: string;
 }) {
   const [step, setStep] = useState<Step>("home");
+  const [login, setLogin] = useState(identifier);
 
   return (
     <>
@@ -41,20 +45,35 @@ export function AccountSheetContent({
             ? ui("owner.changePassword", locale)
             : step === "logout"
               ? ui("owner.logoutOthers", locale)
-              : ui("owner.identifier", locale)}
+              : step === "identifier"
+                ? ui("owner.changeLogin", locale)
+                : ui("owner.identifier", locale)}
         </BottomSheetTitle>
       </BottomSheetHeader>
       <BottomSheetBody className="flex flex-col gap-4 pb-4">
         {step === "home" ? (
           <>
-            <LtrIsolate className="text-lg font-semibold">{identifier}</LtrIsolate>
+            <LtrIsolate className="text-lg font-semibold">{login}</LtrIsolate>
             <Button type="button" className="w-full" onClick={() => setStep("password")}>
               {ui("owner.changePassword", locale)}
+            </Button>
+            <Button type="button" variant="outline" className="w-full" onClick={() => setStep("identifier")}>
+              {ui("owner.changeLogin", locale)}
             </Button>
             <Button type="button" variant="outline" className="w-full" onClick={() => setStep("logout")}>
               {ui("owner.logoutOthers", locale)}
             </Button>
           </>
+        ) : step === "identifier" ? (
+          <IdentifierForm
+            locale={locale}
+            slug={slug}
+            initial={login.split("@")[0] ?? ""}
+            onDone={(next) => {
+              if (next) setLogin(next);
+              setStep("home");
+            }}
+          />
         ) : step === "logout" ? (
           <LogoutOthers locale={locale} onDone={() => setStep("home")} />
         ) : (
@@ -182,5 +201,91 @@ function LogoutOthers({ locale, onDone }: { locale: UiLocale; onDone: () => void
         {ui("owner.notNow", locale)}
       </Button>
     </div>
+  );
+}
+
+/** Only the part before the @ is editable; "@slug" is fixed beside it. */
+function IdentifierForm({
+  locale,
+  slug,
+  initial,
+  onDone,
+}: {
+  locale: UiLocale;
+  slug: string;
+  initial: string;
+  onDone: (identifier: string | null) => void;
+}) {
+  const router = useRouter();
+  const [local, setLocal] = useState(initial);
+  const [current, setCurrent] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const typed = local.split("@")[0]?.trim().toLowerCase() ?? "";
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      const result = await submitChangeIdentifier({ localPart: local, currentPassword: current });
+      if ("error" in result) {
+        setError(errorMessage(result.error, locale));
+        return;
+      }
+      setCurrent("");
+      toast.success(`${ui("owner.loginChanged", locale)} ${result.identifier}`);
+      router.refresh();
+      onDone(result.identifier);
+    });
+  }
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="login-local">{ui("owner.loginName", locale)}</Label>
+        <div className="flex items-center gap-2" dir="ltr">
+          <Input
+            id="login-local"
+            autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
+            required
+            maxLength={32}
+            value={local}
+            onChange={(event) => setLocal(event.target.value)}
+          />
+          <span className="shrink-0 text-muted-foreground">@{slug}</span>
+        </div>
+        <p className="text-sm">
+          {ui("owner.loginWarning", locale)}{" "}
+          <LtrIsolate className="font-semibold">
+            {typed}@{slug}
+          </LtrIsolate>
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="login-current-password">{ui("owner.currentPassword", locale)}</Label>
+        <Input
+          id="login-current-password"
+          type="password"
+          autoComplete="current-password"
+          dir="ltr"
+          required
+          value={current}
+          onChange={(event) => setCurrent(event.target.value)}
+        />
+      </div>
+      {error ? (
+        <p role="alert" className="text-sm text-owed">
+          {error}
+        </p>
+      ) : null}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {ui("owner.saveLogin", locale)}
+      </Button>
+      <Button type="button" variant="ghost" className="w-full" onClick={() => onDone(null)} disabled={pending}>
+        {ui("owner.back", locale)}
+      </Button>
+    </form>
   );
 }
