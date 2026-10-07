@@ -5456,3 +5456,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How to verify:** see the results line appended below.
 
 - `npm test`: 561 passed. `npm run test:integration`: 198 passed (6 new in `split-setting`). `npm run build` is green.
+
+## Today: date strip, section order, compact debt rows
+
+**When:** 2026-10-07
+
+**What:**
+- **Date strip (commit 1):** the ‹ › arrows and the separate "Today" chip are gone. Scrollable day tabs instead: 14 days back, up to the 60-day limit (`OWNER_FUTURE_DAYS`), the selected day centred on load, past on the right in Arabic. Labels are Yesterday / Today / Tomorrow, otherwise weekday + number ("الجمعة 9" / "Fri 9"). Selected tab is bold with a lime underline; tabs are 44px tall with `role="tab"` / `aria-selected`. A calendar button at the end shows today's day number and opens the native date picker (max = last allowed day). `?date=` and the back button work as before.
+- **Order (commit 2):** strip, day summary (+ amber pill "$X owed from earlier days" that jumps to the debts section), requests row, "Games" heading + cards, "Available hours (N)" + chips, then (today only) "To collect from earlier days". One debt shows its compact row; two or more show "N games · $X" that expands (collapsed by default). The compact `DebtRow` has an amber edge, relative day, time, name, "Owed $X" and the Collect button. Empty day: one neutral line. Closed day: "Closed" / "مغلق".
+- The section lists owed games from **earlier business days only**. A game that ended earlier today and is owed stays in Games (it has its Collect button there) instead of appearing twice.
+
+**Why:** Owner request: scan Today faster and keep old debts visibly apart from today's games (RULE-12, `docs/ui-rules.md` rules 4 and 8). No query, rule or money logic changed.
+
+**Files:** `modules/booking/domain/day-tabs.ts` (new, pure), `app/owner/(app)/today/{day-strip,day-tabs,debt-row,lists,upcoming-panel,date-label,free-strip-section}.tsx`, `lib/ui-copy.ts`, `test/modules/booking/domain/day-tabs.test.ts`.
+
+**How it connects:** `buildDayTabs` is pure (date maths + `ui()` / `formatDisplayDate`); `today` is the business date, so the 06:00 rule comes from `loadOwnerDay`. `DebtRow` is presentational and opens the same booking sheet as the cards. `owner.prevDay` / `owner.nextDay` copy is now unused.
+
+**How to verify:** `npm test`: 566 passed (5 new in `day-tabs`). `npm run build` is green. eslint shows only the existing F-4 errors (`fee-forms`, `upcoming-panel`). Integration suite not run: only components and one pure domain file changed. Not done: the 390px screenshots (no browser tool in this session).

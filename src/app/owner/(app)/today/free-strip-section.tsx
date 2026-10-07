@@ -18,7 +18,7 @@ export async function FreeStripSection({
   const strip = await loadFreeStrip(date);
   if (strip.kind === "none") return null;
   if (strip.kind === "closed") {
-    return <p className="text-sm text-muted-foreground">{ui("public.closed", locale)}</p>;
+    return <p className="text-sm text-muted-foreground">{ui("owner.closedCell", locale)}</p>;
   }
   return (
     <FreeStrip

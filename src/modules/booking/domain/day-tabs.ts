@@ -45,7 +45,7 @@ export function buildDayTabs(input: {
     compareCivilDate(cursor, last) <= 0;
     cursor = addCalendarDays(cursor, 1)
   ) {
-    const offset = daysBetween(today, cursor);
+    const offset = civilDaysBetween(today, cursor);
     const kind =
       offset === -1 ? "yesterday" : offset === 0 ? "today" : offset === 1 ? "tomorrow" : "day";
     tabs.push({
@@ -58,7 +58,8 @@ export function buildDayTabs(input: {
   return tabs;
 }
 
-function daysBetween(from: CivilDate, to: CivilDate): number {
+/** Whole calendar days from `from` to `to` (negative when `to` is earlier). */
+export function civilDaysBetween(from: CivilDate, to: CivilDate): number {
   const a = Date.UTC(from.year, from.month - 1, from.day);
   const b = Date.UTC(to.year, to.month - 1, to.day);
   return Math.round((b - a) / 86_400_000);

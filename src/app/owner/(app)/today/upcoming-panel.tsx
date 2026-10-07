@@ -24,6 +24,7 @@ import {
 } from "./fee-forms";
 import { submitCollectPayment } from "./actions";
 import { PersonLink } from "@/app/owner/person-link";
+import { DebtRow } from "./debt-row";
 import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";
 import {
   BottomSheet,
@@ -37,7 +38,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/components/ui/figure";
 import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -61,6 +61,8 @@ export type UpcomingRowView = {
   pitchName: string | null;
   timeRange: string;
   dateLabel: string;
+  /** Day an owed game belongs to: "Yesterday", a weekday, or the date. */
+  dayLabel: string;
   /** "night of Friday" for a 00:00–05:59 start, else null. */
   nightHint: string | null;
   requesterPersonId: string;
@@ -256,7 +258,7 @@ export function UpcomingPanel({
   toCollect,
   toCollectHasMore,
   toCollectTotal,
-  between,
+  free,
   games,
   locale,
   mayCollect,
@@ -272,8 +274,8 @@ export function UpcomingPanel({
   toCollectHasMore: boolean;
   /** Compact USD sum of the listed To collect rows. */
   toCollectTotal: string;
-  /** Rendered between To collect and the day's games (summary line, free strip). */
-  between?: ReactNode;
+  /** Rendered after the day's games: the available-hours section. */
+  free?: ReactNode;
   games: UpcomingRowView[];
   locale: UiLocale;
   mayCollect: boolean;
@@ -377,41 +379,81 @@ export function UpcomingPanel({
 
   return (
     <div className="flex flex-col gap-3">
+      {games.length > 0 ? (
+        <section aria-labelledby="today-games-heading" className="flex flex-col gap-2">
+          <h2 id="today-games-heading" className="text-sm font-medium text-muted-foreground">
+            {ui("owner.gamesHeading", locale)}
+          </h2>
+          <UpcomingRows
+            rows={games}
+            showDate={false}
+            openId={openId}
+            onOpen={openRowSheet}
+            onOpenInterests={openInterestSheet}
+            locale={locale}
+            highlight={highlight}
+            mayCollect={mayCollect}
+            rowKeyPrefix="day"
+          />
+        </section>
+      ) : (
+        <p className="text-sm text-muted-foreground">{ui("owner.noGamesToday", locale)}</p>
+      )}
+
+      {free}
+
       {toCollect.length > 0 ? (
-        <>
-          <button
-            type="button"
-            aria-expanded={collectShown}
-            aria-controls="to-collect-list"
-            onClick={() => setCollectOpen((open) => !open)}
-            className="flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl border border-owed/60 bg-owed-subtle text-owed px-4 py-3 text-start text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            <span className="min-w-0 flex-1">
-              <CollectCount
-                text={uiCount("owner.toCollectGames", toCollect.length, locale)}
-                plus={toCollectHasMore}
+        <section
+          id="earlier-debts"
+          aria-labelledby="earlier-debts-heading"
+          className="flex scroll-mt-4 flex-col gap-2"
+        >
+          <h2 id="earlier-debts-heading" className="text-sm font-medium text-muted-foreground">
+            {ui("owner.earlierDebtsHeading", locale)}
+          </h2>
+          {toCollect.length > 1 ? (
+            <button
+              type="button"
+              aria-expanded={collectShown}
+              aria-controls="to-collect-list"
+              onClick={() => setCollectOpen((open) => !open)}
+              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border border-owed/60 bg-owed-subtle px-3 py-2 text-start text-sm font-medium text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              <span className="min-w-0 flex-1">
+                <CollectCount
+                  text={uiCount("owner.games", toCollect.length, locale)}
+                  plus={toCollectHasMore}
+                />
+                <span aria-hidden> · </span>
+                <LtrIsolate>{`$${toCollectTotal}${toCollectHasMore ? "+" : ""}`}</LtrIsolate>
+              </span>
+              <ChevronDown
+                aria-hidden
+                className={cn("size-5 shrink-0 transition-transform", collectShown && "rotate-180")}
               />
-              <span aria-hidden> · </span>
-              <LtrIsolate>{`$${toCollectTotal}${toCollectHasMore ? "+" : ""}`}</LtrIsolate>
-            </span>
-            <ChevronDown
-              aria-hidden
-              className={cn("size-5 shrink-0 transition-transform", collectShown && "rotate-180")}
-            />
-          </button>
-          {collectShown ? (
-            <div id="to-collect-list" className="flex flex-col gap-3">
-              <UpcomingRows
-                rows={toCollect}
-                showDate
-                openId={openId}
-                onOpen={openRowSheet}
-                onOpenInterests={openInterestSheet}
-                locale={locale}
-                highlight={highlight}
-                mayCollect={mayCollect}
-                rowKeyPrefix="collect"
-              />
+            </button>
+          ) : null}
+          {toCollect.length === 1 || collectShown ? (
+            <div id="to-collect-list" className="flex flex-col gap-2">
+              {toCollect.map((row) => (
+                <div key={`collect-${row.id}`} id={`collect-${row.id}`}>
+                  <DebtRow
+                    row={{
+                      id: row.id,
+                      dayLabel: row.dayLabel,
+                      timeRange: row.timeRange,
+                      requesterName: row.requesterName,
+                      owedUsd: row.displayAmountUsd,
+                      pitchName: row.pitchName,
+                    }}
+                    mayCollect={mayCollect && owesCash(row)}
+                    highlighted={highlight === row.id}
+                    open={openId === row.id}
+                    onOpen={openRowSheet}
+                    locale={locale}
+                  />
+                </div>
+              ))}
               {toCollectHasMore ? (
                 <Link
                   href="/owner/money"
@@ -422,29 +464,8 @@ export function UpcomingPanel({
               ) : null}
             </div>
           ) : null}
-        </>
+        </section>
       ) : null}
-
-      {between}
-
-      {games.length > 0 ? (
-        <UpcomingRows
-          rows={games}
-          showDate={false}
-          openId={openId}
-          onOpen={openRowSheet}
-          onOpenInterests={openInterestSheet}
-          locale={locale}
-          highlight={highlight}
-          mayCollect={mayCollect}
-          rowKeyPrefix="day"
-        />
-      ) : (
-        <EmptyState
-          title={ui("empty.confirmed", locale)}
-          next={ui("empty.confirmedNext", locale)}
-        />
-      )}
 
       <BottomSheet
         open={openId !== null}

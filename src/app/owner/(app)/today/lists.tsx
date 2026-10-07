@@ -28,7 +28,9 @@ import { formatLocalHm } from "@/lib/format-local-hm";
 import { formatUsd, formatUsdCompact } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
-import { formatSlotDateLabel } from "./date-label";
+import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
+import { businessDate } from "@/modules/booking/domain/business-day";
+import { compareCivilDate } from "@/modules/venue/domain/availability";
 import { OwnerDayStrip } from "./day-strip";
 import {
   messageDayLabel,
@@ -86,6 +88,16 @@ export async function OwnerToday({
     noShowFeePercent: tenant.noShowFeePercent,
   };
   const earliest = pending[0];
+  // Games from earlier business days that are still owed. Today's own ended games stay in Games.
+  const earlierDebts = ownerDay.isToday
+    ? ownerDay.toCollect.filter(
+        (row) => compareCivilDate(businessDate(row.start), ownerDay.today) < 0,
+      )
+    : [];
+  const earlierTotal = earlierDebts.reduce(
+    (sum, row) => sum.plus(row.remaining),
+    new Decimal(0),
+  );
   const { summary } = ownerDay;
   const saved =
     notify && bookingId ? await loadOutcomeNotify({ bookingId, kind: notify }) : null;
@@ -98,6 +110,19 @@ export async function OwnerToday({
           {ui("owner.afterMidnightToday", locale)}
         </p>
       ) : null}
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <DaySummaryLine summary={summary} locale={locale} />
+        {earlierDebts.length > 0 ? (
+          <a
+            href="#earlier-debts"
+            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-owed/60 bg-owed-subtle px-3 text-xs font-medium text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <LtrIsolate>{`$${formatUsdCompact(earlierTotal)}${ownerDay.toCollectHasMore ? "+" : ""}`}</LtrIsolate>
+            <span>{ui("owner.owedFromEarlier", locale)}</span>
+          </a>
+        ) : null}
+      </div>
 
       {ownerDay.isToday && pending.length > 0 && earliest ? (
         <Link
@@ -118,34 +143,23 @@ export async function OwnerToday({
       ) : null}
 
       <UpcomingPanel
-        toCollect={
-          ownerDay.isToday
-            ? toUpcomingViews(
-                ownerDay.toCollect,
-                now,
-                locale,
-                hourCycle,
-                openWaitlist,
-                policy,
-                tenant.name,
-                showPitch,
-                tenant.perPlayerSplitEnabled,
-              )
-            : []
-        }
-        toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
-        toCollectTotal={formatUsdCompact(
-          ownerDay.isToday
-            ? ownerDay.toCollect.reduce((sum, row) => sum.plus(row.remaining), new Decimal(0))
-            : new Decimal(0),
+        toCollect={toUpcomingViews(
+          earlierDebts,
+          now,
+          locale,
+          hourCycle,
+          openWaitlist,
+          policy,
+          tenant.name,
+          showPitch,
+          tenant.perPlayerSplitEnabled,
         )}
-        between={
-          <>
-            <DaySummaryLine summary={summary} locale={locale} />
-            <Suspense fallback={null}>
-              <FreeStripSection membership={membership} locale={locale} date={date} />
-            </Suspense>
-          </>
+        toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
+        toCollectTotal={formatUsdCompact(earlierTotal)}
+        free={
+          <Suspense fallback={null}>
+            <FreeStripSection membership={membership} locale={locale} date={date} />
+          </Suspense>
         }
         games={toUpcomingViews(
           ownerDay.games,
@@ -283,6 +297,7 @@ function toUpcomingViews(
       id: row.id,
       pitchName: showPitch ? row.pitchName : null,
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
+      dayLabel: formatEarlierDayLabel(row.start, now, locale),
       dateLabel: formatSlotDateLabel(row.start, now, locale),
       nightHint: nightHint(row.start, locale),
       requesterPersonId: row.requesterPersonId,
