@@ -720,6 +720,19 @@ const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
       other: "{n} upcoming",
     },
   },
+  "owner.freeCount": {
+    ar: {
+      one: "{n} متاح",
+      two: "{n} متاحان",
+      few: "{n} متاحة",
+      many: "{n} متاحة",
+      other: "{n} متاحة",
+    },
+    en: {
+      one: "{n} free",
+      other: "{n} free",
+    },
+  },
   "owner.interested": {
     ar: {
       zero: "لا مهتمين",

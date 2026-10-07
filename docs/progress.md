@@ -5595,3 +5595,16 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/back-link.tsx` (now a client component), `app/owner/(app)/{people/[personId],search,book}/page.tsx`.
 
 **How to verify:** build is green. Not run in a browser: open Today on another day, tap a player name, tap Back; you should land on that same day. Open the person page in a new tab; Back should go to Today.
+## Today mockup redone as a one-column day sheet (dev only)
+
+**When:** 2026-10-01
+
+**What:** `/dev/mockups/today` is now a one-column day sheet; `components/day-grid/` and its 3+ pitch handling are deleted. New presentational `components/day-sheet/`: `buildDaySheet` (pure: slot rows in time order, past free slots hidden, past bookings kept, a Now divider, an unaligned booking at its own time, rule prices, pending counts), `BookingCard`, `FreeRow`, `DaySheet` / `NowDivider`, `PitchSwitcher` (two pitches max, `?pitch=`). Day strip is the live `OwnerDayStrip`. Fake data: A1 (17:00 owed, 19:00 expected, free 20:00 with 2 pending and 21:00 at $40), A2 with `?pitches=2`.
+
+**Why:** Replace the grid after review. One column fits 390px and keeps names unwrapped and whole.
+
+**Files:** `components/day-sheet/*`, `app/dev/mockups/today/{page,guard,today-mockup,data}`, `lib/ui-copy.ts` (`owner.freeCount`), tests `test/components/build-day-sheet.test.ts`, `test/app/dev/today-mockup.test.ts`.
+
+**How it connects:** No module imports. The guard lives in `guard.ts` (a Next page file may only export its page), and the test runs it, and the page, with NODE_ENV=production.
+
+**How to verify:** `npm test`: 561 tests. `npm run build` is green. Screenshots were taken from a production build with the guard temporarily bypassed (restored before commit).
