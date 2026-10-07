@@ -26,6 +26,7 @@ export function OwnerDayStrip({
       todayNumber={today.day}
       maxDate={formatCivilDate(addCalendarDays(today, OWNER_FUTURE_DAYS))}
       calendarLabel={ui("owner.monthCalendar", locale)}
+      locale={locale}
     />
   );
 }

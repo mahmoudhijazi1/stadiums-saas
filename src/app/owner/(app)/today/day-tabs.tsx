@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Calendar } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { ar, enGB } from "react-day-picker/locale";
 import { cn } from "cn";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDisplayDate } from "@/lib/format-display-date";
+import type { UiLocale } from "@/lib/locale";
 import type { DayTab } from "@/modules/booking/domain/day-tabs";
 import { useDayNav } from "./day-nav";
 
@@ -17,15 +22,17 @@ export function DayTabs({
   todayNumber,
   maxDate,
   calendarLabel,
+  locale,
 }: {
   tabs: DayTab[];
   todayDate: string;
   todayNumber: number;
   maxDate: string;
   calendarLabel: string;
+  locale: UiLocale;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
-  const dateRef = useRef<HTMLInputElement>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const { selected, go } = useDayNav();
   const selectedIndex = tabs.findIndex((tab) => tab.date === selected);
 
@@ -39,8 +46,10 @@ export function DayTabs({
     list.scrollBy({ left: shift, behavior: "auto" });
   }, [selected]);
 
-  function pickDate(value: string) {
-    if (!value || value > maxDate) return;
+  function pickDate(date: Date) {
+    const value = ymd(date);
+    setPickerOpen(false);
+    if (value > maxDate || value === selected) return;
     go(value, value === todayDate ? "/owner/today" : `/owner/today?date=${value}`);
   }
 
@@ -104,40 +113,56 @@ export function DayTabs({
       </div>
       {/* Fixed 44px slot outside the scroller; the edge fade ends at the scroller's edge. */}
       <div className="relative size-11 shrink-0">
-        <button
-          type="button"
-          aria-label={calendarLabel}
-          onClick={() => {
-            const input = dateRef.current;
-            if (!input) return;
-            try {
-              input.showPicker();
-            } catch {
-              input.focus();
-              input.click();
-            }
-          }}
-          className="relative grid size-11 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <Calendar aria-hidden className="size-5 text-muted-foreground" />
-          <span
-            aria-hidden
-            className="absolute inset-0 grid place-items-center pt-1 text-[10px] font-bold leading-none"
-          >
-            {todayNumber}
-          </span>
-        </button>
-        <input
-          ref={dateRef}
-          type="date"
-          tabIndex={-1}
-          aria-hidden
-          max={maxDate}
-          defaultValue={selected}
-          onChange={(event) => pickDate(event.target.value)}
-          className="pointer-events-none absolute inset-0 opacity-0"
-        />
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label={calendarLabel}
+              className="relative grid size-11 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              <CalendarIcon aria-hidden className="size-5 text-muted-foreground" />
+              <span
+                aria-hidden
+                className="absolute inset-0 grid place-items-center pt-1 text-[10px] font-bold leading-none"
+              >
+                {todayNumber}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              required
+              selected={parseYmd(selected)}
+              defaultMonth={parseYmd(selected)}
+              disabled={{ after: parseYmd(maxDate) }}
+              onSelect={pickDate}
+              locale={locale === "ar" ? ar : enGB}
+              dir={locale === "ar" ? "rtl" : "ltr"}
+              formatters={{
+                formatCaption: (month) =>
+                  formatDisplayDate(
+                    new Date(Date.UTC(month.getFullYear(), month.getMonth(), 1, 12)),
+                    locale,
+                    { month: "long", year: "numeric" },
+                    "UTC",
+                  ),
+              }}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );
+}
+
+function parseYmd(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number) as [number, number, number];
+  return new Date(year, month - 1, day);
+}
+
+function ymd(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
 }

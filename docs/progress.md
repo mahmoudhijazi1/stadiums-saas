@@ -5525,3 +5525,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/globals.css`, `components/scrollbar-peek.tsx`.
 
 **How to verify:** build is green. Not rendered (no browser in this session): `html` should compute `scrollbar-width: none`; a fixed 3px element should fade in at the inline-end edge while scrolling and out about 0.8s later; page content width should not change.
+
+## Today calendar button opens the app calendar, not the native picker
+
+**When:** 2026-10-07
+
+**What:** The calendar button in the Today date strip now opens the app's own `Calendar` (react-day-picker, already used by `DateCalendarChip` and `DateField`) in a `Popover`, instead of the hidden `<input type="date">` and `showPicker()`. Days after the 60-day limit are disabled; past days are open. The month caption uses the shared date formatter (Levantine months in Arabic), the grid is RTL in Arabic, digits are Latin. Picking a day goes through the same optimistic day change as the tabs. No new dependency.
+
+**Files:** `app/owner/(app)/today/{day-tabs,day-strip}.tsx`.
+
+**How to verify:** `npm test` passes, build is green. Not rendered (no browser in this session): tap the calendar button at 390px in Arabic and English; the popover should stay inside the viewport, show the selected day highlighted, and disable days past 60 days ahead.
