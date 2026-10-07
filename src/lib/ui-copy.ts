@@ -211,7 +211,7 @@ const ARABIC: Record<string, string> = {
   "owner.moreSlots": "أخرى",
   "owner.allPitches": "الكل",
   "owner.prevDay": "اليوم السابق",
-  "owner.afterMidnightToday": "بعد منتصف الليل: اليوم مستمر حتى السادسة صباحاً.",
+  "owner.afterMidnightToday": "بعد منتصف الليل: اليوم مستمر حتى 6:00 ص.",
   "owner.nextDay": "اليوم التالي",
   "owner.monthCalendar": "الشهر",
   "owner.gamesWord": "مباريات",
