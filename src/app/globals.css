@@ -73,11 +73,12 @@
   --color-card: var(--card);
 
   /* Latin first, Arabic fallback. No lang() branching — missing glyphs fall through. */
-  --font-sans: var(--font-manrope), var(--font-plex-arabic), system-ui, sans-serif;
-  --font-heading: var(--font-big-shoulders), var(--font-kufi),
-    var(--font-plex-arabic), sans-serif;
-  --font-display: var(--font-big-shoulders), var(--font-kufi),
-    var(--font-plex-arabic), sans-serif;
+  --font-sans: var(--font-manrope), var(--font-plex-arabic), var(--font-plex-arabic-latin),
+    system-ui, sans-serif;
+  --font-heading: var(--font-big-shoulders), var(--font-plex-arabic),
+    var(--font-plex-arabic-latin), sans-serif;
+  --font-display: var(--font-big-shoulders), var(--font-plex-arabic),
+    var(--font-plex-arabic-latin), sans-serif;
   --font-mono: var(--font-plex-mono);
 
   --radius-sm: calc(var(--radius) * 0.6);
@@ -355,7 +356,7 @@
   h1,
   h2,
   h3 {
-    /* Heading role: Big Shoulders, then Kufi for Arabic words. */
+    /* Heading role: Big Shoulders, then Plex Arabic for Arabic words. */
     font-family: var(--font-heading);
   }
 }

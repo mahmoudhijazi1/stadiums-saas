@@ -126,3 +126,7 @@ npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 
 - **Format:** 3–30 characters, lowercase letters, digits and single inner hyphens. No leading or trailing hyphen, no `--`, no `xn--`, so that `owner@<slug>` is always a valid login.
 - **Reserved** (their explicit DNS records override the wildcard, or they are kept for the platform): www, mail, webmail, ftp, smtp, imap, pop, ns1, ns2, admin, api, app, static, assets, cdn, status, support, help, dashboard, login, panel, cpanel, test.
 - **Slugs are immutable.** There is no rename command: printed QR codes, installed PWAs and shared links use the slug.
+
+## Fonts
+
+Fonts are self-hosted with `next/font/local` (`src/app/layout.tsx`); the build and the app make no request to Google. The woff2 files and their SIL Open Font License texts are in `src/fonts/<family>/`: IBM Plex Sans Arabic (arabic + latin, 400 and 600), Manrope (latin, 400 and 600), Big Shoulders (latin, 800), IBM Plex Mono (latin, 400 and 600). They came from the `@fontsource/*` packages, which repackage the official Google Fonts OFL releases; each family folder has its `OFL.txt`. To add a weight or a family, copy the woff2 and licence into `src/fonts/`, add it to the loader in `layout.tsx`, and keep to weights 400 and 600 unless a design needs more.

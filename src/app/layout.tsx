@@ -1,11 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Big_Shoulders,
-  IBM_Plex_Mono,
-  IBM_Plex_Sans_Arabic,
-  Manrope,
-  Noto_Kufi_Arabic,
-} from "next/font/google";
+import localFont from "next/font/local";
 import { OwnerServiceWorker } from "@/components/owner-service-worker";
 import { ScrollbarPeek } from "@/components/scrollbar-peek";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -15,40 +9,53 @@ import { htmlDir, htmlLang } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import "./globals.css";
 
-// Local next/dist/docs/01-app/03-api-reference/02-components/font.md:
-// CSS variable method; non-variable fonts require weight; subsets for preload.
-// Google packages the display face as Big_Shoulders (not Big_Shoulders_Display).
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700"],
+// Self-hosted (no request to Google at build or run time): local font.md, `next/font/local`.
+// Files live in src/fonts with their OFL licences. Only the weights the UI uses are shipped.
+// IBM Plex Sans Arabic ships as two files per weight (Arabic and Latin subsets). They are
+// two loaders because next/font/local has no per-face unicode-range; the stack lists both
+// and the browser falls through per glyph.
+const plexArabic = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-600-normal.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex-arabic",
   display: "swap",
 });
 
-const kufi = Noto_Kufi_Arabic({
-  subsets: ["arabic"],
-  variable: "--font-kufi",
+const plexArabicLatin = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
+  variable: "--font-plex-arabic-latin",
   display: "swap",
 });
 
-const display = Big_Shoulders({
-  subsets: ["latin"],
-  weight: ["700", "800", "900"],
-  variable: "--font-big-shoulders",
-  display: "swap",
-  fallback: ["Noto Kufi Arabic", "IBM Plex Sans Arabic", "sans-serif"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+const manrope = localFont({
+  src: [
+    { path: "../fonts/manrope/manrope-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/manrope/manrope-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-manrope",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+// Big Shoulders: only the weight the UI uses (800, the one big figure).
+const display = localFont({
+  src: [
+    { path: "../fonts/big-shoulders/big-shoulders-latin-800-normal.woff2", weight: "800", style: "normal" },
+  ],
+  variable: "--font-big-shoulders",
+  display: "swap",
+  fallback: ["IBM Plex Sans Arabic", "sans-serif"],
+});
+
+const plexMono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono/ibm-plex-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-mono/ibm-plex-mono-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--font-plex-mono",
   display: "swap",
 });
@@ -79,7 +86,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={htmlLang(locale)}
       dir={htmlDir(locale)}
       suppressHydrationWarning
-      className={`${manrope.variable} ${plexArabic.variable} ${kufi.variable} ${display.variable} ${plexMono.variable} h-full bg-background antialiased`}
+      className={`${manrope.variable} ${plexArabic.variable} ${plexArabicLatin.variable} ${display.variable} ${plexMono.variable} h-full bg-background antialiased`}
     >
       <body className="min-h-svh flex flex-col">
         <ThemeProvider>

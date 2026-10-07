@@ -14,9 +14,9 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 - Old shadcn names kept (`--background`, `--primary`, `--accent` as hover wash, …).
 - `next-themes` ThemeProvider: light / dark / system, localStorage, no FOUC script.
 - `ThemeToggle` + `/dev/palette` preview page.
-- Fonts: IBM Plex Sans Arabic, Noto Kufi Arabic, Big Shoulders (`--font-big-shoulders` → `font-display`), IBM Plex Mono.
+- Fonts (self-hosted, 2026-10-08, see RUNBOOK "Fonts"): IBM Plex Sans Arabic (Arabic + Latin files, 400/600), Manrope (400/600), Big Shoulders (800 only, `--font-big-shoulders` → `font-display`), IBM Plex Mono (400/600). Noto Kufi Arabic is gone.
 - `LtrIsolate` uses `font-display tabular-nums`.
-- Latin UI face is Manrope (`--font-manrope`). `--font-sans` is Manrope, then Plex Arabic. `--font-heading` and `--font-display` are Big Shoulders, then Kufi, then Plex Arabic.
+- Latin UI face is Manrope (`--font-manrope`). `--font-sans` is Manrope, then Plex Arabic. `--font-heading` and `--font-display` are Big Shoulders, then Plex Arabic.
 - `:lang(ar)` loosens line-height, steps the text-xs/sm/base sizes, and forces `letter-spacing: normal` so tracking cannot break Arabic joining.
 - Viewport `themeColor` light `#F6F5EF` / dark `#111412`; `colorScheme: "light dark"`.
 - Sonner follows `resolvedTheme` (no hardcoded `theme="light"`).
