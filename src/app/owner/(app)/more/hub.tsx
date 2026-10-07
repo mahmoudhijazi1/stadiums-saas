@@ -124,6 +124,7 @@ export function MoreHub({
   cancellationWindowHours,
   lateCancellationFeePercent,
   noShowFeePercent,
+  perPlayerSplitEnabled,
   identifier,
 }: {
   locale: UiLocale;
@@ -136,6 +137,7 @@ export function MoreHub({
   cancellationWindowHours: number;
   lateCancellationFeePercent: number;
   noShowFeePercent: number;
+  perPlayerSplitEnabled: boolean;
   identifier: string;
 }) {
   const router = useRouter();
@@ -342,6 +344,21 @@ export function MoreHub({
                     label={ui("owner.noShowFeeSetting", locale)}
                     current={noShowFeePercent}
                   />
+                  <label className="flex items-start gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      name="perPlayerSplitEnabled"
+                      value="true"
+                      defaultChecked={perPlayerSplitEnabled}
+                      className="mt-1 size-4 shrink-0"
+                    />
+                    <span className="flex flex-col gap-1">
+                      <span className="font-medium">{ui("owner.splitSetting", locale)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {ui("owner.splitSettingHelp", locale)}
+                      </span>
+                    </span>
+                  </label>
                   <SubmitButton className="w-full">
                     {ui("owner.saveRules", locale)}
                   </SubmitButton>

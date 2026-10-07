@@ -62,7 +62,8 @@ export async function seedMinimalFixture(
   const ownerPassword = options.ownerPassword ?? "test-owner-password";
 
   const tenant = await platformDb.tenant.create({
-    data: { slug: tenantSlug, name: tenantName },
+    // Per-player split is off by default in product; suites that exercise it need it on.
+    data: { slug: tenantSlug, name: tenantName, settings: { perPlayerSplitEnabled: true } },
     select: { id: true, slug: true },
   });
 

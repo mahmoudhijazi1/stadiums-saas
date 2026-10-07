@@ -19,6 +19,7 @@ export type CurrentTenant = {
   cancellationWindowHours: number;
   lateCancellationFeePercent: number;
   noShowFeePercent: number;
+  perPlayerSplitEnabled: boolean;
   /** Suspended by the platform operator (decision 7). Loaded in the same query. */
   suspended: boolean;
 };
@@ -62,6 +63,7 @@ async function loadTenant(): Promise<CurrentTenant> {
     cancellationWindowHours: settings.cancellationWindowHours,
     lateCancellationFeePercent: settings.lateCancellationFeePercent,
     noShowFeePercent: settings.noShowFeePercent,
+    perPlayerSplitEnabled: settings.perPlayerSplitEnabled,
     suspended: tenant.suspendedAt !== null,
   };
 }

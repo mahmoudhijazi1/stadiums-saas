@@ -11,6 +11,7 @@ const feeDefaults = {
   cancellationWindowHours: 24,
   lateCancellationFeePercent: 0,
   noShowFeePercent: 100,
+  perPlayerSplitEnabled: false,
 };
 
 describe("parseTenantSettings", () => {
@@ -90,6 +91,7 @@ describe("parseBookingRulesForm", () => {
       cancellationWindowHours: 24,
       lateCancellationFeePercent: 50,
       noShowFeePercent: 100,
+      perPlayerSplitEnabled: false,
     });
   });
 
@@ -113,6 +115,7 @@ describe("mergeBookingRules", () => {
           cancellationWindowHours: 12,
           lateCancellationFeePercent: 50,
           noShowFeePercent: 0,
+          perPlayerSplitEnabled: false,
         },
       ),
     ).toEqual({
@@ -120,6 +123,7 @@ describe("mergeBookingRules", () => {
       cancellationWindowHours: 12,
       lateCancellationFeePercent: 50,
       noShowFeePercent: 0,
+      perPlayerSplitEnabled: false,
     });
   });
 });

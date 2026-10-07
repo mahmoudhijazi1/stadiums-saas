@@ -245,6 +245,7 @@ async function setLateFeePercent(percent: number): Promise<void> {
         cancellationWindowHours: 1440,
         lateCancellationFeePercent: percent,
         noShowFeePercent: 100,
+        perPlayerSplitEnabled: true,
       },
     },
   });

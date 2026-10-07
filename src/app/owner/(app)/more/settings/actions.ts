@@ -43,6 +43,7 @@ export async function submitSetBookingRules(formData: FormData) {
       cancellationWindowHours: field(formData, "cancellationWindowHours"),
       lateCancellationFeePercent: field(formData, "lateCancellationFeePercent"),
       noShowFeePercent: field(formData, "noShowFeePercent"),
+      perPlayerSplitEnabled: formData.get("perPlayerSplitEnabled") ?? undefined,
     });
     await setBookingRules(parsed);
   } catch (error) {

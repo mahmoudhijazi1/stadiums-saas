@@ -5436,3 +5436,23 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - Submitting $20 + 895,000 LBP recorded tenders USD 20.00 and LBP 895000 → 10.00, and one ledger IN of 30.00.
 - Expense: $10 + 447,500 LBP → "Total $15.00".
 - Probe data truncated afterwards.
+
+## Per-player split is an optional tenant setting (off by default)
+
+**When:** 2026-10-07
+
+**What:**
+- New `perPlayerSplitEnabled` (boolean, default `false`) in the tenant settings schema. No migration: old rows parse as off.
+- A checkbox with one line of help in the Booking rules sheet (More > Business), saved with the existing Save under `settings.manage`. Copy in AR and EN.
+- Off means: the Whole / Per player switch is hidden for whole-game bookings, `switchToPerPlayer` refuses with `booking.split_disabled` (checked on the server), and the pitch "Players per game" field is hidden (its stored value still posts through a hidden input).
+- A booking already per player is untouched: slot pay, pay-all, switch back to whole, and the collapse on cancel / no-show keep working. Money owed is never hidden.
+
+**Why:** Owner request: most stadiums do not split a game between players, so the feature should not clutter their sheets. Governing rule RULE-12; SPEC-15 behaviour unchanged once enabled; DR-002 §2.6 (settings jsonb).
+
+**Files:** `lib/tenant-settings.ts`, `lib/tenant-context.ts`, `lib/{ui-copy,error-messages}.ts`, `modules/booking/application/switch-collection-mode.ts`, `app/owner/(app)/more/{hub,page}.tsx`, `more/settings/actions.ts`, `more/settings/pitches/{form,new/page,[pitchId]/page}.tsx`, `today/lists.tsx`, `docs/{per-player-payments,NOW}.md`, `test/integration/{fixtures,split-setting,staff-permissions,collect-notify-debt}`, `test/lib/tenant-settings.test.ts`.
+
+**How it connects:** the flag rides on `getCurrentTenant()` like the fee policy. `switchToPerPlayer` reads it before the transaction; nothing in Payment reads it. Test fixtures seed it on so the existing per-player suites run unchanged.
+
+**How to verify:** see the results line appended below.
+
+- `npm test`: 561 passed. `npm run test:integration`: 198 passed (6 new in `split-setting`). `npm run build` is green.
