@@ -8,7 +8,7 @@ import { bookingRemaining, participantRemaining } from "@/modules/payment/domain
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { nightHint } from "@/modules/booking/application/night-hint";
 import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
-import { Card } from "@/components/ui/card";
+import { BookingRow, variantOf } from "@/app/owner/booking-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { CircleAlert, CircleCheck } from "lucide-react";
@@ -102,42 +102,43 @@ export async function PersonGames({
             });
             return (
               <li key={row.id}>
-                <Card className="gap-1 px-4 py-3 shadow-none">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <ClockRangeText
-                      text={formatLocalClockRange(row.start, row.end, hourCycle, locale)}
-                      className="text-sm font-semibold"
-                    />
-                    <PersonFigure
-                      figure={figure}
-                      locale={locale}
-                    />
-                  </div>
-                  <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
+                <BookingRow
+                  variant={variantOf(display)}
+                  title={
                     <LtrIsolate>
                       {formatDisplayDate(row.start, locale, {
                         day: "numeric",
                         month: "short",
                       })}
                     </LtrIsolate>
-                    {nightHint(row.start, locale) ? (
-                      <span>{nightHint(row.start, locale)}</span>
-                    ) : null}
-                    {showPitch ? <span>{row.pitchName}</span> : null}
-                    {row.status !== "APPROVED" ? (
-                      <span>{paymentLabel(display.kind, locale)}</span>
-                    ) : null}
-                    {perPlayer ? (
-                      <span>
+                  }
+                  meta={
+                    <>
+                      <ClockRangeText
+                        text={formatLocalClockRange(row.start, row.end, hourCycle, locale)}
+                      />
+                      {nightHint(row.start, locale) ? (
+                        <span>{nightHint(row.start, locale)}</span>
+                      ) : null}
+                      {showPitch ? <span>{row.pitchName}</span> : null}
+                      {row.status !== "APPROVED" ? (
+                        <span>{paymentLabel(display.kind, locale)}</span>
+                      ) : null}
+                    </>
+                  }
+                  pill={<PersonFigure figure={figure} locale={locale} />}
+                  footer={
+                    perPlayer ? (
+                      <p className="text-sm text-muted-foreground">
                         {ui("owner.shareWord", locale)}{" "}
                         <LtrIsolate>${formatUsdCompact(row.participantDueUsd)}</LtrIsolate>
                         <span aria-hidden> · </span>
                         {ui("owner.gameWord", locale)}{" "}
                         <LtrIsolate>${formatUsdCompact(row.amountDueUsd)}</LtrIsolate>
-                      </span>
-                    ) : null}
-                  </p>
-                </Card>
+                      </p>
+                    ) : undefined
+                  }
+                />
               </li>
             );
           })}

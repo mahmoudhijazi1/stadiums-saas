@@ -52,6 +52,8 @@ A bare `$30` is never enough. The label names the owner of the figure: the game,
 
 The label is short and sits before the number in reading order. In a dense row the label may be the column or group title, as long as it is always visible.
 
+**Cards (amended 2026-10-07).** A booking card shows money only when it signals a state: an owed or partial amount (`$30 due`, `$12 left`), Paid, a no-show or cancel fee. A plain upcoming game shows no price and no pill; the "Game `$30`" label is gone from cards. The booking sheet always shows the game price, labelled. One component, `BookingRow` (`app/owner/booking-row.tsx`), draws every booking card; the pill is the only money on it.
+
 ### 3. Counts say what they count
 
 State the condition behind the count. Never a bare "1 game" when the list below shows more rows than that.

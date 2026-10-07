@@ -1,11 +1,11 @@
-import { ChevronRight, CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText } from "@/components/ui/ltr-isolate";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
-import { cn } from "cn";
+import { BookingRow, OwedPill } from "@/app/owner/booking-row";
 
-/** What the compact row needs from a booking still owed from an earlier day. */
+/** What the debt variant needs from a booking still owed from an earlier day. */
 export type DebtRowView = {
   id: string;
   /** "Yesterday", a weekday, or the date (see `formatEarlierDayLabel`). */
@@ -18,9 +18,9 @@ export type DebtRowView = {
 };
 
 /**
- * One owed game from an earlier day, as a compact row with an amber edge. Never a full
- * booking card, so it cannot be mistaken for one of today's games. Tapping opens the same
- * booking sheet as the cards.
+ * One owed game from an earlier day: the debt variant of BookingRow. Line 2 starts with
+ * the relative day. The body opens the booking sheet; the Collect button is a separate,
+ * 44px target 12px away from it (it opens the same sheet, where the payment is taken).
  */
 export function DebtRow({
   row,
@@ -38,53 +38,32 @@ export function DebtRow({
   locale: UiLocale;
 }) {
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 rounded-lg border border-s-4 border-s-owed bg-card",
-        (open || highlighted) && "ring-2 ring-inset ring-action-ink",
-      )}
-    >
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-label={ui("owner.openBooking", locale)}
-        onClick={() => onOpen(row.id)}
-        className="flex min-h-14 min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 bg-transparent px-3 py-2 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
-      >
-        <span className="flex items-baseline gap-2 text-sm">
-          <span className="font-medium">{row.dayLabel}</span>
-          <ClockRangeText text={row.timeRange} className="text-sm text-muted-foreground" />
-          {row.pitchName ? (
-            <span className="truncate text-muted-foreground">{row.pitchName}</span>
-          ) : null}
-        </span>
-        <span className="flex w-full items-center gap-2 text-sm">
-          <span className="min-w-0 flex-1 truncate">
-            <bdi>{row.requesterName}</bdi>
-          </span>
-          <span className="inline-flex shrink-0 items-center gap-1 font-medium text-owed">
-            <CircleAlert aria-hidden className="size-4 shrink-0" />
-            <span>{ui("owner.owedWord", locale)}</span>
-            <LtrIsolate>${row.owedUsd}</LtrIsolate>
-          </span>
-        </span>
-      </button>
-      {mayCollect ? (
-        <Button
-          type="button"
-          size="sm"
-          className="me-3 min-h-11 shrink-0"
-          onClick={() => onOpen(row.id)}
-        >
-          {ui("owner.collect", locale)}
-        </Button>
-      ) : (
-        <ChevronRight
-          aria-hidden
-          className="me-3 size-5 shrink-0 text-muted-foreground rtl:rotate-180"
-        />
-      )}
-    </div>
+    <BookingRow
+      variant="debt"
+      title={<bdi>{row.requesterName}</bdi>}
+      meta={
+        <>
+          <span>{row.dayLabel}</span>
+          <ClockRangeText text={row.timeRange} />
+          {row.pitchName ? <span>{row.pitchName}</span> : null}
+        </>
+      }
+      pill={mayCollect ? undefined : <OwedPill amountUsd={row.owedUsd} word={ui("owner.dueShort", locale)} />}
+      action={
+        mayCollect ? (
+          <Button
+            type="button"
+            size="sm"
+            className="min-h-11 shrink-0"
+            onClick={() => onOpen(row.id)}
+          >
+            {ui("owner.collect", locale)} <LtrIsolate>${row.owedUsd}</LtrIsolate>
+          </Button>
+        ) : undefined
+      }
+      onOpen={() => onOpen(row.id)}
+      highlighted={highlighted}
+      open={open}
+    />
   );
 }

@@ -25,6 +25,7 @@ import {
 import { submitCollectPayment } from "./actions";
 import { PersonLink } from "@/app/owner/person-link";
 import { DebtRow } from "./debt-row";
+import { BookingRow, StatusPill, variantOf } from "@/app/owner/booking-row";
 import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";
 import {
   BottomSheet,
@@ -37,7 +38,6 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { Button } from "@/components/ui/button";
 import { Figure } from "@/components/ui/figure";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -47,12 +47,10 @@ import { TenderBalance } from "@/app/owner/tender-balance";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
 import {
-  ChevronRight,
   CircleAlert,
   CircleCheck,
   MessageCircle,
   Phone,
-  Radio,
 } from "lucide-react";
 
 export type UpcomingRowView = {
@@ -102,84 +100,6 @@ function owesCash(row: UpcomingRowView): boolean {
     row.display.kind === "partial" ||
     row.display.kind === "no_show_unpaid" ||
     row.display.kind === "cancelled"
-  );
-}
-
-function CardTrail({
-  display,
-  amountUsd,
-  locale,
-}: {
-  display: CardDisplay;
-  amountUsd: string;
-  locale: UiLocale;
-}) {
-  if (display.kind === "no_show_unpaid") {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-owed">
-        <CircleAlert aria-hidden className="size-4 shrink-0" />
-        <span>{ui("owner.noShow", locale)}</span>
-        <span aria-hidden>·</span>
-        <LtrIsolate>${amountUsd}</LtrIsolate>
-        <span>{ui("owner.dueShort", locale)}</span>
-      </span>
-    );
-  }
-  if (display.kind === "no_show_paid") {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
-        <span>{ui("owner.noShow", locale)}</span>
-        <span aria-hidden>·</span>
-        <CircleCheck aria-hidden className="size-4 shrink-0 text-paid" />
-        <span>{ui("owner.paid", locale)}</span>
-      </span>
-    );
-  }
-  if (display.kind === "cancelled") {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground">
-        <span>{ui("owner.cancelledShort", locale)}</span>
-      </span>
-    );
-  }
-  if (display.kind === "live") {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-foreground">
-        <Radio aria-hidden className="size-4 shrink-0" />
-        <span>{ui("owner.live", locale)}</span>
-        <span aria-hidden>·</span>
-        <LtrIsolate>{display.minutesLeft}</LtrIsolate>
-        <span>{ui("owner.minLeft", locale)}</span>
-      </span>
-    );
-  }
-  if (display.kind === "unpaid" || display.kind === "partial") {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-owed">
-        <CircleAlert aria-hidden className="size-4 shrink-0" />
-        <LtrIsolate>${amountUsd}</LtrIsolate>
-        <span>
-          {ui(
-            display.kind === "partial" ? "owner.leftShort" : "owner.dueShort",
-            locale,
-          )}
-        </span>
-      </span>
-    );
-  }
-  if (display.kind === "paid") {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-paid">
-        <CircleCheck aria-hidden className="size-4 shrink-0" />
-        <span>{ui("owner.paid", locale)}</span>
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-      <span>{ui("owner.gameWord", locale)}</span>
-      <LtrIsolate>${amountUsd}</LtrIsolate>
-    </span>
   );
 }
 
@@ -386,13 +306,11 @@ export function UpcomingPanel({
           </h2>
           <UpcomingRows
             rows={games}
-            showDate={false}
             openId={openId}
             onOpen={openRowSheet}
             onOpenInterests={openInterestSheet}
             locale={locale}
             highlight={highlight}
-            mayCollect={mayCollect}
             rowKeyPrefix="day"
           />
         </section>
@@ -667,126 +585,61 @@ function CollectCount({ text, plus }: { text: string; plus: boolean }) {
 
 function UpcomingRows({
   rows,
-  showDate,
   openId,
   onOpen,
   onOpenInterests,
   locale,
   highlight,
-  mayCollect,
   rowKeyPrefix,
 }: {
   rows: UpcomingRowView[];
-  showDate: boolean;
   openId: string | null;
   onOpen: (id: string) => void;
   onOpenInterests: (id: string) => void;
   locale: UiLocale;
   highlight?: string;
-  mayCollect: boolean;
   rowKeyPrefix: string;
 }) {
   return (
     <ul className="flex flex-col gap-2">
-      {rows.map((row) => {
-        const open = openId === row.id;
-        const highlighted = highlight === row.id;
-        return (
-          <li key={`${rowKeyPrefix}-${row.id}`} id={`${rowKeyPrefix}-${row.id}`}>
-            <Card
-              className={cn(
-                "gap-0 overflow-hidden py-0 shadow-none",
-                (open || highlighted) && "ring-2 ring-inset ring-action-ink",
-                highlighted && !open && "bg-action-ink/10",
-              )}
-            >
-              <div className="flex w-full items-center">
-                <div className="min-w-0 flex-1 px-4 py-3">
-                  <button
-                    type="button"
-                    aria-haspopup="dialog"
-                    aria-expanded={open}
-                    onClick={() => onOpen(row.id)}
-                    className={cn(
-                      "w-full cursor-pointer bg-transparent text-start outline-none",
-                      "focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50",
-                    )}
-                  >
-                    <span className="flex items-center gap-2">
-                      <ClockRangeText
-                        text={row.timeRange}
-                        className={cn(
-                          "text-lg font-semibold leading-none whitespace-nowrap",
-                          row.display.kind === "cancelled" &&
-                            "text-muted-foreground line-through",
-                        )}
-                      />
-                    </span>
-                    {row.pitchName || showDate || row.nightHint ? (
-                      <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                        {row.pitchName ? <span>{row.pitchName}</span> : null}
-                        {showDate ? <span>{row.dateLabel}</span> : null}
-                        {row.nightHint ? <span>{row.nightHint}</span> : null}
-                      </span>
-                    ) : null}
-                    <span className="mt-1.5 block truncate text-sm text-muted-foreground">
-                      <bdi>{row.requesterName}</bdi>
-                    </span>
-                    <span className="sr-only">{ui("owner.openBooking", locale)}</span>
-                  </button>
-                  {row.interested.length > 0 ? (
-                    <button
-                      type="button"
-                      className="mt-1 inline-flex min-h-11 items-center rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      onClick={() => onOpenInterests(row.id)}
-                    >
-                      <CountedPhrase
-                        text={uiCount(
-                          "owner.interested",
-                          row.interested.length,
-                          locale,
-                        )}
-                      />
-                    </button>
-                  ) : null}
-                </div>
+      {rows.map((row) => (
+        <li key={`${rowKeyPrefix}-${row.id}`} id={`${rowKeyPrefix}-${row.id}`}>
+          <BookingRow
+            variant={variantOf(row.display)}
+            title={<bdi>{row.requesterName}</bdi>}
+            meta={
+              <>
+                <ClockRangeText text={row.timeRange} />
+                {row.pitchName ? <span>{row.pitchName}</span> : null}
+                {row.nightHint ? <span>{row.nightHint}</span> : null}
+              </>
+            }
+            pill={
+              <StatusPill
+                display={row.display}
+                amountUsd={row.displayAmountUsd}
+                locale={locale}
+              />
+            }
+            onOpen={() => onOpen(row.id)}
+            open={openId === row.id}
+            highlighted={highlight === row.id}
+            footer={
+              row.interested.length > 0 ? (
                 <button
                   type="button"
-                  aria-label={ui("owner.openBooking", locale)}
-                  aria-haspopup="dialog"
-                  aria-expanded={open}
-                  onClick={() => onOpen(row.id)}
-                  className="flex shrink-0 cursor-pointer flex-col items-end gap-1 self-stretch bg-transparent px-4 outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50"
+                  className="inline-flex min-h-11 items-center rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  onClick={() => onOpenInterests(row.id)}
                 >
-                  <span className="my-auto flex flex-col items-end gap-1">
-                    <CardTrail
-                      display={row.display}
-                      amountUsd={row.displayAmountUsd}
-                      locale={locale}
-                    />
-                {mayCollect && owesCash(row) ? null : (
-                      <ChevronRight
-                        aria-hidden
-                        className="size-5 text-muted-foreground rtl:rotate-180"
-                      />
-                    )}
-                  </span>
+                  <CountedPhrase
+                    text={uiCount("owner.interested", row.interested.length, locale)}
+                  />
                 </button>
-                {mayCollect && owesCash(row) ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="my-3 me-4 min-h-11 shrink-0"
-                    onClick={() => onOpen(row.id)}
-                  >
-                    {ui("owner.collect", locale)}
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
-          </li>
-        );
-      })}
+              ) : undefined
+            }
+          />
+        </li>
+      ))}
     </ul>
   );
 }

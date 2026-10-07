@@ -5535,3 +5535,21 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/{day-tabs,day-strip}.tsx`.
 
 **How to verify:** `npm test` passes, build is green. Not rendered (no browser in this session): tap the calendar button at 390px in Arabic and English; the popover should stay inside the viewport, show the selected day highlighted, and disable days past 60 days ahead.
+
+## One booking card: `BookingRow`
+
+**When:** 2026-10-07
+
+**What:**
+- One component, `app/owner/booking-row.tsx`, draws every booking card: Today games, the earlier-debts rows and the person page rows. Variants: upcoming, live, owed, partial, paid, no-show, cancelled, debt. `variantOf(display)` maps the existing `deriveCardDisplay` kinds, so no new states.
+- Line 1 is the player (semibold, the largest text, wraps instead of truncating, `<bdi>`); line 2 is the time range (muted, LTR-isolated) plus the pitch name only when the stadium has several pitches (and the "night of" hint). The trailing slot is a vertically centred status pill: Live (dot + minutes left), Owed/Partial (owed token + icon), Paid, No-show, Cancelled. A plain upcoming game has no pill and no price; the "Game $30" label is gone from cards.
+- The chevron is gone. The whole card is one button (min 64px, pressed state, no nested interactive element). The "N interested" chip sits below the button, not inside it.
+- **Debt variant:** amber edge, line 2 starts with the relative day, and the trailing "Collect $X" button (44px) is a sibling of the body, 12px away. The body still opens the sheet. Without `payments.collect` the row shows an Owed pill instead.
+- **Person page:** same component; the title is the date and the pill is that person's own figure, as before. The per-player share line is the footer.
+- `docs/ui-rules.md` rule 2 amended: a card shows money only when it signals state; the booking sheet always shows the game price, labelled.
+
+**Behaviour change to know:** Today's owed cards no longer carry an inline Collect button (no nested interactive element); tapping the card opens the sheet, where Collect is the primary button. That is one extra tap for today's own owed games. The earlier-debts rows keep their Collect button.
+
+**Files:** `app/owner/booking-row.tsx` (new), `today/{upcoming-panel,debt-row}.tsx`, `people/[personId]/games.tsx`, `docs/ui-rules.md`.
+
+**How to verify:** `npm test`: 566 passed (no test asserted the removed copy). `npm run build` is green. eslint: only the existing F-4 errors. Not rendered (no browser in this session).
