@@ -314,9 +314,7 @@ export function UpcomingPanel({
             rowKeyPrefix="day"
           />
         </section>
-      ) : (
-        <p className="text-sm text-muted-foreground">{ui("owner.noGamesToday", locale)}</p>
-      )}
+      ) : null}
 
       {free}
 
