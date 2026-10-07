@@ -320,14 +320,13 @@
 
 @layer base {
   html {
-    scrollbar-width: thin;
-    scrollbar-color: var(--brand) transparent;
     @apply bg-background;
   }
   * {
     @apply border-border outline-ring/50;
+    /* Inner scroll areas (sheets, lists): thin, neutral, transparent track. */
     scrollbar-width: thin;
-    scrollbar-color: var(--brand) transparent;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
   }
   body {
     @apply bg-background font-sans text-foreground;
@@ -446,29 +445,41 @@
     display: block;
   }
 }
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/*
+ * Page scrollbar. Below lg it is hidden completely (wheel, touch and keyboard scrolling
+ * still work). From lg up it is thin and neutral, and the gutter is reserved so content
+ * never shifts when it appears. Unlayered so it beats the base-layer `*` rule.
+ */
+html {
+  scrollbar-width: none;
 }
-*::-webkit-scrollbar-track {
-  background: transparent;
+html::-webkit-scrollbar {
+  display: none;
 }
-*::-webkit-scrollbar-thumb {
-  background-color: var(--brand);
-  background-clip: padding-box;
-  border: 3px solid transparent;
-  border-radius: 9999px;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background-color: var(--chart-5);
-  background-clip: padding-box;
-  border: 3px solid transparent;
+@media (min-width: 64rem) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-gutter: stable;
+  }
+  html::-webkit-scrollbar {
+    display: block;
+    width: 10px;
+    height: 10px;
+  }
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  html::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 9999px;
+  }
 }
 
 /*
- * Hidden scrollbar, still scrollable (touch, drag, wheel). Unlayered and placed after the
- * global *::-webkit-scrollbar rules above: those are unlayered too, so a Tailwind utility
- * (layered) cannot beat them, and this selector is more specific.
+ * Hidden scrollbar, still scrollable (touch, drag, wheel): the date strip. Unlayered so it
+ * beats the layered `*` thin rule and shadcn's layered copy of this utility.
  */
 .no-scrollbar {
   scrollbar-width: none;
