@@ -4,6 +4,7 @@ import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { submitCreatePitch } from "../actions";
 import { PitchDraftForm } from "../form";
 import {
@@ -52,6 +53,7 @@ export default async function NewPitchPage({
             readPriceRulesDraft(queryString(params.priceRulesJson)) ?? [],
         }}
         showPending={false}
+        splitEnabled={(await getCurrentTenant()).perPlayerSplitEnabled}
       />
     </section>
   );

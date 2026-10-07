@@ -42,6 +42,10 @@ Slot 1 is always the person who booked (the requester). The other slots have no 
 
 ## 4. What the owner can do (and what stops him)
 
+### Per-player split is a tenant setting (off by default)
+
+`perPlayerSplitEnabled` (More > Business > Booking rules, `settings.manage`). While it is off, the Whole / Per player switch is hidden and `switchToPerPlayer` refuses with `booking.split_disabled` (server-enforced); the pitch "Players per game" field is hidden but its stored value is kept. Only the switch *into* a split is gated: a booking already per player stays fully usable (slot pay, pay-all, switch back, and the collapse on cancel / no-show).
+
 ### Switch Whole to Per player
 Needs the `bookings.adjust_due` permission. Where: the booking sheet, money group, only **after the game has ended** and cash is still owed (unpaid or partly paid). Upcoming and live games do not show it. **This is intentional for now** (see gap 4).
 

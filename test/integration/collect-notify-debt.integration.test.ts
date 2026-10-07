@@ -53,7 +53,7 @@ beforeEach(async () => {
   await platformDb.tenant.update({
     where: { id: fixture.tenantId },
     data: {
-      settings: { cancellationWindowHours: 1440, lateCancellationFeePercent: 50, noShowFeePercent: 100 },
+      settings: { cancellationWindowHours: 1440, lateCancellationFeePercent: 50, noShowFeePercent: 100, perPlayerSplitEnabled: true },
     },
   });
 });

@@ -28,12 +28,15 @@ export function PitchDraftForm({
   pitchId,
   defaults,
   showPending,
+  splitEnabled,
 }: {
   locale: UiLocale;
   action: (formData: FormData) => Promise<void>;
   pitchId?: string;
   defaults: PitchFormDefaults;
   showPending: boolean;
+  /** Off: the field is hidden but its stored value still posts (hidden input). */
+  splitEnabled: boolean;
 }) {
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -73,23 +76,31 @@ export function PitchDraftForm({
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="pitch-players">
-          {ui("owner.pitchPlayers", locale)}
-        </Label>
-        <Input
-          id="pitch-players"
-          type="number"
+      {splitEnabled ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="pitch-players">
+            {ui("owner.pitchPlayers", locale)}
+          </Label>
+          <Input
+            id="pitch-players"
+            type="number"
+            name="defaultPlayerCount"
+            required
+            min={1}
+            max={30}
+            step={1}
+            inputMode="numeric"
+            defaultValue={defaults.defaultPlayerCount}
+            className="font-mono"
+          />
+        </div>
+      ) : (
+        <input
+          type="hidden"
           name="defaultPlayerCount"
-          required
-          min={1}
-          max={30}
-          step={1}
-          inputMode="numeric"
-          defaultValue={defaults.defaultPlayerCount}
-          className="font-mono"
+          value={defaults.defaultPlayerCount}
         />
-      </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="pitch-price">{ui("owner.pitchPrice", locale)}</Label>

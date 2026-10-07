@@ -129,6 +129,7 @@ export async function OwnerToday({
                 policy,
                 tenant.name,
                 showPitch,
+                tenant.perPlayerSplitEnabled,
               )
             : []
         }
@@ -155,6 +156,7 @@ export async function OwnerToday({
           policy,
           tenant.name,
           showPitch,
+          tenant.perPlayerSplitEnabled,
         )}
         locale={locale}
         mayCollect={mayCollect}
@@ -251,6 +253,7 @@ function toUpcomingViews(
   },
   stadiumName: string,
   showPitch: boolean,
+  splitEnabled: boolean,
 ): UpcomingRowView[] {
   return rows.map((row) => {
     const display = deriveCardDisplay({
@@ -306,7 +309,10 @@ function toUpcomingViews(
       perPlayer: {
         bookingId: row.id,
         mode: row.collectionMode,
-        canSplit: row.status === "APPROVED" && row.amountDueUsd.gt(0),
+        canSplit:
+          splitEnabled &&
+          row.status === "APPROVED" &&
+          row.amountDueUsd.gt(0),
         defaultPlayerCount: row.pitchDefaultPlayerCount,
         slots: row.slots.map((slot) => {
           const state = slotPayState({

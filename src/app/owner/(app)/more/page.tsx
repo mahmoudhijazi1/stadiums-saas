@@ -44,6 +44,7 @@ export default async function OwnerMorePage() {
       cancellationWindowHours={tenant.cancellationWindowHours}
       lateCancellationFeePercent={tenant.lateCancellationFeePercent}
       noShowFeePercent={tenant.noShowFeePercent}
+      perPlayerSplitEnabled={tenant.perPlayerSplitEnabled}
       identifier={membership.identifier}
     />
   );

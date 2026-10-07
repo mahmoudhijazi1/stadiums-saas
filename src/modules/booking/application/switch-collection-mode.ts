@@ -1,7 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_ADJUST_DUE, can } from "@/modules/access/domain/can";
@@ -36,6 +36,10 @@ export async function switchToPerPlayer(input: {
   count: number;
 }): Promise<void> {
   await requireAdjuster();
+  // Only the switch INTO split is gated: a booking already split stays usable (money owed).
+  if (!(await getCurrentTenant()).perPlayerSplitEnabled) {
+    throw new DomainError("booking.split_disabled");
+  }
 
   try {
     await db.$transaction(async (tx) => {

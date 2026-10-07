@@ -22,6 +22,8 @@ const tenantSettingsSchema = z
     lateCancellationFeePercent: feePercent(0),
     /** 100 matches today's no-show: the full price stays due. */
     noShowFeePercent: feePercent(100),
+    /** Off until the owner turns it on: offers the Whole / Per player switch. Old rows parse as off. */
+    perPlayerSplitEnabled: z.boolean().catch(false),
   })
   .strip();
 
@@ -44,12 +46,15 @@ const bookingRulesFormSchema = z.strictObject({
   cancellationWindowHours: z.string().regex(/^(?:0|[1-9]\d*)$/),
   lateCancellationFeePercent: z.enum(["0", "50", "100"]),
   noShowFeePercent: z.enum(["0", "50", "100"]),
+  /** A checkbox: present ("true") when ticked, absent when not. */
+  perPlayerSplitEnabled: z.enum(["true"]).optional(),
 });
 
 export type BookingRulesInput = {
   cancellationWindowHours: number;
   lateCancellationFeePercent: (typeof FEE_PERCENTS)[number];
   noShowFeePercent: (typeof FEE_PERCENTS)[number];
+  perPlayerSplitEnabled: boolean;
 };
 
 /** Throws ZodError if the rules form is missing or not an allowed percent. */
@@ -59,6 +64,7 @@ export function parseBookingRulesForm(input: unknown): BookingRulesInput {
     cancellationWindowHours: Number(parsed.cancellationWindowHours),
     lateCancellationFeePercent: Number(parsed.lateCancellationFeePercent) as BookingRulesInput["lateCancellationFeePercent"],
     noShowFeePercent: Number(parsed.noShowFeePercent) as BookingRulesInput["noShowFeePercent"],
+    perPlayerSplitEnabled: parsed.perPlayerSplitEnabled === "true",
   };
 }
 

@@ -51,6 +51,8 @@ That is still the scoped product slice — **not** full Phase 1 BRD (no group pa
 
 **Known gap:** there is no clean path today for an owner-initiated "it rained, refund or waive a prepaid game" once the game has started. Cancel is closed after the start, Adjust amount cannot go below what was collected, and refunds are out of scope. Revisit later, possibly as a no-show variant with a $0 default fee suggestion rather than by touching cancel.
 
+**Per-player split is now a tenant setting (2026-10-07), off by default** (Booking rules sheet, `perPlayerSplitEnabled`). Off hides the switch and the pitch "Players per game" field and refuses `switchToPerPlayer`; bookings already split keep working. See [per-player-payments.md](./per-player-payments.md).
+
 **Product, next up:** SPEC-15 slices 3–5 (pay together + mixed currency, naming unpaid slots + due editing, assign Unassigned + "Same as last time"). Cancel and no-show on a per-player booking collapse it to whole. Per-player split is offered only after the game has ended (intentional for now), so in the UI the collapse runs on no-show only; cancel can no longer reach it (see the cancel rule below). Details in [per-player-payments.md](./per-player-payments.md).
 
 **Product, not started:** UX-02 slices 3–5 — Money → Transactions, month overview, booking-sheet timeline (actor columns).

@@ -34,6 +34,7 @@ const ARABIC: Record<string, string> = {
   "booking.switch_not_per_player": "الحجز ليس مقسّمًا على اللاعبين.",
   "booking.switch_has_allocations": "لا يمكن العودة للحجز الكامل بعد تسجيل دفعات اللاعبين.",
   "booking.collect_per_player": "الحجز مقسّم على اللاعبين. سجّل الدفع لكل لاعب.",
+  "booking.split_disabled": "تقسيم الدفع بين اللاعبين غير مفعّل. فعّله من قواعد الحجز.",
   "booking.split_count": "عدد اللاعبين يجب أن يكون بين ١ و٣٠.",
   "booking.due_negative": "المبلغ المستحق لا يمكن أن يكون أقل من صفر.",
   "booking.due_below_collected":
@@ -89,6 +90,7 @@ const ENGLISH: Record<string, string> = {
   "booking.switch_not_per_player": "This booking isn't split among players.",
   "booking.switch_has_allocations": "Can't go back to whole game once player payments are recorded.",
   "booking.collect_per_player": "This booking is split per player. Record payment per player.",
+  "booking.split_disabled": "Per-player split is turned off. Turn it on in Booking rules.",
   "booking.split_count": "Player count must be between 1 and 30.",
   "booking.due_negative": "The amount due cannot be below zero.",
   "booking.due_below_collected":
