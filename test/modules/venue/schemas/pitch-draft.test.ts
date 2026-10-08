@@ -27,13 +27,21 @@ describe("parsePitchDraft", () => {
     expect(draft.priceRules).toEqual([]);
   });
 
-  it("rejects close-before-open and treats confirmPending as on", () => {
+  it("accepts a window that closes after midnight, rejects open == close, and treats confirmPending as on", () => {
+    expect(
+      parsePitchDraft({
+        name: "A1",
+        slotDurationMinutes: 60,
+        defaultPriceUsd: "30.00",
+        hoursGroups: [{ days: ["mon"], open: "22:00", close: "02:00" }],
+      }).hoursGroups[0],
+    ).toMatchObject({ open: "22:00", close: "02:00" });
     expect(() =>
       parsePitchDraft({
         name: "A1",
         slotDurationMinutes: 60,
         defaultPriceUsd: "30.00",
-        hoursGroups: [{ days: ["mon"], open: "22:00", close: "16:00" }],
+        hoursGroups: [{ days: ["mon"], open: "22:00", close: "22:00" }],
       }),
     ).toThrow();
     expect(

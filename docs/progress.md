@@ -5653,3 +5653,53 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `components/ui/bottom-sheet.tsx`.
 
 **How to verify:** build is green. Not rendered (no browser): open a sheet with one line (e.g. the language sheet) at 390px; it should be about 15rem or 38% of the screen tall, and a tall sheet should still cap at 92% of the viewport.
+
+## Pitch editor, part 1 of 4: the pure model
+
+**When:** 2026-10-08
+
+**What:** `venue/domain/pitch-form-model.ts`, no UI yet. `hoursToRows` (seven Mon..Sun rows, closed days keep the first group's times) and `rowsToHours` (merge identical windows); `rulesToPriceCards` and `priceCardsToRules` (non-overlapping day cards: a day that a later all-day rule also covers is removed from the earlier one, which is exactly the engine's last-matching-rule-wins, so prices do not change); `formatHoursSummary` / `formatDays` / `formatClock` (consecutive-day compression, "every day", "until 11:00 PM", AR and EN, 12 or 24 hour).
+- **Not expressible, kept as it is:** price rules with a time range (`start`/`end`) have no control in the editor. They are carried aside with their position (`TimedRule.at`) and put back in the same place on save, and the form shows them as a read-only line. A day with a second hours window cannot be expressed either: the stored-to-form step (`collapseHoursGroups`) has always kept only the first window, and the writer rebuilds hours from groups, so a second window is dropped on save as before. That is a known limit of the existing writer; fixing it needs a writer change, which this task forbids. Nothing in the UI creates one.
+- **One validation change, agreed:** `pitchDraftSchema` refused any window where close is not after open, so 22:00 to 02:00 could not be saved from the form (only seed data had them). It now refuses only open == close. The engine, schedule schema and everything else are untouched.
+- Property test: 500 seeded configs (windows that cross midnight, overlapping rules, timed rules, 30/45/60/90/120 minute games) go through hours -> rows -> groups and rules -> cards -> rules; every slot and its price is identical for a normal week and for the spring-forward week, and again with 15-minute games (price and availability at every 15-minute time).
+
+**Step 0 answers (for the editor):** stored hours are `hours.{mon..sun}: [{start, end}]`; groups are `{days, open, close}`, one per distinct window. Price rules are `{days, priceUsd, start?, end?}` (start and end together or neither; no minimum length). Game length is any positive integer (no maximum); the engine needs `duration <= window` to offer a slot. Today, saving hours that leave a future APPROVED booking outside the new windows is refused (`venue.hours_approved`); future PENDING ones need a confirm checkbox (`venue.hours_pending`). `Players per game` is shown only when the tenant's `perPlayerSplitEnabled` is on; otherwise a hidden input keeps the stored value.
+
+**Files:** `modules/venue/domain/pitch-form-model.ts`, `modules/venue/schemas/pitch-draft.ts` (the one refine), `lib/ui-copy.ts`, tests `test/modules/venue/domain/pitch-form-model.test.ts`, `test/modules/venue/schemas/pitch-draft.test.ts`.
+
+**How to verify:** `npm test`: 652 passed. `npm run test:integration`: 232 passed. `npm run build` is green.
+
+## Pitch editor, part 2 of 4: opening hours as seven day rows
+
+**What:** The hours-groups UI (checkbox groups with `<input type="time">`) is replaced by `HoursRows`: Monday to Sunday, the full day name in Arabic, an Open / Closed switch with a text label (role="switch", never colour alone) and, when open, two chips "From 4:00 PM" and "To 10:00 PM". Rows are at least 56px. A summary line on top (`formatHoursSummary`, 12 or 24 hour per the tenant setting) and a "Same hours every day" button (the first open day's times on all days). The chips open a bottom sheet (`TimeSheet`): 30-minute steps, the current value centred, "Other time…" for the native picker; for "To", times at or before "From" are labelled "(next day)" and the opening time itself cannot be picked. Digits are Western and LTR-isolated. If the day-start hour falls inside a window, the existing Booking-rules warning is shown under the rows (it never blocks).
+- The form still posts `hoursGroupsJson` (`rowsToHours`), so the server parses and validates exactly what it did; all error keys are unchanged.
+- Deleted `hours-groups.tsx`. New copy: `owner.dayFull.*`, `owner.dayOpen`, `owner.dayClosed`, `owner.fromLabel`, `owner.toLabel`, `owner.pitchNextDay`, `owner.otherTime`, `owner.sameHoursEveryDay`.
+- Integration tests (`pitch-editor`): a pitch saved with the new editor's fields has the same stored config, slots and prices as one saved with the old form's output (week and weekend hours, a window closing at 02:00, overlapping price rows); staff without `settings.manage` cannot create or save; another tenant's pitch id is refused; a suspended tenant is refused.
+
+**Files:** `app/owner/(app)/more/settings/pitches/{hours-rows,time-sheet,form}.tsx`, `new/page.tsx`, `[pitchId]/page.tsx`, `lib/ui-copy.ts`, `test/integration/pitch-editor.integration.test.ts`.
+
+**How to verify:** `npm test`: 652 passed. `npm run test:integration`: 237 passed (5 new). `npm run build` is green. Not rendered (no browser).
+
+## Pitch editor, part 3 of 4: game length, price, price cards, preview, save bar
+
+**What:**
+- **Game length:** a segmented 60 / 90 / 120 / Other (Other = a numeric field, in minutes). "Players per game" keeps its gating (shown only when the tenant's per-player split is on, otherwise a hidden input) and sits under the game length.
+- **Price per game:** a currency field with a "$" prefix; text only (digits, one dot, two decimals), padded to cents on blur ("25" becomes "25.00"); no floats anywhere.
+- **Different price on some days:** a list of cards, each with day chips and a price; a day another card uses is disabled in the rest, so overlap cannot happen. Delete asks for a second tap; "+ Add a price" at the end. The sentence "last row wins when days overlap" is gone. Rules with a time range are kept as they are and listed read-only ("Special prices for set hours (kept as they are)").
+- **Preview:** a weekday selector (default the next open day) and the slots `generateSlotsForDay` returns for the next date of that weekday, computed in the browser from the form's current state with `scheduleFromHoursGroups` (the same functions the booking pages use; no query). It shows "N games · $X each" (or a price range, with each chip's price) and a muted note when the end of the opening hours is too short for another game (or the game does not fit at all).
+- **Save bar:** sticky, above the floating bottom nav and its safe-area inset, "Save changes" appears only when the form is dirty (always on a new pitch, "Add pitch"); one primary button, disabled while a required value is missing. Leaving with unsaved changes asks for confirmation (browser prompt on reload or close, a confirm on in-app links). `SubmitButton` now also honours a `disabled` prop.
+- **New pitch defaults:** every day 4:00 PM to 11:00 PM, 60 minutes, $20.
+- **Upcoming bookings outside the new hours:** not added. The save already refuses it when an APPROVED booking would fall outside the new hours (`venue.hours_approved`) and asks for a confirm for PENDING ones, so a note saying they "stay booked" would be wrong. A pre-save count needs a new query path; recorded in `docs/ROADMAP.md` (12a).
+- Deleted `price-rules.tsx`. `form.tsx` is now a client component holding the whole form state; it still posts the same fields.
+
+**Files:** `app/owner/(app)/more/settings/pitches/{form,money-input,price-cards,preview-card}.tsx`, `new/page.tsx`, `components/ui/submit-button.tsx`, `lib/ui-copy.ts`, `docs/ROADMAP.md`, `test/app/owner/pitch-money-input.test.ts`.
+
+**How to verify:** `npm test`: 668 passed. `npm run test:integration`: 237 passed. `npm run build` is green; eslint clean on the pitches folder. Not rendered (no browser).
+
+## Pitch editor, part 4 of 4: the pitch list
+
+**What:** More > Pitches cards now show the human summary from `formatHoursSummary` ("Mon–Thu 4:00–10:00 PM · Fri–Sat until 11:00 PM · Sun closed", 12 or 24 hour per the tenant setting), then the game length and the price ("90 minutes · $25"), instead of the day-by-day lines. The name uses the 16px / 600 scale.
+
+**Files:** `app/owner/(app)/more/settings/pitches/page.tsx`.
+
+**How to verify:** `npm test`: 668 passed. `npm run test:integration`: 237 passed. `npm run build` is green. Not rendered (no browser).

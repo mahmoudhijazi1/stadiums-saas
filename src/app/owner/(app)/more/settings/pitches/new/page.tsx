@@ -11,7 +11,8 @@ import {
   readHoursGroupsDraft,
   readPriceRulesDraft,
 } from "@/modules/venue/schemas/pitch-draft";
-import { defaultHoursGroups } from "@/modules/venue/domain/daily-schedule";
+import { DEFAULT_FROM, DEFAULT_TO } from "@/modules/venue/domain/pitch-form-model";
+import { WEEKDAYS } from "@/modules/venue/schemas/schedule-config";
 
 /**
  * Create pitch. settings.manage. Local Next page.md: searchParams is a Promise.
@@ -24,6 +25,7 @@ export default async function NewPitchPage({
   const params = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
+  const tenant = await getCurrentTenant();
 
   if (!can(membership, SETTINGS_MANAGE)) {
     return (
@@ -45,15 +47,17 @@ export default async function NewPitchPage({
           name: queryString(params.name) ?? "",
           hoursGroups:
             readHoursGroupsDraft(queryString(params.hoursGroupsJson)) ??
-            defaultHoursGroups(),
+            [{ days: [...WEEKDAYS], open: DEFAULT_FROM, close: DEFAULT_TO }],
           slotDurationMinutes: queryString(params.slotDurationMinutes) ?? "60",
           defaultPlayerCount: queryString(params.defaultPlayerCount) ?? "10",
-          defaultPriceUsd: queryString(params.defaultPriceUsd) ?? "30.00",
+          defaultPriceUsd: queryString(params.defaultPriceUsd) ?? "20.00",
           priceRules:
             readPriceRulesDraft(queryString(params.priceRulesJson)) ?? [],
         }}
         showPending={false}
-        splitEnabled={(await getCurrentTenant()).perPlayerSplitEnabled}
+        splitEnabled={tenant.perPlayerSplitEnabled}
+        hourCycle={tenant.timeDisplay}
+        dayStartHour={tenant.dayStartHour}
       />
     </section>
   );
