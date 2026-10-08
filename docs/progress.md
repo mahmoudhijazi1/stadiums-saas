@@ -5889,3 +5889,15 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How to verify:** see the verification line below. The Money page and the sale sheet were not rendered in a browser.
 
 **Verified:** `npm test` 739 passed (89 suites); `npm run test:integration` 39 suites / 285 tests passed (4 new in `shop-money`); `npm run build` green.
+
+## Mini shop, slice 1, part 4 of 4: docs
+
+**What:** the living docs now describe the shop. `DATA-MODEL.md` (Shop tables, `SALE` source type), `domain/money.md` (a shop sale is a SALE payment; sales and supplies, never a profit), `ARCHITECTURE.md` (shop and expense import rows; lock table: `recordWalkInSale` takes "none, by design"), `NOW.md` (status and next), `ROADMAP.md` (slice 2 and later items), `guides/folder-structure.md` (the `shop/` module exists), `owner-ia.md` (More → Shop, "+" → Sell). There is no permissions doc in this repo, so the two new flags (`shop.sell`, `shop.manage`) are recorded in `DATA-MODEL.md`/`NOW.md` and in `can.ts` only.
+
+**Why:** CLAUDE.md: living docs must match the code and change in the same slice.
+
+**Files:** the docs above; no code.
+
+**How it connects:** the roadmap lists what slice 2 must respect: items on a game take the booking lock first, `app/` composes shop and booking (neither imports the other), and a sale void waits for the expense-void spec.
+
+**How to verify:** docs only; nothing to run. The code checks for this slice are in parts 2 and 3 (`npm test` 739, `npm run test:integration` 285, `npm run build` green).

@@ -30,6 +30,19 @@ Not started, each its own spec; the Money refactor left room for them.
 | CSV export | Activity for a period as a file. Needs a decision on columns and on LBP tenders. |
 | Owed vs Unassigned (F-1) | The Owed page adds up per-slot amounts; on a per-player booking with money paid before the split they can exceed the booking remaining that Today shows. Closes with F-1. |
 
+## Shop: next specs (recorded 2026-10-09)
+
+Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not started, each its own spec:
+
+| Item | Note |
+|---|---|
+| Slice 2: items on a game | Add items to a booking, paid "on the game" (added to its due) or "on a player" (charged to a named player). Uses the reserved `Sale.bookingId`. Must follow the booking lock order (B first). Until it ships, the Shop card caption about unpaid games is forward-looking. |
+| Sale void / correction | The ledger is append-only, so a mistaken sale needs a reversing entry. Waits for the same decision as expense void (above). |
+| Stock, lot purchases, cost | Stock counts, buying in lots and cost per item. This is why the Shop card shows Sales and Supplies and never a profit. |
+| Variants, public price list | Sizes or flavours of one item; a price list on the public page. |
+| Walk-in credit | A walk-in sale is paid in full or refused today; "put it on my tab" needs a person and the Owed screen. |
+| Append-only for Sale / SaleItem | Insert-only by code only, like Payment and LedgerEntry (F-2): no trigger. Revisit with F-2. |
+
 ## Deferred on purpose: tenant management
 
 Recorded 2026-10-01 with the tenant-management CLI. These are deliberate decisions, not gaps.

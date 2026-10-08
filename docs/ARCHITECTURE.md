@@ -20,7 +20,8 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 | `venue` | access | booking (CLAUDE.md: "Venue never imports Booking") |
 | `ledger` | access | payment, booking |
 | `payment` | access, ledger | booking (CLAUDE.md: "Payment never imports Booking") |
-| `expense` | access, payment | booking |
+| `expense` | access, ledger (period bounds), payment | booking, shop |
+| `shop` | access, ledger (period bounds), payment, people (name cleaner) | booking, expense (a later "items on a game" slice must still not import booking: `app/` composes them) |
 | `booking` | access, notification, payment, people, venue | platform, expense, ledger directly |
 | `platform` | access | every tenant module (operator only) |
 
@@ -139,6 +140,7 @@ The server sends nothing. "Notifications" are `wa.me` links built by `notificati
 | `switch-collection-mode.ts` `switchToPerPlayer`, `switchToWhole` | B | Then replaces participants of that booking. |
 | `venue/application/update-pitch.ts` `updatePitch` | P (implicit, `tx.pitch.update`) | Plus the pre-check read on another connection (§3). |
 | `record-expense.ts` `recordExpense` | none (inserts only) | |
+| `shop/application/record-walk-in-sale.ts` `recordWalkInSale` | none, by design | One transaction that only inserts rows it creates (Sale, SaleItem, Payment, tenders, ledger) and reads Product/ExchangeRate without locking. No pitch or booking row is touched, so it cannot join a wait cycle. If a later slice puts items on a game, it takes **B** first like the other money paths. |
 | `login.ts` `login` | R (account/IP failures and blocks, autocommit) | No transaction. |
 | Platform: `suspendTenant`, `resumeTenant` | the Tenant row (`updateMany`, a no-key update) | Own process and pool. |
 

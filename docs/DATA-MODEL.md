@@ -39,11 +39,18 @@
 | `SlotInterest` | T | "Tell me if this hour frees up": a person waiting on an **approved** window. | `during` is the approved window, not the rejected request's. One per (pitch, window, person) by code (`hasSlotInterest` under the pitch lock); no DB constraint. |
 | `BookingDueChange` | T | One change of `Booking.amountDueUsd`. | `fromUsd`/`toUsd` ≥ 0 (CHECK); `reason` enum; `actorMembershipId`. Append-only **by convention only** (no trigger). |
 
+### Shop
+| Table | Kind | What a row is | Columns that need explaining |
+|---|---|---|---|
+| `Product` | T | An item the stadium sells (Cola, Chips). | `priceUsd` > 0 (CHECK), the **current** price only. Never deleted: `archivedAt` hides it from selling and keeps it on past sales. Names are not unique. |
+| `Sale` | T | One counter sale. | No stored total: it is the sum of its lines. `soldAt` is the sale time (the Shop card counts by it, in Beirut days). `createdByMembershipId` = who sold. `bookingId` is reserved for "items on a game" and is unused (no FK). Insert-only **by code only**: no trigger. |
+| `SaleItem` | T | One line of a sale. | `unitPriceUsd` is **frozen** at sale time, so a later price edit never changes a past sale. `qty` 1 to 99 and `lineTotalUsd = qty * unitPriceUsd` are CHECKs. Insert-only by code only. |
+
 ### Money
 | Table | Kind | What a row is | Columns that need explaining |
 |---|---|---|---|
 | `ExchangeRate` | T | One LBP-per-USD rate. The latest by `createdAt` is current. | Append-only by convention (`payment/infrastructure/rates.ts` only inserts). |
-| `Payment` | T | One collection or expense payment. | Polymorphic `sourceType` BOOKING / EXPENSE + `sourceId` (no FK). `amountDueUsd` = the booking due at collect time, or the expense total. |
+| `Payment` | T | One collection or expense payment. | Polymorphic `sourceType` BOOKING / EXPENSE / SALE + `sourceId` (no FK). `amountDueUsd` = the booking due at collect time, or the expense total. |
 | `PaymentTender` | T | One cash part of a payment. | `currency` USD / LBP; `amount` in that currency; `rateAtTime` frozen (null for USD when no rate existed); `usdEquivalent` rounded to cents, half-up. |
 | `PaymentAllocation` | T | USD from one payment credited to one participant (PER_PLAYER). | `amountUsd` > 0 (CHECK); unique `(paymentId, participantId)`. Deleted on cancel/no-show collapse (`bookings.ts` `collapseToWhole`). |
 | `LedgerEntry` | T | USD movement IN (collect) or OUT (expense). | Linked to its source by `sourceType`+`sourceId`, **not** `paymentId` (F-2). `occurredAt` = collect time, or the expense's business date. Append-only by convention. |

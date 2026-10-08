@@ -68,7 +68,7 @@ New products are **list rows on More**, not a sixth destination:
 |---|---|
 | Settings (rate + time format + pitch list/create/edit; company / staff later) | More → Settings |
 | Tournaments (future bounded context; seam via `pitch_blocks` like Academy) | More list row when that SPEC exists |
-| Shop (Phase 2) | More list row — not a Reports subsection |
+| Shop | More list row (`/owner/more/shop`, owner only); selling is `/owner/sell`, opened from the "+" sheet — not a Reports subsection |
 | Academy (Phase 3) | More list row — seam is `pitch_blocks`, not a Reports subsection |
 
 ---
@@ -171,7 +171,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Company / stadium info | Settings — Phase 2+ / `tenant.settings` |
 | Staff permission flags UI | Settings later |
 | **Tournaments** | **More list row** (future; `pitch_blocks` seam) |
-| **Shop (Phase 2)** | **More list row** |
+| **Shop** | **More list row** (catalog) and **"+" → Sell** (`/owner/sell`); Money shows the Shop card |
 | **Academy (Phase 3)** | **More list row** |
 | No-show (BR-22 / SPEC-14) | Home — after the hour has ended; unpaid stays for Collect |
 | Public booking request | Not owner — public `/` |
