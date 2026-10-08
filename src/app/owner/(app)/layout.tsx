@@ -6,6 +6,7 @@ import { getCurrentMembership } from "@/modules/access/application/get-current-m
 import {
   BOOKINGS_CREATE,
   EXPENSES_RECORD,
+  SHOP_SELL,
   can,
 } from "@/modules/access/domain/can";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
@@ -37,6 +38,7 @@ export default async function OwnerLayout({
   const membership = await getCurrentMembership();
   const showBooking = membership ? can(membership, BOOKINGS_CREATE) : false;
   const showExpense = membership ? can(membership, EXPENSES_RECORD) : false;
+  const showSell = membership ? can(membership, SHOP_SELL) : false;
   const pending = membership ? await listPendingRequests() : [];
   const actionable = actionablePending(pending, new Date());
   const locale = await getUiLocale();
@@ -57,6 +59,7 @@ export default async function OwnerLayout({
         pendingCount={actionable.length}
         showBooking={showBooking}
         showExpense={showExpense}
+        showSell={showSell}
       />
       <main className="flex min-w-0 flex-1 flex-col pb-[calc(88px+env(safe-area-inset-bottom))] lg:min-h-dvh lg:pb-0">
         <OwnerHeader tenantName={tenant.name} publicUrl={publicPageUrl(tenant.slug)} locale={locale} />

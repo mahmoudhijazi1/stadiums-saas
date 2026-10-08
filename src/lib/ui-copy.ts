@@ -406,6 +406,14 @@ const ARABIC: Record<string, string> = {
   "owner.shopArchiveConfirm": "نعم، أرشف",
   "owner.shopNoAccess": "المتجر للمالك فقط.",
   "owner.shopNoAccessNext": "اطلب من المالك.",
+  "owner.sell": "بيع",
+  "owner.sellTotal": "المجموع",
+  "owner.sellMinus": "إنقاص",
+  "owner.sellNoItems": "لا أصناف للبيع بعد.",
+  "owner.sellFirstItem": "أضف أول صنف",
+  "owner.sellFirstItemStaff": "اطلب من المالك إضافة أصناف.",
+  "owner.sellNoAccess": "لا صلاحية للبيع.",
+  "owner.sellNoAccessNext": "اطلب من المالك أن يمنحك صلاحية البيع.",
   "role.OWNER": "مالك",
   "role.STAFF": "موظف",
   lbpNote: "عيّن سعر عرض (أو عيّن سعر الصرف أولاً)",
@@ -811,6 +819,14 @@ const ENGLISH: Record<string, string> = {
   "owner.shopArchiveConfirm": "Yes, archive",
   "owner.shopNoAccess": "The shop catalog is for the owner.",
   "owner.shopNoAccessNext": "Ask the owner.",
+  "owner.sell": "Sell",
+  "owner.sellTotal": "Total",
+  "owner.sellMinus": "Remove one",
+  "owner.sellNoItems": "No items to sell yet.",
+  "owner.sellFirstItem": "Add your first item",
+  "owner.sellFirstItemStaff": "Ask the owner to add items.",
+  "owner.sellNoAccess": "You cannot sell.",
+  "owner.sellNoAccessNext": "Ask the owner to give you the sell permission.",
   "role.OWNER": "Owner",
   "role.STAFF": "Staff",
   lbpNote: "Set a display rate (or set the exchange rate first)",
@@ -1218,6 +1234,13 @@ export function comparisonLine(
   if (direction === "same") return locale === "en" ? `Same as ${against}` : `مثل ${against}`;
   const arrow = direction === "up" ? "↑" : "↓";
   return locale === "en" ? `${arrow} ${amount} vs ${against}` : `${arrow} ${amount} مقارنة بـ${against}`;
+}
+
+/** The toast after a walk-in sale: "Sold 3 items · $12". `total` is already formatted. */
+export function soldToast(items: number, total: string, locale: UiLocale = "ar"): string {
+  if (locale === "en") return `Sold ${items} ${items === 1 ? "item" : "items"} · $${total}`;
+  const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
+  return items === 2 ? `بيع صنفان · $${total}` : `بيع ${items} ${word} · $${total}`;
 }
 
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {

@@ -49,18 +49,21 @@ export function OwnerTabBar({
   pendingCount,
   showBooking,
   showExpense,
+  showSell,
 }: {
   locale?: UiLocale;
   pendingCount: number;
   showBooking: boolean;
   showExpense: boolean;
+  /** shop.sell: the Sell entry. */
+  showSell: boolean;
 }) {
   const pathname = usePathname();
   const live = useLiveQueue();
-  // INTENTIONALLY HIDDEN: the "+" (Record) action in the tab bar is switched off for now.
-  // Set HIDE_RECORD to false to bring it back; the button and its sheet below are unchanged.
-  const HIDE_RECORD = true;
-  const showRecord = HIDE_RECORD ? false : showBooking || showExpense;
+  // The "+" (Record) action was hidden on purpose (HIDE_RECORD). It is back on with the shop:
+  // Sell lives in its sheet. Set HIDE_RECORD to true to hide it again.
+  const HIDE_RECORD = false;
+  const showRecord = HIDE_RECORD ? false : showBooking || showExpense || showSell;
   const badgeCount = live?.pendingCount ?? pendingCount;
   const [recordOpen, setRecordOpen] = useState(false);
   // The tab tapped before the page has loaded, so the pill moves at once. It only counts while
@@ -263,6 +266,15 @@ export function OwnerTabBar({
                 onClick={() => setRecordOpen(false)}
               >
                 {ui("owner.recordBooking", locale)}
+              </Link>
+            ) : null}
+            {showSell ? (
+              <Link
+                href="/owner/sell"
+                className={rowClass}
+                onClick={() => setRecordOpen(false)}
+              >
+                {ui("owner.sell", locale)}
               </Link>
             ) : null}
             {showExpense ? (
