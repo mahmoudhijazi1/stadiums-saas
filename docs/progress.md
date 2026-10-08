@@ -5718,3 +5718,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/globals.css`, `components/ui/{label,button,input,select,bottom-sheet}.tsx`, `app/owner/(app)/more/**` (class names only), `test/app/owner/more-type-guard.test.ts`.
 
 **How to verify:** `npm test`: 670 passed (2 new guard tests). `npm run build` is green. Not rendered (no browser).
+
+## More typography, part 2 of 3: one list, one row
+
+**What:** `more/settings-list.tsx` adds `SettingsSection` (a section heading in the section role, `px-4` so it lines up with the rows' inner start, 8px above the card; the page's 24px gap sits between sections) and `SettingsRow` (min-height 56px; label = body, or strong for a name; optional secondary line and caption line; trailing value = secondary, one line with an ellipsis, numbers LTR-isolated by the caller; chevron 16px muted; with `selected` it is a picker choice and shows a check). The hub (Business, Preferences, Account), the pitch list and the language and time-format pickers in sheets all use them, so no screen has its own row markup. Pitch cards: name strong, hours summary secondary, game length and price caption.
+- Sheets: titles are the title role (via `BottomSheetTitle`), field labels the label role (`Label`), inputs the field role (`Input`), the current rate is the single `<Figure>` at 20px. Nothing on a More screen is larger than 20px.
+- Spacing is on an 8px grid: 24 between sections, 16 between fields, 8 inside a group.
+- Removed the hub's own `rowClass`, `choiceClass` and `RowValue`.
+
+**Files:** `app/owner/(app)/more/{settings-list,hub}.tsx`, `more/settings/pitches/page.tsx`.
+
+**How to verify:** `npm test`: 670 passed. `npm run build` is green. Not rendered (no browser).

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { OwnerBackLink } from "@/app/owner/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { SettingsRow, SettingsSection } from "../../settings-list";
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import { formatHoursSummary, hoursToRows } from "@/modules/venue/domain/pitch-form-model";
 
@@ -43,47 +43,24 @@ export default async function PitchListPage() {
           next={ui("empty.pitchesNext", locale)}
         />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {pitches.map((pitch) => {
-            const body = (
-              <>
-                <span className="min-w-0">
-                  <span className="block type-strong">{pitch.name}</span>
-                  <span className="block type-secondary">
-                    {formatHoursSummary(hoursToRows(pitch.hoursGroups), locale, tenant.timeDisplay)}
-                  </span>
-                  <span className="block type-secondary">
-                    <LtrIsolate>{pitch.slotDurationMinutes}</LtrIsolate> {ui("owner.pitchMinutesFull", locale)}
-                    {" · "}
-                    <LtrIsolate>${pitch.defaultPriceUsd}</LtrIsolate>
-                  </span>
-                </span>
-                {mayManage ? (
-                  <ChevronRight
-                    aria-hidden
-                    className="size-5 shrink-0 text-muted-foreground rtl:rotate-180"
-                  />
-                ) : null}
-              </>
-            );
-            return (
-              <li key={pitch.id}>
-                {mayManage ? (
-                  <Link
-                    href={`/owner/more/settings/pitches/${pitch.id}`}
-                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    {body}
-                  </Link>
-                ) : (
-                  <div className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3">
-                    {body}
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <SettingsSection>
+          {pitches.map((pitch) => (
+            <SettingsRow
+              key={pitch.id}
+              strong
+              label={pitch.name}
+              detail={formatHoursSummary(hoursToRows(pitch.hoursGroups), locale, tenant.timeDisplay)}
+              meta={
+                <>
+                  <LtrIsolate>{pitch.slotDurationMinutes}</LtrIsolate> {ui("owner.pitchMinutesFull", locale)}
+                  {" · "}
+                  <LtrIsolate>${pitch.defaultPriceUsd}</LtrIsolate>
+                </>
+              }
+              href={mayManage ? `/owner/more/settings/pitches/${pitch.id}` : undefined}
+            />
+          ))}
+        </SettingsSection>
       )}
     </section>
   );

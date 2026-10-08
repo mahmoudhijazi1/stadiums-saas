@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { ChevronRight } from "lucide-react";
 import { setUiLocale } from "@/app/locale-actions";
 import { ShareCard } from "@/app/owner/share-card";
 import {
@@ -33,8 +31,9 @@ import {
 import type { TimeDisplay } from "@/lib/tenant-settings";
 import { dayStartClock, ui, uiCount } from "@/lib/ui-copy";
 import { SelectField } from "@/components/ui/select-field";
+import { Figure } from "@/components/ui/figure";
+import { SettingsRow, SettingsSection } from "./settings-list";
 import { AccountSheetContent } from "./account/account-sheet";
-import { cn } from "cn";
 
 type SheetId =
   | "rate"
@@ -44,24 +43,6 @@ type SheetId =
   | "appearance"
   | "time"
   | "account";
-
-const rowClass =
-  "flex min-h-14 w-full items-center justify-between gap-3 bg-card px-4 py-3 text-start type-body outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
-
-const choiceClass =
-  "flex min-h-11 w-full items-center rounded-[var(--radius-control)] px-3 text-start type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
-
-function RowValue({ children }: { children: ReactNode }) {
-  return (
-    <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
-      <span className="truncate">{children}</span>
-      <ChevronRight
-        aria-hidden
-        className="size-5 shrink-0 rtl:rotate-180"
-      />
-    </span>
-  );
-}
 
 function PercentField({
   name,
@@ -179,103 +160,62 @@ export function MoreHub({
   return (
     <div className="flex flex-col gap-6">
       {mayManage ? (
-        <section className="flex flex-col gap-2">
-          <h3 className="px-1 type-section">
-            {ui("owner.groupBusiness", locale)}
-          </h3>
-          <ul className="overflow-hidden rounded-xl border">
-            <li className="border-b">
-              <Link href="/owner/more/settings/pitches" className={rowClass}>
-                <span className="type-body">{ui("owner.pitches", locale)}</span>
-                <RowValue>
-                  <LtrIsolate>{String(pitchCount)}</LtrIsolate>
-                </RowValue>
-              </Link>
-            </li>
-            <li className="border-b">
-              <button type="button" className={rowClass} onClick={() => setSheet("rate")}>
-                <span className="type-body">{ui("owner.rate", locale)}</span>
-                <RowValue>
-                  {rateGrouped ? (
-                    <LtrIsolate>{rateGrouped}</LtrIsolate>
-                  ) : (
-                    ui("owner.noRate", locale)
-                  )}
-                </RowValue>
-              </button>
-            </li>
-            <li className="border-b">
-              <button type="button" className={rowClass} onClick={() => setSheet("rules")}>
-                <span className="type-body">{ui("owner.bookingRules", locale)}</span>
-                <RowValue>
-                  {ui("owner.rulesTrailLead", locale)}{" "}
-                  <CountedPhrase
-                    text={uiCount("owner.ruleHours", cancellationWindowHours, locale)}
-                  />
-                  {" · "}
-                  <LtrIsolate>{lateCancellationFeePercent}%</LtrIsolate>
-                </RowValue>
-              </button>
-            </li>
-            <li>
-              <button type="button" className={rowClass} onClick={() => setSheet("public")}>
-                <span className="type-body">{ui("owner.publicPage", locale)}</span>
-                <RowValue>
-                  <LtrIsolate>/</LtrIsolate>
-                </RowValue>
-              </button>
-            </li>
-          </ul>
-        </section>
+        <SettingsSection title={ui("owner.groupBusiness", locale)}>
+          <SettingsRow
+            label={ui("owner.pitches", locale)}
+            href="/owner/more/settings/pitches"
+            value={<LtrIsolate>{String(pitchCount)}</LtrIsolate>}
+          />
+          <SettingsRow
+            label={ui("owner.rate", locale)}
+            onClick={() => setSheet("rate")}
+            value={rateGrouped ? <LtrIsolate>{rateGrouped}</LtrIsolate> : ui("owner.noRate", locale)}
+          />
+          <SettingsRow
+            label={ui("owner.bookingRules", locale)}
+            onClick={() => setSheet("rules")}
+            value={
+              <>
+                {ui("owner.rulesTrailLead", locale)}{" "}
+                <CountedPhrase text={uiCount("owner.ruleHours", cancellationWindowHours, locale)} />
+                {" · "}
+                <LtrIsolate>{lateCancellationFeePercent}%</LtrIsolate>
+              </>
+            }
+          />
+          <SettingsRow
+            label={ui("owner.publicPage", locale)}
+            onClick={() => setSheet("public")}
+            value={<LtrIsolate>/</LtrIsolate>}
+          />
+        </SettingsSection>
       ) : null}
 
-      <section className="flex flex-col gap-2">
-        <h3 className="px-1 type-section">
-          {ui("owner.groupPreferences", locale)}
-        </h3>
-        <ul className="overflow-hidden rounded-xl border">
-          <li className="border-b">
-            <button type="button" className={rowClass} onClick={() => setSheet("language")}>
-              <span className="type-body">{ui("owner.language", locale)}</span>
-              <RowValue>
-                {ui(locale === "en" ? "public.langEnglish" : "public.langArabic", locale)}
-              </RowValue>
-            </button>
-          </li>
-          <li className="border-b">
-            <button type="button" className={rowClass} onClick={() => setSheet("appearance")}>
-              <span className="type-body">{ui("owner.appearance", locale)}</span>
-              <RowValue>
-                <AppearanceValue locale={locale} />
-              </RowValue>
-            </button>
-          </li>
-          <li>
-            <button type="button" className={rowClass} onClick={() => setSheet("time")}>
-              <span className="type-body">{ui("owner.timeDisplay", locale)}</span>
-              <RowValue>
-                <LtrIsolate>{timeLabel}</LtrIsolate>
-              </RowValue>
-            </button>
-          </li>
-        </ul>
-      </section>
+      <SettingsSection title={ui("owner.groupPreferences", locale)}>
+        <SettingsRow
+          label={ui("owner.language", locale)}
+          onClick={() => setSheet("language")}
+          value={ui(locale === "en" ? "public.langEnglish" : "public.langArabic", locale)}
+        />
+        <SettingsRow
+          label={ui("owner.appearance", locale)}
+          onClick={() => setSheet("appearance")}
+          value={<AppearanceValue locale={locale} />}
+        />
+        <SettingsRow
+          label={ui("owner.timeDisplay", locale)}
+          onClick={() => setSheet("time")}
+          value={<LtrIsolate>{timeLabel}</LtrIsolate>}
+        />
+      </SettingsSection>
 
-      <section className="flex flex-col gap-2">
-        <h3 className="px-1 type-section">
-          {ui("owner.account", locale)}
-        </h3>
-        <ul className="overflow-hidden rounded-xl border">
-          <li>
-            <button type="button" className={rowClass} onClick={() => setSheet("account")}>
-              <span className="type-body">{ui("owner.identifier", locale)}</span>
-              <RowValue>
-                <LtrIsolate>{identifier}</LtrIsolate>
-              </RowValue>
-            </button>
-          </li>
-        </ul>
-      </section>
+      <SettingsSection title={ui("owner.account", locale)}>
+        <SettingsRow
+          label={ui("owner.identifier", locale)}
+          onClick={() => setSheet("account")}
+          value={<LtrIsolate>{identifier}</LtrIsolate>}
+        />
+      </SettingsSection>
 
       <BottomSheet open={sheet !== null} onOpenChange={(next) => { if (!next) setSheet(null); }}>
         <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
@@ -287,9 +227,7 @@ export function MoreHub({
               <BottomSheetBody className="flex flex-col gap-4">
                 <p className="type-secondary">
                   {rateGrouped ? (
-                    <LtrIsolate className="type-strong">
-                      {rateGrouped}
-                    </LtrIsolate>
+                    <Figure className="type-title">{rateGrouped}</Figure>
                   ) : (
                     ui("owner.noRate", locale)
                   )}
@@ -413,23 +351,17 @@ export function MoreHub({
               <BottomSheetHeader>
                 <BottomSheetTitle>{ui("owner.language", locale)}</BottomSheetTitle>
               </BottomSheetHeader>
-              <BottomSheetBody className="flex flex-col gap-2">
-                {(["ar", "en"] as const).map((choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    aria-pressed={locale === choice}
-                    className={cn(
-                      choiceClass,
-                      locale === choice
-                        ? "bg-selected text-selected-ink"
-                        : "hover:bg-muted/60",
-                    )}
-                    onClick={() => chooseLocale(choice)}
-                  >
-                    {ui(choice === "en" ? "public.langEnglish" : "public.langArabic", locale)}
-                  </button>
-                ))}
+              <BottomSheetBody>
+                <SettingsSection>
+                  {(["ar", "en"] as const).map((choice) => (
+                    <SettingsRow
+                      key={choice}
+                      selected={locale === choice}
+                      onClick={() => chooseLocale(choice)}
+                      label={ui(choice === "en" ? "public.langEnglish" : "public.langArabic", locale)}
+                    />
+                  ))}
+                </SettingsSection>
               </BottomSheetBody>
             </>
           ) : null}
@@ -450,28 +382,21 @@ export function MoreHub({
               <BottomSheetHeader>
                 <BottomSheetTitle>{ui("owner.timeDisplay", locale)}</BottomSheetTitle>
               </BottomSheetHeader>
-              <BottomSheetBody className="flex flex-col gap-2">
-                {(["h23", "h12"] as const).map((choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    aria-pressed={timeDisplay === choice}
-                    className={cn(
-                      choiceClass,
-                      timeDisplay === choice
-                        ? "bg-selected text-selected-ink"
-                        : "hover:bg-muted/60",
-                    )}
-                    onClick={() => chooseTime(choice)}
-                  >
-                    <LtrIsolate>
-                      {ui(
-                        choice === "h12" ? "owner.timeDisplayH12" : "owner.timeDisplayH23",
-                        locale,
-                      )}
-                    </LtrIsolate>
-                  </button>
-                ))}
+              <BottomSheetBody>
+                <SettingsSection>
+                  {(["h23", "h12"] as const).map((choice) => (
+                    <SettingsRow
+                      key={choice}
+                      selected={timeDisplay === choice}
+                      onClick={() => chooseTime(choice)}
+                      label={
+                        <LtrIsolate>
+                          {ui(choice === "h12" ? "owner.timeDisplayH12" : "owner.timeDisplayH23", locale)}
+                        </LtrIsolate>
+                      }
+                    />
+                  ))}
+                </SettingsSection>
               </BottomSheetBody>
             </>
           ) : null}
