@@ -107,6 +107,22 @@ An icon earns its place when it changes what the row says: a check for settled, 
 | Biggest figure | `$30.00` المتبقي (display, one per screen) | Remaining `$30.00` (display, one per screen) |
 | Everything else | `$30` · 5:00–6:00 م (body, tabular) | `$30` · 5:00–6:00 PM (body, tabular) |
 
+> **Amended 2026-10-08, type roles.** Page titles use the UI face at 600 (display is only for the one big figure, English). Screens under More use nine role classes, defined once in `globals.css`, built only from the sizes 12 / 14 / 16 / 20 px and the weights 400 / 600 (Latin line-height 1.4, Arabic about 10% taller). Muted text is `--muted-foreground` (5.1:1 or better in light, 6.5:1 or better in dark).
+>
+> | Role | Class | Size / weight | Used for |
+> |---|---|---|---|
+> | Title | `type-title` | 20 / 600 | page and sheet titles, the one figure |
+> | Section | `type-section` | 12 / 600 muted | group headings and legends |
+> | Body | `type-body` | 16 / 400 | row labels, running text |
+> | Strong | `type-strong` | 16 / 600 | a name in a list |
+> | Label | `type-label` | 14 / 600 | field labels, chips, small controls |
+> | Secondary | `type-secondary` | 14 / 400 muted | row values, summaries, hints |
+> | Caption | `type-caption` | 12 / 400 muted | fine print |
+> | Field | `type-field` | 16 / 400 | inputs and selects (never below 16px, so iOS does not zoom) |
+> | Button | `type-button` | 16 / 600 | buttons |
+>
+> `test/app/owner/more-type-guard.test.ts` fails, with `file:line`, on any raw `text-xs` to `text-9xl`, `text-[<size>]`, `font-medium/bold/semibold/...`, `fontSize` or `fontWeight` under `src/app/owner/(app)/more/**`. Other screens move to the roles one at a time.
+
 ### 8. Hierarchy: the current task first
 
 Order every screen by what needs the owner **now**, then reference information.

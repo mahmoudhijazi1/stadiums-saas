@@ -5729,3 +5729,15 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/more/{settings-list,hub}.tsx`, `more/settings/pitches/page.tsx`.
 
 **How to verify:** `npm test`: 670 passed. `npm run build` is green. Not rendered (no browser).
+
+## More typography, part 3 of 3: the pitch editor
+
+**What:**
+- Roles applied to the editor: section labels (legends, the preview heading) are the section role; the opening-hours summary is secondary; the game-length segments, day chips and preview chips are the label role; the price field and "$" use the field/body roles; the save bar button is the button role (the shared `Button`). Page titles are the title role.
+- **Visible change (its own hunk, in `hours-rows.tsx`; revert that hunk alone to undo):** each day is one line: day name (body, muted when closed), the switch alone (44px hit area, no "Open"/"Closed" word beside it), then for open days the two times as a range "4:00 PM – 11:00 PM" (label role, 36px pill inside a 44px hit area each; the sheet titles still say "Opens" / "Closes"), or the word "Closed" (secondary) for a closed day. This also removes the "From" / "To" words inside the chips. The rows wrap the chips under the day name when they do not fit (360px, or a window that closes the next day), never below 14px. `DaySwitch`'s `label` prop is gone.
+- **Review fixes (same commit):** the More rows' trailing value was floating in the middle (value and chevron were separate flex children); they are now one group pushed to the end. Row labels are the 14px label role (the body 16px was slightly too big). Day rows are tighter: 72px day name at 14px, the switch's 44px hit area overlaps its neighbours by 4px, smaller chip padding, and the next-day marker inside a chip is a short "+1" (spoken as "next day") so a closing-after-midnight row no longer wraps.
+- Unchanged: all the pure model and round-trip tests, the pitch-editor integration tests, validation and copy keys.
+
+**Files:** `more/settings/pitches/{hours-rows,form,price-cards,preview-card,money-input}.tsx`, `docs/ui-rules.md` (rule 7 amended with the role table and the guard), `docs/NOW.md`.
+
+**How to verify:** `npm test`: 670 passed. `npm run test:integration` (pitch editor): 5 passed, unchanged. `npm run build` is green (one transient Windows Turbopack process-start failure, 0xc0000142, passed on retry). Not rendered (no browser).

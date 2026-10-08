@@ -42,7 +42,7 @@ export function MoneyInput({
 }) {
   return (
     <div className={cn("flex items-center gap-2", className)} dir="ltr">
-      <span aria-hidden className="type-strong text-muted-foreground">
+      <span aria-hidden className="type-body text-muted-foreground">
         $
       </span>
       <Input

@@ -50,7 +50,7 @@ export function PriceCards({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="type-label text-muted-foreground">
+      <legend className="type-section">
         {ui("owner.pitchPriceRules", locale)}
       </legend>
       <ul className="flex flex-col gap-3">

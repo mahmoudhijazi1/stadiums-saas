@@ -27,7 +27,7 @@ const rowClass =
   "flex min-h-14 w-full items-center justify-between gap-3 bg-card px-4 py-2 text-start outline-none transition-colors hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50";
 
 /**
- * A 56px row: label (body, or strong for a name), an optional secondary line and caption
+ * A 56px row: label (14px label role, or strong for a name), an optional secondary line and caption
  * line under it, a trailing value (secondary, one line with an ellipsis; callers
  * LTR-isolate numbers) and a 16px muted chevron. With `selected` it is a picker choice and
  * shows a check instead. A link when `href` is given, a button otherwise.
@@ -56,18 +56,25 @@ export function SettingsRow({
   selected?: boolean;
   chevron?: boolean;
 }) {
+  const trailing =
+    selected ? (
+      <Check aria-hidden className="size-4 shrink-0" />
+    ) : chevron && (href || onClick) ? (
+      <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" />
+    ) : null;
   const body = (
     <>
       <span className="flex min-w-0 flex-col">
-        <span className={strong ? "type-strong" : "type-body"}>{label}</span>
+        <span className={strong ? "type-strong" : "type-label"}>{label}</span>
         {detail ? <span className="type-secondary">{detail}</span> : null}
         {meta ? <span className="type-caption">{meta}</span> : null}
       </span>
-      {value !== undefined ? <span className="min-w-0 truncate type-secondary">{value}</span> : null}
-      {selected ? (
-        <Check aria-hidden className="size-4 shrink-0" />
-      ) : chevron && (href || onClick) ? (
-        <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" />
+      {/* Value and chevron are one group pushed to the end, so the value never floats in the middle. */}
+      {value !== undefined || trailing ? (
+        <span className="ms-auto flex min-w-0 items-center gap-2">
+          {value !== undefined ? <span className="min-w-0 truncate type-secondary">{value}</span> : null}
+          {trailing}
+        </span>
       ) : null}
     </>
   );

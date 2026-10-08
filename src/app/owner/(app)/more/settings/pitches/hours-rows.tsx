@@ -20,16 +20,14 @@ import { TimeSheet } from "./time-sheet";
 
 type Picking = { day: DayRow["day"]; field: "from" | "to" } | null;
 
-/** Open / Closed switch with a text label, so state never rests on colour alone. */
+/** Open / Closed switch: just the toggle, 44px hit area; the day name labels it for readers. */
 function DaySwitch({
   checked,
   onChange,
-  label,
   name,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
-  label: string;
   name: string;
 }) {
   return (
@@ -39,7 +37,7 @@ function DaySwitch({
       aria-checked={checked}
       aria-label={name}
       onClick={() => onChange(!checked)}
-      className="inline-flex min-h-11 items-center gap-2 rounded-full pe-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="-mx-1 inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       <span
         aria-hidden
@@ -55,7 +53,38 @@ function DaySwitch({
           )}
         />
       </span>
-      <span className="min-w-14 type-label">{label}</span>
+    </button>
+  );
+}
+
+/** A time chip: 36px pill inside a 44px hit area. */
+function TimeChip({
+  value,
+  note,
+  noteLabel,
+  onClick,
+}: {
+  value: string;
+  note?: string;
+  /** Spoken form of `note` ("next day" for "+1"). */
+  noteLabel?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex min-h-11 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
+    >
+      <span className="inline-flex h-9 items-center gap-1 rounded-full border px-2.5 type-label">
+        <LtrIsolate>{value}</LtrIsolate>
+        {note ? (
+          <span className="type-caption">
+            <span aria-hidden>{note}</span>
+            <span className="sr-only">{noteLabel}</span>
+          </span>
+        ) : null}
+      </span>
     </button>
   );
 }
@@ -94,7 +123,7 @@ export function HoursRows({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="type-label text-muted-foreground">
+      <legend className="type-section">
         {ui("owner.pitchHours", locale)}
       </legend>
       <input type="hidden" name="hoursGroupsJson" value={JSON.stringify(groups)} />
@@ -110,36 +139,29 @@ export function HoursRows({
           return (
             <li
               key={row.day}
-              className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 border-b bg-card px-3 py-2 last:border-b-0"
+              className="flex min-h-14 flex-wrap items-center gap-x-1 border-b bg-card px-3 py-1 last:border-b-0"
             >
-              <span className="w-20 shrink-0 type-body">{dayName}</span>
-              <DaySwitch
-                checked={row.open}
-                onChange={(open) => update(row.day, { open })}
-                name={dayName}
-                label={ui(row.open ? "owner.dayOpen" : "owner.dayClosed", locale)}
-              />
+              <span className={cn("w-[4.5rem] shrink-0 type-label", !row.open && "text-muted-foreground")}>
+                {dayName}
+              </span>
+              <DaySwitch checked={row.open} onChange={(open) => update(row.day, { open })} name={dayName} />
               {row.open ? (
-                <span className="ms-auto flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
+                <span className="ms-auto flex items-center">
+                  <TimeChip
+                    value={formatClock(row.from, hourCycle, locale)}
                     onClick={() => setPicking({ day: row.day, field: "from" })}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <span className="text-muted-foreground">{ui("owner.fromLabel", locale)}</span>
-                    <LtrIsolate className="type-label">{formatClock(row.from, hourCycle, locale)}</LtrIsolate>
-                  </button>
-                  <button
-                    type="button"
+                  />
+                  <span aria-hidden className="type-secondary px-0.5">–</span>
+                  <TimeChip
+                    value={formatClock(row.to, hourCycle, locale)}
+                    note={next ? "+1" : undefined}
+                    noteLabel={next ? ui("owner.pitchNextDay", locale) : undefined}
                     onClick={() => setPicking({ day: row.day, field: "to" })}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <span className="text-muted-foreground">{ui("owner.toLabel", locale)}</span>
-                    <LtrIsolate className="type-label">{formatClock(row.to, hourCycle, locale)}</LtrIsolate>
-                    {next ? <span className="type-caption">{ui("owner.pitchNextDay", locale)}</span> : null}
-                  </button>
+                  />
                 </span>
-              ) : null}
+              ) : (
+                <span className="ms-auto type-secondary">{ui("owner.dayClosed", locale)}</span>
+              )}
             </li>
           );
         })}

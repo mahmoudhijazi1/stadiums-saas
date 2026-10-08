@@ -80,7 +80,7 @@ export function PreviewCard({
 
   return (
     <section aria-label={ui("owner.pitchPreview", locale)} className="flex flex-col gap-3 rounded-xl border bg-card p-3">
-      <h3 className="type-label text-muted-foreground">{ui("owner.pitchPreview", locale)}</h3>
+      <h3 className="type-section">{ui("owner.pitchPreview", locale)}</h3>
       <div className="flex flex-wrap gap-2">
         {WEEKDAYS.map((day) => {
           const open = rows.find((item) => item.day === day)?.open ?? false;
