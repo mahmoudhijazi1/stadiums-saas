@@ -5748,3 +5748,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/header.tsx`, `app/owner/tab-bar.tsx`.
 
 **How to verify:** `npm test` and `npm run build` pass. Not rendered (no browser): in light mode the header and nav should be white cards on the cream page; scroll a long list under the nav and no text should show beside or above the bar edge.
+
+## Bottom tab bar: a sliding pill for the active tab
+
+**What:** Phones only (the lg rail is unchanged). The active tab sits on one rounded pill (48px high, tab width minus 8px, the `surface-2` raised token, not lime) with its icon and label in `action-ink` (ink in light, lime in dark); inactive tabs are muted with no background. The pill is a single absolutely positioned element that slides to the active tab with a 220ms ease-out transition on `transform` and `width` only. It is measured in pixels (`offsetLeft` / `offsetWidth`) in a layout effect and re-measured by a `ResizeObserver`, so it is right in RTL with no separate logic; it stays invisible until the first measurement and the transition is switched on only after it, so it does not slide in from the corner on load. No transition under `prefers-reduced-motion` (it jumps).
+- **Optimistic:** tapping a tab sets `{ href, from: pathname }`; the pill follows at once. It counts only while the pathname is still the one it was tapped on, so a finished navigation takes over by itself, and a failed or cancelled one gives up after 4 seconds and the pill returns to the real page. `aria-current` still follows the real pathname.
+- Kept: the pending-request badge, 44px+ targets (tabs are 56px), the safe-area padding, the desktop rail, and the Record "+" code (it is still intentionally hidden by `HIDE_RECORD`, uncommitted).
+- **Contrast (measured):** active label on the pill: light 15.08:1 (ink #111412 on #e9e8e0), dark 12.64:1 (lime #d7ff3f on #232b26). Inactive labels on the bar: light 6.28:1, dark 7.53:1. All pass 4.5:1.
+
+**Files:** `app/owner/tab-bar.tsx`.
+
+**How to verify:** `npm test` and `npm run build` pass. Not rendered (no browser).
+
+- **Arabic labels:** the tab label had `leading-none` inside a `truncate` (overflow hidden) box, which cut Arabic letters below the baseline. It now has 1.5 line-height and 1px vertical padding, so descenders and diacritics fit.
+- **Pill padding:** the taller Arabic label left the icon almost touching the 48px pill's edge. The label now clips only sideways (`overflow-x: clip` with an ellipsis, so nothing is ever cut below the baseline) at 1.2 line-height, and the icon-to-label gap is 2px, so the stack is about 36px inside the 48px pill (about 6px of room above and below).
