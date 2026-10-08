@@ -5823,3 +5823,10 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/{day-tabs,free-strip}.tsx`, `app/globals.css`.
 
 **How to verify:** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).
+
+- **Correction (uncommitted):** the date-strip pill was removed again at the owner request; the selected day is back to the 3px underline (the version from before this commit). The 3:1 `--control-border` on the free-hour chips stays.
+- **Underline fix (uncommitted):** the bar sat at 56 to 59px inside a 56px-high tab, below the scroller edge (an `overflow-x: auto` box also clips vertically), so it never showed. The label line is 16px and the bar 4px under the number (52 to 55px), inside the tab.
+- **Alignment try (uncommitted, easy to undo):** the label and the day number are both full-width centred lines in the tab (`w-full text-center`), and the underline is a fixed 2rem bar centred under them (`inset-x-0 mx-auto w-8`), so the two lines and the bar share one centre line whatever the label width.
+- **Inline day tabs (uncommitted):** a weekday is one line "Tue 6" (Today, Yesterday and Tomorrow are just the word), in the 14px label role. The Arabic underline was missing because the Arabic reading-size rules (`:lang(ar) .text-xs` and `.text-base`, unlayered) overrode the tab line heights, which made the stacked label and number taller than 56px and pushed the bar below the tab, where the scroller clips it. The role class is not affected by those rules, and the text is one line, so the bar fits in Arabic and English. Tabs are no longer a fixed 64px; they size to their text.
+
+**How to verify (date strip, final):** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).
