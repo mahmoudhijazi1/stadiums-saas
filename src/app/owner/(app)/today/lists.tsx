@@ -59,6 +59,7 @@ export async function OwnerToday({
   membership,
   locale = "ar",
   highlight,
+  openHighlight = false,
   date,
   notify,
   bookingId,
@@ -66,6 +67,7 @@ export async function OwnerToday({
   membership: CurrentMembership;
   locale?: UiLocale;
   highlight?: string;
+  openHighlight?: boolean;
   date?: string;
   notify?: OutcomeKind;
   bookingId?: string;
@@ -183,6 +185,7 @@ export async function OwnerToday({
         mayNoShow={mayNoShow}
         mayAdjust={mayAdjust}
         highlight={highlight}
+        openHighlight={openHighlight}
         saved={saved}
         date={date}
         lbpPerUsd={rate ? rate.toString() : null}

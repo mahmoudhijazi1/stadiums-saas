@@ -232,3 +232,24 @@ export function previousRange(range: CivilRange): CivilRange {
   const length = civilRangeLength(range);
   return { from: addCivilDays(range.from, -length), to: addCivilDays(range.from, -1) };
 }
+
+// ---------------------------------------------------------------------------
+// Activity paging
+
+export const ACTIVITY_PAGE_SIZE = 20;
+
+/** `<iso>_<id>`: where the next page starts (strictly older than this row). */
+export function encodeActivityCursor(at: Date, id: string): string {
+  return `${at.toISOString()}_${id}`;
+}
+
+/** Null for anything this module did not write, so a bad cursor means "first page". */
+export function decodeActivityCursor(value: string | undefined): { at: Date; id: string } | null {
+  if (!value) return null;
+  const split = value.indexOf("_");
+  if (split <= 0) return null;
+  const at = new Date(value.slice(0, split));
+  const id = value.slice(split + 1);
+  if (Number.isNaN(at.getTime()) || id.length === 0 || id.length > 64) return null;
+  return { at, id };
+}

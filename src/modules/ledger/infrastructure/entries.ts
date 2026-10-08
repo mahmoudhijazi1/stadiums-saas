@@ -59,3 +59,58 @@ export async function sumAmountUsdByDirection(
   }
   return totals;
 }
+
+export type LedgerEntryRow = {
+  id: string;
+  direction: "IN" | "OUT";
+  amountUsd: Decimal;
+  occurredAt: Date;
+  sourceType: string;
+  sourceId: string;
+};
+
+/**
+ * One page of ledger movements in a period, newest first. Keyset on (occurredAt, id): the
+ * page after a cursor holds rows strictly older, ties on occurredAt broken by id, so a row
+ * is never repeated or skipped at a page boundary. `take` includes the extra row the
+ * caller uses to know whether there is a next page. Guard stamps tenantId.
+ */
+export async function listLedgerEntriesPage(
+  tx: TenantTx,
+  input: {
+    startInclusive: Date;
+    endExclusive: Date;
+    direction?: "IN" | "OUT";
+    cursor?: { at: Date; id: string };
+    take: number;
+  },
+): Promise<LedgerEntryRow[]> {
+  const rows = await tx.ledgerEntry.findMany({
+    where: {
+      AND: [
+        { occurredAt: { gte: input.startInclusive, lt: input.endExclusive } },
+        ...(input.direction ? [{ direction: input.direction }] : []),
+        ...(input.cursor
+          ? [
+              {
+                OR: [
+                  { occurredAt: { lt: input.cursor.at } },
+                  { occurredAt: input.cursor.at, id: { lt: input.cursor.id } },
+                ],
+              },
+            ]
+          : []),
+      ],
+    },
+    orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+    take: input.take,
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    direction: row.direction,
+    amountUsd: new Decimal(row.amountUsd.toString()),
+    occurredAt: row.occurredAt,
+    sourceType: row.sourceType,
+    sourceId: row.sourceId,
+  }));
+}

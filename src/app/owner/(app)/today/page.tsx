@@ -23,11 +23,14 @@ export default async function OwnerTodayPage({
   const locale = await getUiLocale();
   const query = params as {
     highlight?: string | string[];
+    open?: string | string[];
     date?: string | string[];
     notify?: string | string[];
     bookingId?: string | string[];
   };
   const highlight = queryString(query.highlight);
+  // From Money > Activity: open the game's sheet straight away (not just the highlight).
+  const openHighlight = queryString(query.open) === "1";
   const date = queryString(query.date);
   const notify = outcomeKind(queryString(query.notify));
   const bookingId = queryString(query.bookingId);
@@ -39,6 +42,7 @@ export default async function OwnerTodayPage({
           membership={membership}
           locale={locale}
           highlight={highlight}
+          openHighlight={openHighlight}
           date={date}
           notify={notify}
           bookingId={bookingId}

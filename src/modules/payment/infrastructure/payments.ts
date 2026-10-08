@@ -125,3 +125,40 @@ export async function insertAllocations(
     });
   }
 }
+
+export type TenderRow = {
+  sourceId: string;
+  currency: "USD" | "LBP";
+  amount: Decimal;
+  rateAtTime: Decimal | null;
+  usdEquivalent: Decimal;
+};
+
+/** Every tender of the payments of these sources, one query. Payment does not know what a source is. */
+export async function listTendersBySourceIds(
+  tx: TenantTx,
+  sourceType: PaymentSourceType,
+  sourceIds: string[],
+): Promise<TenderRow[]> {
+  if (sourceIds.length === 0) return [];
+  const payments = await tx.payment.findMany({
+    where: { sourceType, sourceId: { in: sourceIds } },
+    orderBy: { createdAt: "asc" },
+    select: {
+      sourceId: true,
+      tenders: {
+        select: { currency: true, amount: true, rateAtTime: true, usdEquivalent: true },
+        orderBy: { id: "asc" },
+      },
+    },
+  });
+  return payments.flatMap((payment) =>
+    payment.tenders.map((tender) => ({
+      sourceId: payment.sourceId,
+      currency: tender.currency,
+      amount: new Decimal(tender.amount.toString()),
+      rateAtTime: tender.rateAtTime ? new Decimal(tender.rateAtTime.toString()) : null,
+      usdEquivalent: new Decimal(tender.usdEquivalent.toString()),
+    })),
+  );
+}

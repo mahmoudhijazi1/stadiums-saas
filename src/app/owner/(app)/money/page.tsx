@@ -76,6 +76,7 @@ export default async function OwnerMoneyPage({
           kind={kind}
           range={range}
           today={today}
+          highlightNew={queryString(params.new) === "1"}
           locale={locale}
         />
       </Suspense>

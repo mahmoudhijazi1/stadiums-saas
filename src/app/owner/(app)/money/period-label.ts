@@ -3,8 +3,6 @@ import type { UiLocale } from "@/lib/locale";
 import { isCalendarMonth, type CivilRange, type PeriodKind } from "@/modules/ledger/domain/period";
 import { ui } from "@/lib/ui-copy";
 
-const TZ = "Asia/Beirut";
-
 function noon(day: string): Date {
   const [year, month, date] = day.split("-").map(Number) as [number, number, number];
   return new Date(Date.UTC(year, month - 1, date, 12));

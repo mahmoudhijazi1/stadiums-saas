@@ -186,6 +186,7 @@ export function UpcomingPanel({
   mayNoShow,
   mayAdjust,
   highlight,
+  openHighlight = false,
   saved,
   date,
   lbpPerUsd = null,
@@ -203,12 +204,14 @@ export function UpcomingPanel({
   mayNoShow: boolean;
   mayAdjust: boolean;
   highlight?: string;
+  /** Open the highlighted game's sheet on arrival (a link from Money). */
+  openHighlight?: boolean;
   saved?: OutcomeNotify | null;
   date?: string;
   /** Current exchange rate for the mixed-currency collect line; null when none is set. */
   lbpPerUsd?: string | null;
 }) {
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(() => (openHighlight && highlight ? highlight : null));
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
   const [sheetStep, setSheetStep] = useState<SheetStep>("details");
   const [interestOpen, setInterestOpen] = useState(false);
