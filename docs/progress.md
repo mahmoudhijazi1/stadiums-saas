@@ -5806,3 +5806,11 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 ## Money refactor, part 4 of 4: docs
 
 **What:** `docs/ux-02-history.md` section 5 gets an "amended" note (the Money tab now holds the period headline, Activity and Owed to you); `docs/NOW.md` lists the refactor; `docs/ROADMAP.md` records the next Money specs (expense void/correction, category breakdown, occupancy, CSV export, and the F-1 difference between the Owed page and Today). Docs only; no code change.
+
+## Today polish, part 1 of 2: the debt row
+
+**What:** The earlier-debts row (and the expanded rows on the Owed page, which use the same component) is a plain BookingRow card: the amber left edge is gone, with the same surface, border, radius and padding as every other row. Two lines: the name, then one muted line "Yesterday · 4:00–5:00 PM" (day word or date, then the LTR-isolated time range, tabular digits; the pitch name only when there are several). The trailing action is a compact tonal button: owed-subtle background and owed text, "Collect $X" / "تحصيل $X", the 16/600 button role, a 36px pill inside a 44px hit area, fully rounded, never the lime fill. It stays a sibling of the row body, at least 12px away, and the body still opens the booking sheet. A long name wraps in the body (`min-w-0`, `break-words`); the button is `shrink-0`, so the two never touch.
+
+**Files:** `app/owner/booking-row.tsx`, `app/owner/(app)/today/debt-row.tsx`.
+
+**How to verify:** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).

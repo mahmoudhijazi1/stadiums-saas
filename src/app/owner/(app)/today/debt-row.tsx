@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { ClockRangeText } from "@/components/ui/ltr-isolate";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
@@ -42,23 +41,33 @@ export function DebtRow({
       variant="debt"
       title={<bdi>{row.requesterName}</bdi>}
       meta={
-        <>
-          <span>{row.dayLabel}</span>
+        // One muted line: "Yesterday · 4:00–5:00 PM" (the time range is LTR-isolated, digits tabular).
+        <span className="tabular-nums">
+          {row.dayLabel}
+          <span aria-hidden> · </span>
           <ClockRangeText text={row.timeRange} />
-          {row.pitchName ? <span>{row.pitchName}</span> : null}
-        </>
+          {row.pitchName ? (
+            <>
+              <span aria-hidden> · </span>
+              {row.pitchName}
+            </>
+          ) : null}
+        </span>
       }
       pill={mayCollect ? undefined : <OwedPill amountUsd={row.owedUsd} word={ui("owner.dueShort", locale)} />}
       action={
         mayCollect ? (
-          <Button
+          // A tonal button (never the lime fill, which is for the centre + and primary saves):
+          // owed colours, 36px pill inside a 44px hit area.
+          <button
             type="button"
-            size="sm"
-            className="min-h-11 shrink-0"
             onClick={() => onOpen(row.id)}
+            className="inline-flex min-h-11 shrink-0 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
           >
-            {ui("owner.collect", locale)} <LtrIsolate>${row.owedUsd}</LtrIsolate>
-          </Button>
+            <span className="inline-flex h-9 items-center gap-1 rounded-full bg-owed-subtle px-4 type-button text-owed whitespace-nowrap">
+              {ui("owner.collect", locale)} <LtrIsolate>${row.owedUsd}</LtrIsolate>
+            </span>
+          </button>
         ) : undefined
       }
       onOpen={() => onOpen(row.id)}
