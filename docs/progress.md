@@ -5814,3 +5814,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/booking-row.tsx`, `app/owner/(app)/today/debt-row.tsx`.
 
 **How to verify:** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).
+
+## Today polish, part 2 of 2: the selected day is a pill
+
+**What:** The selected day in the date strip sits on the same raised-surface pill as the bottom tab bar (fully rounded, 48px high, the tab width minus 8px, `surface-2`), with its label and number in full contrast; the underline bar is gone and inactive tabs stay muted with no background. It is one absolutely positioned element inside the scroller (so it scrolls with the tabs) that slides to the selected tab with a 200ms transition on `transform` only, none under `prefers-reduced-motion`, measured in pixels (`offsetLeft` / `offsetWidth`, so right in RTL), hidden until the first measurement, and separate from the tabs so none of them shifts. The tab's top label line is tightened to 16px so the two lines sit inside the pill.
+- **Free-hour chip borders, measured:** the chips used `--line`: 1.20:1 against the page in light (#e2e1d8 on #f6f5ef) and 1.28:1 in dark (#232b26 on #111412), both under 3:1. New token `--control-border` (ink-muted at 72% over the page in light, 58% in dark): 3.18:1 light, 3.56:1 dark. Only the free-hour chips use it; the global `--border` / `--line` are untouched (raising those would restyle every card).
+
+**Files:** `app/owner/(app)/today/{day-tabs,free-strip}.tsx`, `app/globals.css`.
+
+**How to verify:** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).

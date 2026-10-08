@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { ar, enGB } from "react-day-picker/locale";
@@ -32,9 +32,36 @@ export function DayTabs({
   locale: UiLocale;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const { selected, go } = useDayNav();
   const selectedIndex = tabs.findIndex((tab) => tab.date === selected);
+
+  // The selected day's pill, the same one the bottom tab bar uses: one element that slides to
+  // the selected tab (transform only, 200ms; none under reduced motion). It lives inside the
+  // scroller so it scrolls with the tabs, and is measured in pixels (offsetLeft/offsetWidth),
+  // which is right in RTL too. Hidden until the first measurement, so it does not slide in
+  // from the corner on load, and it is separate from the tabs so none of them shifts.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const pill = pillRef.current;
+    if (!list || !pill) return;
+    const place = () => {
+      const tab = list.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (!tab) {
+        pill.style.opacity = "0";
+        return;
+      }
+      pill.style.width = `${tab.offsetWidth - 8}px`;
+      pill.style.transform = `translate(${tab.offsetLeft + 4}px, ${tab.offsetTop + (tab.offsetHeight - 48) / 2}px)`;
+      pill.style.opacity = "1";
+    };
+    place();
+    if (!pill.dataset.ready) requestAnimationFrame(() => (pill.dataset.ready = "1"));
+    const observer = new ResizeObserver(place);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [selected]);
 
   useEffect(() => {
     const list = listRef.current;
@@ -59,12 +86,18 @@ export function DayTabs({
         ref={listRef}
         role="tablist"
         className={cn(
-          "no-scrollbar flex min-w-0 flex-1 overflow-x-auto",
+          "no-scrollbar relative flex min-w-0 flex-1 overflow-x-auto",
           // 24px fade at both ends: cut-off tabs read as "more days", not clipped text.
           "[-webkit-mask-image:linear-gradient(to_right,transparent,#000_24px,#000_calc(100%-24px),transparent)]",
           "[mask-image:linear-gradient(to_right,transparent,#000_24px,#000_calc(100%-24px),transparent)]",
         )}
       >
+        {/* Physical left/top on purpose: placed with measured pixels, which are physical in both directions. */}
+        <span
+          ref={pillRef}
+          aria-hidden
+          className="pointer-events-none absolute top-0 left-0 h-12 rounded-full bg-surface-2 opacity-0 data-[ready]:transition-transform data-[ready]:duration-200 data-[ready]:ease-out motion-reduce:transition-none"
+        />
         {tabs.map((tab, index) => {
           const active = tab.date === selected;
           const href = tab.kind === "today" ? "/owner/today" : `/owner/today?date=${tab.date}`;
@@ -85,7 +118,7 @@ export function DayTabs({
                 go(tab.date, href);
               }}
               className={cn(
-                "relative inline-flex h-14 w-16 shrink-0 flex-col items-center justify-center text-center outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                "relative z-0 inline-flex h-14 w-16 shrink-0 flex-col items-center justify-center text-center outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -93,7 +126,7 @@ export function DayTabs({
               <span className="relative inline-flex flex-col items-center whitespace-nowrap">
                 <span
                   className={cn(
-                    "text-xs leading-5",
+                    "text-xs leading-4",
                     active ? "font-semibold" : "font-normal",
                   )}
                 >
@@ -102,15 +135,6 @@ export function DayTabs({
                 <span className="text-base leading-6 font-semibold tabular-nums">
                   {tab.dayNumber}
                 </span>
-                {/* Active marker: 6px under the number, out of flow so the two lines stay centred.
-                    Always rendered so tabs never shift; ink in light, lime in dark. */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "absolute inset-x-0 top-full mt-1.5 h-[3px] rounded-full bg-action-ink transition-opacity duration-150 motion-reduce:transition-none",
-                    active ? "opacity-100" : "opacity-0",
-                  )}
-                />
               </span>
             </Link>
           );

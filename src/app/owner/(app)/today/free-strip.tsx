@@ -19,7 +19,7 @@ const ROW_PITCH_LIMIT = 2;
 
 // Quiet on purpose: outline only, smaller than a booking card. Lime on press, focus and pick.
 const chipClass = cn(
-  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-transparent px-3 text-sm text-muted-foreground outline-none",
+  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-control-border bg-transparent px-3 text-sm text-muted-foreground outline-none",
   "focus-visible:border-accent-brand focus-visible:ring-2 focus-visible:ring-accent-brand/60",
 );
 const pressable =

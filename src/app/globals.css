@@ -20,6 +20,7 @@
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
+  --color-control-border: var(--control-border);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-inverse: var(--inverse);
@@ -122,6 +123,8 @@
   --surface-2: var(--ls-paper-200);
   --line: var(--ls-paper-300);
   --line-strong: var(--ls-paper-400);
+  /* Border of a small tappable control (a chip): 3:1 against the page, unlike --line (1.2:1). */
+  --control-border: color-mix(in srgb, var(--ls-carbon-500) 72%, transparent);
   --line-dashed: var(--ls-paper-500);
 
   --ink: var(--ls-carbon-900);
@@ -196,6 +199,7 @@
   --surface-2: var(--ls-carbon-700);
   --line: var(--ls-carbon-700);
   --line-strong: var(--ls-carbon-600);
+  --control-border: color-mix(in srgb, var(--ls-carbon-300) 58%, transparent);
   --line-dashed: var(--ls-carbon-600);
 
   --ink: var(--ls-paper-100);
