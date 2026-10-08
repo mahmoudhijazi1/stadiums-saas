@@ -96,14 +96,14 @@ export function TimeSheet({
                     aria-pressed={selected}
                     onClick={() => pick(hhmm)}
                     className={cn(
-                      "flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-start text-base outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                      selected ? "bg-selected font-semibold text-selected-ink" : "hover:bg-muted",
+                      "flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-3 text-start type-body outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      selected ? "bg-selected text-selected-ink" : "hover:bg-muted",
                       blocked && "opacity-40",
                     )}
                   >
                     <LtrIsolate>{formatClock(hhmm, hourCycle, locale)}</LtrIsolate>
                     {nextDay ? (
-                      <span className="text-sm opacity-80">{ui("owner.pitchNextDay", locale)}</span>
+                      <span className="type-label opacity-80">{ui("owner.pitchNextDay", locale)}</span>
                     ) : null}
                   </button>
                 </li>
@@ -122,7 +122,7 @@ export function TimeSheet({
                 input.click();
               }
             }}
-            className="mt-2 flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 text-start text-sm font-semibold outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="mt-2 flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 text-start type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <Clock aria-hidden className="size-4" />
             {ui("owner.otherTime", locale)}

@@ -42,7 +42,7 @@ export function MoneyInput({
 }) {
   return (
     <div className={cn("flex items-center gap-2", className)} dir="ltr">
-      <span aria-hidden className="text-base font-semibold text-muted-foreground">
+      <span aria-hidden className="type-strong text-muted-foreground">
         $
       </span>
       <Input
@@ -56,7 +56,6 @@ export function MoneyInput({
         value={value}
         onChange={(event) => onChange(sanitizeUsd(event.target.value))}
         onBlur={() => onChange(padCents(value))}
-        className="font-semibold"
       />
     </div>
   );

@@ -26,7 +26,7 @@ export default async function PitchListPage() {
     <section className="flex flex-col gap-4">
       <OwnerBackLink href="/owner/more" locale={locale} />
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-heading text-3xl lg:text-4xl">
+        <h2 className="type-title">
           {ui("owner.pitches", locale)}
         </h2>
         {mayManage ? (
@@ -48,11 +48,11 @@ export default async function PitchListPage() {
             const body = (
               <>
                 <span className="min-w-0">
-                  <span className="block text-base font-semibold">{pitch.name}</span>
-                  <span className="block text-sm text-muted-foreground">
+                  <span className="block type-strong">{pitch.name}</span>
+                  <span className="block type-secondary">
                     {formatHoursSummary(hoursToRows(pitch.hoursGroups), locale, tenant.timeDisplay)}
                   </span>
-                  <span className="block text-sm text-muted-foreground">
+                  <span className="block type-secondary">
                     <LtrIsolate>{pitch.slotDurationMinutes}</LtrIsolate> {ui("owner.pitchMinutesFull", locale)}
                     {" · "}
                     <LtrIsolate>${pitch.defaultPriceUsd}</LtrIsolate>

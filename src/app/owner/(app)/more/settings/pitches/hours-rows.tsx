@@ -55,7 +55,7 @@ function DaySwitch({
           )}
         />
       </span>
-      <span className="min-w-14 text-sm font-semibold">{label}</span>
+      <span className="min-w-14 type-label">{label}</span>
     </button>
   );
 }
@@ -94,12 +94,12 @@ export function HoursRows({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-sm font-semibold text-muted-foreground">
+      <legend className="type-label text-muted-foreground">
         {ui("owner.pitchHours", locale)}
       </legend>
       <input type="hidden" name="hoursGroupsJson" value={JSON.stringify(groups)} />
 
-      <p className="text-sm" aria-live="polite">
+      <p className="type-secondary" aria-live="polite">
         {formatHoursSummary(rows, locale, hourCycle)}
       </p>
 
@@ -112,7 +112,7 @@ export function HoursRows({
               key={row.day}
               className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 border-b bg-card px-3 py-2 last:border-b-0"
             >
-              <span className="w-20 shrink-0 text-base font-semibold">{dayName}</span>
+              <span className="w-20 shrink-0 type-body">{dayName}</span>
               <DaySwitch
                 checked={row.open}
                 onChange={(open) => update(row.day, { open })}
@@ -124,19 +124,19 @@ export function HoursRows({
                   <button
                     type="button"
                     onClick={() => setPicking({ day: row.day, field: "from" })}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <span className="text-muted-foreground">{ui("owner.fromLabel", locale)}</span>
-                    <LtrIsolate className="font-semibold">{formatClock(row.from, hourCycle, locale)}</LtrIsolate>
+                    <LtrIsolate className="type-label">{formatClock(row.from, hourCycle, locale)}</LtrIsolate>
                   </button>
                   <button
                     type="button"
                     onClick={() => setPicking({ day: row.day, field: "to" })}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     <span className="text-muted-foreground">{ui("owner.toLabel", locale)}</span>
-                    <LtrIsolate className="font-semibold">{formatClock(row.to, hourCycle, locale)}</LtrIsolate>
-                    {next ? <span className="text-xs text-muted-foreground">{ui("owner.pitchNextDay", locale)}</span> : null}
+                    <LtrIsolate className="type-label">{formatClock(row.to, hourCycle, locale)}</LtrIsolate>
+                    {next ? <span className="type-caption">{ui("owner.pitchNextDay", locale)}</span> : null}
                   </button>
                 </span>
               ) : null}
@@ -146,7 +146,7 @@ export function HoursRows({
       </ul>
 
       {runsPastDayStart ? (
-        <p role="status" className="text-sm text-owed">
+        <p role="status" className="type-secondary text-owed">
           {ui("owner.dayStartWarning", locale)}
         </p>
       ) : null}

@@ -50,7 +50,7 @@ export default async function EditPitchPage({
   return (
     <section className="flex flex-col gap-4">
       <OwnerBackLink href="/owner/more/settings/pitches" locale={locale} />
-      <h2 className="font-heading text-3xl lg:text-4xl">{ui("owner.pitchEdit", locale)}</h2>
+      <h2 className="type-title">{ui("owner.pitchEdit", locale)}</h2>
       <PitchDraftForm
         locale={locale}
         action={submitUpdatePitch}

@@ -50,7 +50,7 @@ export function PriceCards({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="text-sm font-semibold text-muted-foreground">
+      <legend className="type-label text-muted-foreground">
         {ui("owner.pitchPriceRules", locale)}
       </legend>
       <ul className="flex flex-col gap-3">
@@ -75,8 +75,8 @@ export function PriceCards({
                         })
                       }
                       className={cn(
-                        "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                        on ? "border-transparent bg-selected font-semibold text-selected-ink" : "bg-card",
+                        "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                        on ? "border-transparent bg-selected text-selected-ink" : "bg-card",
                         blocked && "opacity-40",
                       )}
                     >
@@ -124,7 +124,7 @@ export function PriceCards({
                 )}
               </div>
               {incomplete ? (
-                <p role="status" className="text-sm text-owed">
+                <p role="status" className="type-secondary text-owed">
                   {ui("owner.pitchPriceNeeded", locale)}
                 </p>
               ) : null}
@@ -134,8 +134,8 @@ export function PriceCards({
       </ul>
 
       {timed.length > 0 ? (
-        <div className="flex flex-col gap-1 rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-          <p className="font-semibold">{ui("owner.pitchKeptRules", locale)}</p>
+        <div className="flex flex-col gap-1 rounded-xl border border-dashed p-3 type-secondary">
+          <p className="type-label">{ui("owner.pitchKeptRules", locale)}</p>
           {timed.map(({ rule }, index) => (
             <p key={index}>
               {formatDays(rule.days, locale)}{" "}

@@ -80,7 +80,7 @@ export function PreviewCard({
 
   return (
     <section aria-label={ui("owner.pitchPreview", locale)} className="flex flex-col gap-3 rounded-xl border bg-card p-3">
-      <h3 className="text-sm font-semibold text-muted-foreground">{ui("owner.pitchPreview", locale)}</h3>
+      <h3 className="type-label text-muted-foreground">{ui("owner.pitchPreview", locale)}</h3>
       <div className="flex flex-wrap gap-2">
         {WEEKDAYS.map((day) => {
           const open = rows.find((item) => item.day === day)?.open ?? false;
@@ -93,8 +93,8 @@ export function PreviewCard({
               aria-pressed={on}
               onClick={() => setPicked(day)}
               className={cn(
-                "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                on ? "border-transparent bg-selected font-semibold text-selected-ink" : "bg-card",
+                "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                on ? "border-transparent bg-selected text-selected-ink" : "bg-card",
                 !open && "opacity-40",
               )}
             >
@@ -106,7 +106,7 @@ export function PreviewCard({
 
       {slots.length > 0 ? (
         <>
-          <p className="text-sm font-semibold">
+          <p className="type-label">
             {previewSummaryLabel(slots.length, min.toFixed(2), max.toFixed(2), locale)}
           </p>
           <ul className="flex flex-wrap gap-2">
@@ -116,7 +116,7 @@ export function PreviewCard({
               return (
                 <li
                   key={slot.start.toISOString()}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm text-muted-foreground"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 type-label text-muted-foreground"
                 >
                   <LtrIsolate>{formatClock(hhmm, hourCycle, locale)}</LtrIsolate>
                   {min.eq(max) ? null : <LtrIsolate>${slot.priceUsd.toFixed(0)}</LtrIsolate>}
@@ -128,9 +128,9 @@ export function PreviewCard({
       ) : null}
 
       {slots.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{gameLongerLabel(slotMinutes, locale)}</p>
+        <p className="type-secondary">{gameLongerLabel(slotMinutes, locale)}</p>
       ) : leftover > 0 ? (
-        <p className="text-sm text-muted-foreground">{unusedTimeLabel(leftover, locale)}</p>
+        <p className="type-secondary">{unusedTimeLabel(leftover, locale)}</p>
       ) : null}
     </section>
   );

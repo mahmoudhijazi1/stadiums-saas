@@ -5703,3 +5703,18 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/more/settings/pitches/page.tsx`.
 
 **How to verify:** `npm test`: 668 passed. `npm run test:integration`: 237 passed. `npm run build` is green. Not rendered (no browser).
+
+## More typography, part 1 of 3: type roles and a guard
+
+**Step 0:** before this, `globals.css` had no role tokens: only the Arabic size bump (`:lang(ar) .text-xs/sm/base` = 13/15/17px). Across `more/**` the raw classes were `text-sm` x37, `font-semibold` x23, `font-medium` x15, `text-xs` x8, `text-base` x6, `text-4xl` x3, `text-3xl` x3, `text-lg` x1 (about a dozen distinct combinations, 12 to 36px, weights 400/500/600). The 12/14/16/20 and 400/600 scale from the typography job exists as Tailwind defaults plus the shipped faces (only 400 and 600 are loaded); the roles below now name it.
+
+**What:** nine role classes in `globals.css` (`@layer components`, so a colour utility such as `text-owed` still wins): `type-title` 20/600, `type-section` 12/600 muted, `type-body` 16/400, `type-strong` 16/600, `type-label` 14/600, `type-secondary` 14/400 muted, `type-caption` 12/400 muted, `type-field` 16/400, `type-button` 16/600. Latin line-height 1.4; Arabic 1.55 (about 10% taller). The roles are exact in Arabic too (the Arabic size bump only touches `text-xs/sm/base`).
+- **Contrast of muted text (`--muted-foreground`), measured:** light 5.75:1 on page (#f6f5ef), 6.28:1 on card (#fff), 5.11:1 on surface-2; dark 8.35:1 on page, 7.53:1 on card, 6.55:1 on surface-2. All pass 4.5:1, so no token was raised.
+- **Guard** `test/app/owner/more-type-guard.test.ts`: fails with `file:line` on `text-xs` to `text-9xl`, `text-[<size>]`, `font-medium/bold/semibold/...`, `fontSize`, `fontWeight` anywhere under `src/app/owner/(app)/more/**`.
+- Every raw size and weight under `more/**` was mapped to a role (look is close to before; the structure follows in parts 2 and 3).
+- **Shared components changed (check Today and Money):** `Label` (14/500 -> `type-label` 14/600), `Button` base (14/500 -> `type-button` 16/600: every button is a little larger and bolder; the `xs` size keeps `text-xs`), `Input` (`type-field` 16/400; the `md:text-sm` that made desktop inputs 14px is removed), `Select` trigger (14 -> `type-field` 16) and item (14 -> `type-body` 16), `BottomSheetTitle` (20/600 with `leading-none` -> `type-title` 20/600 with normal leading).
+- No logic, copy or validation change.
+
+**Files:** `app/globals.css`, `components/ui/{label,button,input,select,bottom-sheet}.tsx`, `app/owner/(app)/more/**` (class names only), `test/app/owner/more-type-guard.test.ts`.
+
+**How to verify:** `npm test`: 670 passed (2 new guard tests). `npm run build` is green. Not rendered (no browser).

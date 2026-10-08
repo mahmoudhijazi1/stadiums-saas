@@ -53,7 +53,7 @@ export function AccountSheetContent({
       <BottomSheetBody className="flex flex-col gap-4 pb-4">
         {step === "home" ? (
           <>
-            <LtrIsolate className="text-lg font-semibold">{login}</LtrIsolate>
+            <LtrIsolate className="type-title">{login}</LtrIsolate>
             <Button type="button" className="w-full" onClick={() => setStep("password")}>
               {ui("owner.changePassword", locale)}
             </Button>
@@ -151,10 +151,10 @@ function PasswordForm({
             {shown ? <EyeOff aria-hidden className="size-5" /> : <Eye aria-hidden className="size-5" />}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">{ui("owner.passwordHint", locale)}</p>
+        <p className="type-caption">{ui("owner.passwordHint", locale)}</p>
       </div>
       {error ? (
-        <p role="alert" className="text-sm text-owed">
+        <p role="alert" className="type-secondary text-owed">
           {error}
         </p>
       ) : null}
@@ -188,9 +188,9 @@ function LogoutOthers({ locale, onDone }: { locale: UiLocale; onDone: () => void
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm">{ui("owner.logoutOthersAsk", locale)}</p>
+      <p className="type-body">{ui("owner.logoutOthersAsk", locale)}</p>
       {error ? (
-        <p role="alert" className="text-sm text-owed">
+        <p role="alert" className="type-secondary text-owed">
           {error}
         </p>
       ) : null}
@@ -256,9 +256,9 @@ function IdentifierForm({
           />
           <span className="shrink-0 text-muted-foreground">@{slug}</span>
         </div>
-        <p className="text-sm">
+        <p className="type-body">
           {ui("owner.loginWarning", locale)}{" "}
-          <LtrIsolate className="font-semibold">
+          <LtrIsolate className="type-strong">
             {typed}@{slug}
           </LtrIsolate>
         </p>
@@ -276,7 +276,7 @@ function IdentifierForm({
         />
       </div>
       {error ? (
-        <p role="alert" className="text-sm text-owed">
+        <p role="alert" className="type-secondary text-owed">
           {error}
         </p>
       ) : null}

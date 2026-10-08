@@ -182,7 +182,7 @@ function BottomSheetTitle({
   return (
     <DialogPrimitive.Title
       data-slot="bottom-sheet-title"
-      className={cn("text-xl leading-none font-semibold", className)}
+      className={cn("type-title", className)}
       {...props}
     />
   )

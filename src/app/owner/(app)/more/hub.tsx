@@ -46,10 +46,10 @@ type SheetId =
   | "account";
 
 const rowClass =
-  "flex min-h-14 w-full items-center justify-between gap-3 bg-card px-4 py-3 text-start text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "flex min-h-14 w-full items-center justify-between gap-3 bg-card px-4 py-3 text-start type-body outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 const choiceClass =
-  "flex min-h-11 w-full items-center rounded-[var(--radius-control)] px-3 text-start text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "flex min-h-11 w-full items-center rounded-[var(--radius-control)] px-3 text-start type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 function RowValue({ children }: { children: ReactNode }) {
   return (
@@ -74,7 +74,7 @@ function PercentField({
 }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium">{label}</legend>
+      <legend className="type-label">{label}</legend>
       <div className="flex gap-2">
         {([0, 50, 100] as const).map((percent) => (
           <label
@@ -180,13 +180,13 @@ export function MoreHub({
     <div className="flex flex-col gap-6">
       {mayManage ? (
         <section className="flex flex-col gap-2">
-          <h3 className="px-1 text-xs font-medium text-muted-foreground">
+          <h3 className="px-1 type-section">
             {ui("owner.groupBusiness", locale)}
           </h3>
           <ul className="overflow-hidden rounded-xl border">
             <li className="border-b">
               <Link href="/owner/more/settings/pitches" className={rowClass}>
-                <span className="font-medium">{ui("owner.pitches", locale)}</span>
+                <span className="type-body">{ui("owner.pitches", locale)}</span>
                 <RowValue>
                   <LtrIsolate>{String(pitchCount)}</LtrIsolate>
                 </RowValue>
@@ -194,7 +194,7 @@ export function MoreHub({
             </li>
             <li className="border-b">
               <button type="button" className={rowClass} onClick={() => setSheet("rate")}>
-                <span className="font-medium">{ui("owner.rate", locale)}</span>
+                <span className="type-body">{ui("owner.rate", locale)}</span>
                 <RowValue>
                   {rateGrouped ? (
                     <LtrIsolate>{rateGrouped}</LtrIsolate>
@@ -206,7 +206,7 @@ export function MoreHub({
             </li>
             <li className="border-b">
               <button type="button" className={rowClass} onClick={() => setSheet("rules")}>
-                <span className="font-medium">{ui("owner.bookingRules", locale)}</span>
+                <span className="type-body">{ui("owner.bookingRules", locale)}</span>
                 <RowValue>
                   {ui("owner.rulesTrailLead", locale)}{" "}
                   <CountedPhrase
@@ -219,7 +219,7 @@ export function MoreHub({
             </li>
             <li>
               <button type="button" className={rowClass} onClick={() => setSheet("public")}>
-                <span className="font-medium">{ui("owner.publicPage", locale)}</span>
+                <span className="type-body">{ui("owner.publicPage", locale)}</span>
                 <RowValue>
                   <LtrIsolate>/</LtrIsolate>
                 </RowValue>
@@ -230,13 +230,13 @@ export function MoreHub({
       ) : null}
 
       <section className="flex flex-col gap-2">
-        <h3 className="px-1 text-xs font-medium text-muted-foreground">
+        <h3 className="px-1 type-section">
           {ui("owner.groupPreferences", locale)}
         </h3>
         <ul className="overflow-hidden rounded-xl border">
           <li className="border-b">
             <button type="button" className={rowClass} onClick={() => setSheet("language")}>
-              <span className="font-medium">{ui("owner.language", locale)}</span>
+              <span className="type-body">{ui("owner.language", locale)}</span>
               <RowValue>
                 {ui(locale === "en" ? "public.langEnglish" : "public.langArabic", locale)}
               </RowValue>
@@ -244,7 +244,7 @@ export function MoreHub({
           </li>
           <li className="border-b">
             <button type="button" className={rowClass} onClick={() => setSheet("appearance")}>
-              <span className="font-medium">{ui("owner.appearance", locale)}</span>
+              <span className="type-body">{ui("owner.appearance", locale)}</span>
               <RowValue>
                 <AppearanceValue locale={locale} />
               </RowValue>
@@ -252,7 +252,7 @@ export function MoreHub({
           </li>
           <li>
             <button type="button" className={rowClass} onClick={() => setSheet("time")}>
-              <span className="font-medium">{ui("owner.timeDisplay", locale)}</span>
+              <span className="type-body">{ui("owner.timeDisplay", locale)}</span>
               <RowValue>
                 <LtrIsolate>{timeLabel}</LtrIsolate>
               </RowValue>
@@ -262,13 +262,13 @@ export function MoreHub({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h3 className="px-1 text-xs font-medium text-muted-foreground">
+        <h3 className="px-1 type-section">
           {ui("owner.account", locale)}
         </h3>
         <ul className="overflow-hidden rounded-xl border">
           <li>
             <button type="button" className={rowClass} onClick={() => setSheet("account")}>
-              <span className="font-medium">{ui("owner.identifier", locale)}</span>
+              <span className="type-body">{ui("owner.identifier", locale)}</span>
               <RowValue>
                 <LtrIsolate>{identifier}</LtrIsolate>
               </RowValue>
@@ -285,9 +285,9 @@ export function MoreHub({
                 <BottomSheetTitle>{ui("owner.rate", locale)}</BottomSheetTitle>
               </BottomSheetHeader>
               <BottomSheetBody className="flex flex-col gap-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="type-secondary">
                   {rateGrouped ? (
-                    <LtrIsolate className="text-base font-medium text-foreground">
+                    <LtrIsolate className="type-strong">
                       {rateGrouped}
                     </LtrIsolate>
                   ) : (
@@ -295,7 +295,7 @@ export function MoreHub({
                   )}
                 </p>
                 {changedLabel ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="type-secondary">
                     {ui("owner.rateLastChanged", locale)}
                     {" · "}
                     <RelativeWhen text={changedLabel} />
@@ -368,13 +368,13 @@ export function MoreHub({
                       }))}
                     />
                     {riskyDayStartHours.includes(Number(dayStart)) ? (
-                      <p role="status" className="text-sm text-owed">
+                      <p role="status" className="type-secondary text-owed">
                         {ui("owner.dayStartWarning", locale)}
                       </p>
                     ) : null}
-                    <p className="text-xs text-muted-foreground">{ui("owner.dayStartNote", locale)}</p>
+                    <p className="type-caption">{ui("owner.dayStartNote", locale)}</p>
                   </div>
-                  <label className="flex items-start gap-3 text-sm">
+                  <label className="flex items-start gap-3 type-body">
                     <input
                       type="checkbox"
                       name="perPlayerSplitEnabled"
@@ -383,8 +383,8 @@ export function MoreHub({
                       className="mt-1 size-4 shrink-0"
                     />
                     <span className="flex flex-col gap-1">
-                      <span className="font-medium">{ui("owner.splitSetting", locale)}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="type-body">{ui("owner.splitSetting", locale)}</span>
+                      <span className="type-caption">
                         {ui("owner.splitSettingHelp", locale)}
                       </span>
                     </span>

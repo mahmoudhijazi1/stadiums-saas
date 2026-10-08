@@ -156,7 +156,7 @@ export function PitchDraftForm({
       <HoursRows locale={locale} rows={rows} onChange={setRows} hourCycle={hourCycle} dayStartHour={dayStartHour} />
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-semibold text-muted-foreground">{ui("owner.pitchGameLength", locale)}</legend>
+        <legend className="type-label text-muted-foreground">{ui("owner.pitchGameLength", locale)}</legend>
         <div role="group" className="grid grid-cols-4 gap-2">
           {LENGTHS.map((minutes) => {
             const on = !otherLength && duration === minutes;
@@ -170,8 +170,8 @@ export function PitchDraftForm({
                   setDuration(minutes);
                 }}
                 className={cn(
-                  "min-h-11 rounded-lg border px-2 text-base outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                  on ? "border-transparent bg-selected font-semibold text-selected-ink" : "bg-card",
+                  "min-h-11 rounded-lg border px-2 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  on ? "border-transparent bg-selected text-selected-ink" : "bg-card",
                 )}
               >
                 <span dir="ltr">{minutes}</span>
@@ -183,14 +183,14 @@ export function PitchDraftForm({
             aria-pressed={otherLength}
             onClick={() => setOtherLength(true)}
             className={cn(
-              "min-h-11 rounded-lg border px-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-              otherLength ? "border-transparent bg-selected font-semibold text-selected-ink" : "bg-card",
+              "min-h-11 rounded-lg border px-2 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              otherLength ? "border-transparent bg-selected text-selected-ink" : "bg-card",
             )}
           >
             {ui("owner.pitchOtherLength", locale)}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">{ui("owner.pitchMinutesFull", locale)}</p>
+        <p className="type-caption">{ui("owner.pitchMinutesFull", locale)}</p>
         {otherLength ? (
           <div className="flex items-center gap-2" dir="ltr">
             <Input
@@ -199,9 +199,9 @@ export function PitchDraftForm({
               aria-label={ui("owner.pitchDuration", locale)}
               value={duration}
               onChange={(event) => setDuration(event.target.value.replace(/\D/g, "").slice(0, 4))}
-              className="max-w-28 font-semibold"
+              className="max-w-28"
             />
-            <span className="text-sm text-muted-foreground">{ui("owner.pitchMinutesFull", locale)}</span>
+            <span className="type-secondary">{ui("owner.pitchMinutesFull", locale)}</span>
           </div>
         ) : null}
       </fieldset>
@@ -220,7 +220,6 @@ export function PitchDraftForm({
             inputMode="numeric"
             value={players}
             onChange={(event) => setPlayers(event.target.value)}
-            className="font-semibold"
           />
         </div>
       ) : (
@@ -238,8 +237,8 @@ export function PitchDraftForm({
 
       {showPending ? (
         <fieldset className="flex flex-col gap-2 rounded-xl border border-border p-3">
-          <p className="text-sm text-muted-foreground">{errorMessage("venue.hours_pending", locale)}</p>
-          <label className="flex items-start gap-3 text-sm">
+          <p className="type-secondary">{errorMessage("venue.hours_pending", locale)}</p>
+          <label className="flex items-start gap-3 type-body">
             <input type="checkbox" name="confirmPending" value="true" className="mt-1 size-4 shrink-0" />
             <span>{ui("owner.pitchConfirmPending", locale)}</span>
           </label>

@@ -371,6 +371,28 @@
   }
 }
 
+/*
+  Type roles (docs/ui-rules.md rule 7, "type roles"). Nine roles built only from the sizes
+  12 / 14 / 16 / 20 px (rem) and the weights 400 / 600. Plain classes in the components
+  layer, so a colour utility (text-owed, text-foreground) still wins. Muted text uses
+  --muted-foreground (4.5:1 or better on page, card and surface-2 in both themes).
+  Latin leading is 1.4; Arabic is about 10% taller so diacritics never clip.
+*/
+@layer components {
+  .type-title { font-size: 1.25rem; font-weight: 600; line-height: 1.4; }
+  .type-section { font-size: 0.75rem; font-weight: 600; line-height: 1.4; color: var(--muted-foreground); }
+  .type-body { font-size: 1rem; font-weight: 400; line-height: 1.4; }
+  .type-strong { font-size: 1rem; font-weight: 600; line-height: 1.4; }
+  .type-label { font-size: 0.875rem; font-weight: 600; line-height: 1.4; }
+  .type-secondary { font-size: 0.875rem; font-weight: 400; line-height: 1.4; color: var(--muted-foreground); }
+  .type-caption { font-size: 0.75rem; font-weight: 400; line-height: 1.4; color: var(--muted-foreground); }
+  .type-field { font-size: 1rem; font-weight: 400; line-height: 1.4; }
+  .type-button { font-size: 1rem; font-weight: 600; line-height: 1.4; }
+}
+:lang(ar) :is(.type-title, .type-section, .type-body, .type-strong, .type-label, .type-secondary, .type-caption, .type-field, .type-button) {
+  line-height: 1.55;
+}
+
 /* The display face is never used in Arabic: the UI face takes over. */
 :lang(ar) .font-display,
 [dir="rtl"] .font-display {
