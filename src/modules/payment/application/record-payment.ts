@@ -13,7 +13,7 @@ export async function recordPayment(
   tx: TenantTx,
   input: {
     direction: "IN" | "OUT";
-    sourceType: "BOOKING" | "EXPENSE";
+    sourceType: "BOOKING" | "EXPENSE" | "SALE";
     sourceId: string;
     amountDueUsd: Decimal;
     tenders: FrozenTender[];

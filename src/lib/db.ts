@@ -20,6 +20,9 @@ export const TENANT_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "LedgerEntry",
   "Expense",
   "BookingDueChange",
+  "Product",
+  "Sale",
+  "SaleItem",
 ]);
 
 /**

@@ -34,6 +34,9 @@ model Tenant {
   ledgerEntries       LedgerEntry[]
   expenses            Expense[]
   bookingDueChanges   BookingDueChange[]
+  products            Product[]
+  sales               Sale[]
+  saleItems           SaleItem[]
   /// Set by the platform operator (scripts/platform.ts). Null = active. Sessions and
   /// data are untouched; resume clears both columns (decision 7).
   suspendedAt         DateTime?
@@ -232,6 +235,7 @@ model Membership {
   tenant      Tenant         @relation(fields: [tenantId], references: [id])
   user        User           @relation(fields: [userId], references: [id])
   dueChanges  BookingDueChange[]
+  sales       Sale[]
 
   @@unique([tenantId, userId])
   @@index([tenantId])
@@ -373,12 +377,70 @@ enum ExpenseCategory {
   SALARY
   EQUIPMENT
   OTHER
+  SHOP_SUPPLIES
 }
 
-/// Polymorphic source. BOOKING | EXPENSE (DR-002 §2.14). Shop later is additive.
+/// Polymorphic source. BOOKING | EXPENSE | SALE (DR-002 §2.14). A walk-in shop sale is SALE.
 enum PaymentSourceType {
   BOOKING
   EXPENSE
+  SALE
+}
+
+/// Something the stadium sells at the counter. Archived, never deleted: past sales keep it.
+/// A price edit changes future sales only (SaleItem freezes the price).
+/// CHECK ("priceUsd" > 0) is SQL-only (Product_priceUsd_positive).
+model Product {
+  id         String    @id @default(cuid())
+  tenantId   String
+  name       String
+  priceUsd   Decimal   @db.Decimal(12, 2)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  saleItems  SaleItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, archivedAt])
+}
+
+/// One counter sale. Insert-only (no code path updates or deletes it) and with NO stored total:
+/// the total is the sum of its lines, what was paid is the sum of the payments of sourceType SALE
+/// with this id (DR-002 §2.14).
+model Sale {
+  id                    String     @id @default(cuid())
+  tenantId              String
+  soldAt                DateTime   @default(now())
+  createdByMembershipId String
+  /// Reserved for a later slice (items put on a game). Unused and without a foreign key.
+  bookingId             String?
+  createdAt             DateTime   @default(now())
+  tenant                Tenant     @relation(fields: [tenantId], references: [id])
+  createdBy             Membership @relation(fields: [createdByMembershipId], references: [id])
+  items                 SaleItem[]
+
+  @@index([tenantId])
+  @@index([tenantId, soldAt])
+}
+
+/// A line of a sale, with the unit price frozen at sale time. Insert-only.
+/// CHECK (qty BETWEEN 1 AND 99, "unitPriceUsd" > 0, "lineTotalUsd" = qty * "unitPriceUsd") is SQL-only
+/// (SaleItem_qty_range, SaleItem_unitPriceUsd_positive, SaleItem_lineTotal_matches).
+model SaleItem {
+  id           String  @id @default(cuid())
+  tenantId     String
+  saleId       String
+  productId    String
+  qty          Int
+  unitPriceUsd Decimal @db.Decimal(12, 2)
+  lineTotalUsd Decimal @db.Decimal(12, 2)
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  sale         Sale    @relation(fields: [saleId], references: [id])
+  product      Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId])
+  @@index([saleId])
+  @@index([tenantId, productId])
 }
 
 enum Currency {

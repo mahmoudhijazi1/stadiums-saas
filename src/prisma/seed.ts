@@ -180,7 +180,7 @@ async function main() {
         tenantId: ahmad.id,
         userId: staffAhmad.id,
         role: "STAFF",
-        permissions: {},
+        permissions: { "shop.sell": true },
       },
     ],
   });

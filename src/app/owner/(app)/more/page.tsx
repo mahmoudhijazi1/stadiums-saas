@@ -1,6 +1,6 @@
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { MoreHub } from "./hub";
-import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
+import { SETTINGS_MANAGE, SHOP_MANAGE, can } from "@/modules/access/domain/can";
 import {
   getCurrentRate,
   getExchangeRateChangedAt,
@@ -56,6 +56,7 @@ export default async function OwnerMorePage() {
       identifier={membership.identifier}
       slug={tenant.slug}
       tenantName={tenant.name}
+      mayManageShop={can(membership, SHOP_MANAGE)}
       publicUrl={publicPageUrl(tenant.slug)}
     />
   );

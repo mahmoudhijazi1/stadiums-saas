@@ -114,6 +114,7 @@ export function MoreHub({
   slug,
   tenantName,
   publicUrl,
+  mayManageShop,
 }: {
   locale: UiLocale;
   mayManage: boolean;
@@ -135,6 +136,8 @@ export function MoreHub({
   tenantName: string;
   /** The canonical public link (same text the QR encodes). */
   publicUrl: string;
+  /** shop.manage (owner only): the Shop row. */
+  mayManageShop: boolean;
 }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<SheetId | null>(null);
@@ -188,6 +191,9 @@ export function MoreHub({
               </>
             }
           />
+          {mayManageShop ? (
+            <SettingsRow label={ui("owner.shop", locale)} href="/owner/more/shop" />
+          ) : null}
           <SettingsRow
             label={ui("owner.publicPage", locale)}
             onClick={() => setSheet("public")}

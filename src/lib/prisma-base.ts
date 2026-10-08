@@ -51,6 +51,9 @@ function isCurrentGeneratedClient(client: PrismaClient): boolean {
     typeof (client as { expense?: { findMany?: unknown } }).expense?.findMany ===
     "function";
   if (!hasExpense) return false;
+  const hasSale =
+    typeof (client as { sale?: { findMany?: unknown } }).sale?.findMany === "function";
+  if (!hasSale) return false;
 
   const models = (
     client as {
