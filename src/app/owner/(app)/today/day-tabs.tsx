@@ -85,25 +85,16 @@ export function DayTabs({
                 go(tab.date, href);
               }}
               className={cn(
-                "relative inline-flex h-14 w-16 shrink-0 flex-col items-center justify-center text-center outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                "relative inline-flex h-14 shrink-0 items-center justify-center px-3 whitespace-nowrap outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {/* Two lines, never mixed scripts on one line: label on top, Western digits below. */}
-              <span className="relative inline-flex flex-col items-center whitespace-nowrap">
-                <span
-                  className={cn(
-                    "text-xs leading-5",
-                    active ? "font-semibold" : "font-normal",
-                  )}
-                >
-                  {tab.topLabel}
-                </span>
-                <span className="text-base leading-6 font-semibold tabular-nums">
-                  {tab.dayNumber}
-                </span>
-                {/* Active marker: 6px under the number, out of flow so the two lines stay centred.
-                    Always rendered so tabs never shift; ink in light, lime in dark. */}
+              {/* One line: "Tue 6" for a weekday, or just Today / Yesterday / Tomorrow. A role class,
+                  not text-sm: the Arabic size bump on text-* would make this taller and push the
+                  bar below the tab, where the scroller clips it. */}
+              <span className="relative type-label">
+                {tab.kind === "day" ? tab.label : tab.topLabel}
+                {/* Active marker: 6px under the text, out of flow. Always rendered so tabs never shift. */}
                 <span
                   aria-hidden
                   className={cn(

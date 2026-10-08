@@ -5821,3 +5821,26 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 
 **How to verify:** `npm test`: 710 passed. `npm run test:integration`: 261 passed (6 new). `npm run build` is green and lists `/owner/qr` and `/owner/qr/print`. Not rendered (no browser).
 - **Poster refinement:** on a phone `/owner/qr/print` is now a poster-shaped bordered card that fits the screen (name, a short rule, the Arabic and English line, a QR up to 16 rem wide, the link; the toolbar sits above it). Printed (`print:` variants and `@page`), it is a single A4 page: larger type (name 60px, 36px and 30px lines), the QR at exactly 12 cm, a 3px frame, about 880px of content in the 1009px available.
+## Today polish, part 1 of 2: the debt row
+
+**What:** The earlier-debts row (and the expanded rows on the Owed page, which use the same component) is a plain BookingRow card: the amber left edge is gone, with the same surface, border, radius and padding as every other row. Two lines: the name, then one muted line "Yesterday · 4:00–5:00 PM" (day word or date, then the LTR-isolated time range, tabular digits; the pitch name only when there are several). The trailing action is a compact tonal button: owed-subtle background and owed text, "Collect $X" / "تحصيل $X", the 16/600 button role, a 36px pill inside a 44px hit area, fully rounded, never the lime fill. It stays a sibling of the row body, at least 12px away, and the body still opens the booking sheet. A long name wraps in the body (`min-w-0`, `break-words`); the button is `shrink-0`, so the two never touch.
+
+**Files:** `app/owner/booking-row.tsx`, `app/owner/(app)/today/debt-row.tsx`.
+
+**How to verify:** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).
+
+## Today polish, part 2 of 2: the selected day is a pill
+
+**What:** The selected day in the date strip sits on the same raised-surface pill as the bottom tab bar (fully rounded, 48px high, the tab width minus 8px, `surface-2`), with its label and number in full contrast; the underline bar is gone and inactive tabs stay muted with no background. It is one absolutely positioned element inside the scroller (so it scrolls with the tabs) that slides to the selected tab with a 200ms transition on `transform` only, none under `prefers-reduced-motion`, measured in pixels (`offsetLeft` / `offsetWidth`, so right in RTL), hidden until the first measurement, and separate from the tabs so none of them shifts. The tab's top label line is tightened to 16px so the two lines sit inside the pill.
+- **Free-hour chip borders, measured:** the chips used `--line`: 1.20:1 against the page in light (#e2e1d8 on #f6f5ef) and 1.28:1 in dark (#232b26 on #111412), both under 3:1. New token `--control-border` (ink-muted at 72% over the page in light, 58% in dark): 3.18:1 light, 3.56:1 dark. Only the free-hour chips use it; the global `--border` / `--line` are untouched (raising those would restyle every card).
+
+**Files:** `app/owner/(app)/today/{day-tabs,free-strip}.tsx`, `app/globals.css`.
+
+**How to verify:** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).
+
+- **Correction (uncommitted):** the date-strip pill was removed again at the owner request; the selected day is back to the 3px underline (the version from before this commit). The 3:1 `--control-border` on the free-hour chips stays.
+- **Underline fix (uncommitted):** the bar sat at 56 to 59px inside a 56px-high tab, below the scroller edge (an `overflow-x: auto` box also clips vertically), so it never showed. The label line is 16px and the bar 4px under the number (52 to 55px), inside the tab.
+- **Alignment try (uncommitted, easy to undo):** the label and the day number are both full-width centred lines in the tab (`w-full text-center`), and the underline is a fixed 2rem bar centred under them (`inset-x-0 mx-auto w-8`), so the two lines and the bar share one centre line whatever the label width.
+- **Inline day tabs (uncommitted):** a weekday is one line "Tue 6" (Today, Yesterday and Tomorrow are just the word), in the 14px label role. The Arabic underline was missing because the Arabic reading-size rules (`:lang(ar) .text-xs` and `.text-base`, unlayered) overrode the tab line heights, which made the stacked label and number taller than 56px and pushed the bar below the tab, where the scroller clips it. The role class is not affected by those rules, and the text is one line, so the bar fits in Arabic and English. Tabs are no longer a fixed 64px; they size to their text.
+
+**How to verify (date strip, final):** `npm test`: 703 passed. `npm run build` is green. Not rendered (no browser).

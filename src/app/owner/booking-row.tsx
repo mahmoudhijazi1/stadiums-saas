@@ -127,8 +127,8 @@ export function OwedPill({ amountUsd, word }: { amountUsd: string; word: string 
  * Line 1 is the title (the player, semibold, the largest text, wraps instead of truncating);
  * line 2 is `meta` (time range, muted). The pill sits in the trailing slot, vertically
  * centred. The whole card is the tap target (`onOpen`), min 64px tall, with a pressed
- * state and no nested interactive element. The debt variant adds an amber edge and a
- * separate `action` button, at least 12px away from the tappable body.
+ * state and no nested interactive element. The debt variant has the same card surface
+ * and adds a separate `action` button, at least 12px away from the tappable body.
  */
 export function BookingRow({
   variant,
@@ -180,7 +180,6 @@ export function BookingRow({
     <Card
       className={cn(
         "gap-0 overflow-hidden py-0 shadow-none",
-        variant === "debt" && "border-s-4 border-s-owed",
         (open || highlighted) && "ring-2 ring-inset ring-action-ink",
         highlighted && !open && "bg-action-ink/10",
       )}
