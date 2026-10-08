@@ -8,9 +8,13 @@ import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-le
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
-import { parseLbp } from "@/lib/money";
+import Link from "next/link";
+import { CircleAlert, ChevronRight } from "lucide-react";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { formatUsdCompact, parseLbp } from "@/lib/money";
+import { listOwed } from "@/modules/booking/application/list-owed";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/ui-copy";
 import { RecordExpenseSheet } from "./expense-sheet";
 import { MoneyHeadline } from "./headline";
 import { ActivityList } from "./activity";
@@ -47,6 +51,7 @@ export async function OwnerMoney({
   const activity = mayViewReports
     ? await loadActivityPage({ ...range, filter: periodQuery.filter }, locale)
     : null;
+  const owed = mayViewReports ? await listOwed() : null;
   const typedDisplayRate = periodQuery.displayRate ? parseLbp(periodQuery.displayRate) : null;
   const displayRate = typedDisplayRate ?? rate;
 
@@ -61,6 +66,21 @@ export async function OwnerMoney({
           rateKnown={displayRate !== null}
           locale={locale}
         />
+      ) : null}
+
+      {owed && owed.games > 0 ? (
+        <Link
+          href="/owner/money/owed"
+          className="flex min-h-14 items-center gap-3 rounded-xl border border-owed/60 bg-owed-subtle px-4 py-3 text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <CircleAlert aria-hidden className="size-5 shrink-0" />
+          <span className="type-strong min-w-0 flex-1">
+            {ui("owner.owedToYou", locale)} <LtrIsolate>{`$${formatUsdCompact(owed.totalUsd)}`}</LtrIsolate>
+            <span aria-hidden> · </span>
+            {uiCount("owner.games", owed.games, locale)}
+          </span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 rtl:rotate-180" />
+        </Link>
       ) : null}
 
       {mayRecordExpense ? (
@@ -78,6 +98,7 @@ export async function OwnerMoney({
 
       {activity ? (
         <ActivityList
+          key={`${periodQuery.filter}-${range.from}-${range.to}`}
           initialRows={activity.rows}
           initialCursor={activity.nextCursor}
           filter={periodQuery.filter}

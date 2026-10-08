@@ -98,7 +98,7 @@ export function MoneyHeadline({
 
       <div className="grid grid-cols-2 gap-2">
         <Link
-          href={moneyHref({ period: kind, ...customRange, view, filter: "in" })}
+          href={`${moneyHref({ period: kind, ...customRange, view, filter: "in" })}#activity`}
           className="rounded-xl bg-paid-subtle px-3 py-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <p className="type-caption text-paid">{ui("owner.in", locale)}</p>
@@ -107,7 +107,7 @@ export function MoneyHeadline({
           </p>
         </Link>
         <Link
-          href={moneyHref({ period: kind, ...customRange, view, filter: "out" })}
+          href={`${moneyHref({ period: kind, ...customRange, view, filter: "out" })}#activity`}
           className="rounded-xl bg-muted px-3 py-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <p className="type-caption">{ui("owner.out", locale)}</p>

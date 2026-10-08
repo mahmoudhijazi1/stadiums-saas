@@ -1569,3 +1569,107 @@ export async function listBookingLabelRows(
     requesterName: row.name,
   }));
 }
+
+export type OwedParticipationSqlRow = {
+  bookingId: string;
+  status: string;
+  start: Date;
+  end: Date;
+  collectionMode: string;
+  pitchName: string;
+  personId: string | null;
+  personName: string | null;
+  personPhone: string | null;
+  isRequester: boolean;
+  amountDueUsd: Decimal;
+  collectedUsd: Decimal;
+  participantDueUsd: Decimal;
+  allocatedUsd: Decimal;
+};
+
+/**
+ * Every participant of every booking with money still due (an ended approved game, any
+ * no-show, any cancelled fee), one query and no per-person lookups. Slots with no person
+ * come through with a null personId. The caller classifies and groups.
+ */
+export async function listOwedParticipations(
+  tx: TenantTx,
+  now: Date,
+): Promise<OwedParticipationSqlRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<
+    {
+      bookingId: string;
+      status: string;
+      start: Date | string;
+      end: Date | string;
+      collectionMode: string;
+      pitchName: string;
+      personId: string | null;
+      personName: string | null;
+      personPhone: string | null;
+      isRequester: boolean;
+      amountDueUsd: { toString(): string };
+      collectedUsd: { toString(): string } | null;
+      participantDueUsd: { toString(): string };
+      allocatedUsd: { toString(): string } | null;
+    }[]
+  >`
+    SELECT
+      b.id AS "bookingId",
+      b.status::text AS status,
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      b."collectionMode"::text AS "collectionMode",
+      p.name AS "pitchName",
+      bp."personId",
+      per.name AS "personName",
+      per.phone AS "personPhone",
+      bp."isRequester",
+      b."amountDueUsd",
+      collected.usd AS "collectedUsd",
+      bp."amountDueUsd" AS "participantDueUsd",
+      alloc.usd AS "allocatedUsd"
+    FROM "Booking" b
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    JOIN LATERAL (
+      SELECT COALESCE(SUM(t."usdEquivalent"), 0) AS usd
+      FROM "Payment" pay
+      JOIN "PaymentTender" t ON t."paymentId" = pay.id
+      WHERE pay."tenantId" = b."tenantId"
+        AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
+        AND pay."sourceId" = b.id
+    ) collected ON true
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."tenantId" = b."tenantId"
+    LEFT JOIN "Person" per ON per.id = bp."personId"
+    LEFT JOIN LATERAL (
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      FROM "PaymentAllocation" a
+      WHERE a."tenantId" = bp."tenantId"
+        AND a."participantId" = bp.id
+    ) alloc ON true
+    WHERE b."tenantId" = ${tenantId}
+      AND b."amountDueUsd" > collected.usd
+      AND (
+        (b.status = 'APPROVED'::"BookingStatus" AND upper(b.during) <= ${now})
+        OR b.status IN ('NO_SHOW'::"BookingStatus", 'CANCELLED'::"BookingStatus")
+      )
+    ORDER BY lower(b.during) DESC, b.id DESC, bp."slotNumber" ASC NULLS FIRST
+  `;
+  return rows.map((row) => ({
+    bookingId: row.bookingId,
+    status: row.status,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    collectionMode: row.collectionMode,
+    pitchName: row.pitchName,
+    personId: row.personId,
+    personName: row.personName,
+    personPhone: row.personPhone,
+    isRequester: row.isRequester,
+    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
+    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
+  }));
+}

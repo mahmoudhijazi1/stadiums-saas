@@ -92,13 +92,14 @@ export function ActivityList({
   ];
 
   return (
-    <section className="flex flex-col gap-3">
+    <section id="activity" className="flex scroll-mt-4 flex-col gap-3">
       <h3 className="type-section">{ui("owner.activity", locale)}</h3>
       <div role="group" aria-label={ui("owner.activity", locale)} className="flex gap-2">
         {chips.map((chip) => (
           <Link
             key={chip.value}
             href={moneyHref({ ...periodKey, filter: chip.value })}
+            scroll={false}
             aria-current={filter === chip.value ? "true" : undefined}
             className={cn(
               "inline-flex min-h-11 items-center rounded-full border px-4 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
