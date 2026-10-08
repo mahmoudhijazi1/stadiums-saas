@@ -5,25 +5,31 @@ import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
+import { QrSheet } from "@/app/owner/qr-sheet";
 
 /**
- * Public link plus WhatsApp / QR / Copy.
- * QR has no image library: the row reveals the same URL in large type.
+ * Public link plus WhatsApp / QR / Copy. `publicUrl` is the canonical link built on the
+ * server (`publicPageUrl`), the same text the QR code encodes; the browser origin is only the
+ * fallback when it is not configured. The QR button opens the QR sheet.
  */
 export function ShareCard({
   locale,
+  tenantName,
+  publicUrl,
   showLink = true,
 }: {
   locale: UiLocale;
+  tenantName: string;
+  publicUrl: string;
   showLink?: boolean;
 }) {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState(publicUrl);
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
   useEffect(() => {
-    setUrl(`${window.location.origin}/`);
-  }, []);
+    if (!publicUrl) setUrl(`${window.location.origin}/`);
+  }, [publicUrl]);
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -74,11 +80,7 @@ export function ShareCard({
           {copied ? ui("owner.copied", locale) : ui("owner.copyShort", locale)}
         </Button>
       </div>
-      {showQr && url ? (
-        <p className="text-center">
-          <LtrIsolate className="text-lg font-medium">{url}</LtrIsolate>
-        </p>
-      ) : null}
+      <QrSheet open={showQr} onOpenChange={setShowQr} tenantName={tenantName} url={url} locale={locale} />
     </div>
   );
 }

@@ -146,3 +146,11 @@ npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 
 ## Fonts
 
 Fonts are self-hosted with `next/font/local` (`src/app/layout.tsx`); the build and the app make no request to Google. The woff2 files and their SIL Open Font License texts are in `src/fonts/<family>/`: IBM Plex Sans Arabic (arabic + latin, 400 and 600), Manrope (latin, 400 and 600), Big Shoulders (latin, 800), IBM Plex Mono (latin, 400 and 600). They came from the `@fontsource/*` packages, which repackage the official Google Fonts OFL releases; each family folder has its `OFL.txt`. To add a weight or a family, copy the woff2 and licence into `src/fonts/`, add it to the loader in `layout.tsx`, and keep to weights 400 and 600 unless a design needs more.
+
+## Public page QR
+
+The QR button in the business menu shows a QR code of the stadium's public page and offers Share, Download PNG and a printable poster (`/owner/qr/print`). The code is generated on the server by `GET /owner/qr?format=svg|png`; the library never reaches the browser.
+
+- **New runtime dependency: `qrcode`** (MIT, 1.5.4; its own dependencies `pngjs`, `yargs` and `dijkstrajs` are MIT too, and none of them has an install script). Used only in `src/lib/qr.ts`, which only server code imports. Dev only: `jsqr` (Apache-2.0, decodes the PNG in tests), `pngjs`, `@types/qrcode`, `@types/pngjs`.
+- **What it encodes:** `publicPageUrl(slug)`, the same link the Copy and WhatsApp buttons use: `APP_PROTOCOL://<slug>.APP_BASE_DOMAIN/`. So **the QR points at the production site only when `APP_PROTOCOL` and `APP_BASE_DOMAIN` are set correctly in the server `.env`** (`https` and `lebstads.com` in production). With `APP_BASE_DOMAIN` empty the route answers 503 rather than encode a wrong link. Printed posters keep working only as long as the domain and the slug do not change: check them before sending anything to print.
+- The tenant is resolved from the host only; no query parameter can change the encoded text. Black on white, 4-module quiet zone, error correction Q, PNG 1024 x 1024.

@@ -9,6 +9,7 @@ import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summa
 import { startHoursInsideWindows } from "@/modules/booking/domain/business-day";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { publicPageUrl } from "@/lib/public-page-url";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { groupedDigits } from "@/lib/ui-copy";
 
@@ -54,6 +55,8 @@ export default async function OwnerMorePage() {
       )}
       identifier={membership.identifier}
       slug={tenant.slug}
+      tenantName={tenant.name}
+      publicUrl={publicPageUrl(tenant.slug)}
     />
   );
 }

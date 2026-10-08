@@ -20,9 +20,11 @@ import { ui } from "@/lib/ui-copy";
  */
 export function BusinessMenu({
   tenantName,
+  publicUrl,
   locale,
 }: {
   tenantName: string;
+  publicUrl: string;
   locale: UiLocale;
 }) {
   const [open, setOpen] = useState(false);
@@ -61,7 +63,7 @@ export function BusinessMenu({
             <BottomSheetTitle className="text-center">{tenantName}</BottomSheetTitle>
           </BottomSheetHeader>
           <BottomSheetBody className="flex flex-col items-center gap-4">
-            <ShareCard locale={locale} />
+            <ShareCard locale={locale} tenantName={tenantName} publicUrl={publicUrl} />
             <form action={submitLogout} className="w-full">
               <SubmitButton
                 variant="ghost"

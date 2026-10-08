@@ -112,6 +112,8 @@ export function MoreHub({
   riskyDayStartHours,
   identifier,
   slug,
+  tenantName,
+  publicUrl,
 }: {
   locale: UiLocale;
   mayManage: boolean;
@@ -130,6 +132,9 @@ export function MoreHub({
   identifier: string;
   /** The tenant slug: the fixed suffix of the login. */
   slug: string;
+  tenantName: string;
+  /** The canonical public link (same text the QR encodes). */
+  publicUrl: string;
 }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<SheetId | null>(null);
@@ -341,7 +346,7 @@ export function MoreHub({
                 <BottomSheetTitle>{ui("owner.publicPage", locale)}</BottomSheetTitle>
               </BottomSheetHeader>
               <BottomSheetBody>
-                <ShareCard locale={locale} />
+                <ShareCard locale={locale} tenantName={tenantName} publicUrl={publicUrl} />
               </BottomSheetBody>
             </>
           ) : null}

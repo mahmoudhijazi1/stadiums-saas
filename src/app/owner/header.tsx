@@ -14,9 +14,11 @@ import { Search } from "lucide-react";
  */
 export function OwnerHeader({
   tenantName,
+  publicUrl,
   locale,
 }: {
   tenantName: string;
+  publicUrl: string;
   locale: UiLocale;
 }) {
   return (
@@ -34,7 +36,7 @@ export function OwnerHeader({
           "xl:max-w-6xl",
         )}
       >
-        <BusinessMenu tenantName={tenantName} locale={locale} />
+        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} />
         <Link
           href="/owner/search"
           aria-label={ui("owner.search", locale)}

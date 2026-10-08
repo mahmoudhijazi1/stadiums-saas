@@ -1,3 +1,4 @@
+import { publicPageUrl } from "@/lib/public-page-url";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentTenant } from "@/lib/tenant-context";
@@ -58,7 +59,7 @@ export default async function OwnerLayout({
         showExpense={showExpense}
       />
       <main className="flex min-w-0 flex-1 flex-col pb-[calc(88px+env(safe-area-inset-bottom))] lg:min-h-dvh lg:pb-0">
-        <OwnerHeader tenantName={tenant.name} locale={locale} />
+        <OwnerHeader tenantName={tenant.name} publicUrl={publicPageUrl(tenant.slug)} locale={locale} />
         <Container className="flex flex-1 flex-col gap-8 py-6">{children}</Container>
       </main>
     </div>
