@@ -155,3 +155,80 @@ function zonedParts(
     second: Number(map.second),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Named periods for the Money tab (calendar days in the owner's zone).
+
+export type PeriodKind = "today" | "week" | "month" | "last" | "custom";
+export type CivilRange = { from: string; to: string };
+
+/** `YYYY-MM-DD` plus a whole number of days (negative goes back). */
+export function addCivilDays(day: string, days: number): string {
+  const parsed = parseCivilDate(day);
+  const utc = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day + days));
+  return formatCivil({
+    year: utc.getUTCFullYear(),
+    month: utc.getUTCMonth() + 1,
+    day: utc.getUTCDate(),
+  });
+}
+
+/** Days in a range, both ends included. */
+export function civilRangeLength(range: CivilRange): number {
+  const a = parseCivilDate(range.from);
+  const b = parseCivilDate(range.to);
+  return Math.round((Date.UTC(b.year, b.month - 1, b.day) - Date.UTC(a.year, a.month - 1, a.day)) / 86_400_000) + 1;
+}
+
+function todayCivil(now: Date, timeZone: string): string {
+  const parts = zonedParts(now, timeZone);
+  return formatCivil({ year: parts.year, month: parts.month, day: parts.day });
+}
+
+function monthRange(year: number, month: number): CivilRange {
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return {
+    from: formatCivil({ year, month, day: 1 }),
+    to: formatCivil({ year, month, day: last }),
+  };
+}
+
+/**
+ * The range for a named period, in calendar days of `timeZone`. The week runs Monday to
+ * Sunday and "this week" ends on the Sunday (future days simply hold nothing yet). Custom
+ * is not named: callers pass their own from/to.
+ */
+export function rangeForPeriod(kind: Exclude<PeriodKind, "custom">, now: Date, timeZone: string): CivilRange {
+  const today = todayCivil(now, timeZone);
+  if (kind === "today") return { from: today, to: today };
+  const parsed = parseCivilDate(today);
+  if (kind === "week") {
+    const weekday = (new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day)).getUTCDay() + 6) % 7; // Monday = 0
+    const from = addCivilDays(today, -weekday);
+    return { from, to: addCivilDays(from, 6) };
+  }
+  if (kind === "month") return monthRange(parsed.year, parsed.month);
+  const previous = parsed.month === 1 ? { year: parsed.year - 1, month: 12 } : { year: parsed.year, month: parsed.month - 1 };
+  return monthRange(previous.year, previous.month);
+}
+
+/** True when the range is exactly one calendar month (so it is compared with the month before). */
+export function isCalendarMonth(range: CivilRange): boolean {
+  const from = parseCivilDate(range.from);
+  const month = monthRange(from.year, from.month);
+  return range.from === month.from && range.to === month.to;
+}
+
+/**
+ * The period a range is compared with. A calendar month is compared with the month before
+ * it ("vs September"); anything else with the same number of days straight before it.
+ */
+export function previousRange(range: CivilRange): CivilRange {
+  if (isCalendarMonth(range)) {
+    const from = parseCivilDate(range.from);
+    const previous = from.month === 1 ? { year: from.year - 1, month: 12 } : { year: from.year, month: from.month - 1 };
+    return monthRange(previous.year, previous.month);
+  }
+  const length = civilRangeLength(range);
+  return { from: addCivilDays(range.from, -length), to: addCivilDays(range.from, -1) };
+}

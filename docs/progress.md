@@ -5762,3 +5762,16 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 
 - **Arabic labels:** the tab label had `leading-none` inside a `truncate` (overflow hidden) box, which cut Arabic letters below the baseline. It now has 1.5 line-height and 1px vertical padding, so descenders and diacritics fit.
 - **Pill padding:** the taller Arabic label left the icon almost touching the 48px pill's edge. The label now clips only sideways (`overflow-x: clip` with an ellipsis, so nothing is ever cut below the baseline) at 1.2 line-height, and the icon-to-label gap is 2px, so the stack is about 36px inside the 48px pill (about 6px of room above and below).
+
+## Money refactor, part 1 of 4: period chip and a profit headline
+
+**What:**
+- **Period chip** (default this month) opens a sheet: Today, This week (Monday to Sunday), This month, Last month, Custom (two dates). The chip and the headline use human labels via the app date formatter ("October" / "تشرين الأول", "12 Oct – 18 Oct"), never ISO dates. Periods are calendar days in Asia/Beirut (`rangeForPeriod`, `previousRange` in `ledger/domain/period.ts`). The URL is `?period=week` (or `?from=&to=` for custom); `moneyHref` builds it.
+- **Headline:** one `<Figure>` with "Profit in October" or "Loss in October" (a negative net is shown as its size in a neutral colour; no red), In and Out as two small figures, and one neutral comparison line ("↑ $5 vs September"). A calendar month is compared with the month before it (so by name); any other range with the same number of days straight before it ("vs the previous period"). That is one more aggregate (`summarizeLedgerPeriod({ compare: true })` returns `previous`). Removed: "Net = in − out", the two progress bars (`bars.ts`), the in-card "Change period" reveal (`reveal.tsx`), the typed display-rate field.
+- The $ / LBP display toggle stays, beside the chip, and is hidden when no rate is known. Amounts come from the same ledger sums (Decimal); LBP is only the existing display conversion.
+- Reports.view is still checked inside `summarizeLedgerPeriod`. No monospace on the page.
+- **Query count per Money render** (counted from the code; per-request tenant, session and membership lookups are the same before and after): before 4 (expenses 2, rate 1, ledger sum 1); after this commit 5 (the previous-period aggregate is the one extra).
+
+**Files:** `ledger/domain/period.ts`, `ledger/application/summarize-ledger-period.ts`, `ledger/schemas/period-query.ts`, `app/owner/(app)/money/{page,panel,headline,period-sheet,period-label,query,actions,expense-sheet}`, `lib/ui-copy.ts`; deleted `bars.ts`, `reveal.tsx`, `bars.test.ts`. Tests: `test/modules/ledger/domain/period-named.test.ts` (month edges, a DST day, the spring-forward and clock-change days), `test/app/owner/money/headline-copy.test.ts`, `test/integration/money-headline.integration.test.ts` (Beirut-midnight edges, previous-period comparison, loss, isolation, reports.view).
+
+**How to verify:** `npm test`: 695 passed. `npm run test:integration`: 242 passed (5 new). `npm run build` is green. Not rendered (no browser).

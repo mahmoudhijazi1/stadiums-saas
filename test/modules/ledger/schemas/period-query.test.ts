@@ -8,6 +8,7 @@ describe("parseLedgerPeriodQuery", () => {
     ).toEqual({
       from: "2026-07-01",
       to: "2026-07-31",
+      filter: "all",
       view: "usd",
       displayRate: undefined,
     });
@@ -17,6 +18,7 @@ describe("parseLedgerPeriodQuery", () => {
     expect(parseLedgerPeriodQuery({})).toEqual({
       from: undefined,
       to: undefined,
+      filter: "all",
       view: "usd",
       displayRate: undefined,
     });
@@ -33,6 +35,7 @@ describe("parseLedgerPeriodQuery", () => {
     ).toEqual({
       from: "2026-07-01",
       to: "2026-07-31",
+      filter: "all",
       view: "lbp",
       displayRate: "90000",
     });
@@ -48,9 +51,16 @@ describe("parseLedgerPeriodQuery", () => {
     ).toEqual({
       from: "2026-07-01",
       to: "2026-07-31",
+      filter: "all",
       view: "usd",
       displayRate: undefined,
     });
+  });
+
+  it("accepts a named period and an activity filter", () => {
+    expect(parseLedgerPeriodQuery({ period: "week", filter: "out" })).toMatchObject({ period: "week", filter: "out" });
+    expect(() => parseLedgerPeriodQuery({ period: "year" })).toThrow();
+    expect(() => parseLedgerPeriodQuery({ filter: "all-of-it" })).toThrow();
   });
 
   it("rejects from after to", () => {

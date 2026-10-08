@@ -24,6 +24,10 @@ import { SubmitButton } from "@/components/ui/submit-button";
 function keepPeriodQuery(period: LedgerPeriodQuery) {
   return (
     <>
+      {period.period && !(period.from && period.to) ? (
+        <input type="hidden" name="period" value={period.period} />
+      ) : null}
+      {period.filter !== "all" ? <input type="hidden" name="filter" value={period.filter} /> : null}
       {period.from ? (
         <input type="hidden" name="from" value={period.from} />
       ) : null}
@@ -119,7 +123,7 @@ export function RecordExpenseSheet({
                   placeholder="30.00"
                   value={usd}
                   onChange={(event) => setUsd(event.target.value)}
-                  className="font-mono"
+                 
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -131,7 +135,7 @@ export function RecordExpenseSheet({
                   inputMode="numeric"
                   value={lbp}
                   onChange={(event) => setLbp(event.target.value)}
-                  className="font-mono"
+                 
                 />
               </div>
               <TenderBalance

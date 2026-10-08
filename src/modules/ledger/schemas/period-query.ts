@@ -34,8 +34,12 @@ function isCivilYyyyMmDd(value: string): boolean {
 
 export const ledgerPeriodQuerySchema = z
   .strictObject({
+    /** A named period; a from/to pair means "custom". */
+    period: z.enum(["today", "week", "month", "last", "custom"]).optional(),
     from: z.string().optional().transform(blankToUndefined),
     to: z.string().optional().transform(blankToUndefined),
+    /** Activity filter, set by tapping In or Out. */
+    filter: z.enum(["all", "in", "out"]).optional().default("all"),
     view: z.enum(["usd", "lbp"]).optional().default("usd"),
     displayRate: z
       .string()

@@ -262,6 +262,14 @@ const ARABIC: Record<string, string> = {
   "owner.displayRate": "سعر العرض",
   "owner.show": "عرض",
   "owner.changePeriod": "تغيير الفترة",
+  "owner.periodTitle": "الفترة",
+  "owner.periodToday": "اليوم",
+  "owner.periodWeek": "هذا الأسبوع",
+  "owner.periodMonth": "هذا الشهر",
+  "owner.periodLast": "الشهر الماضي",
+  "owner.periodCustom": "فترة محددة",
+  "owner.vsPrevious": "الفترة السابقة",
+  "owner.sameAs": "مثل",
   "owner.hidePeriod": "إخفاء الفترة",
   "owner.addExpense": "إضافة مصروف",
   "owner.hideExpenseForm": "إخفاء النموذج",
@@ -617,6 +625,14 @@ const ENGLISH: Record<string, string> = {
   "owner.displayRate": "Display rate",
   "owner.show": "Show",
   "owner.changePeriod": "Change period",
+  "owner.periodTitle": "Period",
+  "owner.periodToday": "Today",
+  "owner.periodWeek": "This week",
+  "owner.periodMonth": "This month",
+  "owner.periodLast": "Last month",
+  "owner.periodCustom": "Custom",
+  "owner.vsPrevious": "the previous period",
+  "owner.sameAs": "Same as",
   "owner.hidePeriod": "Hide period",
   "owner.addExpense": "Add expense",
   "owner.hideExpenseForm": "Hide form",
@@ -1085,6 +1101,39 @@ export function gameLongerLabel(minutes: number, locale: UiLocale = "ar"): strin
   return locale === "en"
     ? `A game of ${minutes} min does not fit in these hours.`
     : `مباراة من ${minutes} دقيقة لا تتسع لهذه الساعات.`;
+}
+
+/** The Money headline label: "Profit in October", "Loss this week", "Profit, 12 Oct – 18 Oct". */
+export function profitHeadline(
+  kind: "today" | "week" | "month" | "last" | "custom",
+  name: string,
+  loss: boolean,
+  locale: UiLocale = "ar",
+): string {
+  if (locale === "en") {
+    const word = loss ? "Loss" : "Profit";
+    if (kind === "today") return `${word} today`;
+    if (kind === "week") return `${word} this week`;
+    if (kind === "custom") return `${word}, ${name}`;
+    return `${word} in ${name}`;
+  }
+  const word = loss ? "الخسارة" : "الربح";
+  if (kind === "today") return `${word} اليوم`;
+  if (kind === "week") return `${word} هذا الأسبوع`;
+  if (kind === "custom") return `${word}، ${name}`;
+  return `${word} في ${name}`;
+}
+
+/** "↑ $5 vs September" / "Same as September". Amounts are already formatted. */
+export function comparisonLine(
+  direction: "up" | "down" | "same",
+  amount: string,
+  against: string,
+  locale: UiLocale = "ar",
+): string {
+  if (direction === "same") return locale === "en" ? `Same as ${against}` : `مثل ${against}`;
+  const arrow = direction === "up" ? "↑" : "↓";
+  return locale === "en" ? `${arrow} ${amount} vs ${against}` : `${arrow} ${amount} مقارنة بـ${against}`;
 }
 
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {
