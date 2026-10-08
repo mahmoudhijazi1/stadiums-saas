@@ -5653,3 +5653,11 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `components/ui/bottom-sheet.tsx`.
 
 **How to verify:** build is green. Not rendered (no browser): open a sheet with one line (e.g. the language sheet) at 390px; it should be about 15rem or 38% of the screen tall, and a tall sheet should still cap at 92% of the viewport.
+
+## Light mode: header and bottom nav on the surface colour, plus a fade under the nav
+
+**What:** In light mode the floating header and the bottom nav were the dark `inverse` colour; in dark mode they were already `surface` (slightly different from the page). Both now use `bg-surface text-ink` with the existing border in both themes (light: white on the `#f6f5ef` page; dark: unchanged, `surface` = the old inverse value), a small shadow on the floating bars, and the same surface colour for the lg sidebar and header. The selected tab uses `text-action-ink` (ink in light, the lime brand in dark) because lime on white is unreadable. A phones-only gradient behind the nav (page colour from the bar's edge up 24px) hides scrolled content colliding with the bar and the gaps beside it.
+
+**Files:** `app/owner/header.tsx`, `app/owner/tab-bar.tsx`.
+
+**How to verify:** `npm test` and `npm run build` pass. Not rendered (no browser): in light mode the header and nav should be white cards on the cream page; scroll a long list under the nav and no text should show beside or above the bar edge.

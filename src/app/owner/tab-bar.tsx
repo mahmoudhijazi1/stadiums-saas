@@ -99,14 +99,19 @@ export function OwnerTabBar({
       className={cn(
         "fixed inset-x-0 bottom-0 z-30 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
         "lg:sticky lg:inset-x-auto lg:start-0 lg:top-0 lg:bottom-auto lg:z-20 lg:h-dvh lg:w-60 lg:shrink-0",
-        "lg:border-e lg:border-line lg:bg-inverse lg:px-3 lg:py-4 lg:pb-4",
-        "dark:lg:border-line dark:lg:bg-surface",
+        "lg:border-e lg:border-line lg:bg-surface lg:px-3 lg:py-4 lg:pb-4",
       )}
     >
+      {/* Fade: page colour from the bar's edge up, so scrolled content never shows through or
+          collides with the floating bar. Phones only; the lg sidebar is not over content. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-6 bottom-0 bg-gradient-to-t from-bg from-60% to-transparent lg:hidden"
+      />
       <div
         className={cn(
-          "flex gap-1 rounded-[var(--radius-sheet)] border border-line bg-inverse p-1 text-inverse-ink",
-          "lg:h-full lg:flex-col lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 dark:lg:text-ink",
+          "relative flex gap-1 rounded-[var(--radius-sheet)] border border-line bg-surface p-1 text-ink shadow-sm",
+          "lg:h-full lg:flex-col lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none",
         )}
       >
         {showRecord ? (
@@ -146,7 +151,7 @@ export function OwnerTabBar({
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
                   "lg:h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3",
                   selected
-                    ? "text-accent-brand"
+                    ? "text-action-ink"
                     : "opacity-70 hover:opacity-100",
                 )}
               >
