@@ -7,7 +7,7 @@ import { cn } from "cn";
 import { Search } from "lucide-react";
 
 /**
- * Below lg: a floating inverse bar, inset like the bottom nav.
+ * Below lg: a floating surface bar, inset like the bottom nav.
  * At lg: a full-width dark block on the content column.
  * Sticky. It does not hide on scroll.
  * Search opens /owner/search.
@@ -23,15 +23,14 @@ export function OwnerHeader({
     <header
       className={cn(
         "sticky top-0 z-20 bg-bg px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2",
-        "lg:bg-inverse lg:px-0 lg:pt-0 lg:pb-0 lg:text-inverse-ink",
-        "dark:lg:border-b dark:lg:border-line dark:lg:bg-surface dark:lg:text-ink",
+        "lg:border-b lg:border-line lg:bg-surface lg:px-0 lg:pt-0 lg:pb-0 lg:text-ink",
       )}
     >
       <div
         className={cn(
           "flex w-full items-center justify-between gap-3",
-          "rounded-[var(--radius-sheet)] border border-line bg-inverse px-3 py-2 text-inverse-ink",
-          "lg:mx-auto lg:max-w-5xl lg:rounded-none lg:border-0 lg:bg-transparent lg:px-8 lg:py-3 lg:pt-[max(0.75rem,env(safe-area-inset-top))]",
+          "rounded-[var(--radius-sheet)] border border-line bg-surface px-3 py-2 text-ink shadow-sm",
+          "lg:mx-auto lg:max-w-5xl lg:rounded-none lg:border-0 lg:bg-transparent lg:shadow-none lg:px-8 lg:py-3 lg:pt-[max(0.75rem,env(safe-area-inset-top))]",
           "xl:max-w-6xl",
         )}
       >
@@ -39,7 +38,7 @@ export function OwnerHeader({
         <Link
           href="/owner/search"
           aria-label={ui("owner.search", locale)}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-inverse-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:lg:text-ink"
+          className="grid size-11 shrink-0 place-items-center rounded-full text-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <Search aria-hidden className="size-5" />
         </Link>
