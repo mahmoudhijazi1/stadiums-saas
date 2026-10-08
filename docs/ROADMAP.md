@@ -18,6 +18,18 @@
 | 12a | Pitch editor: show, before saving, how many upcoming bookings fall outside new hours. Today `updatePitch` refuses the save when a future APPROVED booking would be outside (`venue.hours_approved`) and asks for a confirm for PENDING ones, so a non-blocking "they stay booked" note would be wrong. A pre-save count needs `listLivePitchWindows` on the client path (a new query design). | Open, UI-only follow-up (2026-10-08) | `modules/venue/application/update-pitch.ts` |
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 
+## Money tab: next specs (recorded 2026-10-09)
+
+Not started, each its own spec; the Money refactor left room for them.
+
+| Item | Note |
+|---|---|
+| Expense void / correction | The ledger is append-only and expenses have no edit or delete. A mistaken expense needs a reversing entry (its own spec: who may, how it shows in Activity, how it affects the period totals). |
+| Category breakdown | Out by expense category for the period, from the same ledger and expense reads. |
+| Occupancy | Games played vs hours open per pitch for the period. Needs Booking and Venue reads composed in `app/`. |
+| CSV export | Activity for a period as a file. Needs a decision on columns and on LBP tenders. |
+| Owed vs Unassigned (F-1) | The Owed page adds up per-slot amounts; on a per-player booking with money paid before the split they can exceed the booking remaining that Today shows. Closes with F-1. |
+
 ## Deferred on purpose: tenant management
 
 Recorded 2026-10-01 with the tenant-management CLI. These are deliberate decisions, not gaps.

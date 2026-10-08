@@ -5802,3 +5802,7 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 - **Activity filter fix:** the list kept its rows in client state, so after a filter chip changed the URL the component stayed mounted with the old rows (a hard refresh worked). It is now keyed by filter and period so it remounts with the new rows, the chips use `scroll={false}` so the page stays where you tapped, and the In / Out figures in the headline link to `#activity` so they land on the list.
 
 **How to verify (parts 3 and the filter fix):** `npm test`: 703 passed. `npm run test:integration`: 255 passed (7 new in `money-owed`). `npm run build` is green. Not rendered (no browser).
+
+## Money refactor, part 4 of 4: docs
+
+**What:** `docs/ux-02-history.md` section 5 gets an "amended" note (the Money tab now holds the period headline, Activity and Owed to you); `docs/NOW.md` lists the refactor; `docs/ROADMAP.md` records the next Money specs (expense void/correction, category breakdown, occupancy, CSV export, and the F-1 difference between the Owed page and Today). Docs only; no code change.

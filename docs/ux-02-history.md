@@ -125,6 +125,7 @@ Header search (UX-01 §2.1) opens real results (D5): name contains, case-insensi
 ---
 
 ## 5. By money: Transactions
+> **Amended 2026-10-09:** the Money tab now has the shape this section sketches, built differently. A period chip (Today, This week, This month, Last month, Custom) and a profit headline (profit or loss, In and Out, a comparison with the period before) replace the in/out card; **Activity** (every ledger movement of the period, newest first, grouped by day, All / In / Out, 20 per page by keyset on (occurredAt, id)) is the Transactions list, on the Money tab itself rather than a separate page, with a game opening on Today and an expense opening a sheet with its tenders and frozen rates. A new **Owed to you** card opens `/owner/money/owed` (owed money by person, from the existing owed rules). The sections below are kept as written.
 
 The ledger is append-only, so it already **is** the money history. No new history table.
 
