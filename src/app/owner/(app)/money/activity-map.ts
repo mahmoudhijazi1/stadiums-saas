@@ -1,9 +1,10 @@
 import Decimal from "decimal.js";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { shopActivityLabel, ui } from "@/lib/ui-copy";
 import type { BookingLabel } from "@/modules/booking/application/list-booking-labels";
 import type { ExpenseDetail } from "@/modules/expense/application/list-expense-details";
+import type { SaleDetail } from "@/modules/shop/application/list-sale-details";
 import type { LedgerEntryRow } from "@/modules/ledger/infrastructure/entries";
 import { addCalendarDays, civilDateInTimeZone, formatCivilDate } from "@/modules/venue/domain/availability";
 
@@ -17,6 +18,13 @@ export type ExpenseDetailView = {
   tenders: { currency: "USD" | "LBP"; amount: string; rate: string | null; usd: string }[];
 };
 
+export type SaleDetailView = {
+  totalUsd: string;
+  dateLabel: string;
+  lines: { name: string; qty: number; unitPriceUsd: string; lineTotalUsd: string }[];
+  tenders: ExpenseDetailView["tenders"];
+};
+
 /** One Activity row, plain data (it crosses to the client list). */
 export type ActivityRowView = {
   id: string;
@@ -27,14 +35,19 @@ export type ActivityRowView = {
   day: string;
   label: string;
   secondary: string;
-  icon: "booking" | "expense" | "generic";
-  /** What a tap opens: a game on Today, an expense sheet, or nothing. */
-  open: { kind: "link"; href: string } | { kind: "expense"; detail: ExpenseDetailView } | null;
+  icon: "booking" | "expense" | "shop" | "generic";
+  /** What a tap opens: a game on Today, an expense or a sale sheet, or nothing. */
+  open:
+    | { kind: "link"; href: string }
+    | { kind: "expense"; detail: ExpenseDetailView }
+    | { kind: "sale"; detail: SaleDetailView }
+    | null;
 };
 
 export type ActivityContext = {
   bookings: ReadonlyMap<string, BookingLabel>;
   expenses: ReadonlyMap<string, ExpenseDetail>;
+  sales: ReadonlyMap<string, SaleDetail>;
 };
 
 type Parts = Pick<ActivityRowView, "label" | "secondary" | "icon" | "open">;
@@ -84,13 +97,47 @@ function mapExpense(entry: LedgerEntryRow, context: ActivityContext, locale: UiL
   };
 }
 
+function tendersView(tenders: ExpenseDetail["tenders"]): ExpenseDetailView["tenders"] {
+  return tenders.map((tender) => ({
+    currency: tender.currency,
+    amount: tender.currency === "USD" ? tender.amount.toFixed(2) : tender.amount.toFixed(0),
+    rate: tender.rateAtTime ? tender.rateAtTime.toFixed(0) : null,
+    usd: tender.usdEquivalent.toFixed(2),
+  }));
+}
+
+function mapSale(entry: LedgerEntryRow, context: ActivityContext, locale: UiLocale): Parts {
+  const sale = context.sales.get(entry.sourceId);
+  if (!sale) return { label: shopActivityLabel(0, locale), secondary: "", icon: "shop", open: null };
+  const items = sale.lines.reduce((sum, line) => sum + line.qty, 0);
+  return {
+    label: shopActivityLabel(items, locale),
+    secondary: sale.lines.map((line) => line.name).join("، ").slice(0, 60),
+    icon: "shop",
+    open: {
+      kind: "sale",
+      detail: {
+        totalUsd: entry.amountUsd.toFixed(2),
+        dateLabel: fullDate(sale.soldAt, locale),
+        lines: sale.lines.map((line) => ({
+          name: line.name,
+          qty: line.qty,
+          unitPriceUsd: line.unitPriceUsd.toFixed(2),
+          lineTotalUsd: line.lineTotalUsd.toFixed(2),
+        })),
+        tenders: tendersView(sale.tenders),
+      },
+    },
+  };
+}
+
 /** A source type nobody has taught this screen yet (a future shop, say): still shown, never dropped. */
 function mapGeneric(_entry: LedgerEntryRow, _context: ActivityContext, locale: UiLocale): Parts {
   return { label: ui("owner.activityGeneric", locale), secondary: "", icon: "generic", open: null };
 }
 
 /** One mapping keyed by ledger sourceType: label, secondary text, icon and what a tap opens. */
-const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense };
+const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense, SALE: mapSale };
 
 export function mapActivityEntry(entry: LedgerEntryRow, context: ActivityContext, locale: UiLocale): ActivityRowView {
   const mapper = Object.hasOwn(MAPPERS, entry.sourceType) ? MAPPERS[entry.sourceType]! : mapGeneric;

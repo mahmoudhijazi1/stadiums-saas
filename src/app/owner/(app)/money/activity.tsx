@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Receipt, ShoppingBag, Trophy } from "lucide-react";
+import { Receipt, ShoppingBag, Store, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   BottomSheet,
@@ -22,11 +22,12 @@ import {
   signedAmount,
   type ActivityRowView,
   type ExpenseDetailView,
+  type SaleDetailView,
 } from "./activity-map";
 import { loadMoreActivity } from "./actions";
 import { moneyHref } from "./query";
 
-const ICONS = { booking: Trophy, expense: Receipt, generic: ShoppingBag } as const;
+const ICONS = { booking: Trophy, expense: Receipt, shop: Store, generic: ShoppingBag } as const;
 
 type Filter = "all" | "in" | "out";
 
@@ -61,6 +62,7 @@ export function ActivityList({
   const [cursor, setCursor] = useState(initialCursor);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<ExpenseDetailView | null>(null);
+  const [sale, setSale] = useState<SaleDetailView | null>(null);
   const [highlight, setHighlight] = useState<string | null>(highlightFirst ? (initialRows[0]?.id ?? null) : null);
   const [pending, startTransition] = useTransition();
 
@@ -124,6 +126,7 @@ export function ActivityList({
                     row={row}
                     highlighted={row.id === highlight}
                     onOpenExpense={setDetail}
+                    onOpenSale={setSale}
                   />
                 </li>
               ))}
@@ -144,6 +147,7 @@ export function ActivityList({
       ) : null}
 
       <ExpenseDetailSheet detail={detail} onClose={() => setDetail(null)} locale={locale} />
+      <SaleDetailSheet detail={sale} onClose={() => setSale(null)} locale={locale} />
     </section>
   );
 }
@@ -152,10 +156,12 @@ function ActivityRow({
   row,
   highlighted,
   onOpenExpense,
+  onOpenSale,
 }: {
   row: ActivityRowView;
   highlighted: boolean;
   onOpenExpense: (detail: ExpenseDetailView) => void;
+  onOpenSale: (detail: SaleDetailView) => void;
 }) {
   const Icon = ICONS[row.icon];
   const body = (
@@ -194,6 +200,14 @@ function ActivityRow({
       </button>
     );
   }
+  if (row.open?.kind === "sale") {
+    const detail = row.open.detail;
+    return (
+      <button type="button" aria-haspopup="dialog" onClick={() => onOpenSale(detail)} className={className}>
+        {body}
+      </button>
+    );
+  }
   return <div className={className}>{body}</div>;
 }
 
@@ -224,6 +238,76 @@ function ExpenseDetailSheet({
                   <LtrIsolate>{detail.dateLabel}</LtrIsolate>
                 </Detail>
               </dl>
+              {detail.tenders.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                  <p className="type-section">{ui("owner.paidWith", locale)}</p>
+                  <ul className="overflow-hidden rounded-xl border bg-card">
+                    {detail.tenders.map((tender, index) => (
+                      <li key={index} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
+                        <span className="type-body">
+                          <LtrIsolate>
+                            {tender.currency === "USD" ? `$${tender.amount}` : `${tender.amount} LBP`}
+                          </LtrIsolate>
+                        </span>
+                        <span className="type-secondary">
+                          {tender.currency === "LBP" && tender.rate ? (
+                            <LtrIsolate>{`@ ${tender.rate} → $${tender.usd}`}</LtrIsolate>
+                          ) : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </BottomSheetBody>
+          </>
+        ) : null}
+      </BottomSheetContent>
+    </BottomSheet>
+  );
+}
+
+function SaleDetailSheet({
+  detail,
+  onClose,
+  locale,
+}: {
+  detail: SaleDetailView | null;
+  onClose: () => void;
+  locale: UiLocale;
+}) {
+  return (
+    <BottomSheet open={detail !== null} onOpenChange={(open) => !open && onClose()}>
+      <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
+        {detail ? (
+          <>
+            <BottomSheetHeader>
+              <BottomSheetTitle>{ui("owner.shop", locale)}</BottomSheetTitle>
+            </BottomSheetHeader>
+            <BottomSheetBody className="flex flex-col gap-4 pb-4">
+              <dl className="flex flex-col gap-3">
+                <Detail label={ui("owner.sellTotal", locale)}>
+                  <LtrIsolate className="type-strong">{`+$${detail.totalUsd}`}</LtrIsolate>
+                </Detail>
+                <Detail label={ui("owner.expenseDate", locale)}>
+                  <LtrIsolate>{detail.dateLabel}</LtrIsolate>
+                </Detail>
+              </dl>
+              <div className="flex flex-col gap-1">
+                <p className="type-section">{ui("owner.shopSoldLine", locale)}</p>
+                <ul className="overflow-hidden rounded-xl border bg-card">
+                  {detail.lines.map((line, index) => (
+                    <li key={index} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
+                      <span className="type-body min-w-0 truncate">
+                        <bdi>{line.name}</bdi>
+                      </span>
+                      <span className="type-secondary shrink-0">
+                        <LtrIsolate>{`${line.qty} × $${line.unitPriceUsd} = $${line.lineTotalUsd}`}</LtrIsolate>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
               {detail.tenders.length > 0 ? (
                 <div className="flex flex-col gap-1">
                   <p className="type-section">{ui("owner.paidWith", locale)}</p>

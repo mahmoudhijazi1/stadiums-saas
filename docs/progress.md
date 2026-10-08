@@ -5871,3 +5871,21 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `modules/shop/{schemas/sale,infrastructure/sales,application/record-walk-in-sale}.ts`, `app/owner/(app)/sell/**`, `app/owner/{tab-bar.tsx,(app)/layout.tsx}`, `lib/ui-copy.ts` (`soldToast`), tests `test/integration/shop-sale.integration.test.ts` (atomic write, forced failure writes nothing, client price ignored, price edit, archived and cross-tenant refused, LBP frozen rate, mixed tender, partial refused, overpay recorded, merge and bounds, staff and suspended).
 
 **How to verify:** `npm test` 737 passed; `npm run test:integration` 38 suites / 281 tests passed (includes the 11 new walk-in sale tests); `npm run build` green. The Sell screen and the "+" sheet were not rendered in a browser.
+
+## Mini shop, slice 1, part 3 of 4: Money
+
+**What:**
+- **Activity:** a ledger row of source type SALE now maps to "Shop · N items" (Arabic "المتجر · N أصناف"), the item names underneath, a shop icon, and a tap opens a sale sheet: each line as `qty × unit price = line total`, the date, and the tenders with their frozen LBP rates. A SALE row whose sale cannot be read still shows ("Shop"), never dropped.
+- **Shop card** on Money, between "Owed to you" and the expense button: `Sales $X` and `Supplies $Y` side by side, a caption that sales also count items put on games that are not paid yet (a later slice), and the per-item list for the period (item, quantity, total, best seller first). It is shown only when the period has a sale or a shop-supplies expense, so a stadium without a shop sees nothing new. It never shows a profit: supplies are bought in lots, so sales minus supplies for one period would mislead.
+- **Period rule:** sales are counted on Beirut calendar days by `soldAt`; supplies by the day the expense happened (`occurredAt`), in USD from its tenders. The Activity list stays by ledger time (when the money moved), as before.
+- One query each: `sumSoldItems` (one grouped SQL read, tenant stamped from ALS) for the card and its list, `listSalesWithLines` (+ the shared tender read) for the sheets, and one expense read plus one tender read for supplies.
+
+**Why:** the owner must see what the shop brought in next to what was spent restocking, without a number that pretends to be profit. See `docs/requirements/brd.md` §7 (RULE-12) and DR-002 §2.14-2.21 (the ledger is the only money record; a sale is a SALE payment).
+
+**Files:** `modules/shop/{application/summarize-shop-period,application/list-sale-details,infrastructure/sales}.ts`, `modules/expense/application/sum-expense-category.ts`, `app/owner/(app)/money/{activity-map.ts,activity-load.ts,activity.tsx,panel.tsx,shop-card.tsx}`, `lib/ui-copy.ts` (`shopActivityLabel`, shop card copy), tests `test/app/owner/money/activity-map.test.ts` (+2), `test/integration/shop-money.integration.test.ts` (4).
+
+**How it connects:** all reads need `reports.view` (staff without it are refused in the use case, not just hidden). Composition stays in `app/` (the Money panel and `activity-load`): `shop` and `expense` import `payment` infrastructure for tenders but not each other, and `ledger` imports neither. A new source type still needs only one mapper entry in `activity-map.ts`.
+
+**How to verify:** see the verification line below. The Money page and the sale sheet were not rendered in a browser.
+
+**Verified:** `npm test` 739 passed (89 suites); `npm run test:integration` 39 suites / 285 tests passed (4 new in `shop-money`); `npm run build` green.

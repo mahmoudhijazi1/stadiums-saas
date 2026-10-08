@@ -28,6 +28,22 @@ function entry(over: Partial<LedgerEntryRow>): LedgerEntryRow {
 
 const context: ActivityContext = {
   bookings: new Map([["b1", { id: "b1", requesterName: "Ali", personId: "p1", businessDay: "2026-10-15" }]]),
+  sales: new Map([
+    [
+      "s9",
+      {
+        id: "s9",
+        soldAt: new Date("2026-10-15T09:00:00Z"),
+        lines: [
+          { name: "Cola", qty: 2, unitPriceUsd: new Decimal("1.50"), lineTotalUsd: new Decimal("3.00") },
+          { name: "Chips", qty: 1, unitPriceUsd: new Decimal("2.25"), lineTotalUsd: new Decimal("2.25") },
+        ],
+        tenders: [
+          { currency: "LBP" as const, amount: new Decimal("472500"), rateAtTime: new Decimal("90000"), usdEquivalent: new Decimal("5.25") },
+        ],
+      },
+    ],
+  ]),
   expenses: new Map([
     [
       "x1",
@@ -75,12 +91,30 @@ describe("mapActivityEntry: one mapping keyed by sourceType", () => {
     ]);
   });
 
+  it("SALE: 'Shop · N items', the item names, and a sale sheet with lines and frozen rates", () => {
+    const row = mapActivityEntry(entry({ id: "e3", sourceType: "SALE", sourceId: "s9", amountUsd: new Decimal("5.25") }), context, "en");
+    expect(row).toMatchObject({ label: "Shop · 3 items", icon: "shop", direction: "IN", amountUsd: "5.25" });
+    expect(row.secondary).toContain("Cola");
+    if (row.open?.kind !== "sale") throw new Error("expected a sale sheet");
+    expect(row.open.detail.lines).toEqual([
+      { name: "Cola", qty: 2, unitPriceUsd: "1.50", lineTotalUsd: "3.00" },
+      { name: "Chips", qty: 1, unitPriceUsd: "2.25", lineTotalUsd: "2.25" },
+    ]);
+    expect(row.open.detail.tenders).toEqual([{ currency: "LBP", amount: "472500", rate: "90000", usd: "5.25" }]);
+    expect(mapActivityEntry(entry({ sourceType: "SALE", sourceId: "s9" }), context, "ar").label).toBe("المتجر · 3 أصناف");
+  });
+
+  it("a SALE row whose sale cannot be found still shows, without a sheet", () => {
+    const row = mapActivityEntry(entry({ sourceType: "SALE", sourceId: "gone" }), context, "en");
+    expect(row).toMatchObject({ label: "Shop", icon: "shop", open: null });
+  });
+
   it("an unknown sourceType falls back to a generic row and is never dropped", () => {
-    for (const sourceType of ["SHOP", "constructor", "__proto__", ""]) {
+    for (const sourceType of ["SHOPX", "constructor", "__proto__", ""]) {
       const row = mapActivityEntry(entry({ sourceType, sourceId: "s1" }), context, "en");
       expect(row).toMatchObject({ label: "Payment", icon: "generic", open: null, amountUsd: "30.00" });
     }
-    expect(mapActivityEntry(entry({ sourceType: "SHOP" }), context, "ar").label).toBe("حركة");
+    expect(mapActivityEntry(entry({ sourceType: "SHOPX" }), context, "ar").label).toBe("حركة");
   });
 });
 

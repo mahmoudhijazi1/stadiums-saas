@@ -287,6 +287,11 @@ const ARABIC: Record<string, string> = {
   "owner.activityPlayer": "لاعب",
   "owner.activityExpense": "مصروف",
   "owner.activityGeneric": "حركة",
+  "owner.shopSales": "المبيعات",
+  "owner.shopSupplies": "المستلزمات",
+  "owner.shopCaption": "المبيعات تشمل أصنافاً على مباريات غير مدفوعة بعد.",
+  "owner.shopItems": "الأصناف المباعة",
+  "owner.shopSoldLine": "الأصناف",
   "owner.showMore": "عرض المزيد",
   "owner.expenseAmount": "المبلغ",
   "owner.expenseCategory": "الفئة",
@@ -700,6 +705,11 @@ const ENGLISH: Record<string, string> = {
   "owner.activityPlayer": "Player",
   "owner.activityExpense": "Expense",
   "owner.activityGeneric": "Payment",
+  "owner.shopSales": "Sales",
+  "owner.shopSupplies": "Supplies",
+  "owner.shopCaption": "Sales include items on games that are not paid yet.",
+  "owner.shopItems": "Items sold",
+  "owner.shopSoldLine": "Items",
   "owner.showMore": "Show more",
   "owner.expenseAmount": "Amount",
   "owner.expenseCategory": "Category",
@@ -1234,6 +1244,14 @@ export function comparisonLine(
   if (direction === "same") return locale === "en" ? `Same as ${against}` : `مثل ${against}`;
   const arrow = direction === "up" ? "↑" : "↓";
   return locale === "en" ? `${arrow} ${amount} vs ${against}` : `${arrow} ${amount} مقارنة بـ${against}`;
+}
+
+/** The Activity row of a sale: "Shop · 3 items". */
+export function shopActivityLabel(items: number, locale: UiLocale = "ar"): string {
+  if (items <= 0) return locale === "en" ? "Shop" : "المتجر";
+  if (locale === "en") return `Shop · ${items} ${items === 1 ? "item" : "items"}`;
+  const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
+  return items === 2 ? `المتجر · صنفان` : `المتجر · ${items} ${word}`;
 }
 
 /** The toast after a walk-in sale: "Sold 3 items · $12". `total` is already formatted. */

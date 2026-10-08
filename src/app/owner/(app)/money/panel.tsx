@@ -4,6 +4,8 @@ import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
 } from "@/modules/expense/domain/categories";
+import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-category";
+import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-period";
 import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
@@ -18,6 +20,7 @@ import { ui, uiCount } from "@/lib/ui-copy";
 import { RecordExpenseSheet } from "./expense-sheet";
 import { MoneyHeadline } from "./headline";
 import { ActivityList } from "./activity";
+import { ShopCard } from "./shop-card";
 import { loadActivityPage } from "./activity-load";
 
 function categoryLabel(category: ExpenseCategory, locale: UiLocale): string {
@@ -52,6 +55,12 @@ export async function OwnerMoney({
     ? await loadActivityPage({ ...range, filter: periodQuery.filter }, locale)
     : null;
   const owed = mayViewReports ? await listOwed() : null;
+  const [shop, supplies] = mayViewReports
+    ? await Promise.all([
+        summarizeShopPeriod(range),
+        sumExpenseCategory({ ...range, category: "SHOP_SUPPLIES" }),
+      ])
+    : [null, null];
   const typedDisplayRate = periodQuery.displayRate ? parseLbp(periodQuery.displayRate) : null;
   const displayRate = typedDisplayRate ?? rate;
 
@@ -81,6 +90,10 @@ export async function OwnerMoney({
           </span>
           <ChevronRight aria-hidden className="size-4 shrink-0 rtl:rotate-180" />
         </Link>
+      ) : null}
+
+      {shop && supplies && (shop.items.length > 0 || supplies.gt(0)) ? (
+        <ShopCard summary={shop} suppliesUsd={supplies} locale={locale} />
       ) : null}
 
       {mayRecordExpense ? (
