@@ -8,6 +8,9 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "push.newRequestTitle": "ملاعب",
+  "push.newRequestOne": "طلب حجز جديد",
+  "push.newRequestMany": "{n} طلبات بانتظارك",
   "owner.notifications": "الإشعارات",
   "push.working": "لحظة…",
   "push.unsupported": "هذا المتصفح لا يدعم الإشعارات.",
@@ -459,6 +462,9 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "push.newRequestTitle": "Lebstads",
+  "push.newRequestOne": "New booking request",
+  "push.newRequestMany": "{n} requests waiting",
   "owner.notifications": "Notifications",
   "push.working": "One moment…",
   "push.unsupported": "This browser does not support notifications.",

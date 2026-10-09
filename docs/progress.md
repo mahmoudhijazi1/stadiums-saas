@@ -6136,3 +6136,18 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** the integration setup now sets a throwaway VAPID pair so the "configured" paths run; the real sender is never used in tests.
 
 **How to verify:** `npm test` 913 passed (98 suites); `npm run test:integration` 44 suites, 351 passed; `npm run build` green. NOT verified (no browser or phone here): the page rendering, the permission prompt, and a real push arriving on Android or iPhone. The Mozilla, Apple and Windows hosts in the allowlist are UNVERIFIED against real endpoints. Run the checks in `docs/push-notifications.md`.
+
+## Push notifications, slice B commit 1 of 2: the new-request alert (branch `feat/push-new-request`)
+
+**What:** when a player's public request creates a PENDING booking, the people who can approve get a push on their phones.
+- **Composition in `app/`:** `app/(public)/request-slot.ts` calls `after(alertOwnersOfNewRequest)` (`next/server`, confirmed in the installed Next 16.3.4 docs: `after.md`) right after `requestPublicSlot` returns. A taken hour throws `booking.slot_taken` before that line, so it never alerts; an owner-created booking never reaches this action. `app/(public)/alert-owners.ts` counts the waiting requests (`booking/application/count-pending-for-alert.ts`, the same `countActionablePending` rule as the badge) and hands the number to push. It never throws: an error is logged with its name only (the logger has no warn level, so `info`) and the player's redirect is untouched.
+- **`notifyNewRequest({ pendingCount })`** (`push/application`): nothing happens (no error) when VAPID keys are missing, the tenant is suspended, nothing is waiting, or nobody is subscribed. Recipients are the members of this tenant for whom `can(membership, "bookings.approve")` is true (`access/application/list-approver-user-ids.ts`), and every subscription they hold here. Payload kind `NEW_REQUEST` (`buildPushPayload`): the stadium name as title; "طلب حجز جديد" / "New booking request" for one, "N طلبات بانتظارك" / "N requests waiting" for more; tag `new-requests`, url `/owner/requests`; language per subscription; counts only, no player data. Options: TTL 1 hour, urgency high, topic `new-requests`.
+- **Throttle:** one alert per device per 120 s, `RateLimit` key `pushalert:<subscriptionId>`. A skipped alert is not queued: the badge already shows the count and the next alert carries the full count. Sends run 5 at a time (`mapWithConcurrency`), each capped at 5 s; one failing device never blocks the others; 404/410 deletes the row, anything else keeps it. The log line has counts only.
+
+**Why:** the point of slice A. Staff without `bookings.approve` are skipped because they can see the list but not act (BR-97).
+
+**Files:** `app/(public)/{request-slot,alert-owners}.ts`, `modules/push/application/notify-new-request.ts`, `modules/push/domain/{push-payload,push-options,map-with-concurrency}.ts`, `modules/push/infrastructure/subscriptions.ts`, `modules/access/application/list-approver-user-ids.ts`, `modules/booking/application/count-pending-for-alert.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** `booking` still imports nothing from `push`; `app/` is the only place both are called. Nothing runs inside the request transaction.
+
+**How to verify:** NOT run. Per the task, no test suite, build or lint was run for this commit; only a single `tsc --noEmit` at the end of the branch. Tests are in commit 2, also unrun. No push could be received here.
