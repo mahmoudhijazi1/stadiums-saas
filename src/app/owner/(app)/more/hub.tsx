@@ -55,7 +55,7 @@ function PercentField({
 }) {
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="type-label">{label}</legend>
+      <legend className="mb-2 type-label">{label}</legend>
       <div className="flex gap-2">
         {([0, 50, 100] as const).map((percent) => (
           <label

@@ -125,7 +125,7 @@ export function HoursRows({
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="type-section">
+      <legend className="mb-3 type-section">
         {ui("owner.pitchHours", locale)}
       </legend>
       <input type="hidden" name="hoursGroupsJson" value={JSON.stringify(groups)} />

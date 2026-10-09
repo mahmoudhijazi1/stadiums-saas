@@ -156,7 +156,7 @@ export function PitchDraftForm({
       <HoursRows locale={locale} rows={rows} onChange={setRows} hourCycle={hourCycle} dayStartHour={dayStartHour} />
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="type-section">{ui("owner.pitchGameLength", locale)}</legend>
+        <legend className="mb-2 type-section">{ui("owner.pitchGameLength", locale)}</legend>
         <div role="group" className="grid grid-cols-4 gap-2">
           {LENGTHS.map((minutes) => {
             const on = !otherLength && duration === minutes;
