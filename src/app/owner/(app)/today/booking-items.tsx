@@ -3,10 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Decimal from "decimal.js";
-import { Minus, Plus, Search } from "lucide-react";
+import { Minus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
 import { PartsBalance } from "@/app/owner/parts-balance";
+import { TonalCollectButton } from "@/app/owner/tonal-collect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,9 +73,9 @@ function savePayer(bookingId: string, payer: Payer): void {
 }
 
 /**
- * The shop on one game, inside the booking sheet: each player tab (the booker's included) with its
- * own Collect, and Add items. A tab never changes the game amount or a slot. Prices never come from
- * here: only ids and quantities go to the server.
+ * The shop on one game, inside the booking sheet: a "Shop" heading with a small "+ Add", then one
+ * compact row per player tab (the booker's included). A tab never changes the game amount or a
+ * slot. Prices never come from here: only ids and quantities go to the server.
  */
 export function BookingItems({
   bookingId,
@@ -98,9 +99,11 @@ export function BookingItems({
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const empty = view.tabs.length === 0;
-  if (empty && (!canAdd || products.length === 0)) return null;
+  const mayAdd = canAdd && products.length > 0;
+  if (empty && !mayAdd) return null;
 
   function remove(itemId: string) {
     setError(null);
@@ -112,11 +115,18 @@ export function BookingItems({
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <h4 className="text-xs font-semibold text-muted-foreground">{ui("owner.shop", locale)}</h4>
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="type-section">{ui("owner.shop", locale)}</h4>
+        {mayAdd ? (
+          <Button type="button" variant="outline" size="sm" className="min-h-11" onClick={() => setAddOpen(true)}>
+            {ui("owner.shopAddShort", locale)}
+          </Button>
+        ) : null}
+      </div>
 
       {view.tabs.map((tab) => (
-        <TabCard
+        <TabRow
           key={tab.saleId}
           tab={tab}
           mayRemove={mayRemove}
@@ -135,8 +145,10 @@ export function BookingItems({
         </p>
       ) : null}
 
-      {canAdd && products.length > 0 ? (
+      {mayAdd ? (
         <AddItems
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
           bookingId={bookingId}
           products={products}
           players={view.players}
@@ -189,7 +201,18 @@ function ItemLines({
   );
 }
 
-function TabCard({
+/** "Water S ×2, Cola ×1": what the tab is made of, on one line. */
+function summaryOf(lines: ItemLineView[]): string {
+  return lines.map((line) => `${line.name} ×${line.qty}`).join("، ");
+}
+
+/**
+ * One compact row per tab: payer, item summary, the amount in its own currency and a tonal Collect
+ * that takes exactly what is owed in one tap (the common case). Tapping the row opens its lines with
+ * the remove control and "Pay another way" for a part or other cash. The row and the button are
+ * siblings, never nested.
+ */
+function TabRow({
   tab,
   mayRemove,
   mayCollect,
@@ -208,6 +231,7 @@ function TabCard({
   locale: UiLocale;
   onDone: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [paying, setPaying] = useState(false);
   const [usd, setUsd] = useState("");
   const [lbp, setLbp] = useState("");
@@ -217,19 +241,14 @@ function TabCard({
   const owes = remaining.lbp.gt(0) || remaining.usd.gt(0);
   const hasPayments = new Decimal(tab.paidUsd).gt(0);
   const remainingText = formatParts(remaining, locale);
+  // Exactly what is owed, in the currencies it is owed in.
+  const exactUsd = remaining.usd.gt(0) ? remaining.usd.toFixed(2) : "";
+  const exactLbp = remaining.lbp.gt(0) ? remaining.lbp.toFixed(0) : "";
 
-  function open() {
-    // Exactly what is owed, in the currencies it is owed in: the common case is one tap.
-    setUsd(remaining.usd.gt(0) ? remaining.usd.toFixed(2) : "");
-    setLbp(remaining.lbp.gt(0) ? remaining.lbp.toFixed(0) : "");
-    setError(null);
-    setPaying(true);
-  }
-
-  function submit() {
+  function send(usdAmount: string, lbpAmount: string) {
     setError(null);
     startTransition(async () => {
-      const result = await submitCollectTab({ saleId: tab.saleId, usdAmount: usd, lbpAmount: lbp });
+      const result = await submitCollectTab({ saleId: tab.saleId, usdAmount, lbpAmount });
       if ("error" in result) {
         setError(errorMessage(result.error, locale));
         return;
@@ -241,59 +260,93 @@ function TabCard({
     });
   }
 
+  function openOther() {
+    setUsd(exactUsd);
+    setLbp(exactLbp);
+    setError(null);
+    setPaying(true);
+  }
+
   return (
-    <div className="flex flex-col gap-2 rounded-xl border p-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="type-strong min-w-0 truncate">
-          <bdi>{tab.name}</bdi>
-        </p>
-        <p className={cn("type-strong shrink-0", owes ? "text-owed" : "text-paid")}>
-          {owes ? <LtrIsolate>{remainingText}</LtrIsolate> : null}
-          <span className="ms-1 type-caption">{ui(owes ? "owner.remaining" : "owner.paidInFull", locale)}</span>
-        </p>
+    <div className="rounded-xl border">
+      <div className="flex items-center gap-2 ps-3 pe-2">
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+          className="flex min-h-14 min-w-0 flex-1 flex-col items-start justify-center gap-0.5 rounded-lg py-2 text-start outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <span className="type-strong max-w-full truncate">
+            <bdi>{tab.name}</bdi>
+          </span>
+          <span className="type-secondary max-w-full truncate">
+            <bdi>{summaryOf(tab.lines)}</bdi>
+          </span>
+        </button>
+        <span className={cn("type-strong shrink-0", owes ? "text-owed" : "text-paid")}>
+          {owes ? <LtrIsolate>{remainingText}</LtrIsolate> : ui("owner.paidInFull", locale)}
+        </span>
+        {owes && mayCollect ? (
+          <TonalCollectButton disabled={pending} onClick={() => send(exactUsd, exactLbp)}>
+            {ui("owner.collect", locale)}
+          </TonalCollectButton>
+        ) : null}
       </div>
-      <ItemLines lines={tab.lines} removable={mayRemove && !hasPayments} onRemove={onRemove} busy={busy} locale={locale} />
-      {owes && mayCollect && !paying ? (
-        <Button type="button" className="w-full" onClick={open}>
-          {ui("owner.collect", locale)} <LtrIsolate>{remainingText}</LtrIsolate>
-        </Button>
+      {error && !expanded ? (
+        <p role="alert" className="type-secondary px-3 pb-2 text-owed">
+          {error}
+        </p>
       ) : null}
-      {paying ? (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`tab-lbp-${tab.saleId}`}>{ui("owner.lbp", locale)}</Label>
-            <Input
-              id={`tab-lbp-${tab.saleId}`}
-              inputMode="numeric"
-              autoComplete="off"
-              value={lbp}
-              onChange={(event) => setLbp(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`tab-usd-${tab.saleId}`}>USD</Label>
-            <Input
-              id={`tab-usd-${tab.saleId}`}
-              inputMode="decimal"
-              autoComplete="off"
-              value={usd}
-              onChange={(event) => setUsd(event.target.value)}
-            />
-          </div>
-          <PartsBalance owed={remaining} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />
-          {error ? (
-            <p role="alert" className="type-secondary text-owed">
-              {error}
-            </p>
+      {expanded ? (
+        <div className="flex flex-col gap-3 border-t p-3">
+          <ItemLines lines={tab.lines} removable={mayRemove && !hasPayments} onRemove={onRemove} busy={busy} locale={locale} />
+          {owes && mayCollect && !paying ? (
+            <button
+              type="button"
+              onClick={openOther}
+              className="inline-flex min-h-11 w-fit items-center type-label text-action-ink underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              {ui("owner.payAnotherWay", locale)}
+            </button>
           ) : null}
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => setPaying(false)}>
-              {ui("dialog.close", locale)}
-            </Button>
-            <Button type="button" className="flex-1" onClick={submit} disabled={pending}>
-              {ui("owner.collect", locale)} <LtrIsolate>{remainingText}</LtrIsolate>
-            </Button>
-          </div>
+          {paying ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`tab-lbp-${tab.saleId}`}>{ui("owner.lbp", locale)}</Label>
+                <Input
+                  id={`tab-lbp-${tab.saleId}`}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={lbp}
+                  onChange={(event) => setLbp(event.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`tab-usd-${tab.saleId}`}>USD</Label>
+                <Input
+                  id={`tab-usd-${tab.saleId}`}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={usd}
+                  onChange={(event) => setUsd(event.target.value)}
+                />
+              </div>
+              <PartsBalance owed={remaining} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />
+              {error ? (
+                <p role="alert" className="type-secondary text-owed">
+                  {error}
+                </p>
+              ) : null}
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setPaying(false)}>
+                  {ui("dialog.close", locale)}
+                </Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => send(usd, lbp)} disabled={pending}>
+                  {ui("owner.collect", locale)}
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -301,6 +354,8 @@ function TabCard({
 }
 
 function AddItems({
+  open,
+  onClose,
   bookingId,
   products,
   players,
@@ -308,6 +363,8 @@ function AddItems({
   locale,
   onDone,
 }: {
+  open: boolean;
+  onClose: () => void;
   bookingId: string;
   products: SellItem[];
   players: { personId: string; name: string }[];
@@ -315,7 +372,6 @@ function AddItems({
   locale: UiLocale;
   onDone: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [payer, setPayer] = useState<Payer | null>(null);
   const [other, setOther] = useState(false);
@@ -376,18 +432,12 @@ function AddItems({
       }
       toast.success(itemsAddedToast(result.itemCount ?? itemCount, formatParts(total, locale), locale));
       setCounts({});
-      setOpen(false);
+      onClose();
       onDone();
     });
   }
 
-  if (!open) {
-    return (
-      <Button type="button" variant="outline" className="w-full" onClick={() => setOpen(true)}>
-        <Plus aria-hidden /> {ui("owner.addItems", locale)}
-      </Button>
-    );
-  }
+  if (!open) return null;
 
   const chip = (selected: boolean) =>
     cn(
@@ -495,10 +545,10 @@ function AddItems({
         </p>
       ) : null}
       <div className="flex gap-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>
+        <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
           {ui("dialog.close", locale)}
         </Button>
-        <Button type="button" className="flex-1" disabled={itemCount === 0 || pending || !payer} onClick={add}>
+        <Button type="button" variant="outline" className="flex-1" disabled={itemCount === 0 || pending || !payer} onClick={add}>
           {ui("owner.addItems", locale)} <LtrIsolate>{formatParts(total, locale)}</LtrIsolate>
         </Button>
       </div>

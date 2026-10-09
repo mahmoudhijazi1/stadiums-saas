@@ -183,6 +183,10 @@ function DueRemainingFigures({
 
 type SheetStep = "details" | "cancel" | "noshow" | "adjust";
 
+/** Call and WhatsApp in the sheet header: icon buttons with a 44px hit area. */
+const ICON_BUTTON =
+  "inline-flex size-11 shrink-0 items-center justify-center rounded-full border text-muted-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50";
+
 export function UpcomingPanel({
   toCollect,
   toCollectHasMore,
@@ -449,10 +453,29 @@ export function UpcomingPanel({
                   .filter(Boolean)
                   .join(" · ")}
               </BottomSheetDescription>
-              <PersonLink
-                personId={sheetRow.requesterPersonId}
-                name={sheetRow.requesterName}
-              />
+              <div className="flex items-center gap-1">
+                <PersonLink
+                  personId={sheetRow.requesterPersonId}
+                  name={sheetRow.requesterName}
+                  className="min-w-0 flex-1"
+                />
+                {sheetRow.requesterPhone ? (
+                  <a href={`tel:${sheetRow.requesterPhone}`} aria-label={ui("owner.callPlayer", locale)} className={ICON_BUTTON}>
+                    <Phone aria-hidden className="size-5" />
+                  </a>
+                ) : null}
+                {sheetStep === "details" && sheetRow.confirmWhatsAppHref ? (
+                  <a
+                    href={sheetRow.confirmWhatsAppHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={ui("owner.notifyWhatsApp", locale)}
+                    className={ICON_BUTTON}
+                  >
+                    <MessageCircle aria-hidden className="size-5" />
+                  </a>
+                ) : null}
+              </div>
             </BottomSheetHeader>
             {interestOpen ? (
               <BottomSheetBody className="flex flex-col gap-4 pb-4">
@@ -483,33 +506,13 @@ export function UpcomingPanel({
               </BottomSheetBody>
             ) : (
               <>
-            <div className="flex flex-col gap-2 px-4 pt-2">
-              {sheetRow.requesterPhone ? (
-                <p className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                  <Phone aria-hidden className="size-3.5 shrink-0" />
-                  <LtrIsolate>{sheetRow.requesterPhone}</LtrIsolate>
-                </p>
-              ) : null}
-              {sheetStep === "details" && sheetRow.confirmWhatsAppHref ? (
-                <Button variant="outline" className="w-full" asChild>
-                  <a
-                    href={sheetRow.confirmWhatsAppHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <MessageCircle aria-hidden />
-                    {ui("owner.notifyWhatsApp", locale)}
-                  </a>
-                </Button>
-              ) : null}
-            </div>
             <BottomSheetStage
               stage={sheetStep !== "details" ? "confirm" : "details"}
               active={openId !== null}
             >
               <BottomSheetBody
                 className={cn(
-                  "flex flex-col gap-4 pb-4 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                  "flex flex-col gap-4 pb-4 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
                   sheetStep !== "details" &&
                     "pointer-events-none absolute inset-x-0 top-0 opacity-0",
                 )}
@@ -533,7 +536,7 @@ export function UpcomingPanel({
               </BottomSheetBody>
               <BottomSheetBody
                 className={cn(
-                  "flex flex-none flex-col gap-3 overflow-hidden pb-4 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                  "flex flex-none flex-col gap-3 overflow-hidden pb-4 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
                   sheetStep === "details" &&
                     "pointer-events-none absolute inset-x-0 top-0 opacity-0",
                 )}
@@ -686,38 +689,29 @@ function UpcomingRowActions({
   onAdjust: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const perPlayer = row.perPlayer.mode === "PER_PLAYER";
   const canCollect = mayCollect && owesCash(row) && !perPlayer;
+  // The same rules as before, only the place changed: the split switch needs adjust rights and a
+  // game that is split already or may be split now.
+  const splitAdjust = mayAdjust && (perPlayer || owesCash(row));
+  const showSplit = splitAdjust && (perPlayer || row.perPlayer.canSplit);
+  const showAdjust = mayAdjust && row.canAdjust;
+  const showNoShow = mayNoShow && row.showNoShow;
+  const showCancel = mayCancel && row.showCancel;
+  const hasMore = showAdjust || showSplit || showNoShow || showCancel;
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <section className="flex flex-col gap-3 rounded-xl border p-4">
         {canCollect || (perPlayer && mayCollect) ? (
-          <h4 className="text-xs font-semibold text-muted-foreground">
-            {ui("owner.moneyGroup", locale)}
-          </h4>
+          <h4 className="type-section">{ui("owner.moneyGroup", locale)}</h4>
         ) : null}
         <DueRemainingFigures
           dueUsd={row.priceUsd}
           paidUsd={row.collectedExact}
           remainingUsd={row.remainingUsd}
           tone={moneyTone(row)}
-          locale={locale}
-        />
-        <PerPlayerCollect
-          view={row.perPlayer}
-          mayCollect={mayCollect}
-          mayAdjust={mayAdjust && (perPlayer || owesCash(row))}
-          locale={locale}
-        />
-        <BookingItems
-          bookingId={row.id}
-          canAdd={shop.maySell && row.approved}
-          mayRemove={mayAdjust}
-          mayCollect={mayCollect}
-          products={shop.products}
-          view={row.items}
-          lbpPerUsd={lbpPerUsd}
           locale={locale}
         />
         {canCollect && !mixedOpen ? (
@@ -730,44 +724,70 @@ function UpcomingRowActions({
           </form>
         ) : null}
         {canCollect ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              aria-expanded={mixedOpen}
-              onClick={() => setMixedOpen((open) => !open)}
-            >
-              {mixedOpen
-                ? ui("owner.hideCollectMixed", locale)
-                : ui("owner.collectMixed", locale)}
-            </Button>
-            {mixedOpen ? (
-              <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} />
-            ) : null}
-          </>
+          <button
+            type="button"
+            aria-expanded={mixedOpen}
+            onClick={() => setMixedOpen((open) => !open)}
+            className="inline-flex min-h-11 w-fit items-center type-label text-action-ink underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            {mixedOpen ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
+          </button>
         ) : null}
-        {mayAdjust && row.canAdjust ? (
-          <Button type="button" variant="outline" className="w-full" onClick={onAdjust}>
-            {ui("owner.adjustDue", locale)}
-          </Button>
-        ) : null}
-        {mayNoShow && row.showNoShow ? (
-          <Button type="button" variant="outline" className="w-full" onClick={onNoShow}>
-            {ui("owner.noShow", locale)}
-          </Button>
-        ) : null}
-      </div>
-      {mayCancel && row.showCancel ? (
-        <Button
-          ref={cancelRef}
-          type="button"
-          variant="ghost"
-          className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={onCancelBooking}
-        >
-          {ui("owner.cancel", locale)}
-        </Button>
+        {canCollect && mixedOpen ? <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
+        <PerPlayerCollect view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
+      </section>
+
+      <BookingItems
+        bookingId={row.id}
+        canAdd={shop.maySell && row.approved}
+        mayRemove={mayAdjust}
+        mayCollect={mayCollect}
+        products={shop.products}
+        view={row.items}
+        lbpPerUsd={lbpPerUsd}
+        locale={locale}
+      />
+
+      {hasMore ? (
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((open) => !open)}
+            className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            {ui("owner.moreActions", locale)}
+            <ChevronDown aria-hidden className={cn("size-5 shrink-0 transition-transform", moreOpen && "rotate-180")} />
+          </button>
+          {moreOpen ? (
+            <div className="flex flex-col gap-3">
+              {showAdjust ? (
+                <Button type="button" variant="outline" className="w-full" onClick={onAdjust}>
+                  {ui("owner.adjustDue", locale)}
+                </Button>
+              ) : null}
+              {showSplit ? (
+                <PerPlayerCollect view={row.perPlayer} part="mode" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
+              ) : null}
+              {showNoShow ? (
+                <Button type="button" variant="outline" className="w-full" onClick={onNoShow}>
+                  {ui("owner.noShow", locale)}
+                </Button>
+              ) : null}
+              {showCancel ? (
+                <Button
+                  ref={cancelRef}
+                  type="button"
+                  variant="ghost"
+                  className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={onCancelBooking}
+                >
+                  {ui("owner.cancel", locale)}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </>
   );

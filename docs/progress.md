@@ -5986,3 +5986,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `lib/{money-display,ui-copy}.ts`, `app/owner/parts-balance.tsx`, `app/owner/(app)/{sell/sell-screen,today/booking-items}.tsx`; tests `test/modules/shop/pricing.test.ts`, `test/integration/shop-change.integration.test.ts`.
 
 **How to verify:** `npm test` 777 passed; `npm run test:integration` 43 suites / 328 tests passed; `npm run build` green. The live change line and toast were not rendered in a browser.
+
+## Booking sheet redesign, commit 1 of 2: the sheet (branch `ui/booking-sheet`)
+
+**What:** structure and styling only. No use case, rule, permission or money change; every control calls the action it called before.
+- **Header:** time range, then one row with the player link and two icon buttons (call, WhatsApp; 44px hit area, aria-labels) that replace the phone line and the full-width Notify button. The pitch shows only when the stadium has more than one (as before).
+- **Money block:** one bordered block with the figure (Expected / Remaining / Paid, existing tokens), the quick "Collect $X" (the only lime primary in the sheet) and, under it, a text link "Pay another way (LBP, partial)" that opens the existing two-currency form (it replaces the "Pay in two currencies" button; "Hide" closes it). Per-player: the slot list sits in the same block and its Pay buttons are tonal.
+- **Shop block:** heading "Shop" with a small "+ Add" (still the inline panel; commit 2 turns it into a sheet). One compact row per tab: payer, item summary ("Water S ×2"), the amount owed in its own currency and a tonal "Collect" that takes exactly what is owed in one tap (the exact USD and LBP parts, as the prefilled sheet did). Tapping the row expands its lines, the remove control (still `bookings.adjust_due` only) and "Pay another way". The row and the button are siblings, never nested.
+- **More actions:** a collapsed row at the bottom with adjust amount, the whole / per-player switch (when enabled), no-show and cancel last in the destructive style. Visibility follows the same permission and state rules as before (`showAdjust`, `showSplit`, `showNoShow`, `showCancel`); the row is not drawn when none applies.
+- The sheet's own scrollbar is hidden below `lg`, as on the page. The tonal button is one component (`app/owner/tonal-collect.tsx`), the same look as the earlier-debts row, never lime.
+
+**Why:** one primary action per sheet (`docs/ui-rules.md` rule 5), rare actions out of the way, fewer taps to collect a tab (rule 8: the current task first).
+
+**Files:** `app/owner/(app)/today/{upcoming-panel,booking-items,per-player-collect}.tsx`, `app/owner/tonal-collect.tsx`, `lib/ui-copy.ts` (`payAnotherWay`, `moreActions`, `callPlayer`, `shopAddShort`).
+
+**How it connects:** imports unchanged in direction; `app/` only. `PerPlayerCollect` now draws two parts (`slots` in the money block, `mode` under More actions).
+
+**How to verify:** `npm test` 777 passed; `npm run test:integration` 43 suites / 328 tests passed; `npm run build` green. The sheet was not rendered in a browser.

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
+import { TonalCollectButton } from "@/app/owner/tonal-collect";
 import {
   submitCollectAllRemaining,
   submitCollectSlot,
@@ -60,11 +61,14 @@ export type PerPlayerView = {
  */
 export function PerPlayerCollect({
   view,
+  part,
   mayCollect,
   mayAdjust,
   locale,
 }: {
   view: PerPlayerView;
+  /** "slots": the players and their Pay buttons (the money block). "mode": the Whole / Per player switch (More actions). */
+  part: "slots" | "mode";
   mayCollect: boolean;
   mayAdjust: boolean;
   locale: UiLocale;
@@ -75,7 +79,8 @@ export function PerPlayerCollect({
   const [count, setCount] = useState(String(view.defaultPlayerCount));
 
   const perPlayer = view.mode === "PER_PLAYER";
-  if (!perPlayer && !(mayAdjust && view.canSplit)) return null;
+  if (part === "slots" && !perPlayer) return null;
+  if (part === "mode" && !(mayAdjust && (perPlayer || view.canSplit))) return null;
 
   async function run(key: string, action: () => Promise<PerPlayerResult>) {
     if (busy.has(key)) return;
@@ -102,7 +107,7 @@ export function PerPlayerCollect({
 
   return (
     <div className="flex flex-col gap-3">
-      {mayAdjust ? (
+      {part === "mode" ? (
         <div className="flex flex-col gap-2">
           <p className="text-xs font-semibold text-muted-foreground">
             {ui("owner.modeLabel", locale)}
@@ -110,7 +115,8 @@ export function PerPlayerCollect({
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
-              variant={perPlayer ? "outline" : "default"}
+              variant="outline"
+              className={cn(!perPlayer && "border-transparent bg-selected text-selected-ink")}
               aria-pressed={!perPlayer}
               disabled={busy.has("switch") || (perPlayer && locked)}
               onClick={() => {
@@ -121,7 +127,8 @@ export function PerPlayerCollect({
             </Button>
             <Button
               type="button"
-              variant={perPlayer ? "default" : "outline"}
+              variant="outline"
+              className={cn(perPlayer && "border-transparent bg-selected text-selected-ink")}
               aria-pressed={perPlayer}
               disabled={busy.has("switch")}
               onClick={() => {
@@ -139,7 +146,7 @@ export function PerPlayerCollect({
         </div>
       ) : null}
 
-      {!perPlayer && splitOpen ? (
+      {part === "mode" && !perPlayer && splitOpen ? (
         <div className="flex items-end gap-2">
           <div className="flex flex-1 flex-col gap-2">
             <Label htmlFor={`count-${view.bookingId}`}>
@@ -159,6 +166,7 @@ export function PerPlayerCollect({
           </div>
           <Button
             type="button"
+            variant="outline"
             className="min-h-11"
             disabled={busy.has("switch")}
             onClick={() =>
@@ -175,7 +183,7 @@ export function PerPlayerCollect({
         </div>
       ) : null}
 
-      {perPlayer ? (
+      {part === "slots" && perPlayer ? (
         <>
           <p className="text-sm text-muted-foreground">
             {paidOfLine(paidCount, view.slots.length, locale)}
@@ -213,10 +221,7 @@ export function PerPlayerCollect({
                     {ui("owner.slotCovered", locale)}
                   </span>
                 ) : mayCollect ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="min-h-11 min-w-20"
+                  <TonalCollectButton
                     disabled={busy.has(slot.participantId)}
                     onClick={() =>
                       void run(slot.participantId, () =>
@@ -231,7 +236,7 @@ export function PerPlayerCollect({
                     {slot.partial && slot.chargeUsd ? (
                       <LtrIsolate> ${slot.chargeUsd}</LtrIsolate>
                     ) : null}
-                  </Button>
+                  </TonalCollectButton>
                 ) : null}
               </li>
             ))}
