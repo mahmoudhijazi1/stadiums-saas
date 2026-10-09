@@ -4,7 +4,6 @@ import db from "@/lib/db";
 import { messageDayLabel } from "@/modules/booking/application/night-hint";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { logger } from "@/lib/logger";
 import { publicPageUrl } from "@/lib/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/ui-copy";
@@ -14,12 +13,8 @@ import {
   findBookingRequester,
   listSlotInterestsWithPeople,
 } from "@/modules/booking/infrastructure/bookings";
-import {
-  bookingConfirmedMessage,
-  bookingMissedMessage,
-  bookingRejectedMessage,
-  whatsAppHref,
-} from "@/modules/notification/domain/whatsapp-link";
+import type { MessageContext } from "@/modules/notification/domain/message-intent";
+import { notifyLink, type MessageFacts } from "@/modules/notification/domain/whatsapp-link";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -71,47 +66,28 @@ export async function loadDecisionNotify(input: {
     const link = publicPageUrl(tenant.slug);
     const slotTaken = ui("owner.rejectReason.slotTaken", locale);
 
+    const requester = {
+      personId: booking.requesterPersonId,
+      name: booking.requesterName,
+      phone: booking.requesterPhone,
+    };
+    const facts = (person: { name: string }, extra: Partial<MessageFacts> = {}): MessageFacts => ({
+      name: person.name,
+      stadiumName: tenant.name,
+      day,
+      time,
+      link,
+      ...extra,
+    });
+
     if (input.kind === "dismissed") {
-      return [
-        toRow(
-          {
-            personId: booking.requesterPersonId,
-            name: booking.requesterName,
-            phone: booking.requesterPhone,
-          },
-          bookingMissedMessage({
-            name: booking.requesterName,
-            day,
-            time,
-            link,
-            locale,
-          }),
-          ui("owner.dismiss", locale),
-          tenant.id,
-        ),
-      ];
+      return [toRow(requester, "request_dismissed", facts(requester), ui("owner.dismiss", locale), locale)];
     }
 
     if (input.kind === "rejected") {
       const reason = cleanReason(input.reason);
       return [
-        toRow(
-          {
-            personId: booking.requesterPersonId,
-            name: booking.requesterName,
-            phone: booking.requesterPhone,
-          },
-          bookingRejectedMessage({
-            name: booking.requesterName,
-            day,
-            time,
-            reason,
-            link,
-            locale,
-          }),
-          reason || ui("owner.reject", locale),
-          tenant.id,
-        ),
+        toRow(requester, "after_reject", facts(requester, { reason }), reason || ui("owner.reject", locale), locale),
       ];
     }
 
@@ -137,37 +113,15 @@ export async function loadDecisionNotify(input: {
     const showPitch = await hasSeveralPitches();
     return [
       toRow(
-        {
-          personId: booking.requesterPersonId,
-          name: booking.requesterName,
-          phone: booking.requesterPhone,
-        },
-        bookingConfirmedMessage({
-          name: booking.requesterName,
-          stadiumName: tenant.name,
-          day,
-          time,
-          pitchName: showPitch ? booking.pitchName : null,
-          locale,
-        }),
+        requester,
+        "after_approve",
+        facts(requester, { pitchName: showPitch ? booking.pitchName : null }),
         ui("owner.notifyConfirmed", locale),
-        tenant.id,
+        locale,
       ),
+      // The players whose request for this slot was just declined because it was taken.
       ...ordered.map((row) =>
-        toRow(
-          row,
-          bookingRejectedMessage({
-            name: row.name,
-            day,
-            time,
-            reason: slotTaken,
-            link,
-            ending: "wait",
-            locale,
-          }),
-          slotTaken,
-          tenant.id,
-        ),
+        toRow(row, "request_auto_rejected", facts(row, { reason: slotTaken }), slotTaken, locale),
       ),
     ];
   } catch (error) {
@@ -179,37 +133,23 @@ export async function loadDecisionNotify(input: {
   }
 }
 
+/** One row: what the context is for, the text it carries and its link all come from `notifyLink`. */
 function toRow(
   person: { personId: string; name: string; phone: string | null },
-  message: string,
+  context: MessageContext,
+  facts: MessageFacts,
   statusLabel: string,
-  tenantId: string,
+  locale: "ar" | "en",
 ): DecisionNotifyRow {
+  const link = notifyLink({ context, phone: person.phone, facts, locale });
   return {
     personId: person.personId,
     name: person.name,
     phone: person.phone,
-    message,
+    message: link.message ?? "",
     statusLabel,
-    whatsAppHref: linkOrNull(person.phone, message, tenantId),
+    whatsAppHref: link.href,
   };
-}
-
-function linkOrNull(
-  phone: string | null,
-  message: string,
-  tenantId: string,
-): string | null {
-  if (!phone) return null;
-  try {
-    return whatsAppHref(phone, message);
-  } catch (error) {
-    logger.info("Decision WhatsApp link skipped", error, {
-      useCase: "loadDecisionNotify",
-      tenantId,
-    });
-    return null;
-  }
 }
 
 function cleanReason(reason: string | undefined): string {

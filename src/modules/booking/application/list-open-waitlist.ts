@@ -12,10 +12,7 @@ import {
   listApprovedRanges,
   listSlotInterestsWithPeople,
 } from "@/modules/booking/infrastructure/bookings";
-import {
-  slotAvailableMessage,
-  whatsAppHref,
-} from "@/modules/notification/domain/whatsapp-link";
+import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -88,16 +85,17 @@ export async function listOpenWaitlist(): Promise<WaitlistGroup[]> {
       const day = messageDayLabel(row.start, locale, tenant.dayStartHour);
       let href: string | null = null;
       try {
-        href = whatsAppHref(
-          row.phone,
-          slotAvailableMessage({
+        href = notifyLink({
+          context: "freed_slot",
+          phone: row.phone,
+          facts: {
             name: row.name,
-            time: formatLocalHm(row.start, TIME_ZONE, tenant.timeDisplay, locale),
-            day,
             stadiumName: tenant.name,
-            locale,
-          }),
-        );
+            day,
+            time: formatLocalHm(row.start, TIME_ZONE, tenant.timeDisplay, locale),
+          },
+          locale,
+        }).href;
       } catch (error) {
         // RULE-9: keep the person row; DR-004: log side-effect failure.
         // info (not error): bad phone is expected data, not a system bug. No phone in log.

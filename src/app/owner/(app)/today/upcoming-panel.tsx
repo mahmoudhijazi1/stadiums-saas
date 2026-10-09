@@ -79,7 +79,8 @@ export type UpcomingRowView = {
   status: UpcomingStatus;
   display: CardDisplay;
   displayAmountUsd: string;
-  confirmWhatsAppHref: string | null;
+  /** The header WhatsApp link: the chat, or the payment reminder when money is owed on an ended game. */
+  whatsAppHref: string | null;
   showCancel: boolean;
   showNoShow: boolean;
   canAdjust: boolean;
@@ -429,8 +430,8 @@ export function UpcomingPanel({
                     <Phone aria-hidden className="size-5" />
                   </HeaderIcon>
                 ) : null}
-                {sheetStep === "details" && sheetRow.confirmWhatsAppHref ? (
-                  <HeaderIcon href={sheetRow.confirmWhatsAppHref} label={ui("owner.notifyWhatsApp", locale)} external>
+                {sheetStep === "details" && sheetRow.whatsAppHref ? (
+                  <HeaderIcon href={sheetRow.whatsAppHref} label={ui("owner.notifyWhatsApp", locale)} external>
                     <MessageCircle aria-hidden className="size-5" />
                   </HeaderIcon>
                 ) : null}

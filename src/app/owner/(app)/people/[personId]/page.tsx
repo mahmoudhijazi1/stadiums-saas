@@ -43,7 +43,6 @@ export default async function PersonPage({
       <Suspense fallback={<Skeleton className="h-24 w-full rounded-xl" />}>
         <PersonStats
           personId={person.id}
-          personName={person.name}
           phone={person.phone}
           locale={locale}
         />

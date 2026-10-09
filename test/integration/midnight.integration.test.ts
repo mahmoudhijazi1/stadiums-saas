@@ -3,6 +3,7 @@ import Decimal from "decimal.js";
 import db from "@/lib/db";
 import { platformDb } from "@/lib/platform-db";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
+import { loadDecisionNotify } from "@/modules/booking/application/load-decision-notify";
 import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";
 import { loadOwnerDay } from "@/modules/booking/application/load-owner-day";
 import { requestPublicSlot } from "@/modules/booking/application/request-public-slot";
@@ -130,9 +131,9 @@ describe("midnight-crossing windows", () => {
     expect(saturdayDay.summary.games).toBe(0);
 
     // Real time stays real: the confirm message has Saturday's date plus the night hint.
-    const href = decodeURIComponent(fridayDay.games[0]!.confirmWhatsAppHref ?? "");
-    expect(href).toContain("السبت");
-    expect(href).toContain("ليلة الجمعة");
+    const [confirm] = await loadDecisionNotify({ bookingId: requested, kind: "approved" });
+    expect(confirm!.message).toContain("السبت");
+    expect(confirm!.message).toContain("ليلة الجمعة");
     await assertMoneyInvariants([]);
   });
 
