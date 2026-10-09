@@ -75,7 +75,8 @@ src/
     platform/                   ← operator-only: tenants, subscriptions, suspension, audit
                                   (domain + application + infrastructure; no UI). Use cases
                                   take an explicit actor; driven by scripts/platform.ts.
-    shop/                       ← catalog + walk-in sale (Product, Sale, SaleItem); imports access, ledger, payment, people
+    shop/                       ← catalog, walk-in sale, player tabs (Product, Sale, SaleItem); imports access, ledger, payment, people.
+                                  The use cases that put items on a game live in booking/ (it imports shop).
     # academy/  ← Phase 3, don't create yet
 
   lib/                          ← Shared plumbing used by many modules

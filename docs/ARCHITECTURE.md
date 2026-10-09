@@ -21,8 +21,8 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 | `ledger` | access | payment, booking |
 | `payment` | access, ledger | booking (CLAUDE.md: "Payment never imports Booking") |
 | `expense` | access, ledger (period bounds), payment | booking, shop |
-| `shop` | access, ledger (period bounds), payment, people (name cleaner) | booking, expense (a later "items on a game" slice must still not import booking: `app/` composes them) |
-| `booking` | access, notification, payment, people, venue | platform, expense, ledger directly |
+| `shop` | access, ledger (period bounds), payment, people | booking, expense (shop never imports booking: the use cases that put items on a game live in `booking`, which imports shop) |
+| `booking` | access, notification, payment, people, shop, venue | platform, expense, ledger directly |
 | `platform` | access | every tenant module (operator only) |
 
 **The rule is that imports point down.** `booking` is the top business context, and `platform` is a sibling that only uses `access` (identifiers, password hashing and policy). Nothing in `src/modules` imports `platform`; only `scripts/platform-cli.ts` does.
@@ -140,6 +140,9 @@ The server sends nothing. "Notifications" are `wa.me` links built by `notificati
 | `switch-collection-mode.ts` `switchToPerPlayer`, `switchToWhole` | B | Then replaces participants of that booking. |
 | `venue/application/update-pitch.ts` `updatePitch` | P (implicit, `tx.pitch.update`) | Plus the pre-check read on another connection (§3). |
 | `record-expense.ts` `recordExpense` | none (inserts only) | |
+| `booking/application/add-booking-items.ts` `addBookingItems` | B → S (the booking row, then the sale row) | S is the "on the game" sale or the payer tab; an existing one is locked (`lockSale`, `FOR UPDATE`) before lines are appended, a new one is ours alone. The "on the game" kind also raises the due through `writeDueIfChanged`, under B. |
+| `booking/application/remove-booking-item.ts` `removeBookingItem` | B → S | Reads the line before locking (lines are immutable), then B, then S, then re-reads the net quantity under S. |
+| `shop/application/collect-tab-payment.ts` `collectTabPayment` | S only | A tab never touches the booking due, so it needs no B. It waits for an add or a removal on that tab and nothing else. |
 | `shop/application/record-walk-in-sale.ts` `recordWalkInSale` | none, by design | One transaction that only inserts rows it creates (Sale, SaleItem, Payment, tenders, ledger) and reads Product/ExchangeRate without locking. No pitch or booking row is touched, so it cannot join a wait cycle. If a later slice puts items on a game, it takes **B** first like the other money paths. |
 | `login.ts` `login` | R (account/IP failures and blocks, autocommit) | No transaction. |
 | Platform: `suspendTenant`, `resumeTenant` | the Tenant row (`updateMany`, a no-key update) | Own process and pool. |
