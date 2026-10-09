@@ -717,7 +717,18 @@ function UpcomingRowActions({
               <form action={submitCollectPayment} className="shrink-0">
                 <input type="hidden" name="bookingId" value={row.id} />
                 <input type="hidden" name="usdAmount" value={row.remainingUsd} />
-                <SubmitButton className="min-h-11 px-5">{ui("owner.collect", locale)}</SubmitButton>
+                <SubmitButton
+                  variant="outline"
+                  className={cn(
+                    "h-11 rounded-full px-5 type-button",
+                    // The same look as a tab's Collect: amber once owed, bordered ink before.
+                    moneyTone(row) === "owed"
+                      ? "border-transparent bg-owed-subtle text-owed hover:bg-owed-subtle/80"
+                      : "border-line-strong bg-surface-2 text-foreground",
+                  )}
+                >
+                  {ui("owner.collect", locale)}
+                </SubmitButton>
               </form>
             ) : null
           }
