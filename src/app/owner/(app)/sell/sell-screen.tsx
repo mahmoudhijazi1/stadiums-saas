@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Decimal from "decimal.js";
 import { toast } from "sonner";
-import { ItemTiles, QTY_MAX, type SellItem } from "@/app/owner/item-tiles";
-import { TenderBalance } from "@/app/owner/tender-balance";
+import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
+import { PartsBalance } from "@/app/owner/parts-balance";
 import { Button } from "@/components/ui/button";
 import {
   BottomSheet,
@@ -19,16 +18,18 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/money";
+import { formatParts } from "@/lib/money-display";
 import { soldToast, ui } from "@/lib/ui-copy";
 import { submitWalkInSale } from "./actions";
 
+export type { SellItem };
 
 /**
- * The counter: a grid of item tiles (tap = +1 with a count badge, a "−" once the count is above 0),
- * a bar with the total and one primary "Collect $X", and the tender sheet (USD / LBP, live
- * remaining, frozen rate) for that total. Only ids and quantities go to the server: it reads the
- * prices itself. A sale must be paid in full; more than the total is accepted.
+ * The counter: a grid of item tiles (tap = +1 with a count badge, a "-" button once the count is above
+ * 0), a bar with the total and one primary "Collect", and the tender sheet (LBP / USD) for it. The
+ * total is shown in the currencies of the items ("60,000 ل.ل + $1.50") and the sheet is prefilled with
+ * exactly those parts, so the common case is one tap. Only ids and quantities go to the server: it
+ * reads the prices itself. A sale must be settled in full.
  */
 export function SellScreen({
   items,
@@ -50,9 +51,9 @@ export function SellScreen({
   const lines = items
     .map((item) => ({ item, qty: counts[item.id] ?? 0 }))
     .filter((line) => line.qty > 0);
-  const total = lines.reduce((sum, line) => sum.plus(new Decimal(line.item.priceUsd).times(line.qty)), new Decimal(0));
+  const parts = partsOf(items, counts);
   const itemCount = lines.reduce((sum, line) => sum + line.qty, 0);
-  const totalText = total.toFixed(2);
+  const totalText = formatParts(parts, locale);
 
   function change(id: string, delta: number) {
     setCounts((current) => {
@@ -62,8 +63,8 @@ export function SellScreen({
   }
 
   function startPaying() {
-    setUsd(totalText);
-    setLbp("");
+    setUsd(parts.usd.gt(0) ? parts.usd.toFixed(2) : "");
+    setLbp(parts.lbp.gt(0) ? parts.lbp.toFixed(0) : "");
     setError(null);
     setPaying(true);
   }
@@ -80,7 +81,9 @@ export function SellScreen({
         setError(errorMessage(result.error, locale));
         return;
       }
-      toast.success(soldToast(result.itemCount, formatUsdCompact(new Decimal(result.totalUsd)), locale));
+      toast.success(
+        soldToast(result.itemCount, formatParts({ lbp: result.totalLbp, usd: result.totalUsdPart }, locale), locale),
+      );
       setPaying(false);
       if (window.history.length > 1) router.back();
       else router.push("/owner/today");
@@ -89,7 +92,7 @@ export function SellScreen({
 
   return (
     <div className="flex flex-col gap-4 pb-40">
-      <ItemTiles items={items} counts={counts} onChange={change} locale={locale} />
+      <ItemTiles items={items} counts={counts} onChange={change} locale={locale} rateKnown={lbpPerUsd !== null} />
 
       {/* Above the floating nav and its safe-area inset. */}
       <div className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 mx-auto w-full max-w-lg px-3 lg:bottom-4">
@@ -97,11 +100,11 @@ export function SellScreen({
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="type-caption">{ui("owner.sellTotal", locale)}</span>
             <span className="type-strong">
-              <LtrIsolate>{`$${formatUsdCompact(total)}`}</LtrIsolate>
+              <LtrIsolate>{totalText}</LtrIsolate>
             </span>
           </div>
           <Button type="button" className="min-h-11 shrink-0" disabled={itemCount === 0} onClick={startPaying}>
-            {ui("owner.collect", locale)} <LtrIsolate>{`$${formatUsdCompact(total)}`}</LtrIsolate>
+            {ui("owner.collect", locale)}
           </Button>
         </div>
       </div>
@@ -112,16 +115,9 @@ export function SellScreen({
             <BottomSheetTitle>{ui("owner.sell", locale)}</BottomSheetTitle>
           </BottomSheetHeader>
           <BottomSheetBody className="flex flex-col gap-4 pb-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="sale-usd">{ui("owner.usdRemaining", locale)}</Label>
-              <Input
-                id="sale-usd"
-                inputMode="decimal"
-                autoComplete="off"
-                value={usd}
-                onChange={(event) => setUsd(event.target.value)}
-              />
-            </div>
+            <p className="type-strong">
+              {ui("owner.sellTotal", locale)}: <LtrIsolate>{totalText}</LtrIsolate>
+            </p>
             <div className="flex flex-col gap-2">
               <Label htmlFor="sale-lbp">{ui("owner.lbp", locale)}</Label>
               <Input
@@ -132,21 +128,24 @@ export function SellScreen({
                 onChange={(event) => setLbp(event.target.value)}
               />
             </div>
-            <TenderBalance
-              usdText={usd}
-              lbpText={lbp}
-              lbpPerUsd={lbpPerUsd}
-              targetUsd={totalText}
-              locale={locale}
-              onFillLbp={setLbp}
-            />
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="sale-usd">USD</Label>
+              <Input
+                id="sale-usd"
+                inputMode="decimal"
+                autoComplete="off"
+                value={usd}
+                onChange={(event) => setUsd(event.target.value)}
+              />
+            </div>
+            <PartsBalance owed={parts} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />
             {error ? (
               <p role="alert" className="type-secondary text-owed">
                 {error}
               </p>
             ) : null}
             <Button type="button" className="w-full" onClick={submit} disabled={pending}>
-              {ui("owner.collect", locale)} <LtrIsolate>{`$${formatUsdCompact(total)}`}</LtrIsolate>
+              {ui("owner.collect", locale)} <LtrIsolate>{totalText}</LtrIsolate>
             </Button>
           </BottomSheetBody>
         </BottomSheetContent>

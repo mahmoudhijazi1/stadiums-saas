@@ -87,9 +87,25 @@ describe("a walk-in sale must be paid in full", () => {
 
 describe("product input", () => {
   it("keeps the name as written, cleaned, and the price to the cent", () => {
-    expect(parseProductInput({ name: "  Pepsi   Max  ", priceUsd: "1.50" })).toEqual({ name: "Pepsi Max", priceUsd: "1.50" });
-    expect(parseProductInput({ name: "ماء", priceUsd: "1" })).toEqual({ name: "ماء", priceUsd: "1.00" });
-    expect(parseProductInput({ name: "Cola", priceUsd: "10000" }).priceUsd).toBe("10000.00");
+    const usd = (input: object) => {
+      const parsed = parseProductInput(input);
+      if (parsed.price.currency !== "USD") throw new Error("expected a USD price");
+      return [parsed.name, parsed.price.usd.toFixed(2)];
+    };
+    expect(usd({ name: "  Pepsi   Max  ", priceUsd: "1.50" })).toEqual(["Pepsi Max", "1.50"]);
+    expect(usd({ name: "ماء", priceUsd: "1" })).toEqual(["ماء", "1.00"]);
+    expect(usd({ name: "Cola", priceUsd: "10000" })[1]).toBe("10000.00");
+  });
+
+  it("an LBP price is whole pounds above 0", () => {
+    const lbp = parseProductInput({ name: "Cola", priceLbp: "20000" });
+    expect(lbp.price.currency === "LBP" && lbp.price.lbp.toFixed(0)).toBe("20000");
+    for (const bad of ["0", "-5", "1.5", "20,000", "abc", "", "1000000001"]) {
+      expect(() => parseProductInput({ name: "Cola", priceLbp: bad })).toThrow();
+    }
+    // One price only.
+    expect(() => parseProductInput({ name: "Cola", priceLbp: "20000", priceUsd: "1.00" })).toThrow();
+    expect(() => parseProductInput({ name: "Cola" })).toThrow();
   });
 
   it.each([

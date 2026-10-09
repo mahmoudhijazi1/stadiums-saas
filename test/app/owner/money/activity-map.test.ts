@@ -35,7 +35,7 @@ const context: ActivityContext = {
         id: "t1",
         soldAt: new Date("2026-10-15T09:00:00Z"),
         payerName: "Rami",
-        lines: [{ name: "Cola", qty: 2, unitPriceUsd: new Decimal("1.50"), lineTotalUsd: new Decimal("3.00") }],
+        lines: [{ name: "Cola", qty: 2, unitPriceUsd: new Decimal("1.50"), lineTotalUsd: new Decimal("3.00"), unitPriceLbp: null, lineTotalLbp: null }],
         tenders: [{ currency: "USD" as const, amount: new Decimal("2.00"), rateAtTime: null, usdEquivalent: new Decimal("2.00") }],
       },
     ],
@@ -46,8 +46,8 @@ const context: ActivityContext = {
         soldAt: new Date("2026-10-15T09:00:00Z"),
         payerName: null,
         lines: [
-          { name: "Cola", qty: 2, unitPriceUsd: new Decimal("1.50"), lineTotalUsd: new Decimal("3.00") },
-          { name: "Chips", qty: 1, unitPriceUsd: new Decimal("2.25"), lineTotalUsd: new Decimal("2.25") },
+          { name: "Cola", qty: 2, unitPriceUsd: new Decimal("1.50"), lineTotalUsd: new Decimal("3.00"), unitPriceLbp: null, lineTotalLbp: null },
+          { name: "Chips", qty: 1, unitPriceUsd: new Decimal("0.22"), lineTotalUsd: new Decimal("0.67"), unitPriceLbp: new Decimal("20000"), lineTotalLbp: new Decimal("60000") },
         ],
         tenders: [
           { currency: "LBP" as const, amount: new Decimal("472500"), rateAtTime: new Decimal("90000"), usdEquivalent: new Decimal("5.25") },
@@ -108,8 +108,8 @@ describe("mapActivityEntry: one mapping keyed by sourceType", () => {
     expect(row.secondary).toContain("Cola");
     if (row.open?.kind !== "sale") throw new Error("expected a sale sheet");
     expect(row.open.detail.lines).toEqual([
-      { name: "Cola", qty: 2, unitPriceUsd: "1.50", lineTotalUsd: "3.00" },
-      { name: "Chips", qty: 1, unitPriceUsd: "2.25", lineTotalUsd: "2.25" },
+      { name: "Cola", qty: 2, currency: "USD", unit: "1.50", total: "3.00" },
+      { name: "Chips", qty: 1, currency: "LBP", unit: "20000", total: "60000" },
     ]);
     expect(row.open.detail.tenders).toEqual([{ currency: "LBP", amount: "472500", rate: "90000", usd: "5.25" }]);
     expect(mapActivityEntry(entry({ sourceType: "SALE", sourceId: "s9" }), context, "ar").label).toBe("المتجر · 3 أصناف");
@@ -119,7 +119,7 @@ describe("mapActivityEntry: one mapping keyed by sourceType", () => {
     const row = mapActivityEntry(entry({ id: "e4", sourceType: "SALE", sourceId: "t1", amountUsd: new Decimal("2.00") }), context, "en");
     expect(row).toMatchObject({ label: "Rami", secondary: "Shop · 2 items", icon: "shop", amountUsd: "2.00" });
     if (row.open?.kind !== "sale") throw new Error("expected a sale sheet");
-    expect(row.open.detail.lines).toEqual([{ name: "Cola", qty: 2, unitPriceUsd: "1.50", lineTotalUsd: "3.00" }]);
+    expect(row.open.detail.lines).toEqual([{ name: "Cola", qty: 2, currency: "USD", unit: "1.50", total: "3.00" }]);
   });
 
   it("a SALE row whose sale cannot be found still shows, without a sheet", () => {

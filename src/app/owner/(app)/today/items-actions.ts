@@ -11,12 +11,12 @@ import { collectTabPayment } from "@/modules/shop/application/collect-tab-paymen
  * prices itself and writes in one transaction. The client sends ids and quantities, never a price.
  * The booking sheet refreshes the page after a success.
  */
-export type ItemsResult = { ok: true; itemCount?: number; totalUsd?: string } | { error: string };
+export type ItemsResult = { ok: true; itemCount?: number } | { error: string };
 
 export async function submitAddBookingItems(input: unknown): Promise<ItemsResult> {
   try {
     const added = await addBookingItems(input);
-    return { ok: true, itemCount: added.itemCount, totalUsd: added.totalUsd.toFixed(2) };
+    return { ok: true, itemCount: added.itemCount };
   } catch (error) {
     return { error: await actionErrorKey(error, "submitAddBookingItems") };
   }

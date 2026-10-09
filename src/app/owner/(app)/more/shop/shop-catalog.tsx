@@ -16,22 +16,28 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
+import { formatLbpAmount, formatUsdAmount } from "@/lib/money-display";
 import { ui } from "@/lib/ui-copy";
+import { cn } from "cn";
 import { isValidUsd, MoneyInput } from "../settings/pitches/money-input";
 import { SettingsRow, SettingsSection } from "../settings-list";
 import { submitArchiveProduct, submitCreateProduct, submitUpdateProduct } from "./actions";
 
-export type CatalogItem = { id: string; name: string; priceUsd: string };
+/** The price is a USD amount ("1.50") or whole pounds ("20000"), in the item's own currency. */
+export type CatalogItem = { id: string; name: string; currency: "USD" | "LBP"; price: string };
 
 /**
- * The shop catalog: a list ordered by what sold most in the last 30 days, and a sheet with two
- * fields (name, price) to add or edit. Archive instead of delete. Names stay as written.
+ * The shop catalog: a list ordered by what sold most in the last 30 days, and a sheet with a name, a
+ * currency switch ("ل.ل | $", pounds by default) and a price to add or edit. Archive instead of
+ * delete. Names stay as written. A price is in one currency: an item priced in pounds is sold in
+ * pounds, whatever the rate does.
  */
 export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: UiLocale }) {
   const router = useRouter();
   const [editing, setEditing] = useState<CatalogItem | "new" | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState<"USD" | "LBP">("LBP");
   const [error, setError] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -39,7 +45,8 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
   function open(target: CatalogItem | "new") {
     setEditing(target);
     setName(target === "new" ? "" : target.name);
-    setPrice(target === "new" ? "" : target.priceUsd);
+    setPrice(target === "new" ? "" : target.price);
+    setCurrency(target === "new" ? "LBP" : target.currency);
     setError(null);
     setConfirmArchive(false);
   }
@@ -55,7 +62,7 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
 
   function save() {
     if (!editing) return;
-    const input = { name, priceUsd: price };
+    const input = currency === "LBP" ? { name, priceLbp: price.trim() } : { name, priceUsd: price };
     startTransition(async () => {
       finish(
         editing === "new" ? await submitCreateProduct(input) : await submitUpdateProduct(editing.id, input),
@@ -68,7 +75,8 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
     startTransition(async () => finish(await submitArchiveProduct(editing.id)));
   }
 
-  const canSave = name.trim().length > 0 && isValidUsd(price) && Number(price) > 0;
+  const priceOk = currency === "LBP" ? /^[1-9]\d*$/.test(price.trim()) : isValidUsd(price) && Number(price) > 0;
+  const canSave = name.trim().length > 0 && priceOk;
 
   return (
     <div className="flex flex-col gap-4">
@@ -85,7 +93,7 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
             <SettingsRow
               key={item.id}
               label={<bdi>{item.name}</bdi>}
-              value={<LtrIsolate>{`$${item.priceUsd}`}</LtrIsolate>}
+              value={<LtrIsolate>{item.currency === "LBP" ? formatLbpAmount(item.price, locale) : formatUsdAmount(item.price)}</LtrIsolate>}
               onClick={() => open(item)}
             />
           ))}
@@ -112,7 +120,37 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="product-price">{ui("owner.shopPrice", locale)}</Label>
-              <MoneyInput id="product-price" value={price} onChange={setPrice} invalid={price !== "" && !isValidUsd(price)} />
+              <div role="group" aria-label={ui("owner.shopCurrency", locale)} className="inline-flex w-fit rounded-full border bg-card p-0.5">
+                {(["LBP", "USD"] as const).map((choice) => (
+                  <button
+                    key={choice}
+                    type="button"
+                    aria-pressed={currency === choice}
+                    onClick={() => {
+                      setCurrency(choice);
+                      setPrice("");
+                    }}
+                    className={cn(
+                      "inline-flex min-h-10 min-w-12 items-center justify-center rounded-full px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                      currency === choice ? "bg-selected text-selected-ink" : "text-muted-foreground",
+                    )}
+                  >
+                    {choice === "LBP" ? "ل.ل" : "$"}
+                  </button>
+                ))}
+              </div>
+              {currency === "LBP" ? (
+                <Input
+                  id="product-price"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value.replace(/\D/g, ""))}
+                  className="font-mono"
+                />
+              ) : (
+                <MoneyInput id="product-price" value={price} onChange={setPrice} invalid={price !== "" && !isValidUsd(price)} />
+              )}
               {editing !== "new" ? (
                 <p className="type-caption">{ui("owner.shopPriceNote", locale)}</p>
               ) : null}

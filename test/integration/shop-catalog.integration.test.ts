@@ -53,7 +53,7 @@ describe("catalog", () => {
   it("adds, edits and archives items; names stay as written; archived items vanish from the list", async () => {
     const cola = await createProduct({ name: "  Pepsi   Max ", priceUsd: "1.50" });
     const water = await createProduct({ name: "ماء", priceUsd: "1" });
-    expect((await listProducts({ forSale: false })).map((item) => [item.name, item.priceUsd.toFixed(2)])).toEqual([
+    expect((await listProducts({ forSale: false })).map((item) => [item.name, item.priceUsd!.toFixed(2)])).toEqual([
       ["Pepsi Max", "1.50"],
       ["ماء", "1.00"],
     ]);
@@ -97,7 +97,7 @@ describe("catalog", () => {
     const line = await platformDb.saleItem.findFirstOrThrow({ where: { productId: cola.id } });
     expect(line.unitPriceUsd.toFixed(2)).toBe("1.50");
     expect(line.lineTotalUsd.toFixed(2)).toBe("3.00");
-    expect((await platformDb.product.findUniqueOrThrow({ where: { id: cola.id } })).priceUsd.toFixed(2)).toBe("2.50");
+    expect((await platformDb.product.findUniqueOrThrow({ where: { id: cola.id } })).priceUsd!.toFixed(2)).toBe("2.50");
   });
 
   it("archiving keeps the item on past sales", async () => {

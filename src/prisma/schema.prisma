@@ -37,6 +37,7 @@ model Tenant {
   products            Product[]
   sales               Sale[]
   saleItems           SaleItem[]
+  saleAllocations     SaleAllocation[]
   /// Set by the platform operator (scripts/platform.ts). Null = active. Sessions and
   /// data are untouched; resume clears both columns (decision 7).
   suspendedAt         DateTime?
@@ -401,7 +402,11 @@ model Product {
   id         String    @id @default(cuid())
   tenantId   String
   name       String
-  priceUsd   Decimal   @db.Decimal(12, 2)
+  /// Which currency the price tag is in. A USD item has priceUsd, an LBP item has priceLbp (whole
+  /// pounds); exactly one is set. CHECK Product_price_by_currency (SQL-only) enforces it.
+  priceCurrency Currency @default(USD)
+  priceUsd   Decimal?  @db.Decimal(12, 2)
+  priceLbp   BigInt?
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   tenant     Tenant    @relation(fields: [tenantId], references: [id])
@@ -436,6 +441,7 @@ model Sale {
   booking               Booking?   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
   payer                 Person?    @relation(fields: [payerPersonId], references: [id], onDelete: Restrict)
   items                 SaleItem[]
+  allocations           SaleAllocation[]
 
   @@index([tenantId])
   @@index([tenantId, soldAt])
@@ -456,8 +462,17 @@ model SaleItem {
   saleId         String
   productId      String
   qty            Int
+  /// Frozen USD value, for every report. A USD item: its price. An LBP item: the LBP price converted at
+  /// `rateAtTime` with the shared tender conversion (can round to 0.00 for a tiny price).
   unitPriceUsd   Decimal  @db.Decimal(12, 2)
+  /// A USD item: qty x unit price. An LBP item: the conversion of `lineTotalLbp` (a removal's line
+  /// carries the difference, so the lines of one item always add up to the conversion of the net LBP).
   lineTotalUsd   Decimal  @db.Decimal(12, 2)
+  /// LBP items only (all three set together, CHECK SaleItem_lbp_fields_together): the price tag in
+  /// pounds, qty x that, and the LBP-per-USD rate it was frozen at.
+  unitPriceLbp   Decimal? @db.Decimal(18, 0)
+  lineTotalLbp   Decimal? @db.Decimal(18, 0)
+  rateAtTime     Decimal? @db.Decimal(18, 0)
   /// When the line was added: the Shop card counts by it (a line added to a game's tab tomorrow
   /// belongs to tomorrow). Equal to the sale time on a walk-in sale.
   addedAt        DateTime @default(now())
@@ -473,6 +488,25 @@ model SaleItem {
   @@index([tenantId, productId])
   @@index([tenantId, addedAt])
   @@index([reversesItemId])
+}
+
+/// How much of a sale's LBP part and USD part one payment settled. Insert-only, one row per payment.
+/// What a sale still owes in LBP is the sum of its LBP lines minus the sum of `lbpApplied` (likewise
+/// USD), so a rate change never changes what is owed in pounds. `paymentId` has no foreign key
+/// (Payment does not know what a source is, DR-002 §2.14).
+model SaleAllocation {
+  id         String   @id @default(cuid())
+  tenantId   String
+  saleId     String
+  paymentId  String   @unique
+  lbpApplied Decimal  @db.Decimal(18, 0)
+  usdApplied Decimal  @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  sale       Sale     @relation(fields: [saleId], references: [id])
+
+  @@index([tenantId])
+  @@index([saleId])
 }
 
 enum Currency {

@@ -302,7 +302,7 @@ describe("collecting a player tab", () => {
 
     await collectTabPayment({ saleId, usdAmount: "3.00" }); // more than the 2.50 left
     view = (await listBookingItems([bookingId])).get(bookingId)!.tabs[0]!;
-    expect(view.remainingUsd.toFixed(2)).toBe("-0.50");
+    expect(view.remainingUsd.toFixed(2)).toBe("0.00"); // owed nothing more; the extra is recorded in full for now
     await expect(collectTabPayment({ saleId, usdAmount: "1.00" })).rejects.toMatchObject({ key: "payment.nothing_due" });
 
     const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceType: "SALE", sourceId: saleId }, orderBy: { occurredAt: "asc" } });

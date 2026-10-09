@@ -79,6 +79,16 @@ Every change of `Booking.amountDueUsd` goes through `booking/application/write-d
 
 ---
 
+### Shop items priced in LBP (mini shop)
+
+USD stays the unit of account; **LBP is the price tag and the payment**.
+
+- An item is priced in dollars or in pounds. Each sale line freezes its USD value when it is added (the shared tender conversion at the current rate; an LBP item cannot be sold while no rate is set). An LBP line also keeps its pounds and the rate.
+- A sale or tab is therefore made of an **LBP part** (its LBP lines, whole pounds) and a **USD part**. What it owes is owed in those currencies: a rate change after an item was added never changes the pounds owed. A partial LBP payment leaves the rest in pounds (20,000 - 10,000 = 10,000), never a USD remainder with stray cents.
+- `shop/domain/pricing.ts` `applyPayment` settles it: an LBP tender settles the LBP part first, a USD tender the USD part first, and any excess converts to the other part at the current rate (`SaleAllocation` stores what each payment settled).
+- **Ledger rule.** The USD recorded (each tender's `usdEquivalent`, summed into the ledger IN) for pounds paid against LBP lines is those lines' **frozen USD value**, allocated in proportion to the pounds settled, and the payment that settles the last pound takes the exact remainder. So a fully paid sale or tab records exactly its frozen USD whatever the rate did in between, and the aggregate totals (Today, Owed, Money, the Shop card) are all in USD from the frozen values of what is outstanding. Dollars paid against dollar lines record themselves. LBP is never summed across time.
+- Per-sale and per-tab amounts are displayed in their own currencies ("20,000 ل.ل", "60,000 ل.ل + $1.50"); aggregates are USD.
+
 ## 5. Invariants and where each is enforced
 
 | # | Invariant | Code | Database | Nowhere / notes |

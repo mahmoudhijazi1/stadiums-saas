@@ -21,7 +21,8 @@ export type ExpenseDetailView = {
 export type SaleDetailView = {
   totalUsd: string;
   dateLabel: string;
-  lines: { name: string; qty: number; unitPriceUsd: string; lineTotalUsd: string }[];
+  /** In the currency of the item: `unit` and `total` are USD amounts or whole pounds. */
+  lines: { name: string; qty: number; currency: "USD" | "LBP"; unit: string; total: string }[];
   tenders: ExpenseDetailView["tenders"];
 };
 
@@ -126,8 +127,9 @@ function mapSale(entry: LedgerEntryRow, context: ActivityContext, locale: UiLoca
         lines: sale.lines.map((line) => ({
           name: line.name,
           qty: line.qty,
-          unitPriceUsd: line.unitPriceUsd.toFixed(2),
-          lineTotalUsd: line.lineTotalUsd.toFixed(2),
+          currency: line.unitPriceLbp ? ("LBP" as const) : ("USD" as const),
+          unit: line.unitPriceLbp ? line.unitPriceLbp.toFixed(0) : line.unitPriceUsd.toFixed(2),
+          total: line.lineTotalLbp ? line.lineTotalLbp.toFixed(0) : line.lineTotalUsd.toFixed(2),
         })),
         tenders: tendersView(sale.tenders),
       },

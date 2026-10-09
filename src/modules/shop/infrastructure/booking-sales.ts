@@ -66,19 +66,37 @@ export async function insertBookingSale(
   });
 }
 
-/** Take `qty` (positive here) of an original line back: a new line with a negative quantity. */
+/**
+ * Take `qty` (positive here) of an original line back: a new line with a negative quantity that
+ * copies the original's prices and rate. The caller says what the line is worth (USD, and pounds for
+ * an LBP item): see `lbpReversal`.
+ */
 export async function insertReversalItem(
   tx: TenantTx,
-  input: { saleId: string; original: { id: string; productId: string; unitPriceUsd: Decimal }; qty: number },
+  input: {
+    saleId: string;
+    original: {
+      id: string;
+      productId: string;
+      unitPriceUsd: Decimal;
+      unitPriceLbp: Decimal | null;
+      rateAtTime: Decimal | null;
+    };
+    qty: number;
+    lineTotalUsd: Decimal;
+    lineTotalLbp: Decimal | null;
+  },
 ): Promise<void> {
-  const qty = -input.qty;
   await tx.saleItem.create({
     data: {
       saleId: input.saleId,
       productId: input.original.productId,
-      qty,
+      qty: -input.qty,
       unitPriceUsd: formatUsd(input.original.unitPriceUsd),
-      lineTotalUsd: formatUsd(input.original.unitPriceUsd.times(qty)),
+      lineTotalUsd: formatUsd(input.lineTotalUsd),
+      unitPriceLbp: input.original.unitPriceLbp ? input.original.unitPriceLbp.toFixed(0) : null,
+      lineTotalLbp: input.lineTotalLbp ? input.lineTotalLbp.toFixed(0) : null,
+      rateAtTime: input.original.rateAtTime ? input.original.rateAtTime.toFixed(0) : null,
       reversesItemId: input.original.id,
     } as Parameters<typeof tx.saleItem.create>[0]["data"],
   });
@@ -90,6 +108,8 @@ export type SaleItemRow = {
   productId: string;
   qty: number;
   unitPriceUsd: Decimal;
+  unitPriceLbp: Decimal | null;
+  rateAtTime: Decimal | null;
   reversesItemId: string | null;
 };
 
@@ -102,6 +122,8 @@ export async function findSaleItem(tx: TenantTx, itemId: string): Promise<SaleIt
     productId: row.productId,
     qty: row.qty,
     unitPriceUsd: new Decimal(row.unitPriceUsd.toString()),
+    unitPriceLbp: row.unitPriceLbp === null ? null : new Decimal(row.unitPriceLbp.toString()),
+    rateAtTime: row.rateAtTime === null ? null : new Decimal(row.rateAtTime.toString()),
     reversesItemId: row.reversesItemId,
   };
 }
@@ -111,6 +133,10 @@ function toStored(item: {
   productId: string;
   qty: number;
   unitPriceUsd: { toString(): string };
+  lineTotalUsd: { toString(): string };
+  unitPriceLbp: { toString(): string } | null;
+  lineTotalLbp: { toString(): string } | null;
+  rateAtTime: { toString(): string } | null;
   reversesItemId: string | null;
   product: { name: string };
 }): StoredLine {
@@ -120,6 +146,10 @@ function toStored(item: {
     name: item.product.name,
     qty: item.qty,
     unitPriceUsd: new Decimal(item.unitPriceUsd.toString()),
+    lineTotalUsd: new Decimal(item.lineTotalUsd.toString()),
+    unitPriceLbp: item.unitPriceLbp === null ? null : new Decimal(item.unitPriceLbp.toString()),
+    lineTotalLbp: item.lineTotalLbp === null ? null : new Decimal(item.lineTotalLbp.toString()),
+    rateAtTime: item.rateAtTime === null ? null : new Decimal(item.rateAtTime.toString()),
     reversesItemId: item.reversesItemId,
   };
 }
@@ -129,6 +159,10 @@ const ITEM_SELECT = {
   productId: true,
   qty: true,
   unitPriceUsd: true,
+  lineTotalUsd: true,
+  unitPriceLbp: true,
+  lineTotalLbp: true,
+  rateAtTime: true,
   reversesItemId: true,
   product: { select: { name: true } },
 } as const;

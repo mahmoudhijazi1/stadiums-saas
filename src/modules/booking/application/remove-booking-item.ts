@@ -8,6 +8,7 @@ import { BOOKINGS_ADJUST_DUE, can } from "@/modules/access/domain/can";
 import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { assertRemovalQty, isTab, netLines } from "@/modules/shop/domain/booking-items";
+import { lbpReversal } from "@/modules/shop/domain/pricing";
 import {
   findSale,
   findSaleItem,
@@ -44,10 +45,30 @@ export async function removeBookingItem(input: unknown): Promise<void> {
       assertRemovalQty(net.qty, parsed.qty);
       if ((await sumCollectedUsd(tx, "SALE", sale.id)).gt(0)) throw new DomainError("shop.tab_has_payments");
 
+      // A USD line gives back qty x its price. An LBP line gives back the pounds, and its USD value is
+      // set so that the lines of the item still add up to the conversion of the pounds that remain.
+      const reversal =
+        net.unitPriceLbp && net.rateAtTime
+          ? lbpReversal({
+              unitPriceLbp: net.unitPriceLbp,
+              rateAtTime: net.rateAtTime,
+              netQtyBefore: net.qty,
+              netUsdBefore: net.totalUsd,
+              removedQty: parsed.qty,
+            })
+          : { lineTotalLbp: null, lineTotalUsd: item.unitPriceUsd.times(parsed.qty).negated() };
       await insertReversalItem(tx, {
         saleId: sale.id,
-        original: { id: item.id, productId: item.productId, unitPriceUsd: item.unitPriceUsd },
+        original: {
+          id: item.id,
+          productId: item.productId,
+          unitPriceUsd: item.unitPriceUsd,
+          unitPriceLbp: item.unitPriceLbp,
+          rateAtTime: item.rateAtTime,
+        },
         qty: parsed.qty,
+        lineTotalUsd: reversal.lineTotalUsd,
+        lineTotalLbp: reversal.lineTotalLbp,
       });
     });
 

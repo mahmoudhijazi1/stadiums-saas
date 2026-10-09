@@ -116,7 +116,12 @@ export async function OwnerToday({
   ]);
   const shop = {
     maySell,
-    products: products.map((item) => ({ id: item.id, name: item.name, priceUsd: item.priceUsd.toFixed(2) })),
+    products: products.map((item) => ({
+      id: item.id,
+      name: item.name,
+      currency: item.priceCurrency,
+      price: item.priceCurrency === "LBP" ? item.priceLbp!.toFixed(0) : item.priceUsd!.toFixed(2),
+    })),
   };
   const saved =
     notify && bookingId ? await loadOutcomeNotify({ bookingId, kind: notify }) : null;
@@ -286,8 +291,10 @@ function lineViews(lines: readonly NetLine[]): ItemLineView[] {
     id: line.id,
     name: line.name,
     qty: line.qty,
-    unitUsd: formatUsd(line.unitPriceUsd),
-    totalUsd: formatUsd(line.totalUsd),
+    // In the currency of the item: an LBP item is shown in pounds, whatever the rate did since.
+    currency: line.unitPriceLbp ? ("LBP" as const) : ("USD" as const),
+    unit: line.unitPriceLbp ? line.unitPriceLbp.toFixed(0) : formatUsd(line.unitPriceUsd),
+    total: line.totalLbp ? line.totalLbp.toFixed(0) : formatUsd(line.totalUsd),
   }));
 }
 
@@ -304,8 +311,8 @@ function itemsView(row: OwnerDayBooking, items: BookingItemsView | undefined): B
       saleId: tab.saleId,
       name: tab.name,
       lines: lineViews(tab.lines),
-      totalUsd: formatUsd(tab.totalUsd),
       paidUsd: formatUsd(tab.paidUsd),
+      remainingLbp: tab.remainingLbp.toFixed(0),
       remainingUsd: formatUsd(tab.remainingUsd),
     })),
     players,

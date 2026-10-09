@@ -45,7 +45,12 @@ export default async function SellPage() {
         <SellScreen
           locale={locale}
           lbpPerUsd={rate ? rate.toString() : null}
-          items={items.map((item) => ({ id: item.id, name: item.name, priceUsd: item.priceUsd.toFixed(2) }))}
+          items={items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            currency: item.priceCurrency,
+            price: item.priceCurrency === "LBP" ? item.priceLbp!.toFixed(0) : item.priceUsd!.toFixed(2),
+          }))}
         />
       )}
     </section>

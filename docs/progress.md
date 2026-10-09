@@ -5938,3 +5938,23 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** the lock order is unchanged (B then S for add and remove, S only for a tab collection). Owed, Today and Money totals are unchanged in kind: a booker's tab is a tab.
 
 **How to verify:** `npm test` 751 passed; `shop-booking-items` + `shop-races` integration suites 21 passed (the full integration run is done once at the end of change C); the new migration applied to `stadiums_test` and `stadiums_dev`. The booking sheet was not rendered in a browser.
+
+## Mini shop, slice 2, change B: items priced in LBP
+
+**What:**
+- **Catalog:** `Product.priceCurrency` (USD | LBP), a USD price as `Decimal(12,2)` or an LBP price as `BigInt` (whole, > 0), exactly one (CHECK). The item sheet has a "ل.ل | $" switch, default ل.ل. Tiles, sale totals and each sale or tab show amounts in the item's own currency ("20,000 ل.ل", "60,000 ل.ل + $1.50").
+- **Lines:** each `SaleItem` keeps its frozen USD value (computed when added, from the current rate, with the shared `usdEquivalent` conversion, on the whole line) for all reporting, plus the LBP price, the LBP line total and the rate for an LBP item. Without an exchange rate an LBP item cannot be sold (`shop.rate_required`; the grid shows "Set the exchange rate first" with a link to the rate setting).
+- **What is owed** is owed in the item's currency: an LBP part (whole pounds) and a USD part. The tender sheets (Sell, and Collect on a tab) are prefilled with exactly those parts. `applyPayment` (`shop/domain/pricing.ts`): LBP cash settles the LBP part first, USD cash the USD part first, any excess converts to the other part at the current rate. A partial LBP payment leaves the rest in pounds. A rate change after an item was added does not change the pounds owed. New insert-only table `SaleAllocation` (one row per payment: pounds and dollars settled) holds the per-currency state; the migration backfills it for existing sales.
+- **Ledger rule:** the USD recorded for pounds paid against LBP lines is those lines' frozen USD value, allocated in proportion to the pounds settled, the last payment taking the exact remainder, so a fully paid sale or tab records exactly its frozen USD. Documented in `docs/domain/money.md` (USD stays the unit of account; LBP is the price tag and the payment).
+- **Removal** of an LBP line is a compensating line in pounds whose USD value makes the item's lines add up to the conversion of the pounds that remain.
+- **Aggregates stay USD:** the Today day line, the earlier-debts total, "Owed to you", the Owed page and the Shop card use the frozen USD of what is outstanding (Σ line USD − Σ recorded tender USD); LBP is never summed across time. Per-tab and per-sale amounts display in their own currencies. The Activity sale sheet shows lines in their own currency.
+- For now an excess over what is owed is still recorded in full, as in slice 1 (the next change, C, turns it into change).
+- Migration `20261010150000_shop_lbp_prices` (additive; applied migrations untouched): Product columns and CHECK, SaleItem LBP columns with relaxed CHECKs and the reversal trigger updated to copy the LBP price and rate, `SaleAllocation` with its backfill.
+
+**Why:** the owner prices and takes cash in pounds; a USD-only price tag forced a conversion on every sale and a rate move silently changed what a player owed. See DR-002 §2.14-2.21 (USD unit of account, frozen tenders).
+
+**Files:** `modules/shop/{domain/pricing,application/{sale-state,record-walk-in-sale,collect-tab-payment,list-booking-items},infrastructure/{products,sales,booking-sales,sale-allocations},schemas/product}.ts`, `modules/booking/application/{add-booking-items,remove-booking-item}.ts`, `lib/money-display.ts`, `app/owner/{item-tiles,parts-balance}.tsx`, `app/owner/(app)/{more/shop,sell,today,money}/**`, `prisma/{schema.prisma,migrations/20261010150000_*}`. Tests: `test/modules/shop/pricing.test.ts`, `test/integration/shop-lbp.integration.test.ts` plus the existing shop suites updated.
+
+**How it connects:** `shop` imports `payment` (the shared conversion, `recordPayment`, rates) and `booking` still imports `shop`; Payment and Ledger are unchanged. Booking collection is unchanged.
+
+**How to verify:** `npm test` 772 passed (91 suites); `npm run test:integration` 42 suites / 317 tests passed (new: `shop-lbp`, 9 tests; `pricing` unit tests 17); `npm run build` green. The item sheet, the Sell tender sheet and the tab Collect were not rendered in a browser.

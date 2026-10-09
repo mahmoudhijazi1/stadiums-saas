@@ -414,6 +414,10 @@ const ARABIC: Record<string, string> = {
   "owner.sell": "بيع",
   "owner.sellTotal": "المجموع",
   "owner.sellMinus": "إنقاص",
+  "owner.rateFirst": "حدّد سعر الصرف أولاً لبيع أصناف بالليرة.",
+  "owner.rateFirstLink": "سعر الصرف",
+  "owner.paidInFull": "مدفوع بالكامل",
+  "owner.shopCurrency": "العملة",
   "owner.addItems": "إضافة أصناف",
   "owner.itemsOnGame": "على المباراة (الحاجز)",
   "owner.itemsChargeTo": "على حساب مَن؟",
@@ -840,6 +844,10 @@ const ENGLISH: Record<string, string> = {
   "owner.sell": "Sell",
   "owner.sellTotal": "Total",
   "owner.sellMinus": "Remove one",
+  "owner.rateFirst": "Set the exchange rate first to sell items priced in LBP.",
+  "owner.rateFirstLink": "Exchange rate",
+  "owner.paidInFull": "Paid in full",
+  "owner.shopCurrency": "Currency",
   "owner.addItems": "Add items",
   "owner.itemsOnGame": "On the game (booker)",
   "owner.itemsChargeTo": "Charge to",
@@ -1270,18 +1278,18 @@ export function shopActivityLabel(items: number, locale: UiLocale = "ar"): strin
   return items === 2 ? `المتجر · صنفان` : `المتجر · ${items} ${word}`;
 }
 
-/** The toast after items are put on a game: "Added 3 items - $12". `total` is already formatted. */
+/** The toast after items are put on a game: "Added 3 items · $12". `total` is already formatted. */
 export function itemsAddedToast(items: number, total: string, locale: UiLocale = "ar"): string {
-  if (locale === "en") return `Added ${items} ${items === 1 ? "item" : "items"} · $${total}`;
+  if (locale === "en") return `Added ${items} ${items === 1 ? "item" : "items"} · ${total}`;
   const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
-  return items === 2 ? `أُضيف صنفان · $${total}` : `أُضيف ${items} ${word} · $${total}`;
+  return items === 2 ? `أُضيف صنفان · ${total}` : `أُضيف ${items} ${word} · ${total}`;
 }
 
 /** The toast after a walk-in sale: "Sold 3 items · $12". `total` is already formatted. */
 export function soldToast(items: number, total: string, locale: UiLocale = "ar"): string {
-  if (locale === "en") return `Sold ${items} ${items === 1 ? "item" : "items"} · $${total}`;
+  if (locale === "en") return `Sold ${items} ${items === 1 ? "item" : "items"} · ${total}`;
   const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
-  return items === 2 ? `بيع صنفان · $${total}` : `بيع ${items} ${word} · $${total}`;
+  return items === 2 ? `بيع صنفان · ${total}` : `بيع ${items} ${word} · ${total}`;
 }
 
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {

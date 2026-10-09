@@ -10,7 +10,9 @@ import { findBookingForUpdate, findRequesterPersonId } from "@/modules/booking/i
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import { normalizePhone } from "@/modules/people/domain/phone";
 import { findPersonById, findPersonByPhone } from "@/modules/people/infrastructure/persons";
-import { lineTotal, mergeLines, saleTotal } from "@/modules/shop/domain/sale";
+import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
+import { mergeLines } from "@/modules/shop/domain/sale";
+import { dueParts, itemPrice, priceLine } from "@/modules/shop/domain/pricing";
 import {
   findNameTab,
   findPersonTab,
@@ -49,19 +51,17 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
       if (!booking) throw new DomainError("booking.not_found");
       if (booking.status !== "APPROVED") throw new DomainError("shop.booking_not_open");
 
+      // Prices come from the database now. An LBP item freezes its USD value at the current rate and
+      // cannot be sold while no rate is set.
+      const rate = await findLatestExchangeRate(tx);
       const products = await findActiveProducts(tx, lines.map((line) => line.productId));
       const byId = new Map(products.map((product) => [product.id, product]));
       const priced = lines.map((line) => {
         const product = byId.get(line.productId);
         if (!product) throw new DomainError("shop.product_unavailable");
-        return {
-          productId: product.id,
-          qty: line.qty,
-          unitPriceUsd: product.priceUsd,
-          lineTotalUsd: lineTotal(product.priceUsd, line.qty),
-        };
+        return { productId: product.id, ...priceLine(itemPrice(product), line.qty, rate) };
       });
-      const total = saleTotal(priced);
+      const total = dueParts(priced).frozenUsd;
 
       // Who pays: the booker, a person, or a typed name. All three are a tab.
       const payer = parsed.payer;
@@ -97,13 +97,7 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
       if (!(await lockSale(tx, sale.id))) throw new DomainError("booking.not_found");
 
       for (const line of priced) {
-        await insertSaleItem(tx, {
-          saleId: sale.id,
-          productId: line.productId,
-          qty: line.qty,
-          unitPriceUsd: line.unitPriceUsd,
-          lineTotalUsd: line.lineTotalUsd,
-        });
+        await insertSaleItem(tx, { saleId: sale.id, ...line });
       }
 
       return { saleId: sale.id, itemCount: priced.reduce((sum, line) => sum + line.qty, 0), totalUsd: total };

@@ -29,7 +29,7 @@ export async function createProduct(input: unknown): Promise<{ id: string }> {
   // Parsed outside the try: bad input is a ZodError for the action to map (form.invalid), not a bug.
   const parsed = parseProductInput(input);
   try {
-    const row = await insertProduct(db, { name: parsed.name, priceUsd: parsed.priceUsd });
+    const row = await insertProduct(db, { name: parsed.name, price: parsed.price });
     logger.info(`Product created ${row.id}`, undefined, { useCase: "createProduct", tenantId: await safeTenantId() });
     return { id: row.id };
   } catch (error) {
@@ -43,7 +43,7 @@ export async function updateProduct(id: unknown, input: unknown): Promise<void> 
   const productId = productIdSchema.parse(id);
   const parsed = parseProductInput(input);
   try {
-    if (!(await updateProductRow(db, productId, { name: parsed.name, priceUsd: parsed.priceUsd }))) {
+    if (!(await updateProductRow(db, productId, { name: parsed.name, price: parsed.price }))) {
       throw new DomainError("shop.product_not_found");
     }
   } catch (error) {

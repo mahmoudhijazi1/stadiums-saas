@@ -24,12 +24,16 @@ import {
   type ExpenseDetailView,
   type SaleDetailView,
 } from "./activity-map";
+import { formatLbpAmount, formatUsdAmount } from "@/lib/money-display";
 import { loadMoreActivity } from "./actions";
 import { moneyHref } from "./query";
 
 const ICONS = { booking: Trophy, expense: Receipt, shop: Store, generic: ShoppingBag } as const;
 
 type Filter = "all" | "in" | "out";
+
+const own = (currency: "USD" | "LBP", value: string, locale: UiLocale) =>
+  currency === "LBP" ? formatLbpAmount(value, locale) : formatUsdAmount(value);
 
 /**
  * Activity: every ledger movement in the period, newest first, grouped by day, with
@@ -302,7 +306,7 @@ function SaleDetailSheet({
                         <bdi>{line.name}</bdi>
                       </span>
                       <span className="type-secondary shrink-0">
-                        <LtrIsolate>{`${line.qty} × $${line.unitPriceUsd} = $${line.lineTotalUsd}`}</LtrIsolate>
+                        <LtrIsolate>{`${line.qty} × ${own(line.currency, line.unit, locale)} = ${own(line.currency, line.total, locale)}`}</LtrIsolate>
                       </span>
                     </li>
                   ))}

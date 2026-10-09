@@ -1,23 +1,52 @@
 import Decimal from "decimal.js";
 import { Prisma } from "@/app/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
+import { formatUsd } from "@/lib/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
+import type { ItemPrice, PriceCurrency } from "@/modules/shop/domain/pricing";
 
 export type ProductRow = {
   id: string;
   name: string;
-  priceUsd: Decimal;
+  priceCurrency: PriceCurrency;
+  /** Set for a USD item. */
+  priceUsd: Decimal | null;
+  /** Set for an LBP item: whole pounds. */
+  priceLbp: Decimal | null;
   archivedAt: Date | null;
 };
 
-function toRow(row: { id: string; name: string; priceUsd: { toString(): string }; archivedAt: Date | null }): ProductRow {
-  return { id: row.id, name: row.name, priceUsd: new Decimal(row.priceUsd.toString()), archivedAt: row.archivedAt };
+type ProductDbRow = {
+  id: string;
+  name: string;
+  priceCurrency: PriceCurrency;
+  priceUsd: { toString(): string } | null;
+  priceLbp: { toString(): string } | bigint | null;
+  archivedAt: Date | null;
+};
+
+function toRow(row: ProductDbRow): ProductRow {
+  return {
+    id: row.id,
+    name: row.name,
+    priceCurrency: row.priceCurrency,
+    priceUsd: row.priceUsd === null ? null : new Decimal(row.priceUsd.toString()),
+    priceLbp: row.priceLbp === null ? null : new Decimal(row.priceLbp.toString()),
+    archivedAt: row.archivedAt,
+  };
+}
+
+/** The columns a price writes: exactly one of the two is set (CHECK Product_price_by_currency). */
+function priceColumns(price: ItemPrice) {
+  return price.currency === "USD"
+    ? { priceCurrency: "USD" as const, priceUsd: formatUsd(price.usd), priceLbp: null }
+    : { priceCurrency: "LBP" as const, priceUsd: null, priceLbp: BigInt(price.lbp.toFixed(0)) };
 }
 
 /** Omit tenantId: the guard stamps it. */
-export async function insertProduct(tx: TenantTx, input: { name: string; priceUsd: string }): Promise<ProductRow> {
+export async function insertProduct(tx: TenantTx, input: { name: string; price: ItemPrice }): Promise<ProductRow> {
   const row = await tx.product.create({
-    data: { name: input.name, priceUsd: input.priceUsd } as Parameters<typeof tx.product.create>[0]["data"],
+    data: { name: input.name, ...priceColumns(input.price) } as Parameters<typeof tx.product.create>[0]["data"],
   });
   return toRow(row);
 }
@@ -26,11 +55,11 @@ export async function insertProduct(tx: TenantTx, input: { name: string; priceUs
 export async function updateProductRow(
   tx: TenantTx,
   id: string,
-  input: { name: string; priceUsd: string },
+  input: { name: string; price: ItemPrice },
 ): Promise<boolean> {
   const result = await tx.product.updateMany({
     where: { id, archivedAt: null },
-    data: { name: input.name, priceUsd: input.priceUsd },
+    data: { name: input.name, ...priceColumns(input.price) },
   });
   return result.count === 1;
 }
@@ -60,9 +89,9 @@ export async function listProductsWithSold(
 ): Promise<ProductWithSold[]> {
   const tenantId = await getCurrentTenantId();
   const rows = await tx.$queryRaw<
-    { id: string; name: string; priceUsd: { toString(): string }; archivedAt: Date | null; sold: bigint | number | null }[]
+    (ProductDbRow & { sold: bigint | number | null })[]
   >`
-    SELECT p.id, p.name, p."priceUsd", p."archivedAt",
+    SELECT p.id, p.name, p."priceCurrency", p."priceUsd", p."priceLbp", p."archivedAt",
            COALESCE(SUM(si.qty) FILTER (WHERE si."addedAt" >= ${input.since}), 0) AS sold
     FROM "Product" p
     LEFT JOIN "SaleItem" si ON si."productId" = p.id AND si."tenantId" = p."tenantId"

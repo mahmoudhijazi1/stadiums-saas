@@ -2,12 +2,23 @@ import Decimal from "decimal.js";
 import { describe, expect, it } from "@jest/globals";
 import { summarizeDay } from "@/modules/booking/domain/day-summary";
 import { summarizeOwed, type OwedParticipation, type OwedTab } from "@/modules/booking/domain/owed";
-import { assertRemovalQty, isTab, netLines, netTotal, tabRemaining, type StoredLine } from "@/modules/shop/domain/booking-items";
+import { assertRemovalQty, isTab, netLines, netTotal, type StoredLine } from "@/modules/shop/domain/booking-items";
 
 const d = (value: string) => new Decimal(value);
 
 function line(over: Partial<StoredLine> & Pick<StoredLine, "id" | "qty">): StoredLine {
-  return { productId: "p1", name: "Cola", unitPriceUsd: d("1.50"), reversesItemId: null, ...over };
+  const unitPriceUsd = over.unitPriceUsd ?? d("1.50");
+  return {
+    productId: "p1",
+    name: "Cola",
+    unitPriceUsd,
+    lineTotalUsd: unitPriceUsd.times(over.qty),
+    unitPriceLbp: null,
+    lineTotalLbp: null,
+    rateAtTime: null,
+    reversesItemId: null,
+    ...over,
+  };
 }
 
 describe("netLines", () => {
@@ -33,11 +44,6 @@ describe("removals and tabs", () => {
   it("a removal takes 1 up to what is left", () => {
     expect(() => assertRemovalQty(3, 3)).not.toThrow();
     for (const qty of [0, 4, -1, 1.5]) expect(() => assertRemovalQty(3, qty)).toThrow();
-  });
-
-  it("a tab remaining is total minus paid, not clamped", () => {
-    expect(tabRemaining(d("9.00"), d("4.00")).toFixed(2)).toBe("5.00");
-    expect(tabRemaining(d("9.00"), d("10.00")).toFixed(2)).toBe("-1.00");
   });
 
   it("a sale with a payer is a tab; without one it is on the game", () => {

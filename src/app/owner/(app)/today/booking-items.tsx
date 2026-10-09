@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import Decimal from "decimal.js";
 import { Minus, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
-import { ItemTiles, QTY_MAX, type SellItem } from "@/app/owner/item-tiles";
-import { TenderBalance } from "@/app/owner/tender-balance";
+import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
+import { PartsBalance } from "@/app/owner/parts-balance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/money";
+import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/money-display";
 import { itemsAddedToast, ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 import {
@@ -24,15 +24,18 @@ import {
   type PayerHit,
 } from "./items-actions";
 
-export type ItemLineView = { id: string; name: string; qty: number; unitUsd: string; totalUsd: string };
+/** A line in the currency of its item: `unit` and `total` are USD amounts ("1.50") or whole pounds ("20000"). */
+export type ItemLineView = { id: string; name: string; qty: number; currency: "USD" | "LBP"; unit: string; total: string };
 
 export type TabItemsView = {
   saleId: string;
   name: string;
   lines: ItemLineView[];
-  totalUsd: string;
-  paidUsd: string;
+  /** What is still owed, in the currency of the items: pounds for LBP items, dollars for USD items. */
+  remainingLbp: string;
   remainingUsd: string;
+  /** Something has been paid on it (the USD recorded, "0.00" when nothing). */
+  paidUsd: string;
 };
 
 /** What the booking sheet knows about the shop items of one game (plain strings: it crosses to the client). */
@@ -44,7 +47,8 @@ export type BookingItemsPanelView = {
 
 type Payer = { kind: "game" } | { kind: "person"; personId: string; name: string } | { kind: "name"; name: string; phone: string };
 
-const money = (value: string) => `$${formatUsdCompact(new Decimal(value))}`;
+const own = (currency: "USD" | "LBP", value: string, locale: UiLocale) =>
+  currency === "LBP" ? formatLbpAmount(value, locale) : formatUsdAmount(value);
 
 function storageKey(bookingId: string): string {
   return `items-payer:${bookingId}`;
@@ -136,6 +140,7 @@ export function BookingItems({
           bookingId={bookingId}
           products={products}
           players={view.players}
+          lbpPerUsd={lbpPerUsd}
           locale={locale}
           onDone={() => router.refresh()}
         />
@@ -165,7 +170,7 @@ function ItemLines({
             <bdi>{line.name}</bdi>
           </span>
           <span className="type-secondary shrink-0">
-            <LtrIsolate>{`${line.qty} × ${money(line.unitUsd)} = ${money(line.totalUsd)}`}</LtrIsolate>
+            <LtrIsolate>{`${line.qty} × ${own(line.currency, line.unit, locale)} = ${own(line.currency, line.total, locale)}`}</LtrIsolate>
           </span>
           {removable ? (
             <button
@@ -208,12 +213,15 @@ function TabCard({
   const [lbp, setLbp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const owes = new Decimal(tab.remainingUsd).gt(0);
+  const remaining = { lbp: new Decimal(tab.remainingLbp), usd: new Decimal(tab.remainingUsd) };
+  const owes = remaining.lbp.gt(0) || remaining.usd.gt(0);
   const hasPayments = new Decimal(tab.paidUsd).gt(0);
+  const remainingText = formatParts(remaining, locale);
 
   function open() {
-    setUsd(tab.remainingUsd);
-    setLbp("");
+    // Exactly what is owed, in the currencies it is owed in: the common case is one tap.
+    setUsd(remaining.usd.gt(0) ? remaining.usd.toFixed(2) : "");
+    setLbp(remaining.lbp.gt(0) ? remaining.lbp.toFixed(0) : "");
     setError(null);
     setPaying(true);
   }
@@ -238,28 +246,18 @@ function TabCard({
           <bdi>{tab.name}</bdi>
         </p>
         <p className={cn("type-strong shrink-0", owes ? "text-owed" : "text-paid")}>
-          <LtrIsolate>{money(owes ? tab.remainingUsd : tab.paidUsd)}</LtrIsolate>
-          <span className="ms-1 type-caption">{ui(owes ? "owner.remaining" : "owner.paid", locale)}</span>
+          {owes ? <LtrIsolate>{remainingText}</LtrIsolate> : null}
+          <span className="ms-1 type-caption">{ui(owes ? "owner.remaining" : "owner.paidInFull", locale)}</span>
         </p>
       </div>
       <ItemLines lines={tab.lines} removable={mayRemove && !hasPayments} onRemove={onRemove} busy={busy} locale={locale} />
       {owes && mayCollect && !paying ? (
         <Button type="button" className="w-full" onClick={open}>
-          {ui("owner.collect", locale)} <LtrIsolate>{money(tab.remainingUsd)}</LtrIsolate>
+          {ui("owner.collect", locale)} <LtrIsolate>{remainingText}</LtrIsolate>
         </Button>
       ) : null}
       {paying ? (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={`tab-usd-${tab.saleId}`}>{ui("owner.usdRemaining", locale)}</Label>
-            <Input
-              id={`tab-usd-${tab.saleId}`}
-              inputMode="decimal"
-              autoComplete="off"
-              value={usd}
-              onChange={(event) => setUsd(event.target.value)}
-            />
-          </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor={`tab-lbp-${tab.saleId}`}>{ui("owner.lbp", locale)}</Label>
             <Input
@@ -270,14 +268,17 @@ function TabCard({
               onChange={(event) => setLbp(event.target.value)}
             />
           </div>
-          <TenderBalance
-            usdText={usd}
-            lbpText={lbp}
-            lbpPerUsd={lbpPerUsd}
-            targetUsd={tab.remainingUsd}
-            locale={locale}
-            onFillLbp={setLbp}
-          />
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`tab-usd-${tab.saleId}`}>USD</Label>
+            <Input
+              id={`tab-usd-${tab.saleId}`}
+              inputMode="decimal"
+              autoComplete="off"
+              value={usd}
+              onChange={(event) => setUsd(event.target.value)}
+            />
+          </div>
+          <PartsBalance owed={remaining} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />
           {error ? (
             <p role="alert" className="type-secondary text-owed">
               {error}
@@ -288,7 +289,7 @@ function TabCard({
               {ui("dialog.close", locale)}
             </Button>
             <Button type="button" className="flex-1" onClick={submit} disabled={pending}>
-              {ui("owner.collect", locale)} <LtrIsolate>{money(tab.remainingUsd)}</LtrIsolate>
+              {ui("owner.collect", locale)} <LtrIsolate>{remainingText}</LtrIsolate>
             </Button>
           </div>
         </div>
@@ -301,12 +302,14 @@ function AddItems({
   bookingId,
   products,
   players,
+  lbpPerUsd,
   locale,
   onDone,
 }: {
   bookingId: string;
   products: SellItem[];
   players: { personId: string; name: string }[];
+  lbpPerUsd: string | null;
   locale: UiLocale;
   onDone: () => void;
 }) {
@@ -327,7 +330,7 @@ function AddItems({
   }, [bookingId]);
 
   const lines = products.map((item) => ({ item, qty: counts[item.id] ?? 0 })).filter((line) => line.qty > 0);
-  const total = lines.reduce((sum, line) => sum.plus(new Decimal(line.item.priceUsd).times(line.qty)), new Decimal(0));
+  const total = partsOf(products, counts);
   const itemCount = lines.reduce((sum, line) => sum + line.qty, 0);
 
   function change(id: string, delta: number) {
@@ -369,7 +372,7 @@ function AddItems({
         setError(errorMessage(result.error, locale));
         return;
       }
-      toast.success(itemsAddedToast(result.itemCount ?? itemCount, formatUsdCompact(new Decimal(result.totalUsd ?? total)), locale));
+      toast.success(itemsAddedToast(result.itemCount ?? itemCount, formatParts(total, locale), locale));
       setCounts({});
       setOpen(false);
       onDone();
@@ -482,7 +485,7 @@ function AddItems({
         </div>
       ) : null}
 
-      <ItemTiles items={products} counts={counts} onChange={change} locale={locale} />
+      <ItemTiles items={products} counts={counts} onChange={change} locale={locale} rateKnown={lbpPerUsd !== null} />
 
       {error ? (
         <p role="alert" className="type-secondary text-owed">
@@ -494,7 +497,7 @@ function AddItems({
           {ui("dialog.close", locale)}
         </Button>
         <Button type="button" className="flex-1" disabled={itemCount === 0 || pending || !payer} onClick={add}>
-          {ui("owner.addItems", locale)} <LtrIsolate>{`$${formatUsdCompact(total)}`}</LtrIsolate>
+          {ui("owner.addItems", locale)} <LtrIsolate>{formatParts(total, locale)}</LtrIsolate>
         </Button>
       </div>
     </div>

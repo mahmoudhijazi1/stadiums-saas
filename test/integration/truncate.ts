@@ -11,6 +11,7 @@ const TABLES = [
   "BookingParticipant",
   "SlotInterest",
   "Booking",
+  "SaleAllocation",
   "SaleItem",
   "Sale",
   "Product",

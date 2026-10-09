@@ -16,9 +16,19 @@ export async function insertSale(tx: TenantTx, input: { createdByMembershipId: s
   return row;
 }
 
+/** One priced line (see `priceLine`): USD items leave the LBP fields null. */
 export async function insertSaleItem(
   tx: TenantTx,
-  input: { saleId: string; productId: string; qty: number; unitPriceUsd: Decimal; lineTotalUsd: Decimal },
+  input: {
+    saleId: string;
+    productId: string;
+    qty: number;
+    unitPriceUsd: Decimal;
+    lineTotalUsd: Decimal;
+    unitPriceLbp?: Decimal | null;
+    lineTotalLbp?: Decimal | null;
+    rateAtTime?: Decimal | null;
+  },
 ): Promise<void> {
   await tx.saleItem.create({
     data: {
@@ -27,11 +37,22 @@ export async function insertSaleItem(
       qty: input.qty,
       unitPriceUsd: formatUsd(input.unitPriceUsd),
       lineTotalUsd: formatUsd(input.lineTotalUsd),
+      unitPriceLbp: input.unitPriceLbp ? input.unitPriceLbp.toFixed(0) : null,
+      lineTotalLbp: input.lineTotalLbp ? input.lineTotalLbp.toFixed(0) : null,
+      rateAtTime: input.rateAtTime ? input.rateAtTime.toFixed(0) : null,
     } as Parameters<typeof tx.saleItem.create>[0]["data"],
   });
 }
 
-export type SaleLineRow = { name: string; qty: number; unitPriceUsd: Decimal; lineTotalUsd: Decimal };
+export type SaleLineRow = {
+  name: string;
+  qty: number;
+  unitPriceUsd: Decimal;
+  lineTotalUsd: Decimal;
+  /** LBP items only: the sheet shows these in pounds. */
+  unitPriceLbp: Decimal | null;
+  lineTotalLbp: Decimal | null;
+};
 /** `payerName` is set on a player tab (the person name, or the typed one); null on a walk-in or an "on the game" sale. */
 export type SaleRow = { id: string; soldAt: Date; payerName: string | null; lines: SaleLineRow[] };
 
@@ -52,6 +73,10 @@ export async function listSalesWithLines(tx: TenantTx, ids: string[]): Promise<S
           productId: true,
           qty: true,
           unitPriceUsd: true,
+          lineTotalUsd: true,
+          unitPriceLbp: true,
+          lineTotalLbp: true,
+          rateAtTime: true,
           reversesItemId: true,
           product: { select: { name: true } },
         },
@@ -70,9 +95,20 @@ export async function listSalesWithLines(tx: TenantTx, ids: string[]): Promise<S
         name: item.product.name,
         qty: item.qty,
         unitPriceUsd: new Decimal(item.unitPriceUsd.toString()),
+        lineTotalUsd: new Decimal(item.lineTotalUsd.toString()),
+        unitPriceLbp: item.unitPriceLbp === null ? null : new Decimal(item.unitPriceLbp.toString()),
+        lineTotalLbp: item.lineTotalLbp === null ? null : new Decimal(item.lineTotalLbp.toString()),
+        rateAtTime: item.rateAtTime === null ? null : new Decimal(item.rateAtTime.toString()),
         reversesItemId: item.reversesItemId,
       })),
-    ).map((line) => ({ name: line.name, qty: line.qty, unitPriceUsd: line.unitPriceUsd, lineTotalUsd: line.totalUsd })),
+    ).map((line) => ({
+      name: line.name,
+      qty: line.qty,
+      unitPriceUsd: line.unitPriceUsd,
+      lineTotalUsd: line.totalUsd,
+      unitPriceLbp: line.unitPriceLbp,
+      lineTotalLbp: line.totalLbp,
+    })),
   }));
 }
 

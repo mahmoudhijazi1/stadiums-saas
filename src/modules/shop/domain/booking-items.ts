@@ -2,8 +2,8 @@ import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 
 /**
- * Who an item put on a game is charged to.
- * `game`: raises the booking due (WHOLE bookings only). `person` / `name`: that player's own tab.
+ * Who an item put on a game is charged to. `game` is the booker (the booking's requester); `person`
+ * and `name` are another player. Every one of them is a tab: it never changes the booking due.
  */
 export type PayerInput =
   | { kind: "game" }
@@ -17,6 +17,12 @@ export type StoredLine = {
   name: string;
   qty: number;
   unitPriceUsd: Decimal;
+  /** The frozen USD value of this line (negative on a reversal). */
+  lineTotalUsd: Decimal;
+  /** LBP items only: the price tag, the line in pounds (negative on a reversal) and the frozen rate. */
+  unitPriceLbp: Decimal | null;
+  lineTotalLbp: Decimal | null;
+  rateAtTime: Decimal | null;
   reversesItemId: string | null;
 };
 
@@ -27,19 +33,29 @@ export type NetLine = {
   name: string;
   qty: number;
   unitPriceUsd: Decimal;
+  /** The frozen USD value of what is left. */
   totalUsd: Decimal;
+  /** LBP items only. */
+  unitPriceLbp: Decimal | null;
+  totalLbp: Decimal | null;
+  rateAtTime: Decimal | null;
 };
 
 /** What is left of each original line after its reversals; fully removed lines disappear. */
 export function netLines(lines: readonly StoredLine[]): NetLine[] {
-  const reversed = new Map<string, number>();
+  const reversals = new Map<string, StoredLine[]>();
   for (const line of lines) {
-    if (line.reversesItemId) reversed.set(line.reversesItemId, (reversed.get(line.reversesItemId) ?? 0) + line.qty);
+    if (line.reversesItemId) {
+      const list = reversals.get(line.reversesItemId) ?? [];
+      list.push(line);
+      reversals.set(line.reversesItemId, list);
+    }
   }
   const result: NetLine[] = [];
   for (const line of lines) {
     if (line.reversesItemId) continue;
-    const qty = line.qty + (reversed.get(line.id) ?? 0);
+    const taken = reversals.get(line.id) ?? [];
+    const qty = taken.reduce((sum, reversal) => sum + reversal.qty, line.qty);
     if (qty <= 0) continue;
     result.push({
       id: line.id,
@@ -47,13 +63,18 @@ export function netLines(lines: readonly StoredLine[]): NetLine[] {
       name: line.name,
       qty,
       unitPriceUsd: line.unitPriceUsd,
-      totalUsd: line.unitPriceUsd.times(qty).toDecimalPlaces(2, Decimal.ROUND_HALF_UP),
+      totalUsd: taken.reduce((sum, reversal) => sum.plus(reversal.lineTotalUsd), line.lineTotalUsd),
+      unitPriceLbp: line.unitPriceLbp,
+      totalLbp: line.lineTotalLbp
+        ? taken.reduce((sum, reversal) => sum.plus(reversal.lineTotalLbp ?? 0), line.lineTotalLbp)
+        : null,
+      rateAtTime: line.rateAtTime,
     });
   }
   return result;
 }
 
-/** Exact sum of the net lines. */
+/** Exact sum of the frozen USD values of the net lines. */
 export function netTotal(lines: readonly NetLine[]): Decimal {
   return lines.reduce((sum, line) => sum.plus(line.totalUsd), new Decimal(0));
 }
@@ -63,12 +84,7 @@ export function assertRemovalQty(netQty: number, qty: number): void {
   if (!Number.isInteger(qty) || qty < 1 || qty > netQty) throw new DomainError("shop.remove_exceeds");
 }
 
-/** What a tab still owes. Not clamped: a negative figure would be an overpayment, which stays visible. */
-export function tabRemaining(totalUsd: Decimal, collectedUsd: Decimal): Decimal {
-  return totalUsd.minus(collectedUsd);
-}
-
-/** A sale put on a game is a player's tab when it names a payer, "on the game" otherwise. */
+/** A sale put on a game is always a player's tab; a walk-in sale has no payer and no booking. */
 export function isTab(sale: { payerPersonId: string | null; payerName: string | null }): boolean {
   return sale.payerPersonId !== null || sale.payerName !== null;
 }
