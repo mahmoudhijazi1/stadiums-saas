@@ -1,12 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode, type Ref, Fragment } from "react";
+import { useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type Ref, Fragment } from "react";
+import { Dialog as DialogPrimitive } from "radix-ui";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { Ban, ChevronDown, Pencil, UserX, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
-  collectUsdLabel,
   ui,
   uiCount,
 } from "@/lib/ui-copy";
@@ -38,8 +38,6 @@ import {
   BottomSheetStage,
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
-import { Button } from "@/components/ui/button";
-import { Figure } from "@/components/ui/figure";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -131,61 +129,69 @@ function moneyTone(row: UpcomingRowView): MoneyTone {
   return owesCash(row) ? "owed" : "expected";
 }
 
+/**
+ * The money block, one row: a tinted container in the state token (paid / owed / expected), the
+ * label above the amount on the start side, and the action (Collect) on the end side. Paid and
+ * Expected show the same row without a button.
+ */
 function DueRemainingFigures({
-  dueUsd,
   paidUsd,
   remainingUsd,
   tone,
   locale,
+  action,
 }: {
-  dueUsd: string;
   paidUsd: string;
   remainingUsd: string;
   tone: MoneyTone;
   locale: UiLocale;
+  action?: ReactNode;
 }) {
-  // Paid shows what was taken; a split into Game / Owed only when they differ.
-  const same = tone === "paid" || dueUsd === remainingUsd;
   const Icon = tone === "paid" ? CircleCheck : tone === "owed" ? CircleAlert : null;
-  const remaining = (
-    <div className={cn("rounded-lg px-3 py-3 text-start", TONE_BG[tone])}>
-      <p className={cn("flex items-center gap-1 text-xs", TONE_TEXT[tone])}>
-        {Icon ? <Icon aria-hidden className="size-3.5 shrink-0" /> : null}
-        {ui(
-          tone === "paid"
-            ? "owner.paid"
-            : tone === "owed"
-              ? "owner.remaining"
-              : "owner.expectedLabel",
-          locale,
-        )}
-      </p>
-      <Figure className={cn("mt-0.5 block text-xl", TONE_TEXT[tone])}>
-        ${tone === "paid" ? paidUsd : remainingUsd}
-      </Figure>
-    </div>
-  );
-
-  if (same) return remaining;
-
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <div className="rounded-lg bg-muted px-3 py-2 text-start">
-        <p className="text-xs text-muted-foreground">{ui("owner.gameWord", locale)}</p>
-        <p className="mt-0.5 text-base font-semibold text-foreground">
-          <LtrIsolate>${dueUsd}</LtrIsolate>
+    <div className={cn("flex items-center gap-3 rounded-xl px-4 py-3 text-start", TONE_BG[tone])}>
+      <div className="min-w-0 flex-1">
+        <p className={cn("type-caption flex items-center gap-1", TONE_TEXT[tone])}>
+          {Icon ? <Icon aria-hidden className="size-3.5 shrink-0" /> : null}
+          {ui(
+            tone === "paid" ? "owner.paid" : tone === "owed" ? "owner.remaining" : "owner.expectedLabel",
+            locale,
+          )}
+        </p>
+        <p className={cn("type-strong", TONE_TEXT[tone])}>
+          <LtrIsolate>${tone === "paid" ? paidUsd : remainingUsd}</LtrIsolate>
         </p>
       </div>
-      {remaining}
+      {action}
     </div>
   );
 }
 
 type SheetStep = "details" | "cancel" | "noshow" | "adjust";
 
-/** Call and WhatsApp in the sheet header: icon buttons with a 44px hit area. */
-const ICON_BUTTON =
-  "inline-flex size-11 shrink-0 items-center justify-center rounded-full border text-muted-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50";
+/** Call and WhatsApp in the sheet header: a 36px circle inside a 44px hit area. */
+function HeaderIcon({
+  href,
+  label,
+  external = false,
+  children,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className="inline-flex size-11 shrink-0 items-center justify-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
+    >
+      <span className="grid size-9 place-items-center rounded-full border text-muted-foreground hover:bg-muted">{children}</span>
+    </a>
+  );
+}
 
 export function UpcomingPanel({
   toCollect,
@@ -409,72 +415,69 @@ export function UpcomingPanel({
         }}
       >
         {sheetRow ? (
-          <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
-            <BottomSheetHeader>
-              <BottomSheetTitle
-                aria-label={
-                  sheetStep !== "details"
-                    ? stepTitle(sheetStep, locale)
-                    : sheetRow.timeRange
-                }
-              >
-                <span className="grid">
-                  <span
-                    className={cn(
-                      "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-                      sheetStep !== "details" ? "opacity-100" : "opacity-0",
-                    )}
-                    aria-hidden={sheetStep === "details"}
-                  >
-                    {stepTitle(sheetStep, locale)}
-                  </span>
-                  <span
-                    className={cn(
-                      "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
-                      sheetStep !== "details" ? "opacity-0" : "opacity-100",
-                    )}
-                    aria-hidden={sheetStep !== "details"}
-                  >
-                    <ClockRangeText
-                      text={sheetRow.timeRange}
-                      className="text-xl font-semibold leading-none"
-                    />
-                  </span>
-                </span>
-              </BottomSheetTitle>
-              <BottomSheetDescription>
-                {[
-                  sheetRow.pitchName,
-                  toCollect.some((item) => item.id === sheetRow.id)
-                    ? sheetRow.dateLabel
-                    : null,
-                  sheetRow.nightHint,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </BottomSheetDescription>
+          <BottomSheetContent closeLabel={ui("dialog.close", locale)} showCloseButton={false}>
+            <BottomSheetHeader className="gap-0 pe-3">
               <div className="flex items-center gap-1">
                 <PersonLink
                   personId={sheetRow.requesterPersonId}
                   name={sheetRow.requesterName}
+                  prominent
                   className="min-w-0 flex-1"
                 />
                 {sheetRow.requesterPhone ? (
-                  <a href={`tel:${sheetRow.requesterPhone}`} aria-label={ui("owner.callPlayer", locale)} className={ICON_BUTTON}>
+                  <HeaderIcon href={`tel:${sheetRow.requesterPhone}`} label={ui("owner.callPlayer", locale)}>
                     <Phone aria-hidden className="size-5" />
-                  </a>
+                  </HeaderIcon>
                 ) : null}
                 {sheetStep === "details" && sheetRow.confirmWhatsAppHref ? (
-                  <a
-                    href={sheetRow.confirmWhatsAppHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={ui("owner.notifyWhatsApp", locale)}
-                    className={ICON_BUTTON}
-                  >
+                  <HeaderIcon href={sheetRow.confirmWhatsAppHref} label={ui("owner.notifyWhatsApp", locale)} external>
                     <MessageCircle aria-hidden className="size-5" />
-                  </a>
+                  </HeaderIcon>
                 ) : null}
+                <DialogPrimitive.Close
+                  aria-label={ui("dialog.close", locale)}
+                  className="inline-flex size-11 shrink-0 items-center justify-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
+                >
+                  <span className="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-muted">
+                    <X aria-hidden className="size-5" />
+                  </span>
+                </DialogPrimitive.Close>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2 type-secondary tabular-nums">
+                <BottomSheetTitle
+                  className="type-secondary font-normal"
+                  aria-label={sheetStep !== "details" ? stepTitle(sheetStep, locale) : sheetRow.timeRange}
+                >
+                  <span className="grid">
+                    <span
+                      className={cn(
+                        "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                        sheetStep !== "details" ? "opacity-100" : "opacity-0",
+                      )}
+                      aria-hidden={sheetStep === "details"}
+                    >
+                      {stepTitle(sheetStep, locale)}
+                    </span>
+                    <span
+                      className={cn(
+                        "col-start-1 row-start-1 transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                        sheetStep !== "details" ? "opacity-0" : "opacity-100",
+                      )}
+                      aria-hidden={sheetStep !== "details"}
+                    >
+                      <ClockRangeText text={sheetRow.timeRange} />
+                    </span>
+                  </span>
+                </BottomSheetTitle>
+                <BottomSheetDescription className="type-secondary">
+                  {[
+                    sheetRow.pitchName,
+                    toCollect.some((item) => item.id === sheetRow.id) ? sheetRow.dateLabel : null,
+                    sheetRow.nightHint,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </BottomSheetDescription>
               </div>
             </BottomSheetHeader>
             {interestOpen ? (
@@ -705,27 +708,26 @@ function UpcomingRowActions({
     <>
       <section className="flex flex-col gap-3">
         <DueRemainingFigures
-          dueUsd={row.priceUsd}
           paidUsd={row.collectedExact}
           remainingUsd={row.remainingUsd}
           tone={moneyTone(row)}
           locale={locale}
+          action={
+            canCollect && !mixedOpen ? (
+              <form action={submitCollectPayment} className="shrink-0">
+                <input type="hidden" name="bookingId" value={row.id} />
+                <input type="hidden" name="usdAmount" value={row.remainingUsd} />
+                <SubmitButton className="min-h-11 px-5">{ui("owner.collect", locale)}</SubmitButton>
+              </form>
+            ) : null
+          }
         />
-        {canCollect && !mixedOpen ? (
-          <form action={submitCollectPayment}>
-            <input type="hidden" name="bookingId" value={row.id} />
-            <input type="hidden" name="usdAmount" value={row.remainingUsd} />
-            <SubmitButton className="w-full">
-              {collectUsdLabel(row.remainingUsd, locale)}
-            </SubmitButton>
-          </form>
-        ) : null}
         {canCollect ? (
           <button
             type="button"
             aria-expanded={mixedOpen}
             onClick={() => setMixedOpen((open) => !open)}
-            className="inline-flex min-h-11 w-fit items-center type-label text-action-ink underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="inline-flex min-h-11 w-fit items-center type-secondary text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {mixedOpen ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
           </button>
@@ -759,34 +761,58 @@ function UpcomingRowActions({
           {moreOpen ? (
             <div className="flex flex-col gap-3">
               {showAdjust ? (
-                <Button type="button" variant="outline" className="w-full" onClick={onAdjust}>
+                <ActionRow icon={Pencil} onClick={onAdjust}>
                   {ui("owner.adjustDue", locale)}
-                </Button>
+                </ActionRow>
               ) : null}
               {showSplit ? (
                 <PerPlayerCollect view={row.perPlayer} part="mode" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
               ) : null}
               {showNoShow ? (
-                <Button type="button" variant="outline" className="w-full" onClick={onNoShow}>
+                <ActionRow icon={UserX} onClick={onNoShow}>
                   {ui("owner.noShow", locale)}
-                </Button>
+                </ActionRow>
               ) : null}
               {showCancel ? (
-                <Button
-                  ref={cancelRef}
-                  type="button"
-                  variant="ghost"
-                  className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={onCancelBooking}
-                >
+                <ActionRow icon={Ban} onClick={onCancelBooking} buttonRef={cancelRef} destructive>
                   {ui("owner.cancel", locale)}
-                </Button>
+                </ActionRow>
               ) : null}
             </div>
           ) : null}
         </div>
       ) : null}
     </>
+  );
+}
+
+/** One line of "More actions": a plain list row (body role, 48px, optional leading icon), no border. */
+function ActionRow({
+  icon: Icon,
+  onClick,
+  destructive = false,
+  buttonRef,
+  children,
+}: {
+  icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  onClick: () => void;
+  destructive?: boolean;
+  buttonRef?: Ref<HTMLButtonElement>;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      ref={buttonRef}
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        destructive && "text-destructive",
+      )}
+    >
+      <Icon aria-hidden className="size-5 shrink-0" />
+      {children}
+    </button>
   );
 }
 

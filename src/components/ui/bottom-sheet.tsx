@@ -47,7 +47,7 @@ function BottomSheetContent({
           "fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-lg flex-col overflow-hidden",
           "max-h-[min(92dvh,100%)] max-lg:min-h-[max(15rem,38dvh)] rounded-t-2xl border bg-card text-card-foreground outline-none",
           "pb-[max(1rem,env(safe-area-inset-bottom))]",
-          "lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:max-h-[min(85dvh,100%)] lg:max-w-md lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[var(--radius-sheet)] lg:pb-6",
+          "lg:inset-x-auto lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:max-h-[min(85dvh,100%)] lg:max-w-md lg:-translate-x-1/2 lg:-translate-y-1/2 lg:rounded-[var(--radius-sheet)] lg:pt-6 lg:pb-6",
           "duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 max-lg:data-[state=open]:slide-in-from-bottom lg:data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 max-lg:data-[state=closed]:slide-out-to-bottom lg:data-[state=closed]:zoom-out-95",

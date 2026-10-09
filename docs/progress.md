@@ -6031,3 +6031,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/{upcoming-panel,booking-items,lists}.tsx`, `app/owner/tonal-collect.tsx`.
 
 **How to verify:** `npm test` 777 passed; `npm run build` green; `npm run test:integration` 43 suites / 328 tests passed (run once on this tree, which also covers the add-items sheet commit). The sheet was not rendered in a browser.
+
+## Booking sheet: compact layout, booker name first, desktop padding (styling and layout only)
+
+**What:** no logic, permission or money change.
+- **Header, two lines.** Line 1: the player name (title role 20/600, the link to the person page with its chevron, the person icon dropped), the call and WhatsApp icon buttons (36px circle, 44px hit area) and the close button, on one line (the sheet's own close button is replaced by one in the row). Line 2: the time range, then the pitch when the tenant has more than one and the date / night hint where they applied (secondary role, muted, tabular digits).
+- **Money block, one row.** A tinted container in the state token (paid / owed / expected): the label (caption) above the amount (strong 16/600, not the display font) on the start side, the lime "Collect" (label only, 44px) on the end side. Paid and Expected show the same row with no button. The "Pay another way (LBP, partial)" link sits under it in muted underlined text, never lime. The separate "Game $X" box is gone.
+- **Shop tab rows.** The separate amount is dropped; the tonal button carries it ("Collect $1", "Collect 20,000 ل.ل", neutral before the game ends, amber after). Paid tabs keep "Paid in full". Without collect rights the amount stays visible as text.
+- **More actions, expanded:** plain list rows (body role, 48px, leading icon) for adjust, no-show and cancel, cancel last in the destructive text colour; the whole / per-player switch keeps its own control. 12px between separate targets.
+- **Booker name first** (asked separately): the game card's title is the title role (20px) and a cancelled game is muted instead of struck through; `PersonLink` has a `prominent` form (title size, ink colour, no underline) used in the sheet header.
+- **Desktop modal:** `lg:pt-6` on the sheet container, so the title no longer touches the top edge when the sheet is a centered modal.
+
+**Files:** `app/owner/(app)/today/{upcoming-panel,booking-items}.tsx`, `app/owner/{booking-row,person-link}.tsx`, `components/ui/bottom-sheet.tsx`.
+
+**How to verify:** `npm test` 777 passed; `npm run build` green. Integration not run: no file the integration suites import was touched. The sheet was not rendered in a browser.

@@ -273,14 +273,18 @@ function TabRow({
             <bdi>{summaryOf(tab.lines, locale)}</bdi>
           </span>
         </button>
-        <span className={cn("type-strong shrink-0", !owes ? "text-paid" : owedNow ? "text-owed" : "text-expected")}>
-          {owes ? <LtrIsolate>{remainingText}</LtrIsolate> : ui("owner.paidInFull", locale)}
-        </span>
-        {owes && mayCollect ? (
+        {!owes ? (
+          <span className="type-strong shrink-0 text-paid">{ui("owner.paidInFull", locale)}</span>
+        ) : mayCollect ? (
+          // The button carries the amount: "Collect $1" / "Collect 20,000 ل.ل".
           <TonalCollectButton tone={owedNow ? "owed" : "expected"} disabled={pending} onClick={() => send(exactUsd, exactLbp)}>
-            {ui("owner.collect", locale)}
+            {ui("owner.collect", locale)} <LtrIsolate>{remainingText}</LtrIsolate>
           </TonalCollectButton>
-        ) : null}
+        ) : (
+          <span className={cn("type-strong shrink-0", owedNow ? "text-owed" : "text-expected")}>
+            <LtrIsolate>{remainingText}</LtrIsolate>
+          </span>
+        )}
       </div>
       {error && !expanded ? (
         <p role="alert" className="type-secondary px-3 pb-2 text-owed">
@@ -294,7 +298,7 @@ function TabRow({
             <button
               type="button"
               onClick={openOther}
-              className="inline-flex min-h-11 w-fit items-center type-label text-action-ink underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              className="inline-flex min-h-11 w-fit items-center type-secondary text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               {ui("owner.payAnotherWay", locale)}
             </button>
