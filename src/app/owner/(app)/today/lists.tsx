@@ -22,12 +22,11 @@ import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitch
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
-import type { DaySummary } from "@/modules/booking/domain/day-summary";
 import Decimal from "decimal.js";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { formatUsd, formatUsdCompact } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
-import { dayStartClock, ui, uiCount } from "@/lib/ui-copy";
+import { dayStartClock, ui } from "@/lib/ui-copy";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";
@@ -107,7 +106,6 @@ export async function OwnerToday({
     (sum, row) => sum.plus(row.owedUsd),
     new Decimal(0),
   );
-  const { summary } = ownerDay;
   // The shop on these games: items and tabs in one read, the catalog once (only for members who sell).
   const maySell = can(membership, SHOP_SELL);
   const [itemsByBooking, products] = await Promise.all([
@@ -136,9 +134,8 @@ export async function OwnerToday({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <DaySummaryLine summary={summary} locale={locale} />
-        {earlierDebts.length > 0 ? (
+      {earlierDebts.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <a
             href="#earlier-debts"
             className="inline-flex min-h-8 items-center gap-1 rounded-full border border-owed/60 bg-owed-subtle px-3 text-xs font-semibold text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -146,8 +143,8 @@ export async function OwnerToday({
             <LtrIsolate>{`$${formatUsdCompact(earlierTotal)}${ownerDay.toCollectHasMore ? "+" : ""}`}</LtrIsolate>
             <span>{ui("owner.owedFromEarlier", locale)}</span>
           </a>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {ownerDay.isToday && pending.length > 0 && earliest ? (
         <Link
@@ -215,74 +212,6 @@ export async function OwnerToday({
       />
       </DayContent>
     </DayNavProvider>
-  );
-}
-
-function DaySummaryLine({
-  summary,
-  locale,
-}: {
-  summary: DaySummary;
-  locale: UiLocale;
-}) {
-  return (
-    <p className="text-sm text-muted-foreground">
-      <CountedPhrase text={uiCount("owner.games", summary.games, locale)} />
-      {summary.noShows > 0 ? (
-        <CountedPhrase
-          text={uiCount("owner.noShows", summary.noShows, locale)}
-          lead
-        />
-      ) : null}
-      <MoneyPhrase
-        amount={summary.collectedUsd}
-        label={ui("owner.collectedWord", locale)}
-      />
-      <MoneyPhrase
-        amount={summary.owedUsd}
-        label={ui("owner.owedWord", locale)}
-      />
-      <MoneyPhrase
-        amount={summary.expectedUsd}
-        label={ui("owner.expectedWord", locale)}
-      />
-    </p>
-  );
-}
-
-function CountedPhrase({ text, lead = false }: { text: string; lead?: boolean }) {
-  const match = /^(\D*)(\d+)(\D*)$/.exec(text);
-  return (
-    <>
-      {lead ? <span aria-hidden> · </span> : null}
-      {match ? (
-        <>
-          {match[1]}
-          <LtrIsolate>{match[2]}</LtrIsolate>
-          {match[3]}
-        </>
-      ) : (
-        text
-      )}
-    </>
-  );
-}
-
-function MoneyPhrase({
-  amount,
-  label,
-}: {
-  amount: DaySummary["collectedUsd"];
-  label: string;
-}) {
-  if (!amount.gt(0)) return null;
-  return (
-    <>
-      <span aria-hidden> · </span>
-      <LtrIsolate>${formatUsdCompact(amount)}</LtrIsolate>
-      {" "}
-      {label}
-    </>
   );
 }
 

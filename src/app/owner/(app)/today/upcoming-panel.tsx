@@ -327,7 +327,7 @@ export function UpcomingPanel({
       {games.length > 0 ? (
         <section aria-labelledby="today-games-heading" className="flex flex-col gap-2">
           <h2 id="today-games-heading" className="text-sm font-semibold text-muted-foreground">
-            {ui("owner.gamesHeading", locale)}
+            {ui("owner.gamesHeading", locale)} (<LtrIsolate>{games.length}</LtrIsolate>)
           </h2>
           <UpcomingRows
             rows={games}
