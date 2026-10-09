@@ -6003,3 +6003,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** imports unchanged in direction; `app/` only. `PerPlayerCollect` now draws two parts (`slots` in the money block, `mode` under More actions).
 
 **How to verify:** `npm test` 777 passed; `npm run test:integration` 43 suites / 328 tests passed; `npm run build` green. The sheet was not rendered in a browser.
+
+## Booking sheet redesign, commit 2 of 2: the add-items sheet
+
+**What:** structure and styling only; the same actions (`submitAddBookingItems`, `searchPayers`) and the same server rules.
+- "+ Add" now opens a **sheet of its own** (`add-items-sheet.tsx`), no longer an inline panel.
+- **Charge to** chips at the top: the booker ("On the game (booker)"), then every payer that already has a tab on this booking, then "+ Someone else". The chosen chip uses the tab bar's raised-surface pill (`bg-surface-2`, border, shadow); the others are muted. The default is the last choice for this booking (the same browser memory as before).
+- **"+ Someone else"** shows ONE field, "Name or phone", with live suggestions from the person search (debounced 250ms, this tenant only, five hits); the last suggestion is `Add "X" as new`. An optional "+ phone" link reveals a phone field (hidden when what was typed is itself a phone). The matching rules are the server's, unchanged: a phone that belongs to a person selects that person. A number typed in the name field is sent as the phone.
+- The item tiles are the Sell tiles (count badge, "-"). One primary button states quantity, total in the items' currency and payer: "Add 2 · 60,000 ل.ل → Test Player 3"; disabled until an item is chosen.
+- Copy through `ui()` in Arabic and English (`itemsSomeoneElse`, `itemsNameOrPhone`, `itemsPlusPhone`, `addWord`, `addNewLabel`); the old search / use-this-name keys are gone. Logical CSS, type roles, tokens.
+- Data: the booking sheet view now carries `bookerPersonId`, `bookerName` and each tab's `personId` (replacing the named-slot quick picks).
+
+**Why:** adding water to the booker is three taps (+ Add, the tile, Add); adding to a new person needs one input (`docs/ui-rules.md` rules 5 and 8).
+
+**Files:** `app/owner/(app)/today/{add-items-sheet.tsx (new),booking-items.tsx,lists.tsx}`, `lib/ui-copy.ts`.
+
+**How to verify:** `npm test` 777 passed; `tsc` and eslint clean on the changed files; `npm run build` green. The integration suite (UI-only change, nothing it imports was touched) is run once on the final tree with the polish commit that follows. The sheet was not rendered in a browser.

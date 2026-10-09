@@ -427,11 +427,11 @@ const ARABIC: Record<string, string> = {
   "owner.addItems": "إضافة أصناف",
   "owner.itemsOnGame": "على المباراة (الحاجز)",
   "owner.itemsChargeTo": "على حساب مَن؟",
-  "owner.itemsOtherPlayer": "لاعب آخر",
-  "owner.itemsSearchPlayer": "ابحث عن لاعب",
-  "owner.itemsNameField": "الاسم",
-  "owner.itemsPhoneField": "الهاتف (اختياري)",
-  "owner.itemsUseName": "استخدم هذا الاسم",
+  "owner.itemsSomeoneElse": "+ شخص آخر",
+  "owner.itemsNameOrPhone": "الاسم أو الهاتف",
+  "owner.itemsPhoneField": "الهاتف",
+  "owner.itemsPlusPhone": "+ هاتف",
+  "owner.addWord": "إضافة",
   "owner.sellNoItems": "لا أصناف للبيع بعد.",
   "owner.sellFirstItem": "أضف أول صنف",
   "owner.sellFirstItemStaff": "اطلب من المالك إضافة أصناف.",
@@ -862,11 +862,11 @@ const ENGLISH: Record<string, string> = {
   "owner.addItems": "Add items",
   "owner.itemsOnGame": "On the game (booker)",
   "owner.itemsChargeTo": "Charge to",
-  "owner.itemsOtherPlayer": "Another player",
-  "owner.itemsSearchPlayer": "Search a player",
-  "owner.itemsNameField": "Name",
-  "owner.itemsPhoneField": "Phone (optional)",
-  "owner.itemsUseName": "Use this name",
+  "owner.itemsSomeoneElse": "+ Someone else",
+  "owner.itemsNameOrPhone": "Name or phone",
+  "owner.itemsPhoneField": "Phone",
+  "owner.itemsPlusPhone": "+ phone",
+  "owner.addWord": "Add",
   "owner.sellNoItems": "No items to sell yet.",
   "owner.sellFirstItem": "Add your first item",
   "owner.sellFirstItemStaff": "Ask the owner to add items.",
@@ -1301,6 +1301,11 @@ export function changeDescription(
 ): string | undefined {
   const text = formatChange(displayChange(change, rate), locale);
   return text === "0" ? undefined : `${ui("owner.changeLabel", locale)}: ${text}`;
+}
+
+/** The last suggestion of the payer search: add the typed text as a new person. */
+export function addNewLabel(text: string, locale: UiLocale = "ar"): string {
+  return locale === "en" ? `Add "${text}" as new` : `إضافة "${text}" كجديد`;
 }
 
 /** The toast after items are put on a game: "Added 3 items · $12". `total` is already formatted. */

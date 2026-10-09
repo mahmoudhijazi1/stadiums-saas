@@ -299,23 +299,18 @@ function lineViews(lines: readonly NetLine[]): ItemLineView[] {
 }
 
 function itemsView(row: OwnerDayBooking, items: BookingItemsView | undefined): BookingItemsPanelView {
-  // Who a tab can be charged to without searching: the named slots (the booker has her own choice).
-  const players: { personId: string; name: string }[] = [];
-  for (const slot of row.slots) {
-    if (slot.personId && slot.personId !== row.requesterPersonId && !players.some((player) => player.personId === slot.personId)) {
-      players.push({ personId: slot.personId, name: slot.name ?? "" });
-    }
-  }
   return {
+    bookerPersonId: row.requesterPersonId,
+    bookerName: row.requesterName,
     tabs: (items?.tabs ?? []).map((tab) => ({
       saleId: tab.saleId,
+      personId: tab.personId,
       name: tab.name,
       lines: lineViews(tab.lines),
       paidUsd: formatUsd(tab.paidUsd),
       remainingLbp: tab.remainingLbp.toFixed(0),
       remainingUsd: formatUsd(tab.remainingUsd),
     })),
-    players,
   };
 }
 
