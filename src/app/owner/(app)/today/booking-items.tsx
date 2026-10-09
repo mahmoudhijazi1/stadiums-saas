@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Decimal from "decimal.js";
-import { ChevronDown, Minus } from "lucide-react";
+import { ChevronDown, Minus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import type { SellItem } from "@/app/owner/item-tiles";
 import { PartsBalance } from "@/app/owner/parts-balance";
@@ -94,7 +94,10 @@ export function BookingItems({
   return (
     <section className="flex flex-col gap-2 border-t border-line pt-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h4 className="type-strong">{ui("owner.shop", locale)}</h4>
+        <h4 className="type-strong flex items-center gap-2">
+          <ShoppingBag aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+          {ui("owner.shop", locale)}
+        </h4>
         {mayAdd ? (
           <button
             type="button"
