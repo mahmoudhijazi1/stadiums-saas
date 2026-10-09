@@ -2,6 +2,7 @@
 
 import { submitCreateOwnerBooking } from "./actions";
 import { SlotPicker, type SlotPickerPitch } from "@/components/slot-picker";
+import { WeeklyFields } from "@/app/owner/(app)/series/weekly-preview";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 
@@ -25,6 +26,15 @@ export function OwnerSlotPicker({
       hiddenFields={{ bookOn }}
       submitLabel={ui("owner.book", locale)}
       locale={locale}
+      extra={({ pitchId, slot, setSubmitLabel }) => (
+        <WeeklyFields
+          pitchId={pitchId}
+          startIso={slot.startIso}
+          endIso={slot.endIso}
+          locale={locale}
+          setSubmitLabel={setSubmitLabel}
+        />
+      )}
     />
   );
 }

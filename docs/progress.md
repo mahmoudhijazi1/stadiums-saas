@@ -6262,3 +6262,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `booking` imports `venue`, `people` and `payment` as before; nothing imports booking's series code except `app/`.
 
 **How to verify:** NOT run. Per the task no test suite, build or lint was run; one `tsc --noEmit` is run at the end of the branch. The migration is not applied anywhere yet.
+
+## Weekly recurring bookings, commit 2 of 4: creating a series (branch `feat/weekly-series`)
+
+**What:**
+- **Quick-booking sheet** (the sheet opened from a free hour on Today and from the Book grid): after the player's name and phone, a "Repeat weekly" / "كرّر كل أسبوع" switch. On: chips 4 / 8 / 12 (default 8), the preview list (one line per week: its date, and a mark for taken, outside hours, past, or "N requests will be declined"), and the primary button states the real count: "Book 7 games" / "احجز 7 مباريات" (`seriesGamesLabel`, Arabic plural forms). The sheet got an optional `extra` block (`SlotFormExtra` in `components/slot-picker.tsx`) that can relabel the button; the public page passes none.
+- **Saving:** `submitCreateOwnerBooking` calls `createSeries` when `weeklyCount` is present, with the weeks the owner saw (`acceptedStart` fields), then redirects to Today with `?series=…&skipped=…`. Today opens a result sheet (`SeriesCreatedSheet`): who, "every Tuesday at 8:00 PM, starting …", how many games, any week skipped since the preview, and the WhatsApp confirmation.
+- **Booking sheet, More actions:** a "Repeat weekly" row (shown to members with `bookings.create` on a confirmed game that has not ended and is not in a series), opening a confirm step with the same chips and preview, starting next week; the button says "Add N games"; the result is the same panel.
+- **WhatsApp:** new intent `SERIES_CONFIRMED` and context `after_series` in `messageIntentFor`, with Arabic (Lebanese) and English text in `composeMessage` (`seriesConfirmedMessage`): the weekday, the time, the first date, the number of games.
+- New server pieces: `load-series-info.ts` (which games are in a series and how many are left, one query), `load-series-created.ts` (the result sheet, read from saved rows), and `series/actions.ts` (`previewSeriesAction`, `submitSeriesSave`).
+
+**Why:** a regular team booked once, with the owner seeing exactly what will be created.
+
+**Files:** `app/owner/(app)/series/{actions.ts,weekly-preview.tsx,weekly-confirm.tsx}`, `components/slot-picker.tsx`, `book/{actions.ts,picker.tsx}`, `today/{free-strip,lists,page,upcoming-panel}.tsx`, `modules/booking/application/{load-series-info,load-series-created}.ts`, `modules/notification/domain/{message-intent,whatsapp-link}.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** `notification` still imports nothing from `booking`. The preview and the use case use the same `classifyOccurrence`, so a week shown as free is re-checked with the same rule under the pitch lock.
+
+**How to verify:** NOT run. No suite, build or lint was run; `npx tsc --noEmit` was run at this commit (clean), more often than the one run the task allowed. Nothing was rendered in a browser.

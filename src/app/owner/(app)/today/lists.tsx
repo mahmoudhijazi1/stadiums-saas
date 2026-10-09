@@ -3,7 +3,10 @@ import { Bell, ChevronRight } from "lucide-react";
 import { Suspense } from "react";
 import { FreeStripSection } from "./free-strip-section";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
-import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, BOOKINGS_NO_SHOW, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
+import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, BOOKINGS_CREATE, BOOKINGS_NO_SHOW, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
+import { loadSeriesCreated } from "@/modules/booking/application/load-series-created";
+import { loadSeriesInfo } from "@/modules/booking/application/load-series-info";
+import { SeriesCreatedSheet } from "@/app/owner/(app)/series/weekly-confirm";
 import { listExtensionMinutes } from "@/modules/booking/application/list-extension-minutes";
 import { loadExtensionOffers, type ExtensionOffer } from "@/modules/booking/application/load-extension-offers";
 import type { ExtendOfferView } from "./extend-form";
@@ -72,6 +75,8 @@ export async function OwnerToday({
   date,
   notify,
   bookingId,
+  series,
+  skipped,
 }: {
   membership: CurrentMembership;
   locale?: UiLocale;
@@ -80,6 +85,9 @@ export async function OwnerToday({
   date?: string;
   notify?: OutcomeKind;
   bookingId?: string;
+  /** A weekly series just booked from the quick-booking sheet, and the weeks skipped (ISO, comma). */
+  series?: string;
+  skipped?: string;
 }) {
   const tenant = await getCurrentTenant();
   const hourCycle: HourCycle = tenant.timeDisplay;
@@ -130,6 +138,29 @@ export async function OwnerToday({
   };
   // The "+30" mark next to the time of a game that was extended.
   const extendedMinutes = await listExtensionMinutes([...ownerDay.games, ...earlierDebts].map((row) => row.id));
+  // Weekly series: which of these games already belong to one, and the result sheet after booking.
+  const seriesInfo = await loadSeriesInfo([...ownerDay.games, ...earlierDebts].map((row) => row.id), now);
+  const mayCreate = can(membership, BOOKINGS_CREATE);
+  const repeatable = new Set(
+    mayCreate
+      ? ownerDay.games
+          .filter((row) => row.status === "APPROVED" && row.end.getTime() > now.getTime() && !seriesInfo.has(row.id))
+          .map((row) => row.id)
+      : [],
+  );
+  const seriesCreated = series
+    ? await loadSeriesCreated({
+        seriesId: series,
+        skippedStarts: (skipped ?? "")
+          .split(",")
+          .filter(Boolean)
+          .map((value) => new Date(value))
+          .filter((value) => !Number.isNaN(value.getTime())),
+        locale,
+        hourCycle,
+        stadiumName: tenant.name,
+      })
+    : null;
   const saved =
     notify && bookingId ? await loadOutcomeNotify({ bookingId, kind: notify }) : null;
 
@@ -212,6 +243,7 @@ export async function OwnerToday({
           extensionOffers,
           mayAdjust,
           extendedMinutes,
+          repeatable,
         )}
         locale={locale}
         mayCollect={mayCollect}
@@ -225,6 +257,14 @@ export async function OwnerToday({
         lbpPerUsd={rate ? rate.toString() : null}
         shop={shop}
       />
+      {seriesCreated ? (
+        <SeriesCreatedSheet
+          summary={seriesCreated}
+          skippedLabels={seriesCreated.skippedLabels}
+          locale={locale}
+          closeHref={date ? `/owner/today?date=${encodeURIComponent(date)}` : "/owner/today"}
+        />
+      ) : null}
       </DayContent>
     </DayNavProvider>
   );
@@ -279,6 +319,7 @@ function toUpcomingViews(
   extensionOffers: Map<string, ExtensionOffer> = new Map(),
   mayEditExtension = false,
   extendedMinutes: Map<string, number> = new Map(),
+  repeatable: Set<string> = new Set(),
 ): UpcomingRowView[] {
   return rows.map((row) => {
     // The pill, the card state and the owed class count the player tabs too; the Collect amounts
@@ -330,6 +371,7 @@ function toUpcomingViews(
       pitchName: showPitch ? row.pitchName : null,
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
       extendedMinutes: extendedMinutes.get(row.id) ?? 0,
+      repeatWeekly: repeatable.has(row.id),
       dayLabel: formatEarlierDayLabel(row.start, now, locale, dayStartHour),
       dateLabel: formatSlotDateLabel(row.start, now, locale),
       nightHint: nightHint(row.start, locale, dayStartHour),

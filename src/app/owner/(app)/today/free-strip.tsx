@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { SlotBookSheet } from "@/components/slot-picker";
+import { WeeklyFields } from "@/app/owner/(app)/series/weekly-preview";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { shortPeriod, splitDisplayedClock } from "@/lib/format-local-hm";
 import type { FreeChip, FreeStripPitch } from "@/modules/booking/domain/free-strip";
@@ -211,6 +212,15 @@ export function FreeStrip({
           }}
           submitLabel={ui("owner.book", locale)}
           locale={locale}
+          extra={({ pitchId, slot, setSubmitLabel }) => (
+            <WeeklyFields
+              pitchId={pitchId}
+              startIso={slot.startIso}
+              endIso={slot.endIso}
+              locale={locale}
+              setSubmitLabel={setSubmitLabel}
+            />
+          )}
         />
       ) : null}
     </section>

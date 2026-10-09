@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   hasPublicRequestFieldErrors,
   publicRequestFieldErrors,
@@ -142,6 +142,16 @@ function SlotFace({
  * Name/phone is a bottom sheet so the 2-col grid does not shift. No booking /
  * access / venue types.
  */
+/**
+ * Owner-only extra block inside the booking form (the "Repeat weekly" switch). It may relabel the
+ * primary button through setSubmitLabel (null = the normal label). The public page passes none.
+ */
+export type SlotFormExtra = (context: {
+  pitchId: string;
+  slot: SlotPickerSlot;
+  setSubmitLabel: (label: string | null) => void;
+}) => ReactNode;
+
 export function SlotPicker({
   pitches,
   action,
@@ -149,6 +159,7 @@ export function SlotPicker({
   submitLabel,
   locale = "ar",
   policyLine = null,
+  extra,
 }: {
   pitches: SlotPickerPitch[];
   action: (formData: FormData) => void | Promise<void>;
@@ -157,6 +168,7 @@ export function SlotPicker({
   locale?: UiLocale;
   /** Late-cancel policy. Public page only, and only when the percent is above 0. */
   policyLine?: string | null;
+  extra?: SlotFormExtra;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const picked = findSelected(pitches, selected);
@@ -216,6 +228,7 @@ export function SlotPicker({
         submitLabel={submitLabel}
         locale={locale}
         policyLine={policyLine}
+        extra={extra}
       />
     </>
   );
@@ -233,6 +246,7 @@ export function SlotBookSheet({
   submitLabel,
   locale = "ar",
   policyLine = null,
+  extra,
 }: {
   /** pitchName is null when the stadium has one pitch. */
   picked: { pitchId: string; pitchName: string | null; slot: SlotPickerSlot } | null;
@@ -242,6 +256,7 @@ export function SlotBookSheet({
   submitLabel: string;
   locale?: UiLocale;
   policyLine?: string | null;
+  extra?: SlotFormExtra;
 }) {
   return (
     <BottomSheet
@@ -270,6 +285,7 @@ export function SlotBookSheet({
               submitLabel={submitLabel}
               locale={locale}
               policyLine={policyLine}
+              extra={extra}
             />
           </BottomSheetBody>
         </BottomSheetContent>
@@ -332,6 +348,7 @@ function RequestForm({
   submitLabel,
   locale,
   policyLine,
+  extra,
 }: {
   pitchId: string;
   slot: SlotPickerSlot;
@@ -340,7 +357,9 @@ function RequestForm({
   submitLabel: string;
   locale: UiLocale;
   policyLine: string | null;
+  extra?: SlotFormExtra;
 }) {
+  const [labelOverride, setLabelOverride] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<PublicRequestFieldErrors>({});
   const nameErrorId = `name-err-${slot.startIso}`;
   const phoneErrorId = `phone-err-${slot.startIso}`;
@@ -425,12 +444,13 @@ function RequestForm({
           </p>
         ) : null}
       </div>
+      {extra ? extra({ pitchId, slot, setSubmitLabel: setLabelOverride }) : null}
       {policyLine ? (
         <p className="text-sm text-muted-foreground">
           <IsolatedDigits text={policyLine} />
         </p>
       ) : null}
-      <SubmitButton className="w-full">{submitLabel}</SubmitButton>
+      <SubmitButton className="w-full">{labelOverride ?? submitLabel}</SubmitButton>
     </form>
   );
 }

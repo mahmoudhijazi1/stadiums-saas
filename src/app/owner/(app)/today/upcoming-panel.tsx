@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type Ref, Fragment } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import Link from "next/link";
-import { Ban, ChevronDown, Clock, Pencil, UserX, X } from "lucide-react";
+import { Ban, ChevronDown, Clock, Pencil, Repeat, UserX, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
@@ -41,6 +41,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExtendForm, ExtendedMark, type ExtendOfferView } from "./extend-form";
+import { WeeklyConfirm } from "@/app/owner/(app)/series/weekly-confirm";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -63,6 +64,8 @@ export type UpcomingRowView = {
   timeRange: string;
   /** Minutes added by extensions (30 each); 0 = never extended. Shown as a mark by the time. */
   extendedMinutes: number;
+  /** "Repeat weekly" is offered: confirmed, not over, not in a series, and the member may create. */
+  repeatWeekly: boolean;
   dateLabel: string;
   /** Day an owed game belongs to: "Yesterday", a weekday, or the date. */
   dayLabel: string;
@@ -175,7 +178,7 @@ function DueRemainingFigures({
   );
 }
 
-type SheetStep = "details" | "cancel" | "noshow" | "adjust" | "extend";
+type SheetStep = "details" | "cancel" | "noshow" | "adjust" | "extend" | "repeat";
 
 /** Call and WhatsApp in the sheet header: a 36px circle inside a 44px hit area. */
 function HeaderIcon({
@@ -547,6 +550,7 @@ export function UpcomingPanel({
                   onNoShow={() => moveStep("noshow")}
                   onAdjust={() => moveStep("adjust")}
                   onExtend={() => moveStep("extend")}
+                  onRepeat={() => moveStep("repeat")}
                 />
               </BottomSheetBody>
               <BottomSheetBody
@@ -586,6 +590,14 @@ export function UpcomingPanel({
                     onBack={() => moveStep("details")}
                   />
                 ) : null}
+                {sheetStep === "repeat" ? (
+                  <WeeklyConfirm
+                    source={{ kind: "booking", bookingId: sheetRow.id }}
+                    locale={locale}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
                 {sheetStep === "adjust" ? (
                   <AdjustDueForm
                     row={sheetRow}
@@ -610,6 +622,7 @@ function stepTitle(step: SheetStep, locale: UiLocale): string {
   if (step === "noshow") return ui("owner.noShow", locale);
   if (step === "adjust") return ui("owner.adjustDue", locale);
   if (step === "extend") return ui("owner.extend", locale);
+  if (step === "repeat") return ui("owner.repeatWeekly", locale);
   return ui("owner.cancel", locale);
 }
 
@@ -701,6 +714,7 @@ function UpcomingRowActions({
   onNoShow,
   onAdjust,
   onExtend,
+  onRepeat,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
@@ -715,6 +729,7 @@ function UpcomingRowActions({
   onNoShow: () => void;
   onAdjust: () => void;
   onExtend: () => void;
+  onRepeat: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -728,7 +743,8 @@ function UpcomingRowActions({
   const showNoShow = mayNoShow && row.showNoShow;
   const showCancel = mayCancel && row.showCancel;
   const showExtend = row.extend !== null;
-  const hasMore = showAdjust || showExtend || showSplit || showNoShow || showCancel;
+  const showRepeat = row.repeatWeekly;
+  const hasMore = showAdjust || showExtend || showRepeat || showSplit || showNoShow || showCancel;
 
   return (
     <>
@@ -806,6 +822,11 @@ function UpcomingRowActions({
                   hint={row.extend.disabledReason}
                 >
                   {ui("owner.extend", locale)}
+                </ActionRow>
+              ) : null}
+              {showRepeat ? (
+                <ActionRow icon={Repeat} onClick={onRepeat}>
+                  {ui("owner.repeatWeekly", locale)}
                 </ActionRow>
               ) : null}
               {showAdjust ? (

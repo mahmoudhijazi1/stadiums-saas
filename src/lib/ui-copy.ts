@@ -8,6 +8,19 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "owner.repeatWeekly": "كرّر كل أسبوع",
+  "owner.seriesWeeks": "عدد الأسابيع",
+  "owner.seriesTaken": "محجوز",
+  "owner.seriesOutside": "خارج ساعات العمل",
+  "owner.seriesPast": "مضى",
+  "owner.seriesDeclines": "سيُرفض {n} من الطلبات",
+  "owner.seriesNone": "لا يوجد أسبوع متاح.",
+  "owner.seriesChecking": "نتحقق من الأسابيع…",
+  "owner.seriesCreatedTitle": "تم الحجز الثابت",
+  "owner.seriesCreatedLine": "كل {weekday} الساعة {time}، ابتداءً من {day}",
+  "owner.seriesSkippedLead": "تخطّينا (صار محجوزاً بعد المعاينة):",
+  "owner.seriesWhatsApp": "أرسل التأكيد عبر واتساب",
+  "owner.seriesDone": "تم",
   "owner.extendedChip": "+{n} د",
   "owner.extendedTitle": "مُدّدت المباراة {n} دقيقة",
   "owner.extend": "تمديد 30 دقيقة",
@@ -475,6 +488,19 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "owner.repeatWeekly": "Repeat weekly",
+  "owner.seriesWeeks": "Number of weeks",
+  "owner.seriesTaken": "Taken",
+  "owner.seriesOutside": "Outside hours",
+  "owner.seriesPast": "Past",
+  "owner.seriesDeclines": "{n} requests will be declined",
+  "owner.seriesNone": "No week is free.",
+  "owner.seriesChecking": "Checking the weeks…",
+  "owner.seriesCreatedTitle": "Weekly booking made",
+  "owner.seriesCreatedLine": "Every {weekday} at {time}, starting {day}",
+  "owner.seriesSkippedLead": "Skipped (taken since the preview):",
+  "owner.seriesWhatsApp": "Send the confirmation on WhatsApp",
+  "owner.seriesDone": "Done",
   "owner.extendedChip": "+{n} min",
   "owner.extendedTitle": "Extended by {n} min",
   "owner.extend": "Extend 30 min",
@@ -1415,3 +1441,35 @@ export function groupedDigits(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+
+/** "Book 7 games" / "احجز 7 مباريات" (verb "book"), "Add 7 games" / "أضف 7 مباريات" (verb "add"). */
+export function seriesGamesLabel(verb: "book" | "add", count: number, locale: UiLocale = "ar"): string {
+  if (locale === "en") {
+    return plural("en", count, {
+      one: `${verb === "book" ? "Book" : "Add"} {n} game`,
+      other: `${verb === "book" ? "Book" : "Add"} {n} games`,
+    });
+  }
+  const lead = verb === "book" ? "احجز" : "أضف";
+  return plural("ar", count, {
+    zero: `${lead} {n} مباراة`,
+    one: `${lead} مباراة`,
+    two: `${lead} مباراتين`,
+    few: `${lead} {n} مباريات`,
+    many: `${lead} {n} مباراة`,
+    other: `${lead} {n} مباراة`,
+  });
+}
+
+/** "7 games" / "7 مباريات" for a plain count. */
+export function seriesGamesCount(count: number, locale: UiLocale = "ar"): string {
+  if (locale === "en") return plural("en", count, { one: "{n} game", other: "{n} games" });
+  return plural("ar", count, {
+    zero: "{n} مباراة",
+    one: "مباراة",
+    two: "مباراتان",
+    few: "{n} مباريات",
+    many: "{n} مباراة",
+    other: "{n} مباراة",
+  });
+}

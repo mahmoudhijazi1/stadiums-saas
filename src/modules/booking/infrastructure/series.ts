@@ -1,3 +1,4 @@
+import { Prisma } from "@/app/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import type { CivilDate } from "@/modules/venue/domain/availability";
@@ -120,4 +121,57 @@ export async function listSeriesOccurrences(tx: TenantTx, seriesId: string): Pro
     start: new Date(row.start),
     end: new Date(row.end),
   }));
+}
+
+export type BookingSeriesInfo = {
+  bookingId: string;
+  seriesId: string;
+  anchor: SeriesAnchor;
+  durationMinutes: number;
+  /** APPROVED games of the series that have not started. */
+  left: number;
+  /** Start of the last APPROVED game of the series. */
+  lastStart: Date | null;
+};
+
+/** The series (and its counters) of each of these bookings; bookings outside a series are absent. */
+export async function listSeriesInfoForBookings(
+  tx: TenantTx,
+  bookingIds: readonly string[],
+  now: Date,
+): Promise<BookingSeriesInfo[]> {
+  if (bookingIds.length === 0) return [];
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<
+    {
+      bookingId: string;
+      seriesId: string;
+      anchorDate: Date | string;
+      anchorTime: string;
+      durationMinutes: number;
+      left: bigint;
+      lastStart: Date | string | null;
+    }[]
+  >`
+    SELECT b.id AS "bookingId", s.id AS "seriesId", s."anchorDate", s."anchorTime", s."durationMinutes",
+      (SELECT COUNT(*) FROM "Booking" x
+        WHERE x."seriesId" = s.id AND x."tenantId" = s."tenantId"
+          AND x.status = 'APPROVED'::"BookingStatus" AND lower(x.during) > ${now}) AS "left",
+      (SELECT MAX(lower(x.during)) FROM "Booking" x
+        WHERE x."seriesId" = s.id AND x."tenantId" = s."tenantId"
+          AND x.status = 'APPROVED'::"BookingStatus") AS "lastStart"
+    FROM "Booking" b
+    JOIN "BookingSeries" s ON s.id = b."seriesId"
+    WHERE b."tenantId" = ${tenantId} AND b.id IN (${Prisma.join(bookingIds)})`;
+  return rows.map((row) => {
+    const [hour, minute] = row.anchorTime.split(":").map(Number);
+    return {
+      bookingId: row.bookingId,
+      seriesId: row.seriesId,
+      anchor: { date: civilOfDate(new Date(row.anchorDate)), hour: hour ?? 0, minute: minute ?? 0 },
+      durationMinutes: row.durationMinutes,
+      left: Number(row.left),
+      lastStart: row.lastStart ? new Date(row.lastStart) : null,
+    };
+  });
 }
