@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
+import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { TenderBalance } from "@/app/owner/tender-balance";
 import { SelectField } from "@/components/ui/select-field";
@@ -128,15 +129,7 @@ export function RecordExpenseSheet({
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="expenseLbp">{ui("owner.lbp", locale)}</Label>
-                <Input
-                  id="expenseLbp"
-                  type="text"
-                  name="lbpAmount"
-                  inputMode="numeric"
-                  value={lbp}
-                  onChange={(event) => setLbp(event.target.value)}
-                 
-                />
+                <LbpInput id="expenseLbp" name="lbpAmount" value={lbp} onValueChange={setLbp} />
               </div>
               <TenderBalance
                 usdText={usd}

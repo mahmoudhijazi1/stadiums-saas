@@ -82,6 +82,7 @@ export async function PendingRequestList({
         <EmptyState
           title={ui("empty.pending", locale)}
           next={ui("empty.pendingNext", locale)}
+          compact
         />
       ) : (
         <ul className="flex flex-col gap-3">

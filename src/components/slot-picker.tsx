@@ -15,6 +15,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { EmptyState } from "@/components/ui/empty-state";
+import { sanitizePhoneInput } from "@/modules/people/domain/phone";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClockRangeText, ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
@@ -406,9 +407,13 @@ function RequestForm({
           className="font-mono"
           aria-invalid={Boolean(fieldErrors.phone)}
           aria-describedby={fieldErrors.phone ? phoneErrorId : undefined}
-          onInput={() =>
-            setFieldErrors((current) => ({ ...current, phone: undefined }))
-          }
+          onInput={(event) => {
+            // Digits and + - ( ) . only: letters never get into the box.
+            const input = event.currentTarget;
+            const clean = sanitizePhoneInput(input.value);
+            if (clean !== input.value) input.value = clean;
+            setFieldErrors((current) => ({ ...current, phone: undefined }));
+          }}
         />
         {fieldErrors.phone ? (
           <p

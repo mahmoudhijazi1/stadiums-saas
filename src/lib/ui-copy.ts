@@ -8,6 +8,8 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "empty.games": "لا مباريات في هذا اليوم.",
+  "empty.gamesNext": "الحجوزات المؤكدة لهذا اليوم تظهر هنا.",
   "push.newRequestTitle": "ملاعب",
   "push.newRequestOne": "طلب حجز جديد",
   "push.newRequestMany": "{n} طلبات بانتظارك",
@@ -462,6 +464,8 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "empty.games": "No games on this day.",
+  "empty.gamesNext": "Confirmed bookings for this day show here.",
   "push.newRequestTitle": "Lebstads",
   "push.newRequestOne": "New booking request",
   "push.newRequestMany": "{n} requests waiting",

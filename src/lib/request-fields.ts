@@ -1,4 +1,4 @@
-import { normalizePhone } from "@/modules/people/domain/phone";
+import { isPhoneText, normalizePhone } from "@/modules/people/domain/phone";
 
 export type PublicRequestFieldKey = "public.errName" | "public.errPhone";
 
@@ -18,7 +18,7 @@ export function publicRequestFieldErrors(
   const errors: PublicRequestFieldErrors = {};
   if (name.trim().length < 1) errors.name = "public.errName";
   const digits = normalizePhone(phone);
-  if (digits.length < 8 || digits.length > 15) {
+  if (!isPhoneText(phone) || digits.length < 8 || digits.length > 15) {
     errors.phone = "public.errPhone";
   }
   return errors;
