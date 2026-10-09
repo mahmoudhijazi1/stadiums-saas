@@ -94,7 +94,7 @@ export function BookingItems({
   return (
     <section className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <h4 className="type-section">{ui("owner.shop", locale)}</h4>
+        <h4 className="type-strong">{ui("owner.shop", locale)}</h4>
         {mayAdd ? (
           <button
             type="button"
