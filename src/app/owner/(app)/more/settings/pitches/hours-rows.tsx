@@ -48,7 +48,9 @@ function DaySwitch({
       >
         <span
           className={cn(
-            "absolute top-0.5 size-5 rounded-full bg-background shadow transition-[inset-inline-start] motion-reduce:transition-none",
+            // The track is 24px with a 1px border, so its inside is 22px by 38px. An 18px disc centred
+            // vertically leaves 2px above and below, and 2px at either end (0.5 / 1.125rem = 2 / 18px).
+            "absolute top-1/2 size-[18px] -translate-y-1/2 rounded-full bg-background shadow transition-[inset-inline-start] motion-reduce:transition-none",
             checked ? "inset-s-[1.125rem]" : "inset-s-0.5",
           )}
         />
