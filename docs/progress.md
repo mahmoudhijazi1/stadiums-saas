@@ -6246,3 +6246,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `booking/application/{list-extension-minutes,extend-booking}.ts`, `today/{lists,upcoming-panel,extend-form}.tsx`, `lib/ui-copy.ts`, `test/integration/extend-booking.integration.test.ts` (new "extended mark" block: 30 and 60, a free extension, empty list and no login).
 
 **How to verify:** `npx tsc --noEmit` clean. The new tests were written and NOT run; no suite or build was run and the screen was not rendered. Existing extended games from before this change have their `EXTENSION` row, so they show the mark too.
+
+## Weekly recurring bookings, commit 1 of 4: domain and use cases (branch `feat/weekly-series`)
+
+**What:** the data and rules; no screen yet.
+- **Model:** occurrences are REAL bookings, APPROVED and owner-created, made up front, each priced at its own time and frozen. A series is only the link: table `BookingSeries` (`pitchId`, `personId`, `anchorDate` + `anchorTime` = week 0 in Asia/Beirut, `durationMinutes`, `createdByMembershipId`; in `TENANT_SCOPED_MODELS`) and a nullable `Booking.seriesId` (FK RESTRICT, indexed). Migration `20261013090000_booking_series`, additive. No job, no virtual bookings.
+- **Domain** `booking/domain/series.ts` (pure): `seriesOccurrences(anchor, count, timeZone, firstIndex)` = the anchor's local wall-clock time on anchor date + 7k calendar days, converted to UTC for that day (the 20:00 game stays 20:00 across the October clock change; a 00:30 game stays on the same night); `occurrenceIndex`; `occurrencePrice` (the grid slot's price at that time, scaled to the series length, half up); `classifyOccurrence` / `buildSeriesPreview` mark each week `free`, `taken`, `outside_hours` (`bookingFitsOpenHours`, or no slot at that time) or `past`, and count the pending requests a free week would decline. Counts offered: 4, 8, 12 (default 8). The code has no owner-booking horizon constant, so all three options are offered.
+- **Use cases** (`booking/application/`): `createSeries` (authorize `bookings.create`, then one transaction: pitch lock once, person found or created like the quick booking, series row, then `createWeeksUnderLock` re-checks each accepted start and skips a taken one into `skipped`; if nothing could be booked it writes nothing, `booking.series_none`; pending requests inside a created week are declined into interests; 23P01 becomes `booking.series_retry`), `makeWeekly` (an APPROVED booking not already in a series becomes week 0, the next `count` weeks are created), `renewSeries` (continues after the series' latest game), `cancelRestOfSeries` (`bookings.cancel`: every upcoming APPROVED week, no fee, a week with collected money is left alone and returned in `kept`; pitch lock, then each booking row `FOR UPDATE` in ascending id order). `preview-series.ts` gives the same verdicts as a preview for a new series, "repeat weekly" on a booking, and a renewal. `makeWeekly` and `renewSeries` accept `acceptedStarts` (the weeks the owner saw).
+- `insertApprovedOwnerBooking` takes an optional `seriesId`. New error keys in both languages. `docs/ARCHITECTURE.md` lock-order table has the four new rows.
+
+**Why:** a regular team that plays every Tuesday should be booked once, not every week.
+
+**Files:** `booking/domain/series.ts`, `booking/application/{create-series,make-weekly,renew-series,cancel-rest-of-series,preview-series,series-weeks}.ts`, `booking/infrastructure/{series,bookings}.ts`, `prisma/schema.prisma` and the migration, `lib/{db,error-messages}.ts`, `test/modules/booking/domain/series.test.ts`.
+
+**How it connects:** `booking` imports `venue`, `people` and `payment` as before; nothing imports booking's series code except `app/`.
+
+**How to verify:** NOT run. Per the task no test suite, build or lint was run; one `tsc --noEmit` is run at the end of the branch. The migration is not applied anywhere yet.

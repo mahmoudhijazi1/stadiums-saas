@@ -5,6 +5,10 @@ import type { UiLocale } from "@/lib/locale";
  * Unknown keys and legacy ?error=1 → generic.
  */
 const ARABIC: Record<string, string> = {
+  "booking.series_none": "تعذّر حجز أي أسبوع.",
+  "booking.series_retry": "تغيّر الجدول أثناء الحفظ. حاول مرة أخرى.",
+  "booking.series_not_found": "الحجز الثابت غير موجود.",
+  "booking.series_exists": "هذا الحجز ثابت أصلاً.",
   "booking.changed": "تغيّر هذا الحجز. حدّث الصفحة وحاول مرة أخرى.",
   "booking.extend_not_approved": "يمكن تمديد المباريات المؤكدة فقط.",
   "booking.extend_ended": "انتهت هذه المباراة.",
@@ -88,6 +92,10 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "booking.series_none": "No week could be booked.",
+  "booking.series_retry": "The schedule changed while saving. Try again.",
+  "booking.series_not_found": "Weekly booking not found.",
+  "booking.series_exists": "This booking is already weekly.",
   "booking.changed": "This booking changed. Refresh and try again.",
   "booking.extend_not_approved": "Only confirmed games can be extended.",
   "booking.extend_ended": "This game has ended.",
