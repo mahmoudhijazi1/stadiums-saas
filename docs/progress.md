@@ -6071,3 +6071,68 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `notification` imports nothing from `booking`; `booking` and `app/` call `notifyLink`. The midnight test now reads the confirm text from `loadDecisionNotify`.
 
 **How to verify:** `npm test` 807 passed; `npm run build` green; `npm run test:integration` 43 suites: 327 of 328 tests passed. The one failure was `login-rate-limit` ("with the setting on but the header missing"), a timing-sensitive login test this change does not touch: it passes when run alone, and the same suite flaked once earlier in this project. The suites that exercise the WhatsApp links (`collect-notify-debt`, `midnight`, `fees`, `requested-name`, `pending-races`, `free-strip`) pass: 37 of 37.
+
+## Push notifications, commit 1 of 4: foundation, no UI (branch `feat/push-foundation`)
+
+**What:** the pieces a later alert needs; nothing sends yet and no screen changed.
+- **Env:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` or https). Optional in the zod schema; `validateEnv` adds "NAME is required in production" for each, so the production start-up exits naming the variable (never its value). Missing in development means "not configured": `readPushConfig()` returns null. `.env.example` documents them.
+- **Table `PushSubscription`** (migration `20261011090000_push_subscriptions`, additive): `tenantId`, `userId`, `sessionId` (FK to `Session`, ON DELETE CASCADE), `endpoint` UNIQUE, `p256dh`, `auth`, `locale`, `createdAt`. In `TENANT_SCOPED_MODELS`. `Session` has no new column; the schema only gains the Prisma back-relation field.
+- **Module `src/modules/push`** (domain / application / infrastructure). Pure domain: `validatePushEndpoint` (https only, no userinfo, no explicit port, host on ONE allowlist constant, 2048 max), `validatePushKeys` (base64url, 87 and 22 characters), `buildPushPayload` / `serializePushPayload` (kind TEST, Arabic and English, generic, a path under /owner/, under 1 KB), `pushSendOptions` (TTL 60 s, urgency high, topic = tag).
+- **Port `PushSender`** (`application/push-sender.ts`): `send(target, payload, options)` returns `ok | gone | retry`. Real implementation `infrastructure/web-push-sender.ts` (the only file that imports `web-push`; 404 and 410 are `gone`, everything else `retry`; only the status code leaves the file, never an error message). Fake: `test/modules/push/fake-push-sender.ts`.
+- **Dependency:** `web-push` 3.6.7 (MPL-2.0, last release January 2024, 5 small dependencies, no install scripts), `@types/web-push` dev.
+
+**Why:** owner alerts for new requests (a later slice). The endpoint allowlist exists because the server POSTs to whatever endpoint a client registers (SSRF). Only `fcm.googleapis.com` is confirmed by the web-push docs; the Mozilla, Apple and Windows hosts are marked UNVERIFIED in the constant.
+
+**Files:** `src/modules/push/**`, `src/lib/{env,db,ui-copy}.ts`, `src/prisma/schema.prisma`, the migration, `.env.example`, `package.json`, `test/modules/push/*`, `test/lib/env.test.ts`.
+
+**How it connects:** `push` imports only `access` (from commit 2) and `lib`; `booking` must never import `push` (a later alert is composed in `app/`). Enforced by `test/modules/push/imports.test.ts`, which also pins `web-push` to one server file and the private key to `push-config.ts`.
+
+**How to verify:** `npm test` 883 passed; `npm run test:integration` 43 suites, 328 passed; `npm run build` green; eslint clean on the new files. `prisma migrate diff` of the migrated test database against the schema shows nothing for `PushSubscription` (one older, unrelated `BookingParticipant` foreign-key difference was already there).
+
+## Push notifications, commit 2 of 4: server actions (branch `feat/push-foundation`)
+
+**What:** three use cases and three thin Server Actions; still nothing calls them from a screen.
+- `subscribePush({ endpoint, keys, locale })`: any logged-in role; user and session come from the cookie (`access/application/require-session.ts` `requireCurrentSession`, new, reads the session row behind the cookie). Validates with the domain functions, then one transaction owned by the use case: a raw `INSERT … ON CONFLICT (endpoint) DO UPDATE` (the conflicting row may belong to another tenant, which the scoped client cannot see; `tenantId` is stamped from the tenant context) and a trim to the newest 10 per user in this tenant. A device used by another user, session or tenant is taken over by the caller.
+- `unsubscribePush({ endpoint })`: deletes only the caller's own row (`userId` + `endpoint`, tenant-scoped).
+- `sendTestPush()`: refuses when the VAPID keys are missing (`push.not_configured`), counts `pushtest:<userId>` in `RateLimit` (5 per 10 minutes, hit before any send), then sends a TEST payload to the caller's own devices in this tenant, each in that device's stored locale. `gone` deletes the row, `retry` keeps it. The log line carries the push service host, the outcome and the status code only.
+- A suspended tenant has no membership (`getCurrentMembership`), so all three refuse with `access.not_allowed`.
+- `app/owner/(app)/more/notifications/actions.ts`: `submitSubscribePush`, `submitUnsubscribePush`, `submitSendTestPush` (zod first fence, then the use case, `actionErrorKey`). New error keys `push.invalid_subscription`, `push.not_configured`, `push.rate_limited` in both languages.
+
+**Why:** the Notifications sheet (commit 3) needs a way to register a device and prove it works.
+
+**Decision recorded, not changed:** `getLiveQueue` (the badge poll) requires only a membership, not `bookings.approve`. BR-97 says staff "cannot approve bookings", and `listPendingRequests` and SPEC-05 let staff see the list, so the badge matching the list is consistent. The push alert in slice B is different: it should go only to members for whom `can(membership, "bookings.approve")` is true.
+
+**Files:** `modules/access/application/require-session.ts`, `modules/push/application/{subscribe-push,send-test-push,push-status}.ts`, `modules/push/infrastructure/subscriptions.ts`, `app/owner/(app)/more/notifications/actions.ts`, `lib/error-messages.ts`.
+
+**How it connects:** `push` imports `access` (application) and `lib` only. The cap is per user per tenant, not per user across stadiums, so one stadium's trim never deletes a row of another.
+
+**How to verify:** `npm test` 883 passed; `npm run test:integration` 44 suites, 351 passed (the new `push.integration.test.ts`, 23 tests, lands in commit 4); `npm run build` green.
+
+## Push notifications, commit 3 of 4: service worker handlers and the More > Notifications sheet (branch `feat/push-foundation`)
+
+**What:**
+- `public/sw.js`: a `push` handler that ALWAYS calls `showNotification` (an empty, unreadable or wrongly typed payload falls back to a generic Arabic or English title), with `/icons/icon-192.png`, the payload's tag plus `renotify`, `dir`, `lang` and `data.url`; and a `notificationclick` handler that closes the notification, accepts only a path that starts with `/owner/` on this origin (anything else, including an absolute URL, `//host`, `..` or a backslash, becomes `/owner/requests`), focuses an open `/owner/` window and navigates it, otherwise opens a new window. `install`, `activate` and `fetch` and the cache name are unchanged.
+- More hub: a **Notifications / الإشعارات** row in Preferences (hidden when the VAPID keys are not configured; the page passes the public key from `getPushPublicKey()`), opening a bottom sheet (`more/notifications/notifications-sheet.tsx`). States, each in Arabic and English: checking, unsupported browser, iPhone not installed (Share, then Add to Home Screen), permission not asked (one primary button, "Enable notifications"; the browser prompt is requested only from that tap, as the first call in the handler), enabled (status line, primary "Send a test notification", quiet "Turn off"), denied (how to re-enable in the phone's settings).
+- If permission is already granted and this browser holds a subscription, the sheet re-sends it to the server once per browser session (`sessionStorage`), so a new login on the same phone re-attaches the device.
+- `modules/push/domain/vapid-key.ts` (`vapidKeyToBytes`, pure, safe for the client).
+
+**Why:** the owner needs a way to turn alerts on for a device and see one arrive before the real alert exists.
+
+**Files:** `public/sw.js`, `app/owner/(app)/more/{hub,page}.tsx`, `app/owner/(app)/more/notifications/notifications-sheet.tsx`, `modules/push/domain/vapid-key.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** the sheet imports only the `push` domain (`vapidKeyToBytes`) and the actions; it never imports `push` application or infrastructure (guarded by `test/modules/push/imports.test.ts`).
+
+**How to verify:** `npm test` 883 passed on the committed files; `npm run test:integration` 44 suites, 351 passed; `npm run build` green. NOT verified: the sheet was not rendered and no push was received (no browser or device here); see the manual checks in `docs/push-notifications.md`. `hub.tsx` already had 4 eslint errors (`react-hooks/immutability`, locale code) before this change.
+
+## Push notifications, commit 4 of 4: tests and docs (branch `feat/push-foundation`)
+
+**What:**
+- **Tests.** Unit (`test/modules/push/`): endpoint allowlist table (accepted vendors, userinfo and port tricks, lookalike and dot-boundary hosts, IP literals, length), key lengths, payload (Arabic and English, generic, path under `/owner/`, under 1 KB), send options, VAPID key bytes, the web-push sender mapping (404 and 410 to `gone`, other codes and network errors to `retry`, no error text leaves), and import rules. The service worker runs in a Node `vm` with a fake `self`, `caches` and `clients` (`service-worker.test.ts`, 28 tests): a push with valid JSON, invalid JSON, no data, wrong types each show exactly one notification; `notificationclick` with an absolute or external URL, `//host`, a path outside `/owner/`, `..`, a backslash or a `javascript:` URL opens `/owner/requests`; an open `/owner/` window is focused and navigated; install, activate and fetch are unchanged. Env: production without VAPID variables fails, development passes (commit 1). Integration (`push.integration.test.ts`, 23 tests, fake sender): subscribe stores the caller's user, session and tenant; upsert; take-over by another user and by another stadium; cap of 10; refusal of an unauthenticated caller, a foreign session, a suspended tenant and off-allowlist endpoints; unsubscribe never touches another user's row; logout, log out other devices, password change and session deletion remove the right devices; the test send reaches only the caller's devices and never another stadium's, even for a user in both; 404 and 410 delete, 500 keeps; 5 per 10 minutes per user; missing keys refuse.
+- **Fix found while writing the docs:** the Notifications sheet reused an existing browser subscription even after the server's VAPID public key changed. It now compares the subscription's key with the current one and re-subscribes when they differ.
+- **Docs.** New `docs/push-notifications.md` (flow, glossary, why the allowlist exists, the cascade, keys and what a key change does, iOS, a debugging checklist, and the manual checks for two devices). Updated: `RUNBOOK.md` (Push keys), `ARCHITECTURE.md` (import table row, port and the after-commit rules), `DATA-MODEL.md`, `NOW.md`, `ROADMAP.md` (slice B and later items), `owner-ia.md`, `guides/folder-structure.md`, `guides/testing-jest.md`, `docs/README.md`.
+
+**Files:** `test/modules/push/*`, `test/integration/{push.integration.test,setup-env,truncate}.ts`, `src/app/owner/(app)/more/notifications/notifications-sheet.tsx`, the docs above.
+
+**How it connects:** the integration setup now sets a throwaway VAPID pair so the "configured" paths run; the real sender is never used in tests.
+
+**How to verify:** `npm test` 913 passed (98 suites); `npm run test:integration` 44 suites, 351 passed; `npm run build` green. NOT verified (no browser or phone here): the page rendering, the permission prompt, and a real push arriving on Android or iPhone. The Mozilla, Apple and Windows hosts in the allowlist are UNVERIFIED against real endpoints. Run the checks in `docs/push-notifications.md`.

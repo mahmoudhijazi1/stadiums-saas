@@ -33,6 +33,10 @@ introduces. Manual SPEC acceptance checks still matter; Jest is the repeatable s
 - Testing pure helpers (tenant slug parsing, money helpers, availability) keeps middleware and pages thin.
 - Repository / extension tests prove the tenant rail when a SPEC’s acceptance criteria demand it.
 
+## Push tests
+
+Pure push code and the service worker run in the normal Jest run (`test/modules/push/`). `public/sw.js` is loaded into a Node `vm` with a fake `self`, `caches` and `clients` (`service-worker.test.ts`), so no browser is needed to check what a push or a click does. The sender is replaced with `FakePushSender` through `setPushSender` in `test/integration/push.integration.test.ts`; nothing is sent over the network. Real delivery is checked by hand: [push-notifications.md](./push-notifications.md) lists the steps.
+
 ## Integration tests (real Postgres)
 
 Priority-1 architectural claims (exclusion constraint, transactional

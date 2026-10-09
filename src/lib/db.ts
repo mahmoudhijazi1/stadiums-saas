@@ -24,6 +24,7 @@ export const TENANT_SCOPED_MODELS: ReadonlySet<string> = new Set([
   "Sale",
   "SaleItem",
   "SaleAllocation",
+  "PushSubscription",
 ]);
 
 /**

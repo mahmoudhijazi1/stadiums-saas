@@ -79,10 +79,21 @@ The app serves only the bare `APP_BASE_DOMAIN` (for example `lebstads.com`) and 
 The server checks its environment once at start (`src/lib/env.ts`, from `src/instrumentation.ts`). In production it **exits** when a required variable is missing or malformed, and the log line names the variable, never its value.
 
 - **Required:** `DATABASE_URL` (a `postgres://` URL), `APP_BASE_DOMAIN` (a host name, optionally with `:port`, no scheme), `APP_PROTOCOL` (`http` or `https`).
+- **Required in production only:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address or an https URL). Optional in development: without them the Notifications row is hidden. See "Push keys" below.
 - **Optional:** `PASSWORD_HASH_COST` (14–20), `TRUSTED_CLIENT_IP_HEADER`, `TRUST_PROXY_HEADERS` (`true` or `false`), `PG_POOL_MAX`.
 - There is no session secret: session tokens are random and stored hashed.
 
 `.env.example` lists them all.
+
+## Push keys
+
+Owner notifications are signed with a VAPID key pair ([push-notifications.md](./push-notifications.md)).
+
+- **Generate** one pair per environment, once: `npx web-push generate-vapid-keys`. Put `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT="mailto:ops@your-domain"` in the server's `.env` (the file on the droplet, outside git; `.env.example` shows the names only).
+- **Never commit** the private key, paste it in a ticket or chat, or print it in a log. The app never logs it or sends it to the browser; the browser gets only the public key.
+- **Production refuses to start** without all three (the log names the missing variable).
+- **Do not rotate casually.** Every device subscribed with the old public key stops receiving alerts; each owner must open More → Notifications and tap Enable again. If the private key leaks, rotate and tell the owners.
+- **Back up** the pair with the rest of the server secrets: losing it has the same effect as rotating it.
 
 ## Listen on localhost only
 

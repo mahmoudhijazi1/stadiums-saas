@@ -16,6 +16,7 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 |---|---|---|
 | `access` | none | everything else |
 | `notification` | none | everything else (`domain/whatsapp-link.ts` only) |
+| `push` | access | every other module. `booking` and the rest never import `push`: a future alert is composed in `app/` (the use case that commits, then a call from the action). Enforced by `test/modules/push/imports.test.ts` |
 | `people` | access | booking, payment, venue |
 | `venue` | access | booking (CLAUDE.md: "Venue never imports Booking") |
 | `ledger` | access | payment, booking |
@@ -110,7 +111,9 @@ Prefer `updateMany({ where: { id } })` (filtered by the extension) inside transa
 
 ## 5. Notifications after commit
 
-The server sends nothing. "Notifications" are `wa.me` links built by `notification/domain/whatsapp-link.ts` and shown to the owner, who taps them.
+For players, the server sends nothing: those "notifications" are `wa.me` links built by `notification/domain/whatsapp-link.ts` and shown to the owner, who taps them.
+
+The one thing the server does send is web push to the **owner's own devices** ([push-notifications.md](./push-notifications.md)). Today that is only the test button. The module `src/modules/push` has a port, `PushSender` (`application/push-sender.ts`: `send(target, payload, options)` returns `ok`, `gone` (404/410, delete the row) or `retry`), with one real implementation (`infrastructure/web-push-sender.ts`, the only file that imports `web-push`, server only) and an in-memory fake for tests (`test/modules/push/fake-push-sender.ts`, installed with `setPushSender`). Rules that carry over to the real alert in slice B: send **after** commit and never inside a transaction, a failure to send never changes the response or rolls anything back, and the alert is wired in `app/` or a thin application function, never by importing `push` from `booking`. The endpoint is validated against an allowlist before it is stored, because the server POSTs to it (SSRF).
 - They are built **after** commit, on a later request: the action redirects with `?notify=…&bookingId=…` (for example `submitCancelBooking` in `app/owner/(app)/today/actions.ts`). The page then calls `booking/application/load-decision-notify.ts` `loadDecisionNotify` / `load-outcome-notify.ts` `loadOutcomeNotify`, which read committed rows.
 - Approve returns the auto-rejected people (`approveBooking` → `rejectOverlappingPending`) after the transaction. Nothing is sent inside it.
 - A failure to build a link is logged and skipped (`loadDecisionNotify`, `"Decision WhatsApp link skipped"`). It never rolls anything back.

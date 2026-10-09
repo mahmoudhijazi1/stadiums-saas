@@ -43,6 +43,17 @@ Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not sta
 | Walk-in credit | A walk-in sale is paid in full or refused today; "put it on my tab" needs a person and the Owed screen. |
 | Append-only for Sale / SaleItem | Insert-only by code only, like Payment and LedgerEntry (F-2): no trigger. Revisit with F-2. |
 
+## Push notifications: next (recorded 2026-10-11)
+
+Slice A (foundation and the test button) is built; see [push-notifications.md](./push-notifications.md). Not started, each its own slice:
+
+| Item | Note |
+|---|---|
+| Slice B: the new-request alert | After the transaction in `requestPublicSlot` commits, a fire-and-forget call composed in `app/` (booking must not import push): notify members for whom `can(membership, "bookings.approve")` is true (staff can see the list but not approve, BR-97), with throttling so a flood of requests is one buzz, not fifty (the tag and topic already replace an earlier alert). A failure to send is logged and never changes the player's response. Do not alert for the "slot taken" branch. Payload stays generic (no player name or phone). |
+| Real notification icons and a badge icon | Today the notification uses the placeholder `icon-192.png`; no monochrome badge icon. Needs real artwork. |
+| Offline, level 1 | The worker still caches only `/offline.html`. A read-only Today for a dropped connection needs a decision on what may be cached for an authenticated page (the security audit passed the worker because it caches none). |
+| Prune dead subscriptions | Only a 404/410 at send time and the session cascade delete rows; a subscription that quietly stops working is kept until its session ends. Revisit with slice B's send results. |
+
 ## Deferred on purpose: tenant management
 
 Recorded 2026-10-01 with the tenant-management CLI. These are deliberate decisions, not gaps.

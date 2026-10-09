@@ -8,6 +8,13 @@ const valid = {
   APP_PROTOCOL: "https",
 };
 
+// A throwaway pair generated for tests; used nowhere else.
+const vapid = {
+  VAPID_PUBLIC_KEY: "BHeDxk40V_VmEoDksncIvL-EPPgu9kRGpuh8hZFmBlSzMdAZF_7KRC3qJqTPalJi-Xj7H25lTNxJQFbcsuue5b4",
+  VAPID_PRIVATE_KEY: "xGdrZRlYJ01Wo07Jn2A6R-5lz1AlV2OxgHf9kxe3F3A",
+  VAPID_SUBJECT: "mailto:ops@lebstads.com",
+};
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -65,12 +72,38 @@ describe("checkEnvAtStartup", () => {
   });
 
   it("passes in production when valid", () => {
-    expect(() => checkEnvAtStartup({ ...valid, NODE_ENV: "production" })).not.toThrow();
+    expect(() => checkEnvAtStartup({ ...valid, ...vapid, NODE_ENV: "production" })).not.toThrow();
   });
 
   it("only warns outside production", () => {
     const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
     expect(() => checkEnvAtStartup({ NODE_ENV: "development" })).not.toThrow();
     expect(warn).toHaveBeenCalled();
+  });
+});
+
+describe("VAPID variables (web push)", () => {
+  it("are optional outside production", () => {
+    expect(validateEnv({ ...valid, NODE_ENV: "development" })).toEqual([]);
+    expect(validateEnv({ ...valid, ...vapid })).toEqual([]);
+  });
+
+  it("are required in production, each named", () => {
+    const errors = validateEnv({ ...valid, NODE_ENV: "production" });
+    for (const name of Object.keys(vapid)) {
+      expect(errors).toContain(`${name} is required in production`);
+    }
+    expect(() => checkEnvAtStartup({ ...valid, NODE_ENV: "production" })).toThrow(/VAPID_PRIVATE_KEY/);
+  });
+
+  it("rejects malformed values without echoing them", () => {
+    const errors = validateEnv({ ...valid, VAPID_PRIVATE_KEY: "not a key", VAPID_SUBJECT: "ops@lebstads.com" }).join("\n");
+    expect(errors).toMatch(/VAPID_PRIVATE_KEY/);
+    expect(errors).toMatch(/VAPID_SUBJECT/);
+    expect(errors).not.toContain("not a key");
+  });
+
+  it("accepts an https URL as the subject", () => {
+    expect(validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: "https://lebstads.com/contact" })).toEqual([]);
   });
 });
