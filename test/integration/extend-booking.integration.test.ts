@@ -9,6 +9,7 @@ import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";
 import { extendBooking } from "@/modules/booking/application/extend-booking";
+import { listExtensionMinutes } from "@/modules/booking/application/list-extension-minutes";
 import { loadExtensionOffers } from "@/modules/booking/application/load-extension-offers";
 import { requestPublicSlot } from "@/modules/booking/application/request-public-slot";
 import { isExclusionViolation } from "@/modules/booking/domain/exclusion";
@@ -503,4 +504,37 @@ describe("races (10 iterations each)", () => {
     }
     await assertMoneyInvariants([]);
   }, 120_000);
+});
+
+describe("the extended mark", () => {
+  it("counts 30 minutes per extension and nothing for a game never extended", async () => {
+    const extended = await bookGame(3, 0, "03111101");
+    const plain = await bookGame(4, 0, "03111102");
+    expect((await listExtensionMinutes([extended.bookingId, plain.bookingId])).size).toBe(0);
+
+    await extend(extended.bookingId, extended.slot.end);
+    let minutes = await listExtensionMinutes([extended.bookingId, plain.bookingId]);
+    expect(minutes.get(extended.bookingId)).toBe(30);
+    expect(minutes.has(plain.bookingId)).toBe(false);
+
+    await extend(extended.bookingId, new Date(extended.slot.endAt.getTime() + THIRTY));
+    minutes = await listExtensionMinutes([extended.bookingId]);
+    expect(minutes.get(extended.bookingId)).toBe(60);
+  });
+
+  it("a free extension (added price 0) is still logged, so it still shows", async () => {
+    const { bookingId, slot } = await bookGame(3, 0);
+    await extend(bookingId, slot.end, new Decimal("0.00"));
+    const row = await rangeOf(bookingId);
+    expect(row.amountDueUsd).toBe("30.00");
+    expect(row.end.getTime()).toBe(slot.endAt.getTime() + THIRTY);
+    expect(await platformDb.bookingDueChange.count({ where: { bookingId, reason: "EXTENSION" } })).toBe(1);
+    expect((await listExtensionMinutes([bookingId])).get(bookingId)).toBe(30);
+  });
+
+  it("is empty for an empty list and refused without a login", async () => {
+    expect((await listExtensionMinutes([])).size).toBe(0);
+    actAs(fixture.tenantSlug);
+    await expect(listExtensionMinutes(["x"])).rejects.toMatchObject({ key: "access.not_allowed" });
+  });
 });

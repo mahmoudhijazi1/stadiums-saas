@@ -33,6 +33,25 @@ export type ExtendOfferView = {
   mayEditPrice: boolean;
 };
 
+/**
+ * "+30 min" beside the time of a game that was extended (+60 after two). Reads at a glance and to
+ * a screen reader ("Extended by 30 min"); the digits stay left to right.
+ */
+export function ExtendedMark({ minutes, locale }: { minutes: number; locale: UiLocale }) {
+  if (minutes <= 0) return null;
+  return (
+    <span
+      title={ui("owner.extendedTitle", locale).replace("{n}", String(minutes))}
+      className="ms-1.5 inline-flex items-center rounded-full border border-line-strong bg-surface-2 px-1.5 align-middle type-caption text-foreground"
+    >
+      <span className="sr-only">{ui("owner.extendedTitle", locale).replace("{n}", String(minutes))}</span>
+      <span aria-hidden>
+        <LtrIsolate>{ui("owner.extendedChip", locale).replace("{n}", String(minutes))}</LtrIsolate>
+      </span>
+    </span>
+  );
+}
+
 const MONEY = /^(?:0|[1-9]\d*)\.\d{2}$/;
 
 /**

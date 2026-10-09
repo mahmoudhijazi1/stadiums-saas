@@ -6236,3 +6236,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/upcoming-panel.tsx`.
 
 **How to verify:** `npx tsc --noEmit` clean. No test suite or build was run, and the sheet was not rendered. eslint reports one older error in that file (`setState` in an effect, ROADMAP item 4).
+
+## Extended games show a "+30 min" mark by the time (branch `feat/extend-booking`)
+
+**What:** a game that was extended carries a small pill right after its time interval, on the Today card and in the booking sheet header: "+30 min" / "+٣٠ د" (+60 after two extensions), with a screen-reader text "Extended by 30 min". Never-extended games show nothing.
+- The number is derived, not stored: `booking/application/list-extension-minutes.ts` counts the game's `EXTENSION` due changes (30 each) in one `groupBy` per page, any logged-in member. `lists.tsx` passes it as `UpcomingRowView.extendedMinutes`; `ExtendedMark` (in `today/extend-form.tsx`) draws it.
+- A **free** extension (added price 0) used to log nothing, because `writeDueIfChanged` skips an unchanged due. `extendBooking` now writes the `EXTENSION` row itself in that case, so the mark still shows.
+
+**Files:** `booking/application/{list-extension-minutes,extend-booking}.ts`, `today/{lists,upcoming-panel,extend-form}.tsx`, `lib/ui-copy.ts`, `test/integration/extend-booking.integration.test.ts` (new "extended mark" block: 30 and 60, a free extension, empty list and no login).
+
+**How to verify:** `npx tsc --noEmit` clean. The new tests were written and NOT run; no suite or build was run and the screen was not rendered. Existing extended games from before this change have their `EXTENSION` row, so they show the mark too.

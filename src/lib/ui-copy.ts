@@ -8,6 +8,8 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "owner.extendedChip": "+{n} د",
+  "owner.extendedTitle": "مُدّدت المباراة {n} دقيقة",
   "owner.extend": "تمديد 30 دقيقة",
   "owner.extendNewTime": "الوقت الجديد",
   "owner.extendAdded": "السعر المضاف",
@@ -473,6 +475,8 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "owner.extendedChip": "+{n} min",
+  "owner.extendedTitle": "Extended by {n} min",
   "owner.extend": "Extend 30 min",
   "owner.extendNewTime": "New time",
   "owner.extendAdded": "Added price",

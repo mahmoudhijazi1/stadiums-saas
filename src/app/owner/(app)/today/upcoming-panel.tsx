@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExtendForm, type ExtendOfferView } from "./extend-form";
+import { ExtendForm, ExtendedMark, type ExtendOfferView } from "./extend-form";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -61,6 +61,8 @@ export type UpcomingRowView = {
   /** Null when the stadium has one pitch: the name would say nothing. */
   pitchName: string | null;
   timeRange: string;
+  /** Minutes added by extensions (30 each); 0 = never extended. Shown as a mark by the time. */
+  extendedMinutes: number;
   dateLabel: string;
   /** Day an owed game belongs to: "Yesterday", a weekday, or the date. */
   dayLabel: string;
@@ -474,6 +476,7 @@ export function UpcomingPanel({
                       aria-hidden={sheetStep !== "details"}
                     >
                       <ClockRangeText text={sheetRow.timeRange} />
+                      <ExtendedMark minutes={sheetRow.extendedMinutes} locale={locale} />
                     </span>
                   </span>
                 </BottomSheetTitle>
@@ -649,6 +652,7 @@ function UpcomingRows({
             meta={
               <>
                 <ClockRangeText text={row.timeRange} />
+                <ExtendedMark minutes={row.extendedMinutes} locale={locale} />
                 {row.pitchName ? <span>{row.pitchName}</span> : null}
                 {row.nightHint ? <span>{row.nightHint}</span> : null}
               </>

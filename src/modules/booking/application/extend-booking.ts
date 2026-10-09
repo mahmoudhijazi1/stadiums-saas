@@ -16,6 +16,7 @@ import { extensionNote, extensionPlan } from "@/modules/booking/domain/extension
 import {
   findBookingForDecision,
   findBookingForUpdate,
+  insertBookingDueChange,
   listApprovedRanges,
   lockPitchForUpdate,
   setBookingEndAndPrice,
@@ -125,16 +126,30 @@ export async function extendBooking(input: {
         newEnd: plan.newEnd,
         priceUsd: booking.priceUsd.plus(added),
       });
-      await writeDueIfChanged(tx, {
-        bookingId: booking.id,
-        fromUsd: booking.amountDueUsd,
-        toUsd: booking.amountDueUsd.plus(added),
-        collectedUsd: await sumCollectedUsd(tx, "BOOKING", booking.id),
-        collectionMode: booking.collectionMode,
-        reason: "EXTENSION",
-        note: extensionNote(booking.start, booking.end, plan.newEnd, TIME_ZONE),
-        actorMembershipId: membership.membershipId,
-      });
+      const note = extensionNote(booking.start, booking.end, plan.newEnd, TIME_ZONE);
+      if (added.isZero()) {
+        // A free extension changes no amount, so writeDueIfChanged would log nothing. The log row
+        // is also what marks the game as extended on the cards, so it is written anyway.
+        await insertBookingDueChange(tx, {
+          bookingId: booking.id,
+          fromUsd: booking.amountDueUsd,
+          toUsd: booking.amountDueUsd,
+          reason: "EXTENSION",
+          note,
+          actorMembershipId: membership.membershipId,
+        });
+      } else {
+        await writeDueIfChanged(tx, {
+          bookingId: booking.id,
+          fromUsd: booking.amountDueUsd,
+          toUsd: booking.amountDueUsd.plus(added),
+          collectedUsd: await sumCollectedUsd(tx, "BOOKING", booking.id),
+          collectionMode: booking.collectionMode,
+          reason: "EXTENSION",
+          note,
+          actorMembershipId: membership.membershipId,
+        });
+      }
 
       return {
         bookingId: booking.id,
