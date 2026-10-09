@@ -10,7 +10,7 @@ import { ui } from "@/lib/ui-copy";
 import { PAYMENTS_COLLECT, REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { listOwed } from "@/modules/booking/application/list-owed";
 import { businessDate } from "@/modules/booking/domain/business-day";
-import { paymentReminderMessage, whatsAppHref } from "@/modules/notification/domain/whatsapp-link";
+import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
 import { formatEarlierDayLabel } from "../../today/date-label";
@@ -45,22 +45,17 @@ export default async function OwedPage() {
   const groups: OwedGroupView[] = owed.groups.map((group, groupIndex) => {
     const name = group.name;
     const latest = group.debts[0]!;
-    let reminderHref: string | null = null;
-    if (name && group.phone) {
-      try {
-        reminderHref = whatsAppHref(
-          group.phone,
-          paymentReminderMessage({
-            name,
-            amount: `$${formatUsdCompact(group.totalUsd)}`,
-            date: formatDisplayDate(latest.start, locale, { weekday: "long", day: "numeric", month: "long" }, TZ),
+    // A named person with a phone: the payment reminder. The decision is `messageIntentFor("owed_page")`.
+    const since = formatDisplayDate(latest.start, locale, { weekday: "long", day: "numeric", month: "long" }, TZ);
+    const reminderHref =
+      name && group.phone
+        ? notifyLink({
+            context: "owed_page",
+            phone: group.phone,
+            facts: { name, stadiumName: tenant.name, day: since, time: "", since, amount: `$${formatUsdCompact(group.totalUsd)}` },
             locale,
-          }),
-        );
-      } catch {
-        reminderHref = null;
-      }
-    }
+          }).href
+        : null;
     return {
       key: group.personId ?? (name ? `name:${name.toLowerCase()}` : "unnamed"),
       name,

@@ -42,6 +42,8 @@ import { UpcomingPanel, type UpcomingRowView } from "./upcoming-panel";
 import type { BookingItemsPanelView, ItemLineView } from "./booking-items";
 import { listBookingItems, type BookingItemsView } from "@/modules/shop/application/list-booking-items";
 import { listProducts } from "@/modules/shop/application/products";
+import { formatParts } from "@/lib/money-display";
+import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { SHOP_SELL } from "@/modules/access/domain/can";
 import type { NetLine } from "@/modules/shop/domain/booking-items";
 import {
@@ -359,6 +361,25 @@ function toUpcomingViews(
       0,
       Math.floor((row.start.getTime() - now.getTime()) / 3_600_000),
     );
+    const waDay = messageDayLabel(row.start, locale, dayStartHour);
+    const waTime = formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale);
+    // The header icon: plain chat, unless the game has ended and money is owed on it (the game due or
+    // any tab), then the payment reminder. `messageIntentFor("booking_header")` decides.
+    const tabs = itemsByBooking.get(row.id)?.tabs ?? [];
+    const owedParts = {
+      usd: Decimal.max(row.remaining, 0).plus(tabs.reduce((sum, tab) => sum.plus(tab.remainingUsd), new Decimal(0))),
+      lbp: tabs.reduce((sum, tab) => sum.plus(tab.remainingLbp), new Decimal(0)),
+    };
+    const whatsApp = notifyLink({
+      context: "booking_header",
+      state: {
+        gameEnded: classifyDue({ status: row.status, start: row.start, end: row.end, remaining: new Decimal(1), now }) === "owed",
+        owed: owedParts.usd.gt(0) || owedParts.lbp.gt(0),
+      },
+      phone: row.requesterPhone,
+      facts: { name: row.requesterName, stadiumName, day: waDay, time: waTime, amount: formatParts(owedParts, locale) },
+      locale,
+    });
     return {
       id: row.id,
       pitchName: showPitch ? row.pitchName : null,
@@ -385,7 +406,7 @@ function toUpcomingViews(
           ? formatUsdCompact(row.priceUsd)
           : formatUsdCompact(row.owedUsd),
       tabsRemainingUsd: formatUsd(row.tabsRemainingUsd),
-      confirmWhatsAppHref: row.confirmWhatsAppHref,
+      whatsAppHref: whatsApp.href,
       showCancel:
         row.status === "APPROVED" &&
         !isCancelWindowClosed(row.start, now),
@@ -452,8 +473,8 @@ function toUpcomingViews(
       collectedExact: formatUsd(row.collectedUsd),
       collectedCompact: formatUsdCompact(row.collectedUsd),
       stadiumName,
-      waDay: messageDayLabel(row.start, locale, dayStartHour),
-      waTime: formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale),
+      waDay,
+      waTime,
     };
   });
 }

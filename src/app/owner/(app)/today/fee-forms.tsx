@@ -10,13 +10,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact, normalizeUsdForm, parseUsd } from "@/lib/money";
 import { ui, uiCount } from "@/lib/ui-copy";
-import {
-  bookingCancelledByOwnerMessage,
-  bookingCancelledByPlayerFeeMessage,
-  bookingCancelledByPlayerMessage,
-  bookingNoShowFeeMessage,
-  bookingNoShowMessage,
-} from "@/modules/notification/domain/whatsapp-link";
+import { previewMessage } from "@/modules/notification/domain/whatsapp-link";
 import Decimal from "decimal.js";
 import {
   submitAdjustBookingDue,
@@ -410,24 +404,21 @@ function cancelWhatsAppText(input: {
   row: UpcomingRowView;
   locale: UiLocale;
   link: string;
-}): string {
-  const shared = {
-    name: input.row.requesterName,
-    day: input.row.waDay,
-    time: input.row.waTime,
-    locale: input.locale,
-  };
-  if (input.initiator === "OWNER") {
-    return bookingCancelledByOwnerMessage({ ...shared, link: input.link });
-  }
+}): string | null {
   const fee = cancelFeeUsd(input.mode, input.exact, input.feeExact);
-  if (fee.gt(0)) {
-    return bookingCancelledByPlayerFeeMessage({
-      ...shared,
-      fee: `$${formatUsdCompact(fee)}`,
-    });
-  }
-  return bookingCancelledByPlayerMessage(shared);
+  return previewMessage({
+    context: "after_cancel",
+    facts: {
+      name: input.row.requesterName,
+      stadiumName: input.row.stadiumName,
+      day: input.row.waDay,
+      time: input.row.waTime,
+      initiator: input.initiator === "OWNER" ? "OWNER" : "PLAYER",
+      link: input.link,
+      fee: fee.gt(0) ? `$${formatUsdCompact(fee)}` : null,
+    },
+    locale: input.locale,
+  });
 }
 
 function noShowWhatsAppText(input: {
@@ -436,21 +427,21 @@ function noShowWhatsAppText(input: {
   feeExact: string;
   row: UpcomingRowView;
   locale: UiLocale;
-}): string {
-  const shared = {
-    name: input.row.requesterName,
-    day: input.row.waDay,
-    time: input.row.waTime,
-    locale: input.locale,
-  };
+}): string | null {
   const fee = cancelFeeUsd(input.mode, input.exact, input.feeExact);
-  if (fee.gt(0)) {
-    return bookingNoShowFeeMessage({
-      ...shared,
-      fee: `$${formatUsdCompact(fee)}`,
-    });
-  }
-  return bookingNoShowMessage(shared);
+  // A fee: the payment reminder. No fee: nothing to say, so no text is previewed.
+  return previewMessage({
+    context: "after_no_show",
+    state: { feeCharged: fee.gt(0) },
+    facts: {
+      name: input.row.requesterName,
+      stadiumName: input.row.stadiumName,
+      day: input.row.waDay,
+      time: input.row.waTime,
+      amount: `$${formatUsdCompact(fee)}`,
+    },
+    locale: input.locale,
+  });
 }
 
 function cancelFeeUsd(mode: FeeMode, exact: string, feeExact: string): Decimal {

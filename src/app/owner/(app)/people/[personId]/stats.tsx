@@ -1,7 +1,6 @@
 import { getPersonBookingStats } from "@/modules/booking/application/get-person-booking-stats";
-import { paymentReminderMessage, whatsAppHref } from "@/modules/notification/domain/whatsapp-link";
+import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatDisplayDate } from "@/lib/format-display-date";
 import { formatUsdCompact } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
@@ -9,12 +8,10 @@ import { MessageCircle, Phone } from "lucide-react";
 
 export async function PersonStats({
   personId,
-  personName,
   phone,
   locale,
 }: {
   personId: string;
-  personName: string;
   phone: string | null;
   locale: UiLocale;
 }) {
@@ -22,26 +19,8 @@ export async function PersonStats({
   const owes = stats.owesNowUsd;
   const owesLabel = formatUsdCompact(owes);
   const expected = stats.expectedUsd;
-  let remindHref: string | null = null;
-  if (phone && owes.gt(0) && stats.latestOwedAt) {
-    try {
-      remindHref = whatsAppHref(
-        phone,
-        paymentReminderMessage({
-          name: personName,
-          amount: `$${owesLabel}`,
-          date: formatDisplayDate(stats.latestOwedAt, locale, {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          }),
-          locale,
-        }),
-      );
-    } catch {
-      remindHref = null;
-    }
-  }
+  // The person page only opens the chat: `messageIntentFor("person_page")` is null, no text.
+  const remindHref = notifyLink({ context: "person_page", phone, locale }).href;
 
   return (
     <div className="flex flex-col gap-3">

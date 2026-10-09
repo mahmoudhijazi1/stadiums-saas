@@ -6031,3 +6031,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/{upcoming-panel,booking-items,lists}.tsx`, `app/owner/tonal-collect.tsx`.
 
 **How to verify:** `npm test` 777 passed; `npm run build` green; `npm run test:integration` 43 suites / 328 tests passed (run once on this tree, which also covers the add-items sheet commit). The sheet was not rendered in a browser.
+
+## WhatsApp messages, commit 1 of 2: one decision function, the right message per context (branch `fix/whatsapp-messages`)
+
+**What:** still wa.me links the owner taps: no sending, no dependency.
+- `messageIntentFor(context, state)` (`notification/domain/message-intent.ts`, pure) returns `CONFIRMED | DECLINED | CANCELLED | SLOT_AVAILABLE | PAYMENT_REMINDER` or `null` (open the chat with no text). Mapping: booking sheet header icon null, except an ended game with money owed (game due or any tab) which gets PAYMENT_REMINDER; person page null; approve CONFIRMED; reject, a request auto-rejected because the slot was taken, and a dismissed missed request DECLINED (every DECLINED carries the public page link, the auto-reject one included: it used to promise "we will tell you if it frees up"); cancel CANCELLED (with the fee when one was charged); freed slot SLOT_AVAILABLE; earlier debts and the Owed page PAYMENT_REMINDER. No-show: PAYMENT_REMINDER when a fee was charged, else null. After changing what is owed: PAYMENT_REMINDER when something is owed, else null. (These two were not in the brief; they follow from the five intents.)
+- `notifyLink({ context, state, phone, facts, locale })` (`whatsapp-link.ts`) is the one door: it asks the decision function, writes the text from the saved facts (`composeMessage`, the only place that maps an intent to a template), and builds the link. A null intent gives `https://wa.me/<number>`; a phone that cannot be a WhatsApp number gives `href: null` (button hidden), never a throw and never a broken link. `previewMessage` gives the same text for the cancel and no-show forms, which preview it before anything is saved.
+- Every entry point now goes through it: decision notify (approve, reject, dismiss, auto-reject), outcome notify (cancel, no-show, adjust), the waitlist, the Owed page, the person page (now always a plain chat button; it was a payment reminder), and the booking sheet header icon (built in `lists.tsx` from the saved game and its tabs; it used to send a CONFIRMED text on any approved game). "Notify only after the action is saved, built from the saved state" is unchanged.
+- The old per-case templates stay for now; commit 2 rewrites their content.
+
+**Why:** a confirmation text on a game that is already played was wrong, and every screen picked its own template.
+
+**Files:** `modules/notification/domain/{message-intent,whatsapp-link}.ts`, `modules/booking/application/{load-decision-notify,load-outcome-notify,list-open-waitlist,load-owner-day}.ts`, `app/owner/(app)/{money/owed/page,people/[personId]/{page,stats},today/{lists,upcoming-panel,fee-forms}}.tsx`. Tests: `test/modules/notification/message-intent.test.ts` (table-driven, one row per context and state, every null case).
+
+**How it connects:** `notification` imports nothing from `booking`; `booking` and `app/` call `notifyLink`. The midnight test now reads the confirm text from `loadDecisionNotify`.
+
+**How to verify:** `npm test` 807 passed; `npm run build` green; `npm run test:integration` 43 suites: 327 of 328 tests passed. The one failure was `login-rate-limit` ("with the setting on but the header missing"), a timing-sensitive login test this change does not touch: it passes when run alone, and the same suite flaked once earlier in this project. The suites that exercise the WhatsApp links (`collect-notify-debt`, `midnight`, `fees`, `requested-name`, `pending-races`, `free-strip`) pass: 37 of 37.

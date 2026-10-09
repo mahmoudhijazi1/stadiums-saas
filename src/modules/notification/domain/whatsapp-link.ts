@@ -1,4 +1,5 @@
 import { DomainError } from "@/lib/errors";
+import { messageIntentFor, type MessageContext, type MessageIntent, type MessageState } from "@/modules/notification/domain/message-intent";
 
 export type MessageLocale = "ar" | "en";
 
@@ -199,4 +200,110 @@ function toLebanonWhatsAppNumber(phoneDigits: string): string {
     throw new DomainError("notification.bad_phone");
   }
   return e164;
+}
+
+/**
+ * Everything any message may say, already as local strings. The caller states the facts; the intent
+ * (decided by `messageIntentFor`) decides which of them the message uses.
+ */
+export type MessageFacts = {
+  name: string;
+  stadiumName: string;
+  day: string;
+  time: string;
+  /** Null or omitted when the stadium has one pitch. */
+  pitchName?: string | null;
+  /** The public page link (a declined or owner-cancelled player can pick another time). */
+  link?: string;
+  reason?: string | null;
+  /** A cancellation fee already formatted ("$15"), when one was charged. */
+  fee?: string | null;
+  /** The owed amount already formatted in the obligation's currency. */
+  amount?: string;
+  /** Since when it is owed (a local date string); the game day when omitted. */
+  since?: string;
+  /** Who cancelled. */
+  initiator?: "OWNER" | "PLAYER";
+};
+
+function need<T>(value: T | undefined | null, what: string): T {
+  if (value === undefined || value === null || value === "") {
+    throw new Error(`WhatsApp message is missing ${what}`);
+  }
+  return value;
+}
+
+/** The text for an intent. The only place that maps an intent to a template. */
+export function composeMessage(intent: MessageIntent, facts: MessageFacts, locale: MessageLocale): string {
+  const shared = { name: facts.name, day: facts.day, time: facts.time, locale };
+  switch (intent) {
+    case "CONFIRMED":
+      return bookingConfirmedMessage({ ...shared, stadiumName: facts.stadiumName, pitchName: facts.pitchName });
+    case "DECLINED":
+      return bookingRejectedMessage({ ...shared, reason: facts.reason, link: need(facts.link, "the page link") });
+    case "CANCELLED":
+      if (facts.initiator === "OWNER") {
+        return bookingCancelledByOwnerMessage({ ...shared, link: need(facts.link, "the page link") });
+      }
+      return facts.fee ? bookingCancelledByPlayerFeeMessage({ ...shared, fee: facts.fee }) : bookingCancelledByPlayerMessage(shared);
+    case "SLOT_AVAILABLE":
+      return slotAvailableMessage({ ...shared, stadiumName: facts.stadiumName });
+    case "PAYMENT_REMINDER":
+      return paymentReminderMessage({
+        name: facts.name,
+        amount: need(facts.amount, "the amount"),
+        date: facts.since ?? facts.day,
+        locale,
+      });
+  }
+}
+
+export type NotifyLink = {
+  intent: MessageIntent | null;
+  /** The text the link carries; null when it just opens the chat. */
+  message: string | null;
+  /** The wa.me link; null when there is no phone or it cannot be turned into a WhatsApp number. */
+  href: string | null;
+};
+
+/**
+ * The one door every WhatsApp entry point goes through: ask the decision function what the message
+ * is for, write it from the saved facts, build the link. Never throws on a bad phone: the button is
+ * hidden (href null), never a broken link.
+ */
+export function notifyLink(input: {
+  context: MessageContext;
+  state?: MessageState;
+  phone: string | null;
+  /** Needed when the context carries a text; contexts that only open the chat can omit it. */
+  facts?: MessageFacts;
+  locale: MessageLocale;
+}): NotifyLink {
+  const intent = messageIntentFor(input.context, input.state);
+  const message = intent ? composeMessage(intent, need(input.facts, "the facts"), input.locale) : null;
+  let href: string | null = null;
+  if (input.phone) {
+    try {
+      href = message ? whatsAppHref(input.phone, message) : whatsAppChatHref(input.phone);
+    } catch {
+      href = null;
+    }
+  }
+  return { intent, message, href };
+}
+
+/** A wa.me link that opens the chat with no text. */
+export function whatsAppChatHref(phoneDigits: string): string {
+  return `https://wa.me/${toLebanonWhatsAppNumber(phoneDigits)}`;
+}
+
+/** Just the text for a context (the cancel and no-show forms preview it before anything is saved). */
+export function previewMessage(input: {
+  context: MessageContext;
+  state?: MessageState;
+  facts: MessageFacts;
+  locale: MessageLocale;
+}): string | null {
+  const intent = messageIntentFor(input.context, input.state);
+  return intent ? composeMessage(intent, input.facts, input.locale) : null;
 }

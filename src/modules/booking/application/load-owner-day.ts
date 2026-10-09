@@ -1,11 +1,6 @@
-import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
-import { messageDayLabel } from "@/modules/booking/application/night-hint";
-import { formatLocalHm } from "@/lib/format-local-hm";
-import { getUiLocale } from "@/lib/get-ui-locale";
-import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
@@ -24,10 +19,6 @@ import {
 } from "@/modules/booking/infrastructure/bookings";
 import { summarizeDay, type DaySummary } from "@/modules/booking/domain/day-summary";
 import { resolveOwnerDay } from "@/modules/booking/domain/start-day";
-import {
-  bookingConfirmedMessage,
-  whatsAppHref,
-} from "@/modules/notification/domain/whatsapp-link";
 import {
   businessDate,
   businessDayUtcRange,
@@ -80,7 +71,6 @@ export type OwnerDayBooking = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
-  confirmWhatsAppHref: string | null;
 };
 
 export type OwnerDay = {
@@ -127,8 +117,6 @@ export async function loadOwnerDay(
         : Promise.resolve([]),
     ]);
     const summary = summarizeDay(gameRows, now);
-    const locale = await getUiLocale();
-    const showPitch = await hasSeveralPitches();
     const slotsByBooking = groupSlots(
       await listSlotsForBookings(
         db,
@@ -145,12 +133,12 @@ export async function loadOwnerDay(
       afterMidnight,
       summary,
       games: gameRows.map((row) =>
-        toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch, tenant.dayStartHour),
+        toOwnerDayBooking(row, slotsByBooking),
       ),
       toCollect: collectRows
         .slice(0, TO_COLLECT_LIMIT)
         .map((row) =>
-          toOwnerDayBooking(row, tenant.name, tenant.id, locale, tenant.timeDisplay, slotsByBooking, showPitch, tenant.dayStartHour),
+          toOwnerDayBooking(row, slotsByBooking),
         ),
       toCollectHasMore: collectRows.length > TO_COLLECT_LIMIT,
     };
@@ -180,13 +168,7 @@ function groupSlots(rows: SlotRow[]): Map<string, OwnerSlot[]> {
 
 function toOwnerDayBooking(
   row: DayBookingRow,
-  stadiumName: string,
-  tenantId: string,
-  locale: "ar" | "en",
-  hourCycle: "h23" | "h12",
   slotsByBooking: Map<string, OwnerSlot[]>,
-  showPitch: boolean,
-  dayStartHour: number,
 ): OwnerDayBooking {
   const slots = slotsByBooking.get(row.id) ?? [];
   const allocated = slots.reduce((sum, slot) => sum.plus(slot.paidUsd), new Decimal(0));
@@ -213,40 +195,5 @@ function toOwnerDayBooking(
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
-    confirmWhatsAppHref:
-      row.status === "APPROVED"
-        ? confirmHref(row, stadiumName, tenantId, locale, hourCycle, showPitch, dayStartHour)
-        : null,
   };
-}
-
-function confirmHref(
-  row: DayBookingRow,
-  stadiumName: string,
-  tenantId: string,
-  locale: "ar" | "en",
-  hourCycle: "h23" | "h12",
-  showPitch: boolean,
-  dayStartHour: number,
-): string | null {
-  if (!row.requesterPhone) return null;
-  try {
-    return whatsAppHref(
-      row.requesterPhone,
-      bookingConfirmedMessage({
-        name: row.requesterName,
-        stadiumName,
-        day: messageDayLabel(row.start, locale, dayStartHour),
-        time: formatLocalHm(row.start, TIME_ZONE, hourCycle, locale),
-        pitchName: showPitch ? row.pitchName : null,
-        locale,
-      }),
-    );
-  } catch (error) {
-    logger.info("Confirm WhatsApp link skipped", error, {
-      useCase: "loadOwnerDay",
-      tenantId,
-    });
-    return null;
-  }
 }
