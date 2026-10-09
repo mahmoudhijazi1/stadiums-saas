@@ -42,16 +42,25 @@ export function PartsBalance({
   });
   const left = { lbp: application.remLbpAfter, usd: application.remUsdAfter };
   const settled = left.lbp.isZero() && left.usd.isZero();
+  const change = { lbp: application.changeLbp, usd: application.changeUsd };
+  const hasChange = change.lbp.gt(0) || change.usd.gt(0);
 
   return (
-    <p className="type-secondary" aria-live="polite">
-      {settled ? (
-        ui("owner.paidInFull", locale)
-      ) : (
-        <>
-          {ui("owner.remaining", locale)}: <LtrIsolate>{formatParts(left, locale)}</LtrIsolate>
-        </>
-      )}
-    </p>
+    <div className="flex flex-col gap-1" aria-live="polite">
+      <p className="type-secondary">
+        {settled ? (
+          ui("owner.paidInFull", locale)
+        ) : (
+          <>
+            {ui("owner.remaining", locale)}: <LtrIsolate>{formatParts(left, locale)}</LtrIsolate>
+          </>
+        )}
+      </p>
+      {hasChange ? (
+        <p className="type-strong">
+          {ui("owner.changeLabel", locale)}: <LtrIsolate>{formatParts(change, locale)}</LtrIsolate>
+        </p>
+      ) : null}
+    </div>
   );
 }

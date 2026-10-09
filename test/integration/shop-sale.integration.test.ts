@@ -74,15 +74,24 @@ describe("recordWalkInSale", () => {
   });
 
   it("writes nothing at all when a step fails part-way", async () => {
-    // The tender is far larger than the column holds: the sale and its lines are already inserted
-    // when the database refuses it, so everything must roll back.
-    await expect(
-      recordWalkInSale({ lines: [{ productId: cola.id, qty: 1 }], lbpAmount: "9".repeat(17) }),
-    ).rejects.toBeDefined();
+    // The last write of the sale (the allocation) is refused by the database: the sale, its lines, the
+    // payment, the tender and the ledger entry were all inserted before it, and everything must roll back.
     await setExchangeRate(new Decimal("90000"));
+    await platformDb.$executeRawUnsafe('ALTER TABLE "SaleAllocation" ADD CONSTRAINT "zz_force_fail" CHECK (false) NOT VALID');
+    try {
+      await expect(recordWalkInSale({ lines: [{ productId: cola.id, qty: 1 }], usdAmount: "1.50" })).rejects.toBeDefined();
+      await expect(recordWalkInSale({ lines: [{ productId: cola.id, qty: 1 }], lbpAmount: "135000" })).rejects.toBeDefined();
+    } finally {
+      await platformDb.$executeRawUnsafe('ALTER TABLE "SaleAllocation" DROP CONSTRAINT "zz_force_fail"');
+    }
+    expect(await counts()).toEqual({ sales: 0, items: 0, payments: 0, tenders: 0, ledger: 0 });
+    expect(await platformDb.saleAllocation.count()).toBe(0);
+  });
+
+  it("no exchange rate and an LBP tender: refused before anything is written", async () => {
     await expect(
-      recordWalkInSale({ lines: [{ productId: cola.id, qty: 1 }], lbpAmount: "9".repeat(17) }),
-    ).rejects.toBeDefined();
+      recordWalkInSale({ lines: [{ productId: cola.id, qty: 1 }], lbpAmount: "135000" }),
+    ).rejects.toMatchObject({ key: "payment.rate_required" });
     expect(await counts()).toEqual({ sales: 0, items: 0, payments: 0, tenders: 0, ledger: 0 });
   });
 
@@ -151,11 +160,12 @@ describe("recordWalkInSale", () => {
     expect((await counts()).sales).toBe(1);
   });
 
-  it("accepts more than the total and records everything received, like a booking collection", async () => {
+  it("accepts more than the total but records only the total; the rest is change", async () => {
     const sold = await recordWalkInSale({ lines: [{ productId: cola.id, qty: 1 }], usdAmount: "5.00" });
     const ledger = await platformDb.ledgerEntry.findFirstOrThrow({ where: { sourceType: "SALE", sourceId: sold.saleId } });
-    expect(ledger.amountUsd.toFixed(2)).toBe("5.00");
+    expect(ledger.amountUsd.toFixed(2)).toBe("1.50");
     expect(sold.totalUsd.toFixed(2)).toBe("1.50");
+    expect(sold.changeUsd.toFixed(2)).toBe("3.50");
   });
 
   it("merges the same item twice and refuses quantities outside 1 to 99", async () => {

@@ -290,7 +290,7 @@ describe("cancel, no-show and split with a tab on the game", () => {
 });
 
 describe("collecting a player tab", () => {
-  it("takes part payments, then the rest, then refuses; an overpay is recorded in full; the ledger is IN for SALE", async () => {
+  it("takes part payments, then the rest, then refuses; the excess is change; the ledger is IN for SALE", async () => {
     const bookingId = await futureBooking(fixture, 30);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 4 }], payer: { kind: "name", name: "Karim" } }); // 9.00
     await setExchangeRate(new Decimal("90000"));
@@ -300,13 +300,15 @@ describe("collecting a player tab", () => {
     let view = (await listBookingItems([bookingId])).get(bookingId)!.tabs[0]!;
     expect([view.paidUsd.toFixed(2), view.remainingUsd.toFixed(2)]).toEqual(["6.50", "2.50"]);
 
-    await collectTabPayment({ saleId, usdAmount: "3.00" }); // more than the 2.50 left
+    const last = await collectTabPayment({ saleId, usdAmount: "3.00" }); // more than the 2.50 left
+    expect(last.changeUsd.toFixed(2)).toBe("0.50");
     view = (await listBookingItems([bookingId])).get(bookingId)!.tabs[0]!;
-    expect(view.remainingUsd.toFixed(2)).toBe("0.00"); // owed nothing more; the extra is recorded in full for now
+    expect(view.remainingUsd.toFixed(2)).toBe("0.00");
     await expect(collectTabPayment({ saleId, usdAmount: "1.00" })).rejects.toMatchObject({ key: "payment.nothing_due" });
 
+    // The excess is change, not income: the ledger holds exactly what the tab came to.
     const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceType: "SALE", sourceId: saleId }, orderBy: { occurredAt: "asc" } });
-    expect(ledger.map((entry) => [entry.direction, entry.amountUsd.toFixed(2)])).toEqual([["IN", "4.00"], ["IN", "2.50"], ["IN", "3.00"]]);
+    expect(ledger.map((entry) => [entry.direction, entry.amountUsd.toFixed(2)])).toEqual([["IN", "4.00"], ["IN", "2.50"], ["IN", "2.50"]]);
     const lbp = await platformDb.paymentTender.findFirstOrThrow({ where: { currency: "LBP", payment: { sourceId: saleId } } });
     expect(lbp.rateAtTime?.toFixed(0)).toBe("90000");
     expect(await dueOf(bookingId)).toBe("30.00");

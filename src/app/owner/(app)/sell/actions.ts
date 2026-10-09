@@ -8,13 +8,20 @@ import { recordWalkInSale } from "@/modules/shop/application/record-walk-in-sale
  * transaction. No redirect (the screen shows a toast and goes back). Never sends a price.
  */
 export type SellResult =
-  | { ok: true; itemCount: number; totalLbp: string; totalUsdPart: string }
+  | { ok: true; itemCount: number; totalLbp: string; totalUsdPart: string; changeLbp: string; changeUsd: string }
   | { error: string };
 
 export async function submitWalkInSale(input: unknown): Promise<SellResult> {
   try {
     const sale = await recordWalkInSale(input);
-    return { ok: true, itemCount: sale.itemCount, totalLbp: sale.totalLbp.toFixed(0), totalUsdPart: sale.totalUsdPart.toFixed(2) };
+    return {
+      ok: true,
+      itemCount: sale.itemCount,
+      totalLbp: sale.totalLbp.toFixed(0),
+      totalUsdPart: sale.totalUsdPart.toFixed(2),
+      changeLbp: sale.changeLbp.toFixed(0),
+      changeUsd: sale.changeUsd.toFixed(2),
+    };
   } catch (error) {
     return { error: await actionErrorKey(error, "submitWalkInSale") };
   }

@@ -14,7 +14,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
 import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/money-display";
-import { itemsAddedToast, ui } from "@/lib/ui-copy";
+import { changeDescription, itemsAddedToast, ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 import {
   searchPayers,
@@ -234,6 +234,8 @@ function TabCard({
         setError(errorMessage(result.error, locale));
         return;
       }
+      const description = changeDescription({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale);
+      if (description) toast.success(description, { duration: 8000 });
       setPaying(false);
       onDone();
     });

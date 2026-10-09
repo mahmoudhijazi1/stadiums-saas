@@ -5958,3 +5958,21 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `shop` imports `payment` (the shared conversion, `recordPayment`, rates) and `booking` still imports `shop`; Payment and Ledger are unchanged. Booking collection is unchanged.
 
 **How to verify:** `npm test` 772 passed (91 suites); `npm run test:integration` 42 suites / 317 tests passed (new: `shop-lbp`, 9 tests; `pricing` unit tests 17); `npm run build` green. The item sheet, the Sell tender sheet and the tab Collect were not rendered in a browser.
+
+## Mini shop, slice 2, change C: change at the counter
+
+**What:**
+- Walk-in sales and tab collections no longer record cash beyond what is owed. The last tender is reduced to what the sale or tab used (`paymentTenders` with `keepChange: false`) and the rest comes back as change, in the currency it was handed over in (pounds whole). The use cases return it (`recordWalkInSale` → `changeLbp` / `changeUsd`, `collectTabPayment` → the same), the tender sheets show it live ("Change: X" / "الباقي للزبون: X", computed by the same `applyPayment` as the server) and the toast repeats it. Excess pounds first settle any dollar part at the current rate (and excess dollars any pound part); only what is beyond both parts is change. $10 for a $4.50 USD item gives $5.50 change; 100,000 ل.ل for 60,000 ل.ل records 60,000 with 40,000 ل.ل change.
+- Pound cash with no exchange rate is refused up front (`payment.rate_required`).
+- **Booking collection is unchanged** (it still records an overpay in full); a test pins it.
+- The slice-1 "writes nothing when a step fails" test used an oversized tender to force a database error; with change that tender is now reduced, so the test forces the failure on the last write of the sale (a temporary CHECK on `SaleAllocation`) instead, which is a stronger check: the sale, lines, payment, tender and ledger entry were all inserted before it.
+
+**Why:** an owner taking a $10 note for a $4.50 item must not book $10 of income.
+
+**Files:** `modules/shop/{domain/pricing,application/{record-walk-in-sale,collect-tab-payment}}.ts`, `app/owner/parts-balance.tsx`, `app/owner/(app)/{sell,today}/**`, `lib/ui-copy.ts` (`changeDescription`). Tests: `test/integration/shop-change.integration.test.ts` (9), `shop-sale` and `shop-booking-items` updated.
+
+**How it connects:** nothing outside `shop` changes; Payment and Ledger are untouched.
+
+**Correction to the entry for change B:** its verify line said the new `shop-lbp` suite had 9 tests and the pricing unit tests 17. The suite has 11 tests (integration total went from 306 to 317); the unit total went from 751 to 772.
+
+**How to verify:** `npm test` 772 passed (91 suites); `npm run test:integration` 43 suites / 327 tests passed (9 new in `shop-change`, plus one new in `shop-sale`); `npm run build` green. The live change line and the toast were not rendered in a browser.

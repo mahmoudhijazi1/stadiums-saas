@@ -32,7 +32,7 @@ export type WalkInSaleResult = {
   /** What the sale came to in each currency: pounds for LBP items, dollars for USD items. */
   totalLbp: Decimal;
   totalUsdPart: Decimal;
-  /** What was handed over beyond the total, in the currency it was handed over in. */
+  /** Change to give back: what was handed over beyond what the sale owed, in the currency it was handed over in. */
   changeLbp: Decimal;
   changeUsd: Decimal;
 };
@@ -43,7 +43,9 @@ export type WalkInSaleResult = {
  * LBP-priced item while no exchange rate is set. Sale, its lines, the SALE payment with its tenders,
  * the ledger IN and the allocation are written in ONE transaction, so either all of it exists or
  * none. The sale is owed in the currencies of its items (pounds and/or dollars) and must be settled
- * in full (no credit in this slice). No booking or pitch lock is needed: this path touches only rows
+ * in full (no credit in this slice). Cash beyond what the sale owes is not recorded: the last tender is
+ * reduced to what the sale used and the rest is change for the customer, returned in the currency it
+ * was handed over in. No booking or pitch lock is needed: this path touches only rows
  * it creates (lock order: none, by design).
  */
 export async function recordWalkInSale(input: unknown): Promise<WalkInSaleResult> {
@@ -70,13 +72,15 @@ export async function recordWalkInSale(input: unknown): Promise<WalkInSaleResult
         return { productId: product.id, ...priceLine(itemPrice(product), line.qty, rate) };
       });
       const parts = dueParts(priced);
+      // Pounds cannot be taken until a rate is set (a USD-only sale can still be paid in dollars).
+      if (handed.lbp.gt(0) && (!rate || rate.lte(0))) throw new DomainError("payment.rate_required");
 
       const state = settleState({ parts, appliedLbp: new Decimal(0), appliedUsd: new Decimal(0), recordedUsd: new Decimal(0) });
       const application = applyPayment({ state, handed, rate });
       if (owesAnything({ remLbp: application.remLbpAfter, remUsd: application.remUsdAfter })) {
         throw new DomainError("shop.sale_not_fully_paid");
       }
-      const tenders = paymentTenders({ application, handed, rate, keepChange: true });
+      const tenders = paymentTenders({ application, handed, rate, keepChange: false });
 
       const sale = await insertSale(tx, { createdByMembershipId: membership.membershipId });
       for (const line of priced) await insertSaleItem(tx, { saleId: sale.id, ...line });

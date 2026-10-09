@@ -1,4 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
+import { formatParts } from "@/lib/money-display";
 import { plural, type PluralForms } from "@/lib/plural";
 
 /**
@@ -417,6 +418,7 @@ const ARABIC: Record<string, string> = {
   "owner.rateFirst": "حدّد سعر الصرف أولاً لبيع أصناف بالليرة.",
   "owner.rateFirstLink": "سعر الصرف",
   "owner.paidInFull": "مدفوع بالكامل",
+  "owner.changeLabel": "الباقي للزبون",
   "owner.shopCurrency": "العملة",
   "owner.addItems": "إضافة أصناف",
   "owner.itemsOnGame": "على المباراة (الحاجز)",
@@ -847,6 +849,7 @@ const ENGLISH: Record<string, string> = {
   "owner.rateFirst": "Set the exchange rate first to sell items priced in LBP.",
   "owner.rateFirstLink": "Exchange rate",
   "owner.paidInFull": "Paid in full",
+  "owner.changeLabel": "Change",
   "owner.shopCurrency": "Currency",
   "owner.addItems": "Add items",
   "owner.itemsOnGame": "On the game (booker)",
@@ -1276,6 +1279,15 @@ export function shopActivityLabel(items: number, locale: UiLocale = "ar"): strin
   if (locale === "en") return `Shop · ${items} ${items === 1 ? "item" : "items"}`;
   const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
   return items === 2 ? `المتجر · صنفان` : `المتجر · ${items} ${word}`;
+}
+
+/**
+ * "Change: 40,000 ل.ل" / "الباقي للزبون: 40,000 ل.ل": what to hand back, in the currency it was
+ * handed over in. Empty when there is none.
+ */
+export function changeDescription(change: { lbp: string; usd: string }, locale: UiLocale = "ar"): string | undefined {
+  const text = formatParts(change, locale);
+  return text === "0" ? undefined : `${ui("owner.changeLabel", locale)}: ${text}`;
 }
 
 /** The toast after items are put on a game: "Added 3 items · $12". `total` is already formatted. */

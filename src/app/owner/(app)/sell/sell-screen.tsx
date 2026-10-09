@@ -19,7 +19,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
 import { formatParts } from "@/lib/money-display";
-import { soldToast, ui } from "@/lib/ui-copy";
+import { changeDescription, soldToast, ui } from "@/lib/ui-copy";
 import { submitWalkInSale } from "./actions";
 
 export type { SellItem };
@@ -83,6 +83,10 @@ export function SellScreen({
       }
       toast.success(
         soldToast(result.itemCount, formatParts({ lbp: result.totalLbp, usd: result.totalUsdPart }, locale), locale),
+        {
+          description: changeDescription({ lbp: result.changeLbp, usd: result.changeUsd }, locale),
+          duration: 8000,
+        },
       );
       setPaying(false);
       if (window.history.length > 1) router.back();

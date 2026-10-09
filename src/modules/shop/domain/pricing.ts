@@ -247,9 +247,10 @@ export function applyPayment(input: {
 }
 
 /**
- * The tenders to write for one payment. `keepChange` records everything handed over, the excess
- * valued at the current rate (how a booking collection works); otherwise the excess is not recorded:
- * the tender is reduced to what the sale used and the rest is change for the customer.
+ * The tenders to write for one payment. A sale or a tab does not record the excess (`keepChange`
+ * false): the tender is reduced to what the sale used and the rest is change for the customer.
+ * `keepChange` true records everything handed over, the excess valued at the current rate (how a
+ * booking collection works); no sale code uses it today.
  */
 export function paymentTenders(input: {
   application: PaymentApplication;

@@ -21,6 +21,9 @@ import { parseCollectTab } from "@/modules/shop/schemas/booking-items";
  * its items: pounds for LBP items, dollars for USD items. Pounds settle the LBP part first, dollars
  * the USD part first, and any excess converts to the other part at the current rate. A rate change
  * after an item was added never changes the pounds owed.
+ * Cash beyond what is owed is not recorded: the tender is reduced to what the tab used and the rest
+ * comes back as change, in the currency it was handed over in (a booking collection is unchanged: it
+ * records an overpay in full).
  * Needs `payments.collect`. Only the sale row is locked: a tab never touches the booking due, so
  * collecting waits for an add or a removal on that tab and for nothing else.
  * Writes the SALE payment, its tenders, the ledger IN and the allocation in this transaction.
@@ -45,13 +48,14 @@ export async function collectTabPayment(input: unknown): Promise<{ changeLbp: De
       if (!owesAnything(state)) throw new DomainError("payment.nothing_due");
 
       const rate = await findLatestExchangeRate(tx);
+      if (handed.lbp.gt(0) && (!rate || rate.lte(0))) throw new DomainError("payment.rate_required");
       const application = applyPayment({ state, handed, rate });
       const paymentId = await recordPayment(tx, {
         direction: "IN",
         sourceType: "SALE",
         sourceId: sale.id,
         amountDueUsd: parts.frozenUsd,
-        tenders: paymentTenders({ application, handed, rate, keepChange: true }),
+        tenders: paymentTenders({ application, handed, rate, keepChange: false }),
       });
       await insertSaleAllocation(tx, {
         saleId: sale.id,
