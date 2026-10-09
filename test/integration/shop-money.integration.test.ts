@@ -46,6 +46,7 @@ function actAs(token: string, slug = fixture.tenantSlug) {
 async function sell(lines: { productId: string; qty: number }[], usd: string, soldAt: string) {
   const sold = await recordWalkInSale({ lines, usdAmount: usd });
   await platformDb.sale.update({ where: { id: sold.saleId }, data: { soldAt: new Date(soldAt) } });
+  await platformDb.saleItem.updateMany({ where: { saleId: sold.saleId }, data: { addedAt: new Date(soldAt) } });
   return sold;
 }
 

@@ -43,6 +43,7 @@ async function sell(tenantId: string, productId: string, qty: number, unit: stri
       qty,
       unitPriceUsd: unit,
       lineTotalUsd: (Number(unit) * qty).toFixed(2),
+      addedAt: sale.soldAt,
     },
   });
   return sale.id;
