@@ -38,6 +38,7 @@ model Tenant {
   sales               Sale[]
   saleItems           SaleItem[]
   saleAllocations     SaleAllocation[]
+  pushSubscriptions   PushSubscription[]
   /// Set by the platform operator (scripts/platform.ts). Null = active. Sessions and
   /// data are untouched; resume clears both columns (decision 7).
   suspendedAt         DateTime?
@@ -49,19 +50,19 @@ model Tenant {
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
 model Pitch {
-  id             String    @id @default(cuid())
-  tenantId       String
-  name           String
+  id                 String         @id @default(cuid())
+  tenantId           String
+  name               String
   /// Opening hours, slot length, gaps, pricing (DR-002 §2.4). Zod-validated in app code, not here.
   /// Default is a closed week so existing rows are valid jsonb (SPEC-02 step 1).
-  scheduleConfig Json      @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
+  scheduleConfig     Json           @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
   /// Players expected per game; the default count when a booking is split per player (SPEC-15 P2).
   /// CHECK ("defaultPlayerCount" BETWEEN 1 AND 30) is SQL-only (Pitch_defaultPlayerCount_range).
-  defaultPlayerCount Int @default(10)
-  createdAt      DateTime  @default(now())
-  tenant         Tenant         @relation(fields: [tenantId], references: [id])
-  bookings       Booking[]
-  slotInterests  SlotInterest[]
+  defaultPlayerCount Int            @default(10)
+  createdAt          DateTime       @default(now())
+  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  bookings           Booking[]
+  slotInterests      SlotInterest[]
 
   @@index([tenantId])
 }
@@ -91,37 +92,37 @@ model Person {
 
 /// A pitch + a UTC window. People attach through BookingParticipant, not here (DR-002 §2.9).
 model Booking {
-  id           String                   @id @default(cuid())
-  tenantId     String
-  pitchId      String
+  id             String                   @id @default(cuid())
+  tenantId       String
+  pitchId        String
   /// Postgres tstzrange. Prisma 7 has no range scalar — Unsupported, not in Client (v7 Unsupported docs).
-  during       Unsupported("tstzrange")
-  status       BookingStatus
-  source       BookingSource
+  during         Unsupported("tstzrange")
+  status         BookingStatus
+  source         BookingSource
   /// WHOLE puts the booking remaining on the requester. PER_PLAYER is later (SPEC-15).
-  collectionMode CollectionMode         @default(WHOLE)
+  collectionMode CollectionMode           @default(WHOLE)
   /// Snapshot of the slot price at request time (DR-002 §2.18). Never a float.
-  priceUsd     Decimal                  @db.Decimal(12, 2)
+  priceUsd       Decimal                  @db.Decimal(12, 2)
   /// What collection still uses. Starts equal to priceUsd. Independent after a split (SPEC-15).
   /// CHECK ("amountDueUsd" >= 0) is SQL-only (Booking_amountDueUsd_nonneg).
-  amountDueUsd Decimal                  @db.Decimal(12, 2)
-  requestedAt  DateTime                 @default(now())
+  amountDueUsd   Decimal                  @db.Decimal(12, 2)
+  requestedAt    DateTime                 @default(now())
   /// Public request only: the name as typed (cleaned) when its normalizeName fold differs
   /// from the stored Person name. The Person name is never overwritten (security audit S-6).
-  requestedName String?
-  tenant       Tenant                   @relation(fields: [tenantId], references: [id])
-  pitch        Pitch                    @relation(fields: [pitchId], references: [id])
-  participants BookingParticipant[]
-  dueChanges   BookingDueChange[]
+  requestedName  String?
+  tenant         Tenant                   @relation(fields: [tenantId], references: [id])
+  pitch          Pitch                    @relation(fields: [pitchId], references: [id])
+  participants   BookingParticipant[]
+  dueChanges     BookingDueChange[]
   /// Items put on this game: one tab per payer (the booker's included).
-  sales        Sale[]
+  sales          Sale[]
 
   @@index([tenantId])
 }
 
 /// Who is on a booking. The public requester is a row with isRequester (DR-002 §2.10).
 model BookingParticipant {
-  id           String    @id @default(cuid())
+  id           String              @id @default(cuid())
   tenantId     String
   bookingId    String
   /// Null while a per-player slot has no person yet. Callers that pass a phone still set it.
@@ -130,7 +131,7 @@ model BookingParticipant {
   /// (BookingParticipant_requester_has_person).
   personId     String?
   /// CHECK ("amountDueUsd" >= 0) is SQL-only (BookingParticipant_amountDueUsd_nonneg).
-  amountDueUsd Decimal   @db.Decimal(12, 2)
+  amountDueUsd Decimal             @db.Decimal(12, 2)
   /// 1-based share order for an even split. Null on WHOLE.
   /// At most one row per booking when set: partial unique
   /// BookingParticipant_bookingId_slotNumber_not_null_key
@@ -141,9 +142,9 @@ model BookingParticipant {
   /// BookingParticipant_one_requester_idx ("bookingId") WHERE "isRequester" = true.
   /// Prisma cannot declare that WHERE.
   isRequester  Boolean
-  tenant       Tenant    @relation(fields: [tenantId], references: [id])
-  booking      Booking   @relation(fields: [bookingId], references: [id])
-  person       Person?   @relation(fields: [personId], references: [id])
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
+  booking      Booking             @relation(fields: [bookingId], references: [id])
+  person       Person?             @relation(fields: [personId], references: [id])
   allocations  PaymentAllocation[]
 
   @@index([tenantId])
@@ -222,26 +223,27 @@ model BookingDueChange {
 
 /// Login account. No tenantId — memberships attach a user to a stadium (DR-003 §3).
 model User {
-  id            String           @id @default(cuid())
-  identifier    String           @unique
-  passwordHash  String
-  createdAt     DateTime         @default(now())
-  memberships   Membership[]
-  sessions      Session[]
-  personLinks   UserPersonLink[]
+  id                String             @id @default(cuid())
+  identifier        String             @unique
+  passwordHash      String
+  createdAt         DateTime           @default(now())
+  memberships       Membership[]
+  sessions          Session[]
+  personLinks       UserPersonLink[]
+  pushSubscriptions PushSubscription[]
 }
 
 /// This user may work at this stadium. tenantId required (DR-001). Unique per tenant+user.
 model Membership {
-  id          String         @id @default(cuid())
+  id          String             @id @default(cuid())
   tenantId    String
   userId      String
   role        MembershipRole
   /// Zod-validated at the app edge (DR-003 §5). Default empty = staff has no extra flags.
-  permissions Json           @default("{}")
-  createdAt   DateTime       @default(now())
-  tenant      Tenant         @relation(fields: [tenantId], references: [id])
-  user        User           @relation(fields: [userId], references: [id])
+  permissions Json               @default("{}")
+  createdAt   DateTime           @default(now())
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  user        User               @relation(fields: [userId], references: [id])
   dueChanges  BookingDueChange[]
   sales       Sale[]
 
@@ -251,27 +253,29 @@ model Membership {
 
 /// Server-side session. No tenantId — cookie is not the isolation key (DR-003 §4).
 model Session {
-  id        String   @id @default(cuid())
+  id                String             @id @default(cuid())
   /// SHA-256 (hex) of the cookie token. The raw token is never stored (security audit S-2).
-  tokenHash String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  tokenHash         String             @unique
+  userId            String
+  expiresAt         DateTime
+  createdAt         DateTime           @default(now())
+  user              User               @relation(fields: [userId], references: [id])
+  /// Back-relation only (no column): a session's push subscriptions go with it (ON DELETE CASCADE).
+  pushSubscriptions PushSubscription[]
 
   @@index([userId])
 }
 
 /// Optional account↔person. Empty this slice (DR-002 §2.1 / DR-003 §6). tenantId required.
 model UserPersonLink {
-  id        String             @id @default(cuid())
-  tenantId  String
-  userId    String
-  personId  String
-  relation  PersonLinkRelation
-  tenant    Tenant             @relation(fields: [tenantId], references: [id])
-  user      User               @relation(fields: [userId], references: [id])
-  person    Person             @relation(fields: [personId], references: [id])
+  id       String             @id @default(cuid())
+  tenantId String
+  userId   String
+  personId String
+  relation PersonLinkRelation
+  tenant   Tenant             @relation(fields: [tenantId], references: [id])
+  user     User               @relation(fields: [userId], references: [id])
+  person   Person             @relation(fields: [personId], references: [id])
 
   @@index([tenantId])
 }
@@ -291,21 +295,21 @@ model ExchangeRate {
   id        String   @id @default(cuid())
   tenantId  String
   lbpPerUsd Decimal  @db.Decimal(18, 0)
-  createdAt DateTime  @default(now())
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
 }
 
 /// One collection event. Links to a booking by sourceType+sourceId — no booking_id (DR-002 §2.14).
 model Payment {
-  id           String            @id @default(cuid())
+  id           String              @id @default(cuid())
   tenantId     String
   sourceType   PaymentSourceType
   sourceId     String
   /// Booking: Booking.amountDueUsd at collection. Expense: this payment’s USD-equivalent sum (SPEC-06 / SPEC-07).
-  amountDueUsd Decimal           @db.Decimal(12, 2)
-  createdAt    DateTime          @default(now())
+  amountDueUsd Decimal             @db.Decimal(12, 2)
+  createdAt    DateTime            @default(now())
   tenant       Tenant              @relation(fields: [tenantId], references: [id])
   tenders      PaymentTender[]
   allocations  PaymentAllocation[]
@@ -326,10 +330,10 @@ model PaymentAllocation {
   payment       Payment            @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   participant   BookingParticipant @relation(fields: [participantId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
+  @@unique([paymentId, participantId])
   @@index([tenantId])
   @@index([paymentId])
   @@index([participantId])
-  @@unique([paymentId, participantId])
 }
 
 /// One cash part of a payment. amount is Decimal(18,2); domain enforces USD cents vs integer LBP (SPEC-06).
@@ -338,12 +342,12 @@ model PaymentTender {
   tenantId      String
   paymentId     String
   currency      Currency
-  amount        Decimal   @db.Decimal(18, 2)
+  amount        Decimal  @db.Decimal(18, 2)
   /// Frozen rate. Null on USD when no rate existed (SPEC-06).
-  rateAtTime    Decimal?  @db.Decimal(18, 0)
-  usdEquivalent Decimal   @db.Decimal(12, 2)
-  tenant        Tenant    @relation(fields: [tenantId], references: [id])
-  payment       Payment   @relation(fields: [paymentId], references: [id])
+  rateAtTime    Decimal? @db.Decimal(18, 0)
+  usdEquivalent Decimal  @db.Decimal(12, 2)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  payment       Payment  @relation(fields: [paymentId], references: [id])
 
   @@index([tenantId])
 }
@@ -353,7 +357,7 @@ model LedgerEntry {
   id         String            @id @default(cuid())
   tenantId   String
   direction  LedgerDirection
-  amountUsd  Decimal            @db.Decimal(12, 2)
+  amountUsd  Decimal           @db.Decimal(12, 2)
   occurredAt DateTime          @default(now())
   sourceType PaymentSourceType
   sourceId   String
@@ -399,18 +403,18 @@ enum PaymentSourceType {
 /// A price edit changes future sales only (SaleItem freezes the price).
 /// CHECK ("priceUsd" > 0) is SQL-only (Product_priceUsd_positive).
 model Product {
-  id         String    @id @default(cuid())
-  tenantId   String
-  name       String
+  id            String     @id @default(cuid())
+  tenantId      String
+  name          String
   /// Which currency the price tag is in. A USD item has priceUsd, an LBP item has priceLbp (whole
   /// pounds); exactly one is set. CHECK Product_price_by_currency (SQL-only) enforces it.
-  priceCurrency Currency @default(USD)
-  priceUsd   Decimal?  @db.Decimal(12, 2)
-  priceLbp   BigInt?
-  archivedAt DateTime?
-  createdAt  DateTime  @default(now())
-  tenant     Tenant    @relation(fields: [tenantId], references: [id])
-  saleItems  SaleItem[]
+  priceCurrency Currency   @default(USD)
+  priceUsd      Decimal?   @db.Decimal(12, 2)
+  priceLbp      BigInt?
+  archivedAt    DateTime?
+  createdAt     DateTime   @default(now())
+  tenant        Tenant     @relation(fields: [tenantId], references: [id])
+  saleItems     SaleItem[]
 
   @@index([tenantId])
   @@index([tenantId, archivedAt])
@@ -420,9 +424,9 @@ model Product {
 /// the total is the sum of its lines, what was paid is the sum of the payments of sourceType SALE
 /// with this id (DR-002 §2.14).
 model Sale {
-  id                    String     @id @default(cuid())
+  id                    String           @id @default(cuid())
   tenantId              String
-  soldAt                DateTime   @default(now())
+  soldAt                DateTime         @default(now())
   createdByMembershipId String
   /// Set when the items were put on a game (slice 2). Null = a walk-in sale.
   bookingId             String?
@@ -435,11 +439,11 @@ model Sale {
   payerPersonId         String?
   payerName             String?
   payerPhone            String?
-  createdAt             DateTime   @default(now())
-  tenant                Tenant     @relation(fields: [tenantId], references: [id])
-  createdBy             Membership @relation(fields: [createdByMembershipId], references: [id])
-  booking               Booking?   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
-  payer                 Person?    @relation(fields: [payerPersonId], references: [id], onDelete: Restrict)
+  createdAt             DateTime         @default(now())
+  tenant                Tenant           @relation(fields: [tenantId], references: [id])
+  createdBy             Membership       @relation(fields: [createdByMembershipId], references: [id])
+  booking               Booking?         @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  payer                 Person?          @relation(fields: [payerPersonId], references: [id], onDelete: Restrict)
   items                 SaleItem[]
   allocations           SaleAllocation[]
 
@@ -457,29 +461,29 @@ model Sale {
 /// SaleItem_lineTotal_matches, SaleItem_reversal_sign). A trigger checks that a reversal names a positive
 /// line of the same sale, item and price and never takes the net quantity below zero.
 model SaleItem {
-  id             String   @id @default(cuid())
+  id             String     @id @default(cuid())
   tenantId       String
   saleId         String
   productId      String
   qty            Int
   /// Frozen USD value, for every report. A USD item: its price. An LBP item: the LBP price converted at
   /// `rateAtTime` with the shared tender conversion (can round to 0.00 for a tiny price).
-  unitPriceUsd   Decimal  @db.Decimal(12, 2)
+  unitPriceUsd   Decimal    @db.Decimal(12, 2)
   /// A USD item: qty x unit price. An LBP item: the conversion of `lineTotalLbp` (a removal's line
   /// carries the difference, so the lines of one item always add up to the conversion of the net LBP).
-  lineTotalUsd   Decimal  @db.Decimal(12, 2)
+  lineTotalUsd   Decimal    @db.Decimal(12, 2)
   /// LBP items only (all three set together, CHECK SaleItem_lbp_fields_together): the price tag in
   /// pounds, qty x that, and the LBP-per-USD rate it was frozen at.
-  unitPriceLbp   Decimal? @db.Decimal(18, 0)
-  lineTotalLbp   Decimal? @db.Decimal(18, 0)
-  rateAtTime     Decimal? @db.Decimal(18, 0)
+  unitPriceLbp   Decimal?   @db.Decimal(18, 0)
+  lineTotalLbp   Decimal?   @db.Decimal(18, 0)
+  rateAtTime     Decimal?   @db.Decimal(18, 0)
   /// When the line was added: the Shop card counts by it (a line added to a game's tab tomorrow
   /// belongs to tomorrow). Equal to the sale time on a walk-in sale.
-  addedAt        DateTime @default(now())
+  addedAt        DateTime   @default(now())
   reversesItemId String?
-  tenant         Tenant   @relation(fields: [tenantId], references: [id])
-  sale           Sale     @relation(fields: [saleId], references: [id])
-  product        Product  @relation(fields: [productId], references: [id])
+  tenant         Tenant     @relation(fields: [tenantId], references: [id])
+  sale           Sale       @relation(fields: [saleId], references: [id])
+  product        Product    @relation(fields: [productId], references: [id])
   reverses       SaleItem?  @relation("SaleItemReversal", fields: [reversesItemId], references: [id], onDelete: Restrict)
   reversedBy     SaleItem[] @relation("SaleItemReversal")
 
@@ -535,18 +539,18 @@ model RateLimit {
 /// UPDATE and DELETE. The latest row by createdAt is the current plan. Plan is a
 /// label only: no limits, no pricing (BR-103 partial by decision).
 model Subscription {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   tenantId   String
   plan       String
   startsAt   DateTime
   /// Informational: the list flags OVERDUE. Nothing blocks on it (decision 2).
   paidUntil  DateTime?
-  amountUsd  Decimal? @db.Decimal(12, 2)
+  amountUsd  Decimal?  @db.Decimal(12, 2)
   note       String?
   /// Actor string as given by the use case ("cli:user@host").
   recordedBy String
-  createdAt  DateTime @default(now())
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt  DateTime  @default(now())
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
 }
@@ -563,4 +567,29 @@ model PlatformAuditLog {
   tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
 
   @@index([tenantId, createdAt])
+}
+
+/// One browser on one device that may receive owner alerts (web push). tenantId required (DR-001).
+/// Tied to the login session that created it: deleting the session (logout, log out other devices,
+/// password change, expiry cleanup) deletes the subscription (ON DELETE CASCADE). endpoint is
+/// globally unique: one browser belongs to one user and tenant at a time, and a new login on the
+/// same phone takes it over (src/modules/push). Written by raw upsert (ON CONFLICT (endpoint)).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  sessionId String
+  /// The push service URL, validated against an allowlist before it is stored (SSRF).
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  locale    String   @default("ar")
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId])
+  @@index([sessionId])
+  @@index([userId, createdAt])
 }

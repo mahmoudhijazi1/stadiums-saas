@@ -8,6 +8,8 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "push.testTitle": "إشعار تجريبي",
+  "push.testBody": "الإشعارات تعمل على هذا الجهاز.",
   "doc.title": "ملاعب",
   "public.day": "اليوم",
   "public.today": "اليوم",
@@ -443,6 +445,8 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "push.testTitle": "Test notification",
+  "push.testBody": "Notifications work on this device.",
   "doc.title": "Pitches",
   "public.day": "Day",
   "public.today": "Today",

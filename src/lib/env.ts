@@ -29,15 +29,36 @@ const envSchema = z.object({
     z.string().regex(/^(true|false)$/, { error: "must be true or false" }),
   ),
   PG_POOL_MAX: optionalString(z.string().regex(/^[1-9]\d*$/, { error: "must be a positive integer" })),
+  // Web push (owner alerts). Required in production, see PRODUCTION_REQUIRED.
+  VAPID_PUBLIC_KEY: optionalString(
+    z.string().regex(/^[A-Za-z0-9_-]{80,100}$/, { error: "must be a base64url public key" }),
+  ),
+  VAPID_PRIVATE_KEY: optionalString(
+    z.string().regex(/^[A-Za-z0-9_-]{40,50}$/, { error: "must be a base64url private key" }),
+  ),
+  VAPID_SUBJECT: optionalString(
+    z.string().regex(/^(mailto:\S+@\S+|https:\/\/\S+)$/, { error: "must be a mailto: address or an https URL" }),
+  ),
 });
+
+/** Optional in the schema (local tools and tests run without them), mandatory in production. */
+const PRODUCTION_REQUIRED = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
 
 type Env = Record<string, string | undefined>;
 
 /** One line per problem, "NAME must …". Empty when valid. */
 export function validateEnv(env: Env): string[] {
   const result = envSchema.safeParse(env);
-  if (result.success) return [];
-  return result.error.issues.map((issue) => `${String(issue.path[0])} ${issue.message}`);
+  // Messages name the variable, never its value (the private key is a secret).
+  const problems = result.success
+    ? []
+    : result.error.issues.map((issue) => `${String(issue.path[0])} ${issue.message}`);
+  if (env.NODE_ENV === "production") {
+    for (const name of PRODUCTION_REQUIRED) {
+      if (!env[name]) problems.push(`${name} is required in production`);
+    }
+  }
+  return problems;
 }
 
 /** Fail fast in production; warn elsewhere so local tools keep working. */

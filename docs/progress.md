@@ -6071,3 +6071,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `notification` imports nothing from `booking`; `booking` and `app/` call `notifyLink`. The midnight test now reads the confirm text from `loadDecisionNotify`.
 
 **How to verify:** `npm test` 807 passed; `npm run build` green; `npm run test:integration` 43 suites: 327 of 328 tests passed. The one failure was `login-rate-limit` ("with the setting on but the header missing"), a timing-sensitive login test this change does not touch: it passes when run alone, and the same suite flaked once earlier in this project. The suites that exercise the WhatsApp links (`collect-notify-debt`, `midnight`, `fees`, `requested-name`, `pending-races`, `free-strip`) pass: 37 of 37.
+
+## Push notifications, commit 1 of 4: foundation, no UI (branch `feat/push-foundation`)
+
+**What:** the pieces a later alert needs; nothing sends yet and no screen changed.
+- **Env:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:` or https). Optional in the zod schema; `validateEnv` adds "NAME is required in production" for each, so the production start-up exits naming the variable (never its value). Missing in development means "not configured": `readPushConfig()` returns null. `.env.example` documents them.
+- **Table `PushSubscription`** (migration `20261011090000_push_subscriptions`, additive): `tenantId`, `userId`, `sessionId` (FK to `Session`, ON DELETE CASCADE), `endpoint` UNIQUE, `p256dh`, `auth`, `locale`, `createdAt`. In `TENANT_SCOPED_MODELS`. `Session` has no new column; the schema only gains the Prisma back-relation field.
+- **Module `src/modules/push`** (domain / application / infrastructure). Pure domain: `validatePushEndpoint` (https only, no userinfo, no explicit port, host on ONE allowlist constant, 2048 max), `validatePushKeys` (base64url, 87 and 22 characters), `buildPushPayload` / `serializePushPayload` (kind TEST, Arabic and English, generic, a path under /owner/, under 1 KB), `pushSendOptions` (TTL 60 s, urgency high, topic = tag).
+- **Port `PushSender`** (`application/push-sender.ts`): `send(target, payload, options)` returns `ok | gone | retry`. Real implementation `infrastructure/web-push-sender.ts` (the only file that imports `web-push`; 404 and 410 are `gone`, everything else `retry`; only the status code leaves the file, never an error message). Fake: `test/modules/push/fake-push-sender.ts`.
+- **Dependency:** `web-push` 3.6.7 (MPL-2.0, last release January 2024, 5 small dependencies, no install scripts), `@types/web-push` dev.
+
+**Why:** owner alerts for new requests (a later slice). The endpoint allowlist exists because the server POSTs to whatever endpoint a client registers (SSRF). Only `fcm.googleapis.com` is confirmed by the web-push docs; the Mozilla, Apple and Windows hosts are marked UNVERIFIED in the constant.
+
+**Files:** `src/modules/push/**`, `src/lib/{env,db,ui-copy}.ts`, `src/prisma/schema.prisma`, the migration, `.env.example`, `package.json`, `test/modules/push/*`, `test/lib/env.test.ts`.
+
+**How it connects:** `push` imports only `access` (from commit 2) and `lib`; `booking` must never import `push` (a later alert is composed in `app/`). Enforced by `test/modules/push/imports.test.ts`, which also pins `web-push` to one server file and the private key to `push-config.ts`.
+
+**How to verify:** `npm test` 883 passed; `npm run test:integration` 43 suites, 328 passed; `npm run build` green; eslint clean on the new files. `prisma migrate diff` of the migrated test database against the schema shows nothing for `PushSubscription` (one older, unrelated `BookingParticipant` foreign-key difference was already there).
