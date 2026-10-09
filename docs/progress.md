@@ -6228,3 +6228,11 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Honest limits:** "during the game" is only unit-tested (an integration test cannot control the wall clock against the pitch hours). `npx tsc --noEmit` was run once at the end of the branch and flagged two errors in the new integration test (`SlotInterest` has no `start`/`end` in the Prisma client); they were fixed by reading the range with raw SQL, and tsc was not run again, as the task allowed one run.
 
 **How to verify:** run `npm test`, `npm run test:integration` and `npm run build` (none was run), apply the migration (`npx prisma migrate deploy --config prisma7.config.ts`), then try it by hand: extend a confirmed game, extend it again, extend the last game of the night until it refuses, extend with a request pending on the next hour (the sheet says how many will be declined), and try as a staff member with and without `bookings.extend`.
+
+## Extend 30 min moves into "More actions" (branch `feat/extend-booking`)
+
+**What:** the Extend button is no longer under the money block. It is the first row of "More actions" in the booking sheet (clock icon), and counts toward showing that menu. When the extension is not possible the row is disabled and the reason sits under its label ("Next game at 6:00 PM", "Closes at 11:00 PM", "Max 3 hours"). `ActionRow` gained `disabled` and `hint`. The confirm step, the rules and the permission are unchanged.
+
+**Files:** `app/owner/(app)/today/upcoming-panel.tsx`.
+
+**How to verify:** `npx tsc --noEmit` clean. No test suite or build was run, and the sheet was not rendered. eslint reports one older error in that file (`setState` in an effect, ROADMAP item 4).

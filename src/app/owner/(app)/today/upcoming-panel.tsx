@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type Ref, Fragment } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import Link from "next/link";
-import { Ban, ChevronDown, Pencil, UserX, X } from "lucide-react";
+import { Ban, ChevronDown, Clock, Pencil, UserX, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
@@ -39,7 +39,6 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExtendForm, type ExtendOfferView } from "./extend-form";
 import { LbpInput } from "@/components/ui/lbp-input";
@@ -724,7 +723,8 @@ function UpcomingRowActions({
   const showAdjust = mayAdjust && row.canAdjust;
   const showNoShow = mayNoShow && row.showNoShow;
   const showCancel = mayCancel && row.showCancel;
-  const hasMore = showAdjust || showSplit || showNoShow || showCancel;
+  const showExtend = row.extend !== null;
+  const hasMore = showAdjust || showExtend || showSplit || showNoShow || showCancel;
 
   return (
     <>
@@ -768,25 +768,6 @@ function UpcomingRowActions({
         ) : null}
         {canCollect && mixedOpen ? <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
         <PerPlayerCollect view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
-        {row.extend ? (
-          <div className="flex flex-col gap-1">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              disabled={!row.extend.allowed}
-              aria-describedby={row.extend.disabledReason ? `extend-why-${row.id}` : undefined}
-              onClick={onExtend}
-            >
-              {ui("owner.extend", locale)}
-            </Button>
-            {row.extend.disabledReason ? (
-              <p id={`extend-why-${row.id}`} className="type-caption">
-                {row.extend.disabledReason}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
       </section>
 
       <BookingItems
@@ -813,6 +794,16 @@ function UpcomingRowActions({
           </button>
           {moreOpen ? (
             <div className="flex flex-col gap-3">
+              {row.extend ? (
+                <ActionRow
+                  icon={Clock}
+                  onClick={onExtend}
+                  disabled={!row.extend.allowed}
+                  hint={row.extend.disabledReason}
+                >
+                  {ui("owner.extend", locale)}
+                </ActionRow>
+              ) : null}
               {showAdjust ? (
                 <ActionRow icon={Pencil} onClick={onAdjust}>
                   {ui("owner.adjustDue", locale)}
@@ -844,12 +835,17 @@ function ActionRow({
   icon: Icon,
   onClick,
   destructive = false,
+  disabled = false,
+  hint,
   buttonRef,
   children,
 }: {
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   onClick: () => void;
   destructive?: boolean;
+  /** Not possible now; `hint` says why. */
+  disabled?: boolean;
+  hint?: string | null;
   buttonRef?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }) {
@@ -858,13 +854,17 @@ function ActionRow({
       ref={buttonRef}
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-60",
         destructive && "text-destructive",
       )}
     >
       <Icon aria-hidden className="size-5 shrink-0" />
-      {children}
+      <span className="flex min-w-0 flex-col">
+        {children}
+        {hint ? <span className="type-caption">{hint}</span> : null}
+      </span>
     </button>
   );
 }
