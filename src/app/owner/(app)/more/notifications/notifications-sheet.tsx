@@ -54,6 +54,18 @@ function subscriptionBody(subscription: PushSubscription, locale: UiLocale) {
   };
 }
 
+/**
+ * A subscription is tied to the VAPID public key it was made with. After the server's keys are
+ * replaced an old subscription can no longer be sent to, so it must be dropped and made again.
+ * A browser that does not report the key is given the benefit of the doubt.
+ */
+function usesKey(subscription: PushSubscription, key: Uint8Array): boolean {
+  const current = subscription.options?.applicationServerKey;
+  if (!current) return true;
+  const bytes = new Uint8Array(current);
+  return bytes.length === key.length && bytes.every((byte, index) => byte === key[index]);
+}
+
 function readSynced(): boolean {
   try {
     return window.sessionStorage.getItem(SYNC_KEY) === "1";
@@ -109,7 +121,7 @@ export function NotificationsSheetContent({
         try {
           const registration = await navigator.serviceWorker.getRegistration("/owner/");
           const subscription = await registration?.pushManager.getSubscription();
-          if (subscription) {
+          if (subscription && usesKey(subscription, vapidKeyToBytes(publicKey))) {
             next = "enabled";
             if (!readSynced()) {
               const result = await submitSubscribePush(subscriptionBody(subscription, locale));
@@ -126,7 +138,7 @@ export function NotificationsSheetContent({
     return () => {
       cancelled = true;
     };
-  }, [locale]);
+  }, [locale, publicKey]);
 
   async function enable() {
     setMessage(null);
@@ -146,6 +158,10 @@ export function NotificationsSheetContent({
       const registration = await ownerRegistration();
       const key = vapidKeyToBytes(publicKey);
       let subscription = await registration.pushManager.getSubscription();
+      if (subscription && !usesKey(subscription, key)) {
+        await subscription.unsubscribe();
+        subscription = null;
+      }
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,

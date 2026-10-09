@@ -25,6 +25,7 @@ const TABLES = [
   "Membership",
   "Pitch",
   "Person",
+  "PushSubscription",
   "Session",
   "User",
   "Tenant",

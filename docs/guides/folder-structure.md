@@ -71,6 +71,9 @@ src/
     ledger/
     expense/
     notification/               ← domain only today (WhatsApp link helpers)
+    push/                       ← owner web push: domain (endpoint allowlist, payload, keys),
+                                  application (subscribe, unsubscribe, test send, PushSender port),
+                                  infrastructure (subscriptions table access, web-push sender)
     # No modules/*/ui/ — route UI lives under app/; shared under components/
     platform/                   ← operator-only: tenants, subscriptions, suspension, audit
                                   (domain + application + infrastructure; no UI). Use cases
