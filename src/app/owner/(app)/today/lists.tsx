@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Bell, ChevronRight } from "lucide-react";
+import { Bell, ChevronRight, Repeat } from "lucide-react";
 import { Suspense } from "react";
 import { FreeStripSection } from "./free-strip-section";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, BOOKINGS_CREATE, BOOKINGS_NO_SHOW, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import { loadSeriesCreated } from "@/modules/booking/application/load-series-created";
-import { loadSeriesInfo } from "@/modules/booking/application/load-series-info";
+import { loadSeriesInfo, type SeriesInfo } from "@/modules/booking/application/load-series-info";
+import { endingSoon, listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
+import { seriesRowLine, weeklyWeekdayAndTime } from "@/app/owner/(app)/series/labels";
 import { SeriesCreatedSheet } from "@/app/owner/(app)/series/weekly-confirm";
 import { listExtensionMinutes } from "@/modules/booking/application/list-extension-minutes";
 import { loadExtensionOffers, type ExtensionOffer } from "@/modules/booking/application/load-extension-offers";
@@ -148,6 +150,8 @@ export async function OwnerToday({
           .map((row) => row.id)
       : [],
   );
+  // One aggregate query: the weekly bookings with 2 games left or fewer (the reminder line).
+  const soon = ownerDay.isToday && mayCreate ? endingSoon(await listWeeklyBookings({ now })) : [];
   const seriesCreated = series
     ? await loadSeriesCreated({
         seriesId: series,
@@ -204,6 +208,27 @@ export async function OwnerToday({
         </Link>
       ) : null}
 
+      {soon.length > 0 ? (
+        <Link
+          href="/owner/more/weekly"
+          className="flex min-h-12 w-full items-center gap-3 rounded-xl border bg-card px-4 py-2 type-label outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <Repeat aria-hidden className="size-5 shrink-0" />
+          <span className="min-w-0 flex-1">
+            {soon.length === 1
+              ? (() => {
+                  const when = weeklyWeekdayAndTime(soon[0]!.anchor, locale, hourCycle);
+                  return ui("owner.weeklyEndingOne", locale)
+                    .replace("{name}", soon[0]!.personName)
+                    .replace("{weekday}", when.weekday)
+                    .replace("{time}", when.time);
+                })()
+              : ui("owner.weeklyEndingMany", locale).replace("{n}", String(soon.length))}
+          </span>
+          <ChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground rtl:rotate-180" />
+        </Link>
+      ) : null}
+
       <UpcomingPanel
         toCollect={toUpcomingViews(
           earlierDebts,
@@ -244,6 +269,7 @@ export async function OwnerToday({
           mayAdjust,
           extendedMinutes,
           repeatable,
+          seriesInfo,
         )}
         locale={locale}
         mayCollect={mayCollect}
@@ -320,6 +346,7 @@ function toUpcomingViews(
   mayEditExtension = false,
   extendedMinutes: Map<string, number> = new Map(),
   repeatable: Set<string> = new Set(),
+  seriesInfo: Map<string, SeriesInfo> = new Map(),
 ): UpcomingRowView[] {
   return rows.map((row) => {
     // The pill, the card state and the owed class count the player tabs too; the Collect amounts
@@ -372,6 +399,15 @@ function toUpcomingViews(
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
       extendedMinutes: extendedMinutes.get(row.id) ?? 0,
       repeatWeekly: repeatable.has(row.id),
+      series: (() => {
+        const info = seriesInfo.get(row.id);
+        return info
+          ? {
+              seriesId: info.seriesId,
+              line: seriesRowLine({ anchor: info.anchor, left: info.left, lastStart: info.lastStart, locale, hourCycle }),
+            }
+          : null;
+      })(),
       dayLabel: formatEarlierDayLabel(row.start, now, locale, dayStartHour),
       dateLabel: formatSlotDateLabel(row.start, now, locale),
       nightHint: nightHint(row.start, locale, dayStartHour),

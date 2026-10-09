@@ -6279,3 +6279,20 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `notification` still imports nothing from `booking`. The preview and the use case use the same `classifyOccurrence`, so a week shown as free is re-checked with the same rule under the pitch lock.
 
 **How to verify:** NOT run. No suite, build or lint was run; `npx tsc --noEmit` was run at this commit (clean), more often than the one run the task allowed. Nothing was rendered in a browser.
+
+## Weekly recurring bookings, commit 3 of 4: managing series (branch `feat/weekly-series`)
+
+**What:**
+- **In any occurrence's sheet**, a row at the top: "↻ Weekly · every Tue 8:00 PM · 5 left · until Dec 1" (or "· ended"), built from the saved series (`load-series-info.ts`, one query per page). It opens the **series sheet** (a new sheet step, `series/series-manage.tsx`): the series' weeks with their status (upcoming, played, cancelled, no-show), **Renew 8 more weeks** (the same chips and preview as creating, starting after the latest game; needs `bookings.create`) and **Cancel the rest** (destructive text button, needs `bookings.cancel`). Its confirm says how many games will be cancelled with no fee and lists, before anything is done, the weeks left alone because they have payments ("cancel them one by one"); after it, it shows the same.
+- **More > Business > Weekly bookings** (`/owner/more/weekly`): every series with games left, soonest first: player, "Every Tue 8:00 PM", the pitch when the stadium has several, "N left", and Renew. One aggregate query (`listActiveSeries`, a lateral count per series).
+- **Today:** when any series has 2 games left or fewer, one line above the games: "Weekly booking ending soon: Hassan, Tue 8:00 PM ›" or "N weekly bookings ending soon ›", linking to the list. Shown on today's page to members with `bookings.create`; it reuses the list's single query (`endingSoon`).
+- **Cards:** a "↻" with an aria-label ("Weekly booking") on line 2 of a booking card. **Person page:** "↻ Weekly every Tue 8:00 PM" for each series the person still has games in.
+- New: `list-weekly-bookings.ts`, `series-sheet.ts` (`loadSeriesSheet`, `previewCancelRest`), `series/labels.ts`, `series/actions.ts` (`loadSeriesSheetAction`, `previewCancelRestAction`, `submitCancelRest`), `more/weekly/{page,weekly-list}.tsx`; copy through `ui()` in both languages.
+
+**Why:** a series must be visible, renewable and endable without hunting through games one by one.
+
+**Files:** `modules/booking/application/{list-weekly-bookings,series-sheet}.ts`, `modules/booking/infrastructure/series.ts`, `app/owner/(app)/series/*`, `more/{hub.tsx,weekly/*}`, `today/{lists,upcoming-panel}.tsx`, `people/[personId]/page.tsx`, `lib/ui-copy.ts`.
+
+**How it connects:** the More list is not behind `settings.manage` (the page needs only a login; Renew needs `bookings.create`), but its hub row sits in the Business section, which is shown to members with `settings.manage`.
+
+**How to verify:** NOT run. No suite, build or lint was run; `npx tsc --noEmit` was run at this commit too (clean). Nothing was rendered in a browser.

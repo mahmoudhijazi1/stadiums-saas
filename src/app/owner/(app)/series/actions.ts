@@ -2,9 +2,11 @@
 
 import { z } from "zod";
 import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatLocalHm } from "@/lib/format-local-hm";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { actionErrorKey } from "@/lib/use-case-error";
+import { cancelRestOfSeries } from "@/modules/booking/application/cancel-rest-of-series";
 import { loadSeriesCreated, type SeriesCreatedSummary } from "@/modules/booking/application/load-series-created";
 import { makeWeekly } from "@/modules/booking/application/make-weekly";
 import {
@@ -14,6 +16,7 @@ import {
   type SeriesPreview,
 } from "@/modules/booking/application/preview-series";
 import { renewSeries } from "@/modules/booking/application/renew-series";
+import { loadSeriesSheet, previewCancelRest } from "@/modules/booking/application/series-sheet";
 import { bookableCount, declineTotal, type OccurrenceState } from "@/modules/booking/domain/series";
 
 const TIME_ZONE = "Asia/Beirut";
@@ -135,5 +138,97 @@ export async function submitSeriesSave(input: unknown): Promise<SeriesSaveResult
     };
   } catch (error) {
     return { error: await actionErrorKey(error, "submitSeriesSave") };
+  }
+}
+
+const seriesIdSchema = z.strictObject({ seriesId: z.string().min(1).max(64) });
+
+export type SeriesWeekView = {
+  bookingId: string;
+  dateLabel: string;
+  timeLabel: string;
+  status: "upcoming" | "played" | "cancelled" | "no_show";
+};
+
+export type SeriesSheetResult =
+  | { ok: true; weeks: SeriesWeekView[]; mayRenew: boolean; mayCancelRest: boolean }
+  | { error: string };
+
+/** The weeks of one series, for the series sheet. */
+export async function loadSeriesSheetAction(input: unknown): Promise<SeriesSheetResult> {
+  try {
+    const { seriesId } = seriesIdSchema.parse(input);
+    const sheet = await loadSeriesSheet({ seriesId });
+    const locale = await getUiLocale();
+    const tenant = await getCurrentTenant();
+    return {
+      ok: true,
+      mayRenew: sheet.mayRenew,
+      mayCancelRest: sheet.mayCancelRest,
+      weeks: sheet.weeks.map((week) => ({
+        bookingId: week.bookingId,
+        dateLabel: formatDisplayDate(
+          week.start,
+          locale,
+          { weekday: "short", day: "numeric", month: "short" },
+          TIME_ZONE,
+        ),
+        timeLabel: formatLocalHm(week.start, TIME_ZONE, tenant.timeDisplay, locale),
+        status:
+          week.status === "CANCELLED"
+            ? "cancelled"
+            : week.status === "NO_SHOW"
+              ? "no_show"
+              : week.started
+                ? "played"
+                : "upcoming",
+      })),
+    };
+  } catch (error) {
+    return { error: await actionErrorKey(error, "loadSeriesSheetAction") };
+  }
+}
+
+export type CancelRestPreviewResult =
+  | { ok: true; willCancel: number; leftAlone: string[] }
+  | { error: string };
+
+function shortDate(start: Date, locale: Awaited<ReturnType<typeof getUiLocale>>): string {
+  return formatDisplayDate(start, locale, { weekday: "short", day: "numeric", month: "short" }, TIME_ZONE);
+}
+
+/** What "Cancel the rest" would do: how many weeks, and which are left alone because they have payments. */
+export async function previewCancelRestAction(input: unknown): Promise<CancelRestPreviewResult> {
+  try {
+    const { seriesId } = seriesIdSchema.parse(input);
+    const preview = await previewCancelRest({ seriesId });
+    const locale = await getUiLocale();
+    return {
+      ok: true,
+      willCancel: preview.willCancel.length,
+      leftAlone: preview.leftAlone.map((week) => shortDate(week.start, locale)),
+    };
+  } catch (error) {
+    return { error: await actionErrorKey(error, "previewCancelRestAction") };
+  }
+}
+
+export type CancelRestResult =
+  | { ok: true; cancelled: number; leftAlone: string[] }
+  | { error: string };
+
+/** "Cancel the rest": no fee; weeks with collected money stay and are listed. */
+export async function submitCancelRest(input: unknown): Promise<CancelRestResult> {
+  try {
+    const { seriesId } = seriesIdSchema.parse(input);
+    const done = await cancelRestOfSeries({ seriesId });
+    const locale = await getUiLocale();
+    return {
+      ok: true,
+      cancelled: done.cancelled.length,
+      leftAlone: done.kept.map((week) => shortDate(week.start, locale)),
+    };
+  } catch (error) {
+    return { error: await actionErrorKey(error, "submitCancelRest") };
   }
 }

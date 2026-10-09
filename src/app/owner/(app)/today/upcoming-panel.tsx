@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type Ref, Fragment } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import Link from "next/link";
-import { Ban, ChevronDown, Clock, Pencil, Repeat, UserX, X } from "lucide-react";
+import { Ban, ChevronDown, ChevronRight, Clock, Pencil, Repeat, UserX, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
@@ -42,6 +42,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExtendForm, ExtendedMark, type ExtendOfferView } from "./extend-form";
 import { WeeklyConfirm } from "@/app/owner/(app)/series/weekly-confirm";
+import { SeriesManage } from "@/app/owner/(app)/series/series-manage";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -66,6 +67,8 @@ export type UpcomingRowView = {
   extendedMinutes: number;
   /** "Repeat weekly" is offered: confirmed, not over, not in a series, and the member may create. */
   repeatWeekly: boolean;
+  /** The weekly series this game belongs to, with the line shown under the time. */
+  series: { seriesId: string; line: string } | null;
   dateLabel: string;
   /** Day an owed game belongs to: "Yesterday", a weekday, or the date. */
   dayLabel: string;
@@ -178,7 +181,7 @@ function DueRemainingFigures({
   );
 }
 
-type SheetStep = "details" | "cancel" | "noshow" | "adjust" | "extend" | "repeat";
+type SheetStep = "details" | "cancel" | "noshow" | "adjust" | "extend" | "repeat" | "series";
 
 /** Call and WhatsApp in the sheet header: a 36px circle inside a 44px hit area. */
 function HeaderIcon({
@@ -551,6 +554,7 @@ export function UpcomingPanel({
                   onAdjust={() => moveStep("adjust")}
                   onExtend={() => moveStep("extend")}
                   onRepeat={() => moveStep("repeat")}
+                  onSeries={() => moveStep("series")}
                 />
               </BottomSheetBody>
               <BottomSheetBody
@@ -590,6 +594,14 @@ export function UpcomingPanel({
                     onBack={() => moveStep("details")}
                   />
                 ) : null}
+                {sheetStep === "series" && sheetRow.series ? (
+                  <SeriesManage
+                    seriesId={sheetRow.series.seriesId}
+                    locale={locale}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
                 {sheetStep === "repeat" ? (
                   <WeeklyConfirm
                     source={{ kind: "booking", bookingId: sheetRow.id }}
@@ -623,6 +635,7 @@ function stepTitle(step: SheetStep, locale: UiLocale): string {
   if (step === "adjust") return ui("owner.adjustDue", locale);
   if (step === "extend") return ui("owner.extend", locale);
   if (step === "repeat") return ui("owner.repeatWeekly", locale);
+  if (step === "series") return ui("owner.seriesSheetTitle", locale);
   return ui("owner.cancel", locale);
 }
 
@@ -666,6 +679,11 @@ function UpcomingRows({
               <>
                 <ClockRangeText text={row.timeRange} />
                 <ExtendedMark minutes={row.extendedMinutes} locale={locale} />
+                {row.series ? (
+                  <span role="img" aria-label={ui("owner.seriesCardMark", locale)} className="text-muted-foreground">
+                    ↻
+                  </span>
+                ) : null}
                 {row.pitchName ? <span>{row.pitchName}</span> : null}
                 {row.nightHint ? <span>{row.nightHint}</span> : null}
               </>
@@ -715,6 +733,7 @@ function UpcomingRowActions({
   onAdjust,
   onExtend,
   onRepeat,
+  onSeries,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
@@ -730,6 +749,7 @@ function UpcomingRowActions({
   onAdjust: () => void;
   onExtend: () => void;
   onRepeat: () => void;
+  onSeries: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -748,6 +768,16 @@ function UpcomingRowActions({
 
   return (
     <>
+      {row.series ? (
+        <button
+          type="button"
+          onClick={onSeries}
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 type-secondary text-start outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <span className="min-w-0">{row.series.line}</span>
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground rtl:rotate-180" />
+        </button>
+      ) : null}
       <section className="flex flex-col gap-3">
         <DueRemainingFigures
           paidUsd={row.collectedExact}

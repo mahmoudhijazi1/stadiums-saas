@@ -6,6 +6,10 @@ import { getPerson } from "@/modules/people/application/get-person";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
+import { getCurrentTenant } from "@/lib/tenant-context";
+import { ui } from "@/lib/ui-copy";
+import { weeklyWeekdayAndTime } from "@/app/owner/(app)/series/labels";
+import { listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
 import { PersonGames } from "./games";
 import { PersonStats } from "./stats";
 
@@ -27,6 +31,13 @@ export default async function PersonPage({
   const person = await getPerson(personId);
   if (!person) notFound();
 
+  // "Weekly every Tue 8:00 PM" for each weekly booking this person still has games in.
+  const tenant = await getCurrentTenant();
+  const weekly = (await listWeeklyBookings({ personId })).map((row) => {
+    const when = weeklyWeekdayAndTime(row.anchor, locale, tenant.timeDisplay);
+    return ui("owner.weeklyPerson", locale).replace("{weekday}", when.weekday).replace("{time}", when.time);
+  });
+
   const before = queryString(query.before);
   const beforeId = queryString(query.beforeId);
   const cursor = readCursor(before, beforeId);
@@ -39,6 +50,11 @@ export default async function PersonPage({
         {person.phone ? (
           <LtrIsolate className="text-sm text-muted-foreground">{person.phone}</LtrIsolate>
         ) : null}
+        {weekly.map((line) => (
+          <p key={line} className="type-secondary">
+            ↻ <LtrIsolate>{line}</LtrIsolate>
+          </p>
+        ))}
       </header>
       <Suspense fallback={<Skeleton className="h-24 w-full rounded-xl" />}>
         <PersonStats

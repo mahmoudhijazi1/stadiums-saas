@@ -175,3 +175,70 @@ export async function listSeriesInfoForBookings(
     };
   });
 }
+
+export type ActiveSeriesRow = {
+  seriesId: string;
+  personId: string;
+  personName: string;
+  pitchId: string;
+  pitchName: string;
+  anchor: SeriesAnchor;
+  durationMinutes: number;
+  /** APPROVED games that have not started (always at least 1 here). */
+  left: number;
+  nextStart: Date;
+  lastStart: Date;
+};
+
+/**
+ * Series with at least one upcoming APPROVED game, soonest next game first. One aggregate query
+ * (a lateral count per series). `personId` narrows it to one person (the person page).
+ */
+export async function listActiveSeries(tx: TenantTx, now: Date, personId?: string): Promise<ActiveSeriesRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const onlyPerson = personId ? Prisma.sql`AND s."personId" = ${personId}` : Prisma.empty;
+  const rows = await tx.$queryRaw<
+    {
+      seriesId: string;
+      personId: string;
+      personName: string;
+      pitchId: string;
+      pitchName: string;
+      anchorDate: Date | string;
+      anchorTime: string;
+      durationMinutes: number;
+      left: bigint;
+      nextStart: Date | string;
+      lastStart: Date | string;
+    }[]
+  >`
+    SELECT s.id AS "seriesId", s."personId", per.name AS "personName", s."pitchId", p.name AS "pitchName",
+      s."anchorDate", s."anchorTime", s."durationMinutes",
+      u."left", u."nextStart", u."lastStart"
+    FROM "BookingSeries" s
+    JOIN "Person" per ON per.id = s."personId"
+    JOIN "Pitch" p ON p.id = s."pitchId"
+    JOIN LATERAL (
+      SELECT COUNT(*) AS "left", MIN(lower(x.during)) AS "nextStart", MAX(lower(x.during)) AS "lastStart"
+      FROM "Booking" x
+      WHERE x."seriesId" = s.id AND x."tenantId" = s."tenantId"
+        AND x.status = 'APPROVED'::"BookingStatus" AND lower(x.during) > ${now}
+    ) u ON u."left" > 0
+    WHERE s."tenantId" = ${tenantId} ${onlyPerson}
+    ORDER BY u."nextStart" ASC, s.id ASC`;
+  return rows.map((row) => {
+    const [hour, minute] = row.anchorTime.split(":").map(Number);
+    return {
+      seriesId: row.seriesId,
+      personId: row.personId,
+      personName: row.personName,
+      pitchId: row.pitchId,
+      pitchName: row.pitchName,
+      anchor: { date: civilOfDate(new Date(row.anchorDate)), hour: hour ?? 0, minute: minute ?? 0 },
+      durationMinutes: row.durationMinutes,
+      left: Number(row.left),
+      nextStart: new Date(row.nextStart),
+      lastStart: new Date(row.lastStart),
+    };
+  });
+}
