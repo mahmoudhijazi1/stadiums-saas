@@ -43,6 +43,19 @@ Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not sta
 | Walk-in credit | A walk-in sale is paid in full or refused today; "put it on my tab" needs a person and the Owed screen. |
 | Append-only for Sale / SaleItem | Insert-only by code only, like Payment and LedgerEntry (F-2): no trigger. Revisit with F-2. |
 
+## Weekly bookings: next (recorded 2026-10-13)
+
+The first version is owner-made, up front, weekly only. Not started, each its own slice:
+
+| Item | Note |
+|---|---|
+| Players request a series from the public page | Needs a pending form of a series (all weeks PENDING, or one request that approves into weeks), anti-flood limits and the approve flow for a set. |
+| Edit a series' day or time | Today it is "Cancel the rest" plus a new series. A real edit needs the same per-week checks as creating and a rule for weeks with payments. |
+| Monthly prepaid series | One payment covering the weeks; needs a money design (allocation across the weeks, refund when a week is cancelled). |
+| Academy training sessions | A training group meeting every week can reuse `BookingSeries` as the link between its sessions. |
+| Fewer clicks for renewal | Today the owner renews by hand from the list or the sheet. An automatic renewal would need a job; the reminder line is the substitute. |
+| A holiday skip | Skipping a known closed week at creation (today it is skipped only because it is taken or outside hours). |
+
 ## Extend a booking: next (recorded 2026-10-12)
 
 The first version only adds 30 minutes. Not started, each its own slice:
