@@ -13,7 +13,6 @@ import { recordNoShow } from "@/modules/booking/application/record-no-show";
 import { removeBookingItem } from "@/modules/booking/application/remove-booking-item";
 import { switchToPerPlayer } from "@/modules/booking/application/switch-collection-mode";
 import { setExchangeRate } from "@/modules/payment/application/set-exchange-rate";
-import { recordPayment } from "@/modules/payment/application/record-payment";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import { collectTabPayment } from "@/modules/shop/application/collect-tab-payment";
 import { listBookingItems } from "@/modules/shop/application/list-booking-items";
@@ -67,64 +66,57 @@ async function netTotalOf(saleId: string): Promise<string> {
 }
 
 describe("putting items on a game", () => {
-  it("on the game: the due goes up with a SHOP_ITEMS log, there is no payment of its own, the booking collection takes it", async () => {
+  it("on the game (booker) is the booker's tab: the due is untouched, nothing is logged, it is collected on its own", async () => {
     const bookingId = await futureBooking(fixture, 30);
     const added = await addBookingItems({
       bookingId,
       lines: [{ productId: cola.id, qty: 2 }, { productId: chips.id, qty: 1 }],
       payer: game,
     });
-    expect(added).toMatchObject({ kind: "game", itemCount: 3 });
+    expect(added.itemCount).toBe(3);
     expect(added.totalUsd.toFixed(2)).toBe("5.25");
-    expect(await dueOf(bookingId)).toBe("35.25");
+    expect(await dueOf(bookingId)).toBe("30.00");
+    expect(await platformDb.bookingDueChange.count({ where: { bookingId } })).toBe(0);
 
-    const changes = await platformDb.bookingDueChange.findMany({ where: { bookingId } });
-    expect(changes.map((c) => [c.fromUsd.toFixed(2), c.toUsd.toFixed(2), c.reason])).toEqual([["30.00", "35.25", "SHOP_ITEMS"]]);
-    expect(await platformDb.payment.count({ where: { sourceType: "SALE" } })).toBe(0);
-
-    // A second add appends to the same "on the game" sale.
+    // It is the requester's tab, the same one a second add and a pick of the booker's name reach.
+    const sale = await platformDb.sale.findUniqueOrThrow({ where: { id: added.saleId } });
+    expect(sale.payerPersonId).toBe(await requesterPersonId(bookingId));
     const again = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
-    expect(again.saleId).toBe(added.saleId);
-    expect(await dueOf(bookingId)).toBe("36.75");
+    const byPerson = await addBookingItems({
+      bookingId,
+      lines: [{ productId: cola.id, qty: 1 }],
+      payer: { kind: "person", personId: sale.payerPersonId! },
+    });
+    expect([again.saleId, byPerson.saleId]).toEqual([added.saleId, added.saleId]);
     expect(await platformDb.sale.count({ where: { bookingId } })).toBe(1);
+    expect(await netTotalOf(added.saleId)).toBe("8.25");
 
-    // The ordinary booking collection takes the whole due, items included.
-    await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("36.75") }] });
-    const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceId: bookingId } });
-    expect(ledger.map((l) => [l.sourceType, l.amountUsd.toFixed(2)])).toEqual([["BOOKING", "36.75"]]);
+    // The tab is collected separately; the booking is collected separately; neither touches the other.
+    await collectTabPayment({ saleId: added.saleId, usdAmount: "8.25" });
+    await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("30.00") }] });
+    const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceId: { in: [bookingId, added.saleId] } }, orderBy: { amountUsd: "asc" } });
+    expect(ledger.map((l) => [l.sourceType, l.amountUsd.toFixed(2)])).toEqual([["SALE", "8.25"], ["BOOKING", "30.00"]]);
+    expect(await dueOf(bookingId)).toBe("30.00");
   });
 
-  it("refuses a payment of its own for an on-the-game sale, at the payment write", async () => {
+  it("the database refuses a sale on a booking that names no payer, and the old payment guard is gone", async () => {
     const bookingId = await futureBooking(fixture, 30);
-    const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
+    const membership = await platformDb.membership.findFirstOrThrow({ where: { tenantId: fixture.tenantId, role: "OWNER" } });
     await expect(
-      db.$transaction((tx) =>
-        recordPayment(tx, {
-          direction: "IN",
-          sourceType: "SALE",
-          sourceId: saleId,
-          amountDueUsd: new Decimal("1.50"),
-          tenders: [{ currency: "USD", amount: new Decimal("1.50"), rateAtTime: null, usdEquivalent: new Decimal("1.50") }],
-        }),
-      ),
+      platformDb.sale.create({ data: { tenantId: fixture.tenantId, createdByMembershipId: membership.id, bookingId } }),
     ).rejects.toBeDefined();
-    expect(await platformDb.payment.count({ where: { sourceType: "SALE" } })).toBe(0);
-    expect(await platformDb.ledgerEntry.count({ where: { sourceType: "SALE" } })).toBe(0);
-    // And the tab use case refuses to treat it as a tab.
-    await expect(collectTabPayment({ saleId, usdAmount: "1.50" })).rejects.toMatchObject({ key: "shop.not_a_tab" });
+    expect(await platformDb.sale.count({ where: { bookingId } })).toBe(0);
   });
 
-  it("per-player: on the game is refused, a tab works, and no due or slot due moves", async () => {
+  it("per-player: the booker's tab and a named player's tab both work, and no due or slot due moves", async () => {
     const bookingId = await futureBooking(fixture, 30);
     await switchToPerPlayer({ bookingId, count: 3 });
     const slotsBefore = (await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd.toFixed(2));
-    await expect(addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game })).rejects.toMatchObject({
-      key: "shop.game_items_whole_only",
-    });
 
+    await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
     const personId = await requesterPersonId(bookingId);
     const tab = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "person", personId } });
-    expect(tab.kind).toBe("tab");
+    expect(tab.totalUsd.toFixed(2)).toBe("3.00");
     expect(await dueOf(bookingId)).toBe("30.00");
     expect((await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd.toFixed(2))).toEqual(slotsBefore);
     expect(await platformDb.bookingDueChange.count({ where: { bookingId, reason: "SHOP_ITEMS" } })).toBe(0);
@@ -156,7 +148,6 @@ describe("putting items on a game", () => {
       ["Nour", "2.25", "2.25"],
       ["Sami", "3.00", "3.00"],
     ]);
-    expect(view.gameLines).toEqual([]);
   });
 
   it("refuses an unconfirmed game, an archived or unknown item, another stadium's player, and a price from the client", async () => {
@@ -208,31 +199,24 @@ describe("putting items on a game", () => {
 });
 
 describe("removing items", () => {
-  it("on the game: lowers the due with a compensating negative line, never below what was collected", async () => {
+  it("a removal is a compensating negative line; the booking due never moves", async () => {
     const bookingId = await futureBooking(fixture, 30);
-    const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 3 }], payer: game }); // +4.50
+    const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 3 }], payer: game }); // 4.50
     const item = await platformDb.saleItem.findFirstOrThrow({ where: { saleId } });
 
     await removeBookingItem({ itemId: item.id, qty: 1 });
-    expect(await dueOf(bookingId)).toBe("33.00");
+    expect(await dueOf(bookingId)).toBe("30.00");
     const lines = await platformDb.saleItem.findMany({ where: { saleId }, orderBy: { id: "asc" } });
     expect(lines.map((l) => [l.qty, l.lineTotalUsd.toFixed(2), l.reversesItemId === item.id])).toEqual([
       [3, "4.50", false],
       [-1, "-1.50", true],
     ]);
-    expect((await listBookingItems([bookingId])).get(bookingId)!.gameLines.map((l) => [l.qty, l.totalUsd.toFixed(2)])).toEqual([[2, "3.00"]]);
-    expect(await platformDb.bookingDueChange.count({ where: { bookingId, reason: "SHOP_ITEMS" } })).toBe(2);
+    expect((await listBookingItems([bookingId])).get(bookingId)!.tabs[0]!.lines.map((l) => [l.qty, l.totalUsd.toFixed(2)])).toEqual([[2, "3.00"]]);
+    expect(await platformDb.bookingDueChange.count({ where: { bookingId } })).toBe(0);
 
     await expect(removeBookingItem({ itemId: item.id, qty: 3 })).rejects.toMatchObject({ key: "shop.remove_exceeds" });
     await expect(removeBookingItem({ itemId: "nope", qty: 1 })).rejects.toMatchObject({ key: "shop.item_not_found" });
-    const reversal = lines[1]!;
-    await expect(removeBookingItem({ itemId: reversal.id, qty: 1 })).rejects.toMatchObject({ key: "shop.item_not_found" });
-
-    // Collected 33.00 already: taking an item back would leave the due below it.
-    await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("33.00") }] });
-    await expect(removeBookingItem({ itemId: item.id, qty: 1 })).rejects.toMatchObject({ key: "booking.due_below_collected" });
-    expect(await dueOf(bookingId)).toBe("33.00");
-    expect(await platformDb.saleItem.count({ where: { saleId } })).toBe(2);
+    await expect(removeBookingItem({ itemId: lines[1]!.id, qty: 1 })).rejects.toMatchObject({ key: "shop.item_not_found" });
   });
 
   it("a tab: removable until it has a payment, then not", async () => {
@@ -274,42 +258,34 @@ describe("removing items", () => {
   });
 });
 
-describe("cancel, no-show and split with items on the game", () => {
-  it("cancel is refused while there are on-the-game items, allowed after removing them; tabs do not block it and stay owed", async () => {
+describe("cancel, no-show and split with a tab on the game", () => {
+  it("a tab does not block a cancel and stays owed after it", async () => {
     const bookingId = await futureBooking(fixture, 30);
-    const gameSale = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
-    const tab = await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: { kind: "name", name: "Maya" } });
+    await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
+    await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: { kind: "name", name: "Maya" } });
 
-    await expect(cancelBooking({ bookingId, initiator: "OWNER" })).rejects.toMatchObject({ key: "shop.booking_has_items" });
-    expect((await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).status).toBe("APPROVED");
-
-    const item = await platformDb.saleItem.findFirstOrThrow({ where: { saleId: gameSale.saleId } });
-    await removeBookingItem({ itemId: item.id, qty: 1 });
     await cancelBooking({ bookingId, initiator: "OWNER" });
     expect((await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).status).toBe("CANCELLED");
 
-    // The player's tab is untouched by the cancel and is still owed.
     const owed = await listOwed();
-    const maya = owed.groups.find((group) => group.name === "Maya")!;
-    expect(maya.totalUsd.toFixed(2)).toBe("4.50");
-    expect(maya.debts.map((debt) => debt.kind)).toEqual(["tab"]);
-    expect(tab.saleId).toBeTruthy();
+    expect(owed.groups.find((group) => group.name === "Maya")!.totalUsd.toFixed(2)).toBe("4.50");
+    expect(owed.groups.find((group) => group.name === "Booker")!.totalUsd.toFixed(2)).toBe("1.50");
+    expect(owed.groups.flatMap((group) => group.debts).every((debt) => debt.kind === "tab")).toBe(true);
   });
 
-  it("no-show is refused while there are on-the-game items", async () => {
+  it("a tab does not block a no-show", async () => {
     const { bookingId } = await endedGame(fixture, 1);
-    const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
-    await expect(recordNoShow({ bookingId })).rejects.toMatchObject({ key: "shop.booking_has_items" });
-    const item = await platformDb.saleItem.findFirstOrThrow({ where: { saleId } });
-    await removeBookingItem({ itemId: item.id, qty: 1 });
+    await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
     await recordNoShow({ bookingId });
     expect((await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).status).toBe("NO_SHOW");
   });
 
-  it("splitting per player is refused while there are on-the-game items", async () => {
+  it("a tab does not block the per-player split, and the slots are split from the game amount alone", async () => {
     const bookingId = await futureBooking(fixture, 30);
-    await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
-    await expect(switchToPerPlayer({ bookingId, count: 3 })).rejects.toMatchObject({ key: "shop.booking_has_items" });
+    await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 4 }], payer: game });
+    await switchToPerPlayer({ bookingId, count: 3 });
+    const slots = await platformDb.bookingParticipant.findMany({ where: { bookingId, slotNumber: { not: null } } });
+    expect(slots.reduce((sum, p) => sum.plus(p.amountDueUsd.toString()), new Decimal(0)).toFixed(2)).toBe("30.00");
   });
 });
 

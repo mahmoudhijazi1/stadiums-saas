@@ -112,7 +112,7 @@ model Booking {
   pitch        Pitch                    @relation(fields: [pitchId], references: [id])
   participants BookingParticipant[]
   dueChanges   BookingDueChange[]
-  /// Items put on this game: one "on the game" sale and one tab per named payer.
+  /// Items put on this game: one tab per payer (the booker's included).
   sales        Sale[]
 
   @@index([tenantId])
@@ -195,7 +195,8 @@ enum BookingDueReason {
   DISCOUNT
   WAIVER
   CORRECTION
-  /// Shop items put "on the game" (mini shop slice 2).
+  /// UNUSED. Slice 2 wrote it for items added to the booking due; "on the game" is now the booker's tab
+  /// and nothing writes it. Postgres cannot drop an enum value, so it stays (docs/DATA-MODEL.md).
   SHOP_ITEMS
 }
 
@@ -420,11 +421,11 @@ model Sale {
   createdByMembershipId String
   /// Set when the items were put on a game (slice 2). Null = a walk-in sale.
   bookingId             String?
-  /// A player's tab on that game: a person, or a typed name (with an optional phone) when there is
-  /// no person. Both null with a bookingId = the "on the game" sale, which raises the booking due and
-  /// never has a payment of its own. Both are null on a walk-in sale.
-  /// CHECKs and partial uniques are SQL-only (Sale_payer_needs_booking, Sale_payer_one_identity,
-  /// Sale_payerName_not_blank, Sale_payerPhone_needs_name; Sale_booking_game_key,
+  /// A player's tab on that game: a person (the booker's included: "On the game (booker)"), or a typed
+  /// name (with an optional phone) when there is no person. A sale on a booking always has a payer;
+  /// both are null only on a walk-in sale. A tab never changes the booking due or a slot due.
+  /// CHECKs and partial uniques are SQL-only (Sale_payer_needs_booking, Sale_booking_needs_payer,
+  /// Sale_payer_one_identity, Sale_payerName_not_blank, Sale_payerPhone_needs_name;
   /// Sale_booking_payer_person_key, Sale_booking_payer_name_key).
   payerPersonId         String?
   payerName             String?

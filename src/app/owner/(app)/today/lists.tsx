@@ -292,16 +292,14 @@ function lineViews(lines: readonly NetLine[]): ItemLineView[] {
 }
 
 function itemsView(row: OwnerDayBooking, items: BookingItemsView | undefined): BookingItemsPanelView {
-  // Who a tab can be charged to without searching: the requester, then the named slots.
-  const players = [{ personId: row.requesterPersonId, name: row.requesterName }];
+  // Who a tab can be charged to without searching: the named slots (the booker has her own choice).
+  const players: { personId: string; name: string }[] = [];
   for (const slot of row.slots) {
-    if (slot.personId && !players.some((player) => player.personId === slot.personId)) {
+    if (slot.personId && slot.personId !== row.requesterPersonId && !players.some((player) => player.personId === slot.personId)) {
       players.push({ personId: slot.personId, name: slot.name ?? "" });
     }
   }
   return {
-    gameLines: lineViews(items?.gameLines ?? []),
-    gameTotalUsd: formatUsd(items?.gameTotalUsd ?? new Decimal(0)),
     tabs: (items?.tabs ?? []).map((tab) => ({
       saleId: tab.saleId,
       name: tab.name,

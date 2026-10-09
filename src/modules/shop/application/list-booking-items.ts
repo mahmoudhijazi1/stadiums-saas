@@ -20,15 +20,12 @@ export type TabView = {
 
 export type BookingItemsView = {
   bookingId: string;
-  /** Items "on the game": already inside the booking due. */
-  gameLines: NetLine[];
-  gameTotalUsd: Decimal;
+  /** Every sale on a game is a player's tab, the booker's included ("On the game (booker)"). */
   tabs: TabView[];
 };
 
 /**
- * What was put on these games, for the booking sheet: the "on the game" items and each player tab with
- * what it has paid. Two reads for any number of games. Any signed-in member who can see Today.
+ * What was put on these games, for the booking sheet: each player tab with what it has paid. Two reads for any number of games. Any signed-in member who can see Today.
  */
 export async function listBookingItems(bookingIds: string[]): Promise<Map<string, BookingItemsView>> {
   const membership = await getCurrentMembership();
@@ -37,8 +34,8 @@ export async function listBookingItems(bookingIds: string[]): Promise<Map<string
   if (unique.length === 0) return new Map();
 
   try {
-    const sales = await listSalesOnBookings(db, unique);
-    const tabIds = sales.filter(isTab).map((sale) => sale.id);
+    const sales = (await listSalesOnBookings(db, unique)).filter(isTab);
+    const tabIds = sales.map((sale) => sale.id);
     const tenders = await listTendersBySourceIds(db, "SALE", tabIds);
     const paidBySale = new Map<string, Decimal>();
     for (const tender of tenders) {
@@ -50,13 +47,10 @@ export async function listBookingItems(bookingIds: string[]): Promise<Map<string
       if (!sale.bookingId) continue;
       const view =
         result.get(sale.bookingId) ??
-        ({ bookingId: sale.bookingId, gameLines: [], gameTotalUsd: new Decimal(0), tabs: [] } satisfies BookingItemsView);
+        ({ bookingId: sale.bookingId, tabs: [] } satisfies BookingItemsView);
       const lines = netLines(sale.lines);
       const total = netTotal(lines);
-      if (!isTab(sale)) {
-        view.gameLines = lines;
-        view.gameTotalUsd = total;
-      } else if (lines.length > 0) {
+      if (lines.length > 0) {
         const paid = paidBySale.get(sale.id) ?? new Decimal(0);
         view.tabs.push({
           saleId: sale.id,

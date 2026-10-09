@@ -43,7 +43,7 @@
 | Table | Kind | What a row is | Columns that need explaining |
 |---|---|---|---|
 | `Product` | T | An item the stadium sells (Cola, Chips). | `priceUsd` > 0 (CHECK), the **current** price only. Never deleted: `archivedAt` hides it from selling and keeps it on past sales. Names are not unique. |
-| `Sale` | T | One counter sale, or the shop items put on one game. | No stored total: it is the sum of its lines. `bookingId` (real FK, RESTRICT) set = items on a game: with no payer it is the **"on the game"** sale (one per booking; its lines raise `Booking.amountDueUsd`, reason `SHOP_ITEMS`; it never has a payment of its own: a trigger on `Payment` refuses one); with a payer (`payerPersonId` FK RESTRICT, or `payerName` + optional `payerPhone` when there is no person) it is that **player's tab** (one per booking and payer; paid through its own SALE payments, never part of the booking or a slot due). A payer needs a booking (CHECK). `createdByMembershipId` = who sold. Insert-only **by code only**: no trigger. |
+| `Sale` | T | One counter sale, or the shop items put on one game. | No stored total: it is the sum of its lines. `bookingId` (real FK, RESTRICT) set = items on a game, always a **player's tab**: `payerPersonId` (FK RESTRICT) or `payerName` + optional `payerPhone` when there is no person (CHECK: a sale on a booking names a payer, a payer needs a booking). One tab per booking and payer; paid through its own SALE payments, never part of the booking or a slot due. "On the game (booker)" is just the tab of the booking's requester. `createdByMembershipId` = who sold. Insert-only **by code only**: no trigger. |
 | `SaleItem` | T | One line of a sale. | `unitPriceUsd` is **frozen** at sale time, so a later price edit never changes a past sale. `lineTotalUsd = qty * unitPriceUsd` is a CHECK. A removal is a second line with a **negative** `qty` and `reversesItemId` naming the line it undoes (CHECK: negative exactly when it reverses; a trigger checks same sale, item and price and that the net never goes below zero). `addedAt` is when the line was added: the Shop card counts by it. Insert-only by code only. |
 
 ### Money
@@ -59,7 +59,7 @@
 ---
 
 ## 2. Enums
-`BookingStatus`, `BookingSource`, `CollectionMode`, `BookingDueReason` (8 reasons, `SHOP_ITEMS` added by the shop; which path writes which is in `booking/domain/suggest-fee.ts` and money.md), `MembershipRole`, `PersonLinkRelation`, `ExpenseCategory`, `PaymentSourceType`, `Currency`, `LedgerDirection`. All are in `schema.prisma`.
+`BookingStatus`, `BookingSource`, `CollectionMode`, `BookingDueReason` (8 values; `SHOP_ITEMS` is **unused**: slice 2 wrote it for items added to the booking due, the next change made "on the game" the booker's tab, and Postgres cannot drop an enum value, so it stays; which path writes which of the others is in `booking/domain/suggest-fee.ts` and money.md), `MembershipRole`, `PersonLinkRelation`, `ExpenseCategory`, `PaymentSourceType`, `Currency`, `LedgerDirection`. All are in `schema.prisma`.
 
 ---
 

@@ -37,10 +37,8 @@ export type TabItemsView = {
 
 /** What the booking sheet knows about the shop items of one game (plain strings: it crosses to the client). */
 export type BookingItemsPanelView = {
-  gameLines: ItemLineView[];
-  gameTotalUsd: string;
   tabs: TabItemsView[];
-  /** The requester first, then named slots: the quick picks of the payer chooser. */
+  /** The named slots (the booker has "On the game (booker)"): quick picks of the payer chooser. */
   players: { personId: string; name: string }[];
 };
 
@@ -70,13 +68,12 @@ function savePayer(bookingId: string, payer: Payer): void {
 }
 
 /**
- * The shop on one game, inside the booking sheet: the items "on the game" (already inside the game
- * amount), each player tab with its own Collect, and Add items. In per-player mode only "on a player"
- * is offered. Prices never come from here: only ids and quantities go to the server.
+ * The shop on one game, inside the booking sheet: each player tab (the booker's included) with its
+ * own Collect, and Add items. A tab never changes the game amount or a slot. Prices never come from
+ * here: only ids and quantities go to the server.
  */
 export function BookingItems({
   bookingId,
-  mode,
   canAdd,
   mayRemove,
   mayCollect,
@@ -86,7 +83,6 @@ export function BookingItems({
   locale,
 }: {
   bookingId: string;
-  mode: "WHOLE" | "PER_PLAYER";
   /** The game is confirmed and the member may sell. */
   canAdd: boolean;
   mayRemove: boolean;
@@ -99,7 +95,7 @@ export function BookingItems({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const empty = view.gameLines.length === 0 && view.tabs.length === 0;
+  const empty = view.tabs.length === 0;
   if (empty && (!canAdd || products.length === 0)) return null;
 
   function remove(itemId: string) {
@@ -114,16 +110,6 @@ export function BookingItems({
   return (
     <section className="flex flex-col gap-3">
       <h4 className="text-xs font-semibold text-muted-foreground">{ui("owner.shop", locale)}</h4>
-
-      {view.gameLines.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <p className="type-section">{ui("owner.itemsOnGame", locale)}</p>
-          <ItemLines lines={view.gameLines} removable={mayRemove} onRemove={remove} busy={pending} locale={locale} />
-          <p className="type-caption">
-            {ui("owner.itemsGameNote", locale)} · <LtrIsolate>{money(view.gameTotalUsd)}</LtrIsolate>
-          </p>
-        </div>
-      ) : null}
 
       {view.tabs.map((tab) => (
         <TabCard
@@ -148,7 +134,6 @@ export function BookingItems({
       {canAdd && products.length > 0 ? (
         <AddItems
           bookingId={bookingId}
-          mode={mode}
           products={products}
           players={view.players}
           locale={locale}
@@ -314,14 +299,12 @@ function TabCard({
 
 function AddItems({
   bookingId,
-  mode,
   products,
   players,
   locale,
   onDone,
 }: {
   bookingId: string;
-  mode: "WHOLE" | "PER_PLAYER";
   products: SellItem[];
   players: { personId: string; name: string }[];
   locale: UiLocale;
@@ -338,12 +321,9 @@ function AddItems({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // "On a player" is the default; the last choice for this booking is remembered.
+  // The booker is the default; the last choice for this booking is remembered.
   useEffect(() => {
-    const saved = loadPayer(bookingId);
-    if (saved && !(saved.kind === "game" && mode === "PER_PLAYER")) setPayer(saved);
-    else if (players[0]) setPayer({ kind: "person", personId: players[0].personId, name: players[0].name });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setPayer(loadPayer(bookingId) ?? { kind: "game" });
   }, [bookingId]);
 
   const lines = products.map((item) => ({ item, qty: counts[item.id] ?? 0 })).filter((line) => line.qty > 0);
@@ -414,11 +394,9 @@ function AddItems({
     <div className="flex flex-col gap-3 rounded-xl border p-3">
       <p className="type-section">{ui("owner.itemsChargeTo", locale)}</p>
       <div className="flex flex-wrap gap-2" role="group">
-        {mode === "WHOLE" ? (
-          <button type="button" className={chip(payer?.kind === "game")} onClick={() => choose({ kind: "game" })}>
-            {ui("owner.itemsOnGame", locale)}
-          </button>
-        ) : null}
+        <button type="button" className={chip(payer?.kind === "game")} onClick={() => choose({ kind: "game" })}>
+          {ui("owner.itemsOnGame", locale)}
+        </button>
         {players.map((player) => (
           <button
             key={player.personId}

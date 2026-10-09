@@ -5922,3 +5922,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `booking` imports `shop` (down), never the reverse; `app/` composes. Lock order, new rows in ARCHITECTURE §6: B → S for adding and removing; collecting a tab locks S only. Not done (ROADMAP): the debt warning on request cards and the person page do not yet include a person's tabs; there is no booking timeline to add an entry to.
 
 **How to verify:** `npm test` 751 passed; `npm run test:integration` 41 suites / 306 tests passed on the final run apart from one popularity test that read the sale time instead of the line time (fixed, 9 of 9 pass); `npm run build` green. Race tests (10 concurrent runs each, `Promise.allSettled`): add on the game x cancel, add on the game x booking collection, remove from a tab x collect on that tab. The booking sheet (Add items, tabs, Collect) was not rendered in a browser.
+
+## Mini shop, slice 2, change A: "on the game" is the booker's tab
+
+**What:**
+- "On the game" no longer adds items to the booking due. It creates or extends a tab whose payer is the booking's requester, exactly like "on a player" (the same tab a pick of the booker's name reaches). Items never change the booking due or any slot due. The choice is labelled "On the game (booker)" / "على المباراة (الحاجز)" and is offered in both collection modes.
+- Removed with it: the cancel, no-show and per-player split refusals that existed only because of on-the-game items (`shop.booking_has_items`, `shop.game_items_whole_only`), `assertNoGameItems`, the due write in `addBookingItems` / `removeBookingItem`, and the "on the game" read in the booking sheet. Removal now means one thing: a compensating line, only while the tab has no payment.
+- `BookingDueReason.SHOP_ITEMS` is no longer written. It stays in the enum, unused (Postgres cannot drop an enum value); recorded in `docs/DATA-MODEL.md` and as a comment in `schema.prisma`.
+- New migration `20261010120000_items_on_the_game_is_a_tab` (the slice-2 migration is untouched): drops the "no payment of its own" trigger on `Payment` and the one-game-sale-per-booking index, and adds `Sale_booking_needs_payer` (a sale on a booking must name a payer). It refuses to run if any sale on a booking has no payer, so old-path data cannot be silently left behind. **Dev data: there was none** (0 such sales, 0 `SHOP_ITEMS` due changes in `stadiums_dev`), so no data was converted.
+
+**Why:** the owner's reality is one person pays the game and another pays the drinks; mixing shop money into the game due made cancel, no-show and the split harder for no benefit. See SPEC-16 (a due changes for a reason) for what the due still means.
+
+**Files:** `modules/booking/application/{add-booking-items,remove-booking-item,cancel-booking,record-no-show,switch-collection-mode}.ts`, `modules/shop/{application/list-booking-items,infrastructure/booking-sales}.ts` (`game-items.ts` deleted), `app/owner/(app)/today/{booking-items.tsx,lists.tsx,upcoming-panel.tsx}`, `lib/{ui-copy,error-messages}.ts`, `prisma/{schema.prisma,migrations/20261010120000_*}`. Tests rewritten: `shop-booking-items`, `shop-races`.
+
+**How it connects:** the lock order is unchanged (B then S for add and remove, S only for a tab collection). Owed, Today and Money totals are unchanged in kind: a booker's tab is a tab.
+
+**How to verify:** `npm test` 751 passed; `shop-booking-items` + `shop-races` integration suites 21 passed (the full integration run is done once at the end of change C); the new migration applied to `stadiums_test` and `stadiums_dev`. The booking sheet was not rendered in a browser.

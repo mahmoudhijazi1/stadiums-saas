@@ -712,7 +712,6 @@ function UpcomingRowActions({
         />
         <BookingItems
           bookingId={row.id}
-          mode={row.perPlayer.mode}
           canAdd={shop.maySell && row.approved}
           mayRemove={mayAdjust}
           mayCollect={mayCollect}

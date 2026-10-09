@@ -6,15 +6,12 @@ import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SHOP_SELL, can } from "@/modules/access/domain/can";
-import { writeDueIfChanged } from "@/modules/booking/application/write-due-change";
-import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings";
-import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
+import { findBookingForUpdate, findRequesterPersonId } from "@/modules/booking/infrastructure/bookings";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import { normalizePhone } from "@/modules/people/domain/phone";
 import { findPersonById, findPersonByPhone } from "@/modules/people/infrastructure/persons";
 import { lineTotal, mergeLines, saleTotal } from "@/modules/shop/domain/sale";
 import {
-  findGameSale,
   findNameTab,
   findPersonTab,
   insertBookingSale,
@@ -27,16 +24,15 @@ import { parseAddBookingItems } from "@/modules/shop/schemas/booking-items";
 
 export type AddBookingItemsResult = {
   saleId: string;
-  kind: "game" | "tab";
   itemCount: number;
   totalUsd: Decimal;
 };
 
 /**
- * Put items on a confirmed game. Needs `shop.sell` only.
- * `game`: a WHOLE booking due goes up by the lines (reason SHOP_ITEMS); the sale has no payer and
- * no payment of its own. `person` / `name`: that player's tab; it never touches the booking due or a
- * slot due, so it works in both collection modes. A second add for the same payer appends lines to the
+ * Put items on a confirmed game, on a player's tab. Needs `shop.sell` only.
+ * The payer is "game" (the booker: the booking's requester), a person, or a typed name with an
+ * optional phone. Either way it is that payer's own tab: it never touches the booking due or a slot
+ * due, so it works in both collection modes. A second add for the same payer appends lines to the
  * same sale. Prices are read from the database; the client sends ids and quantities.
  * Lock order: the booking row first, then the sale row (an existing one; a new one is ours alone).
  */
@@ -52,10 +48,6 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
       const booking = await findBookingForUpdate(tx, parsed.bookingId);
       if (!booking) throw new DomainError("booking.not_found");
       if (booking.status !== "APPROVED") throw new DomainError("shop.booking_not_open");
-      const payer = parsed.payer;
-      if (payer.kind === "game" && booking.collectionMode !== "WHOLE") {
-        throw new DomainError("shop.game_items_whole_only");
-      }
 
       const products = await findActiveProducts(tx, lines.map((line) => line.productId));
       const byId = new Map(products.map((product) => [product.id, product]));
@@ -64,7 +56,6 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
         if (!product) throw new DomainError("shop.product_unavailable");
         return {
           productId: product.id,
-          name: product.name,
           qty: line.qty,
           unitPriceUsd: product.priceUsd,
           lineTotalUsd: lineTotal(product.priceUsd, line.qty),
@@ -72,35 +63,35 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
       });
       const total = saleTotal(priced);
 
-      let sale: BookingSaleRow | null;
+      // Who pays: the booker, a person, or a typed name. All three are a tab.
+      const payer = parsed.payer;
+      let personId: string | null = null;
+      let typed: { name: string; phone: string } | null = null;
       if (payer.kind === "game") {
-        sale = await findGameSale(tx, booking.id);
-        if (!sale) {
-          sale = await insertBookingSale(tx, { createdByMembershipId: membership.membershipId, bookingId: booking.id });
-        }
+        personId = await findRequesterPersonId(tx, booking.id);
+        if (!personId) throw new DomainError("booking.not_found");
       } else if (payer.kind === "person") {
         if (!(await findPersonById(tx, payer.personId))) throw new DomainError("shop.player_not_found");
-        sale = await findPersonTab(tx, booking.id, payer.personId);
-        if (!sale) {
-          sale = await insertBookingSale(tx, {
-            createdByMembershipId: membership.membershipId,
-            bookingId: booking.id,
-            payerPersonId: payer.personId,
-          });
-        }
+        personId = payer.personId;
       } else {
-        // A typed name. A phone that already belongs to a person makes it that person's tab.
+        // A phone that already belongs to a person makes it that person's tab.
         const phone = payer.phone ? normalizePhone(payer.phone) : "";
         const known = phone ? await findPersonByPhone(tx, phone) : null;
-        const name = cleanPersonName(payer.name);
-        sale = known ? await findPersonTab(tx, booking.id, known.id) : await findNameTab(tx, booking.id, name);
-        if (!sale) {
-          sale = await insertBookingSale(tx, {
-            createdByMembershipId: membership.membershipId,
-            bookingId: booking.id,
-            ...(known ? { payerPersonId: known.id } : { payerName: name, ...(phone ? { payerPhone: phone } : {}) }),
-          });
-        }
+        if (known) personId = known.id;
+        else typed = { name: cleanPersonName(payer.name), phone };
+      }
+
+      let sale: BookingSaleRow | null = personId
+        ? await findPersonTab(tx, booking.id, personId)
+        : await findNameTab(tx, booking.id, typed!.name);
+      if (!sale) {
+        sale = await insertBookingSale(tx, {
+          createdByMembershipId: membership.membershipId,
+          bookingId: booking.id,
+          ...(personId
+            ? { payerPersonId: personId }
+            : { payerName: typed!.name, ...(typed!.phone ? { payerPhone: typed!.phone } : {}) }),
+        });
       }
       // The sale row is held before lines are appended: a collection or a removal on it waits.
       if (!(await lockSale(tx, sale.id))) throw new DomainError("booking.not_found");
@@ -115,29 +106,10 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
         });
       }
 
-      if (payer.kind === "game") {
-        const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
-        await writeDueIfChanged(tx, {
-          bookingId: booking.id,
-          fromUsd: booking.amountDueUsd,
-          toUsd: booking.amountDueUsd.plus(total),
-          collectedUsd: collected,
-          collectionMode: booking.collectionMode,
-          reason: "SHOP_ITEMS",
-          note: priced.map((line) => `${line.name} x${line.qty}`).join(", ").slice(0, 200),
-          actorMembershipId: membership.membershipId,
-        });
-      }
-
-      return {
-        saleId: sale.id,
-        kind: payer.kind === "game" ? ("game" as const) : ("tab" as const),
-        itemCount: priced.reduce((sum, line) => sum + line.qty, 0),
-        totalUsd: total,
-      };
+      return { saleId: sale.id, itemCount: priced.reduce((sum, line) => sum + line.qty, 0), totalUsd: total };
     });
 
-    logger.info(`Items added to booking ${parsed.bookingId} (${result.kind})`, undefined, {
+    logger.info(`Items added to booking ${parsed.bookingId}`, undefined, {
       useCase: "addBookingItems",
       tenantId: await safeTenantId(),
     });

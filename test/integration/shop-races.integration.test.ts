@@ -40,7 +40,7 @@ describe("shop races (booking row, then sale row)", () => {
     await finishIntegrationFile();
   });
 
-  it("add on the game x cancel: exactly one wins, and a cancelled game never carries items", async () => {
+  it("add on the game (booker) x cancel: either order is fine, and a cancelled game takes no items", async () => {
     for (let i = 0; i < RUNS; i += 1) {
       const bookingId = await futureBooking(fixture, 2 + i);
       const results = await Promise.allSettled([
@@ -48,25 +48,23 @@ describe("shop races (booking row, then sale row)", () => {
         cancelBooking({ bookingId, initiator: "OWNER" }),
       ]);
       const [add, cancel] = outcomes(results);
+      // A tab never blocks a cancel, so the cancel always works.
+      expect(cancel).toBe("ok");
       const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
+      expect(booking.status).toBe("CANCELLED");
       if (add === "ok") {
-        // The add ran first: the cancel saw the items and refused.
-        expect(cancel).toBe("shop.booking_has_items");
-        expect(booking.status).toBe("APPROVED");
-        expect(booking.amountDueUsd.toFixed(2)).toBe("33.00");
+        // The add ran first: the tab exists and stays owed.
+        expect(await platformDb.sale.count({ where: { bookingId } })).toBe(1);
       } else {
-        // The cancel ran first: the add found a game that is no longer confirmed.
-        expect(cancel).toBe("ok");
+        // The cancel ran first: the game was no longer confirmed.
         expect(add).toBe("shop.booking_not_open");
-        expect(booking.status).toBe("CANCELLED");
         expect(await platformDb.sale.count({ where: { bookingId } })).toBe(0);
-        expect(booking.amountDueUsd.toFixed(2)).toBe("0.00");
       }
     }
     await assertMoneyInvariants([]);
   }, 120_000);
 
-  it("add on the game x booking collection: both succeed in either order, with the due and the log in step", async () => {
+  it("add on the game (booker) x booking collection: both succeed in either order and the due never moves", async () => {
     for (let i = 0; i < RUNS; i += 1) {
       const bookingId = await futureBooking(fixture, 2 + i);
       const results = await Promise.allSettled([
@@ -75,13 +73,9 @@ describe("shop races (booking row, then sale row)", () => {
       ]);
       expect(outcomes(results)).toEqual(["ok", "ok"]);
       const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
-      expect(booking.amountDueUsd.toFixed(2)).toBe("33.00");
-      const collected = await platformDb.paymentTender.aggregate({
-        _sum: { usdEquivalent: true },
-        where: { payment: { sourceType: "BOOKING", sourceId: bookingId } },
-      });
-      expect(collected._sum.usdEquivalent?.toFixed(2)).toBe("30.00");
-      expect(await platformDb.bookingDueChange.count({ where: { bookingId, reason: "SHOP_ITEMS" } })).toBe(1);
+      expect(booking.amountDueUsd.toFixed(2)).toBe("30.00");
+      expect(await platformDb.bookingDueChange.count({ where: { bookingId } })).toBe(0);
+      expect(await platformDb.sale.count({ where: { bookingId } })).toBe(1);
     }
     await assertMoneyInvariants([]);
   }, 120_000);

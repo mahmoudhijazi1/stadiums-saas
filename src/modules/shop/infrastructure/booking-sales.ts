@@ -32,11 +32,6 @@ export async function findSale(tx: TenantTx, saleId: string): Promise<BookingSal
   return tx.sale.findFirst({ where: { id: saleId }, select: SALE_SELECT });
 }
 
-/** The one "on the game" sale of a booking, when it has one. */
-export async function findGameSale(tx: TenantTx, bookingId: string): Promise<BookingSaleRow | null> {
-  return tx.sale.findFirst({ where: { bookingId, payerPersonId: null, payerName: null }, select: SALE_SELECT });
-}
-
 export async function findPersonTab(tx: TenantTx, bookingId: string, personId: string): Promise<BookingSaleRow | null> {
   return tx.sale.findFirst({ where: { bookingId, payerPersonId: personId }, select: SALE_SELECT });
 }
@@ -173,17 +168,4 @@ export async function listSalesOnBookings(tx: TenantTx, bookingIds: string[]): P
     displayPhone: row.payer?.phone ?? row.payerPhone,
     lines: row.items.map(toStored),
   }));
-}
-
-/** The net value of the "on the game" items of a booking (negative lines included). */
-export async function sumGameItems(tx: TenantTx, bookingId: string): Promise<Decimal> {
-  const tenantId = await getCurrentTenantId();
-  const rows = await tx.$queryRaw<{ total: { toString(): string } | null }[]>`
-    SELECT COALESCE(SUM(si."lineTotalUsd"), 0) AS total
-    FROM "Sale" s
-    JOIN "SaleItem" si ON si."saleId" = s.id
-    WHERE s."tenantId" = ${tenantId} AND s."bookingId" = ${bookingId}
-      AND s."payerPersonId" IS NULL AND s."payerName" IS NULL
-  `;
-  return new Decimal((rows[0]?.total ?? 0).toString());
 }
