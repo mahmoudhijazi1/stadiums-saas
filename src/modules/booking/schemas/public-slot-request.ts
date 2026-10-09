@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
-import { normalizePhone } from "@/modules/people/domain/phone";
+import { isPhoneText, normalizePhone } from "@/modules/people/domain/phone";
 
 /**
  * Shape of the public request form (SPEC-03 step 6).
@@ -14,6 +14,7 @@ const isoUtc = z.iso.datetime();
 
 const phoneDigits = z
   .string()
+  .refine(isPhoneText, { error: "Phone may contain only digits and + - ( ) ." })
   .transform(normalizePhone)
   .refine((digits) => digits.length >= 8 && digits.length <= 15, {
     error: "Phone must be 8–15 digits after removing spaces, dashes, and +",
