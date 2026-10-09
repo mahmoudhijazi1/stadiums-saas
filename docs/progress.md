@@ -6179,3 +6179,11 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** no new imports; `resetRateLimit` is the existing `lib/rate-limit.ts` function.
 
 **How to verify:** the tests were written and NOT run (per the task no test suite, build or lint was run); only `npx tsc --noEmit`, which passed with no output. Run `npm test` and `npm run test:integration`. Known limit: after a timeout the send may still complete later, so releasing can allow one duplicate alert; accepted.
+
+## Verification of `fix/push-alert-throttle` (includes push slice B)
+
+**What:** the checks that the two earlier branches skipped, run in order on `fix/push-alert-throttle`: `npx tsc --noEmit`, `npm test`, `npm run test:integration`, `npm run build`. Nothing failed, so no code or test was changed.
+
+**Why:** slice B and the throttle fix were committed with their tests written but not run.
+
+**How to verify:** `tsc` clean; `npm test` 99 suites, 927 passed; `npm run test:integration` 45 suites, 372 passed (including `push-new-request.integration.test.ts` and its "throttle claim" block); `npm run build` green. Not covered: a real push arriving on a phone (see the checks in `docs/push-notifications.md`).
