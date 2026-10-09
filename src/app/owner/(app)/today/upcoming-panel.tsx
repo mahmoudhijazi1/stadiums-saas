@@ -703,10 +703,7 @@ function UpcomingRowActions({
 
   return (
     <>
-      <section className="flex flex-col gap-3 rounded-xl border p-4">
-        {canCollect || (perPlayer && mayCollect) ? (
-          <h4 className="type-section">{ui("owner.moneyGroup", locale)}</h4>
-        ) : null}
+      <section className="flex flex-col gap-3">
         <DueRemainingFigures
           dueUsd={row.priceUsd}
           paidUsd={row.collectedExact}

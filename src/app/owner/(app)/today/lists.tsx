@@ -298,8 +298,10 @@ function lineViews(lines: readonly NetLine[]): ItemLineView[] {
   }));
 }
 
-function itemsView(row: OwnerDayBooking, items: BookingItemsView | undefined): BookingItemsPanelView {
+function itemsView(row: OwnerDayBooking, items: BookingItemsView | undefined, now: Date): BookingItemsPanelView {
   return {
+    // The rule that already decides when a tab counts as owed (see summarizeOwed / summarizeDay).
+    tabsOwed: classifyDue({ status: row.status, start: row.start, end: row.end, remaining: new Decimal(1), now }) === "owed",
     bookerPersonId: row.requesterPersonId,
     bookerName: row.requesterName,
     tabs: (items?.tabs ?? []).map((tab) => ({
@@ -370,7 +372,7 @@ function toUpcomingViews(
       remainingUsd: formatUsd(row.remaining),
       bookingOwes: row.remaining.gt(0),
       approved: row.status === "APPROVED",
-      items: itemsView(row, itemsByBooking.get(row.id)),
+      items: itemsView(row, itemsByBooking.get(row.id), now),
       priceUsd: formatUsd(row.amountDueUsd),
       interested:
         row.status === "CANCELLED"

@@ -6019,3 +6019,15 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/{add-items-sheet.tsx (new),booking-items.tsx,lists.tsx}`, `lib/ui-copy.ts`.
 
 **How to verify:** `npm test` 777 passed; `tsc` and eslint clean on the changed files; `npm run build` green. The integration suite (UI-only change, nothing it imports was touched) is run once on the final tree with the polish commit that follows. The sheet was not rendered in a browser.
+
+## Booking sheet polish (styling only)
+
+**What:** no logic, permission or money change.
+- **Money block:** the outer bordered card and the "Collect" label above it are gone. The tinted figure box (Paid / Remaining / Expected, existing tokens) is the block itself; the primary button and the "Pay another way" link sit directly under it in the same spacing group.
+- **Shop heading:** "+ Add" is a small ghost text button (label role, 36px visual height, 44px hit area) on the same baseline as "Shop".
+- **Summaries** ("Water Bottle ×2, Chips ×1") are joined with `Intl.ListFormat` in the UI language (`type: unit, style: short`), so English shows the Latin comma and Arabic the Arabic one.
+- **Tab rows follow the money colours:** before the game has ended the amount and the Collect button use the neutral (expected) look; amber only once the tabs are owed, by the same `classifyDue` rule that already decides when tabs count as owed (`tabsOwed` on the sheet view). Paid stays green; collecting early stays allowed (`TonalCollectButton` got a `tone`).
+
+**Files:** `app/owner/(app)/today/{upcoming-panel,booking-items,lists}.tsx`, `app/owner/tonal-collect.tsx`.
+
+**How to verify:** `npm test` 777 passed; `npm run build` green; `npm run test:integration` 43 suites / 328 tests passed (run once on this tree, which also covers the add-items sheet commit). The sheet was not rendered in a browser.

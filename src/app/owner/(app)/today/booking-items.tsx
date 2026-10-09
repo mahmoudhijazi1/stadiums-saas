@@ -39,6 +39,8 @@ export type TabItemsView = {
 /** What the booking sheet knows about the shop items of one game (plain strings: it crosses to the client). */
 export type BookingItemsPanelView = {
   tabs: TabItemsView[];
+  /** The tabs are owed now (the game ended, or it was a no-show or cancelled): amber. Before that: neutral. */
+  tabsOwed: boolean;
   /** The booking's requester: "On the game (booker)" charges her tab. */
   bookerPersonId: string;
   bookerName: string;
@@ -91,12 +93,18 @@ export function BookingItems({
 
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-baseline justify-between gap-3">
         <h4 className="type-section">{ui("owner.shop", locale)}</h4>
         {mayAdd ? (
-          <Button type="button" variant="outline" size="sm" className="min-h-11" onClick={() => setAddOpen(true)}>
-            {ui("owner.shopAddShort", locale)}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="-my-1.5 inline-flex min-h-11 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
+          >
+            <span className="inline-flex h-9 items-center rounded-full px-3 type-label text-action-ink hover:bg-muted">
+              {ui("owner.shopAddShort", locale)}
+            </span>
+          </button>
         ) : null}
       </div>
 
@@ -104,6 +112,7 @@ export function BookingItems({
         <TabRow
           key={tab.saleId}
           tab={tab}
+          owedNow={view.tabsOwed}
           mayRemove={mayRemove}
           mayCollect={mayCollect}
           onRemove={remove}
@@ -178,9 +187,10 @@ function ItemLines({
   );
 }
 
-/** "Water S ×2, Cola ×1": what the tab is made of, on one line. */
-function summaryOf(lines: ItemLineView[]): string {
-  return lines.map((line) => `${line.name} ×${line.qty}`).join("، ");
+/** "Water S ×2, Cola ×1": what the tab is made of, on one line, joined the way the language joins a list. */
+function summaryOf(lines: ItemLineView[], locale: UiLocale): string {
+  const parts = lines.map((line) => `${line.name} ×${line.qty}`);
+  return new Intl.ListFormat(locale === "en" ? "en" : "ar", { type: "unit", style: "short" }).format(parts);
 }
 
 /**
@@ -191,6 +201,7 @@ function summaryOf(lines: ItemLineView[]): string {
  */
 function TabRow({
   tab,
+  owedNow,
   mayRemove,
   mayCollect,
   onRemove,
@@ -200,6 +211,8 @@ function TabRow({
   onDone,
 }: {
   tab: TabItemsView;
+  /** Owed (amber) once the game has ended; neutral before. Collecting early stays allowed. */
+  owedNow: boolean;
   mayRemove: boolean;
   mayCollect: boolean;
   onRemove: (itemId: string) => void;
@@ -257,14 +270,14 @@ function TabRow({
             <bdi>{tab.name}</bdi>
           </span>
           <span className="type-secondary max-w-full truncate">
-            <bdi>{summaryOf(tab.lines)}</bdi>
+            <bdi>{summaryOf(tab.lines, locale)}</bdi>
           </span>
         </button>
-        <span className={cn("type-strong shrink-0", owes ? "text-owed" : "text-paid")}>
+        <span className={cn("type-strong shrink-0", !owes ? "text-paid" : owedNow ? "text-owed" : "text-expected")}>
           {owes ? <LtrIsolate>{remainingText}</LtrIsolate> : ui("owner.paidInFull", locale)}
         </span>
         {owes && mayCollect ? (
-          <TonalCollectButton disabled={pending} onClick={() => send(exactUsd, exactLbp)}>
+          <TonalCollectButton tone={owedNow ? "owed" : "expected"} disabled={pending} onClick={() => send(exactUsd, exactLbp)}>
             {ui("owner.collect", locale)}
           </TonalCollectButton>
         ) : null}
