@@ -62,7 +62,7 @@ export default async function OwedPage() {
       }
     }
     return {
-      key: group.personId ?? "unnamed",
+      key: group.personId ?? (name ? `name:${name.toLowerCase()}` : "unnamed"),
       name,
       totalLabel: `$${formatUsdCompact(group.totalUsd)}`,
       games: group.games,
@@ -76,7 +76,15 @@ export default async function OwedPage() {
           timeRange: formatLocalClockRange(debt.start, debt.end, tenant.timeDisplay, locale),
           requesterName: name ?? ui("owner.unnamedPlayer", locale),
           owedUsd: formatUsdCompact(debt.owedUsd),
-          pitchName: severalPitches ? debt.pitchName : null,
+          // A player's shop tab is marked "Shop" where the pitch name would go.
+          pitchName:
+            debt.kind === "tab"
+              ? severalPitches
+                ? `${ui("owner.shop", locale)} · ${debt.pitchName}`
+                : ui("owner.shop", locale)
+              : severalPitches
+                ? debt.pitchName
+                : null,
         },
       })),
     };

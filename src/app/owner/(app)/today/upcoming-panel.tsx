@@ -23,6 +23,8 @@ import {
   NoShowDecisionForm,
 } from "./fee-forms";
 import { submitCollectPayment } from "./actions";
+import { BookingItems, type BookingItemsPanelView } from "./booking-items";
+import type { SellItem } from "@/app/owner/item-tiles";
 import { PersonLink } from "@/app/owner/person-link";
 import { DebtRow } from "./debt-row";
 import { BookingRow, StatusPill, variantOf } from "@/app/owner/booking-row";
@@ -67,6 +69,13 @@ export type UpcomingRowView = {
   requesterName: string;
   requesterPhone: string | null;
   remainingUsd: string;
+  /** Unpaid player tabs on this game; shown in the pill, never collected with the booking. */
+  tabsRemainingUsd: string;
+  /** The booking itself still has money due (the tabs aside). */
+  bookingOwes: boolean;
+  /** Confirmed, so items can be put on it. */
+  approved: boolean;
+  items: BookingItemsPanelView;
   priceUsd: string;
   interested: NotifyPerson[];
   status: UpcomingStatus;
@@ -94,7 +103,7 @@ export type UpcomingRowView = {
 };
 
 function owesCash(row: UpcomingRowView): boolean {
-  if (row.status === "paid") return false;
+  if (row.status === "paid" || !row.bookingOwes) return false;
   return (
     row.display.kind === "unpaid" ||
     row.display.kind === "partial" ||
@@ -190,6 +199,7 @@ export function UpcomingPanel({
   saved,
   date,
   lbpPerUsd = null,
+  shop = { products: [], maySell: false },
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
@@ -210,6 +220,8 @@ export function UpcomingPanel({
   date?: string;
   /** Current exchange rate for the mixed-currency collect line; null when none is set. */
   lbpPerUsd?: string | null;
+  /** The shop catalog for "Add items" on a game, and whether this member may sell. */
+  shop?: { products: SellItem[]; maySell: boolean };
 }) {
   const [openId, setOpenId] = useState<string | null>(() => (openHighlight && highlight ? highlight : null));
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
@@ -512,6 +524,7 @@ export function UpcomingPanel({
                   mayCancel={mayCancel}
                   mayNoShow={mayNoShow}
                   mayAdjust={mayAdjust}
+                  shop={shop}
                   cancelRef={cancelBookingRef}
                   onCancelBooking={() => moveStep("cancel")}
                   onNoShow={() => moveStep("noshow")}
@@ -653,6 +666,7 @@ function UpcomingRowActions({
   mayCancel,
   mayNoShow,
   mayAdjust,
+  shop,
   cancelRef,
   onCancelBooking,
   onNoShow,
@@ -665,6 +679,7 @@ function UpcomingRowActions({
   mayCancel: boolean;
   mayNoShow: boolean;
   mayAdjust: boolean;
+  shop: { products: SellItem[]; maySell: boolean };
   cancelRef: Ref<HTMLButtonElement>;
   onCancelBooking: () => void;
   onNoShow: () => void;
@@ -693,6 +708,17 @@ function UpcomingRowActions({
           view={row.perPlayer}
           mayCollect={mayCollect}
           mayAdjust={mayAdjust && (perPlayer || owesCash(row))}
+          locale={locale}
+        />
+        <BookingItems
+          bookingId={row.id}
+          mode={row.perPlayer.mode}
+          canAdd={shop.maySell && row.approved}
+          mayRemove={mayAdjust}
+          mayCollect={mayCollect}
+          products={shop.products}
+          view={row.items}
+          lbpPerUsd={lbpPerUsd}
           locale={locale}
         />
         {canCollect && !mixedOpen ? (

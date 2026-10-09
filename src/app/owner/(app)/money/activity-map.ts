@@ -110,9 +110,13 @@ function mapSale(entry: LedgerEntryRow, context: ActivityContext, locale: UiLoca
   const sale = context.sales.get(entry.sourceId);
   if (!sale) return { label: shopActivityLabel(0, locale), secondary: "", icon: "shop", open: null };
   const items = sale.lines.reduce((sum, line) => sum + line.qty, 0);
+  // A player tab payment is named after the player; a walk-in sale after what was sold.
+  const label = sale.payerName ?? shopActivityLabel(items, locale);
   return {
-    label: shopActivityLabel(items, locale),
-    secondary: sale.lines.map((line) => line.name).join("، ").slice(0, 60),
+    label,
+    secondary: sale.payerName
+      ? shopActivityLabel(items, locale)
+      : sale.lines.map((line) => line.name).join("، ").slice(0, 60),
     icon: "shop",
     open: {
       kind: "sale",

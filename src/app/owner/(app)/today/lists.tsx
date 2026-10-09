@@ -39,6 +39,11 @@ import {
   nightHint,
 } from "@/modules/booking/application/night-hint";
 import { UpcomingPanel, type UpcomingRowView } from "./upcoming-panel";
+import type { BookingItemsPanelView, ItemLineView } from "./booking-items";
+import { listBookingItems, type BookingItemsView } from "@/modules/shop/application/list-booking-items";
+import { listProducts } from "@/modules/shop/application/products";
+import { SHOP_SELL } from "@/modules/access/domain/can";
+import type { NetLine } from "@/modules/shop/domain/booking-items";
 import {
   formatLocalClock,
   formatLocalClockRange,
@@ -99,10 +104,20 @@ export async function OwnerToday({
       )
     : [];
   const earlierTotal = earlierDebts.reduce(
-    (sum, row) => sum.plus(row.remaining),
+    (sum, row) => sum.plus(row.owedUsd),
     new Decimal(0),
   );
   const { summary } = ownerDay;
+  // The shop on these games: items and tabs in one read, the catalog once (only for members who sell).
+  const maySell = can(membership, SHOP_SELL);
+  const [itemsByBooking, products] = await Promise.all([
+    listBookingItems([...ownerDay.games, ...earlierDebts].map((row) => row.id)),
+    maySell ? listProducts({ forSale: true }) : Promise.resolve([]),
+  ]);
+  const shop = {
+    maySell,
+    products: products.map((item) => ({ id: item.id, name: item.name, priceUsd: item.priceUsd.toFixed(2) })),
+  };
   const saved =
     notify && bookingId ? await loadOutcomeNotify({ bookingId, kind: notify }) : null;
 
@@ -150,6 +165,7 @@ export async function OwnerToday({
       <UpcomingPanel
         toCollect={toUpcomingViews(
           earlierDebts,
+          itemsByBooking,
           now,
           locale,
           hourCycle,
@@ -169,6 +185,7 @@ export async function OwnerToday({
         }
         games={toUpcomingViews(
           ownerDay.games,
+          itemsByBooking,
           now,
           locale,
           hourCycle,
@@ -189,6 +206,7 @@ export async function OwnerToday({
         saved={saved}
         date={date}
         lbpPerUsd={rate ? rate.toString() : null}
+        shop={shop}
       />
       </DayContent>
     </DayNavProvider>
@@ -263,8 +281,42 @@ function MoneyPhrase({
   );
 }
 
+function lineViews(lines: readonly NetLine[]): ItemLineView[] {
+  return lines.map((line) => ({
+    id: line.id,
+    name: line.name,
+    qty: line.qty,
+    unitUsd: formatUsd(line.unitPriceUsd),
+    totalUsd: formatUsd(line.totalUsd),
+  }));
+}
+
+function itemsView(row: OwnerDayBooking, items: BookingItemsView | undefined): BookingItemsPanelView {
+  // Who a tab can be charged to without searching: the requester, then the named slots.
+  const players = [{ personId: row.requesterPersonId, name: row.requesterName }];
+  for (const slot of row.slots) {
+    if (slot.personId && !players.some((player) => player.personId === slot.personId)) {
+      players.push({ personId: slot.personId, name: slot.name ?? "" });
+    }
+  }
+  return {
+    gameLines: lineViews(items?.gameLines ?? []),
+    gameTotalUsd: formatUsd(items?.gameTotalUsd ?? new Decimal(0)),
+    tabs: (items?.tabs ?? []).map((tab) => ({
+      saleId: tab.saleId,
+      name: tab.name,
+      lines: lineViews(tab.lines),
+      totalUsd: formatUsd(tab.totalUsd),
+      paidUsd: formatUsd(tab.paidUsd),
+      remainingUsd: formatUsd(tab.remainingUsd),
+    })),
+    players,
+  };
+}
+
 function toUpcomingViews(
   rows: OwnerDayBooking[],
+  itemsByBooking: Map<string, BookingItemsView>,
   now: Date,
   locale: UiLocale,
   hourCycle: HourCycle,
@@ -280,11 +332,13 @@ function toUpcomingViews(
   dayStartHour: number,
 ): UpcomingRowView[] {
   return rows.map((row) => {
+    // The pill, the card state and the owed class count the player tabs too; the Collect amounts
+    // below (remainingUsd) stay the booking only.
     const display = deriveCardDisplay({
       start: row.start,
       end: row.end,
-      price: row.amountDueUsd,
-      remaining: row.remaining,
+      price: row.amountDueUsd.plus(row.tabsRemainingUsd),
+      remaining: row.remaining.plus(row.tabsRemainingUsd),
       now,
       status: row.status,
     });
@@ -314,17 +368,21 @@ function toUpcomingViews(
       requesterName: row.requesterName,
       requesterPhone: row.requesterPhone,
       remainingUsd: formatUsd(row.remaining),
+      bookingOwes: row.remaining.gt(0),
+      approved: row.status === "APPROVED",
+      items: itemsView(row, itemsByBooking.get(row.id)),
       priceUsd: formatUsd(row.amountDueUsd),
       interested:
         row.status === "CANCELLED"
           ? peopleWaitingOn(openWaitlist, row, row.requesterPersonId)
           : [],
-      status: upcomingStatus(row.start, row.remaining, now),
+      status: upcomingStatus(row.start, row.remaining.plus(row.tabsRemainingUsd), now),
       display,
       displayAmountUsd:
         display.kind === "before"
           ? formatUsdCompact(row.priceUsd)
-          : formatUsdCompact(row.remaining),
+          : formatUsdCompact(row.owedUsd),
+      tabsRemainingUsd: formatUsd(row.tabsRemainingUsd),
       confirmWhatsAppHref: row.confirmWhatsAppHref,
       showCancel:
         row.status === "APPROVED" &&

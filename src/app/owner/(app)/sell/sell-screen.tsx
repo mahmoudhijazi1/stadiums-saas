@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Decimal from "decimal.js";
-import { Minus } from "lucide-react";
 import { toast } from "sonner";
+import { ItemTiles, QTY_MAX, type SellItem } from "@/app/owner/item-tiles";
 import { TenderBalance } from "@/app/owner/tender-balance";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,12 +21,8 @@ import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/money";
 import { soldToast, ui } from "@/lib/ui-copy";
-import { cn } from "cn";
 import { submitWalkInSale } from "./actions";
 
-export type SellItem = { id: string; name: string; priceUsd: string };
-
-const QTY_MAX = 99;
 
 /**
  * The counter: a grid of item tiles (tap = +1 with a count badge, a "−" once the count is above 0),
@@ -93,50 +89,7 @@ export function SellScreen({
 
   return (
     <div className="flex flex-col gap-4 pb-40">
-      <ul className="grid grid-cols-2 gap-2">
-        {items.map((item) => {
-          const qty = counts[item.id] ?? 0;
-          return (
-            <li key={item.id} className="relative">
-              <button
-                type="button"
-                onClick={() => change(item.id, 1)}
-                disabled={qty >= QTY_MAX}
-                aria-label={`${item.name} ${item.priceUsd}`}
-                className={cn(
-                  "flex min-h-16 w-full flex-col items-start justify-center gap-0.5 rounded-xl border bg-card px-3 py-2 text-start outline-none transition-colors active:bg-muted/70 focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                  qty > 0 && "border-action-ink",
-                )}
-              >
-                <span className="type-strong line-clamp-2 break-words">
-                  <bdi>{item.name}</bdi>
-                </span>
-                <span className="type-secondary">
-                  <LtrIsolate>{`$${formatUsdCompact(new Decimal(item.priceUsd))}`}</LtrIsolate>
-                </span>
-              </button>
-              {qty > 0 ? (
-                <>
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute end-2 top-2 grid min-w-6 place-items-center rounded-full bg-action-ink px-1.5 type-label text-background"
-                  >
-                    {qty}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => change(item.id, -1)}
-                    aria-label={`${ui("owner.sellMinus", locale)} ${item.name}`}
-                    className="absolute end-1 bottom-1 grid size-11 place-items-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                  >
-                    <Minus aria-hidden className="size-5" />
-                  </button>
-                </>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
+      <ItemTiles items={items} counts={counts} onChange={change} locale={locale} />
 
       {/* Above the floating nav and its safe-area inset. */}
       <div className="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-20 mx-auto w-full max-w-lg px-3 lg:bottom-4">

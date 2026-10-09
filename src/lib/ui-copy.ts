@@ -414,6 +414,15 @@ const ARABIC: Record<string, string> = {
   "owner.sell": "بيع",
   "owner.sellTotal": "المجموع",
   "owner.sellMinus": "إنقاص",
+  "owner.addItems": "إضافة أصناف",
+  "owner.itemsOnGame": "على المباراة",
+  "owner.itemsGameNote": "داخل مبلغ المباراة",
+  "owner.itemsChargeTo": "على حساب مَن؟",
+  "owner.itemsOtherPlayer": "لاعب آخر",
+  "owner.itemsSearchPlayer": "ابحث عن لاعب",
+  "owner.itemsNameField": "الاسم",
+  "owner.itemsPhoneField": "الهاتف (اختياري)",
+  "owner.itemsUseName": "استخدم هذا الاسم",
   "owner.sellNoItems": "لا أصناف للبيع بعد.",
   "owner.sellFirstItem": "أضف أول صنف",
   "owner.sellFirstItemStaff": "اطلب من المالك إضافة أصناف.",
@@ -832,6 +841,15 @@ const ENGLISH: Record<string, string> = {
   "owner.sell": "Sell",
   "owner.sellTotal": "Total",
   "owner.sellMinus": "Remove one",
+  "owner.addItems": "Add items",
+  "owner.itemsOnGame": "On the game",
+  "owner.itemsGameNote": "Included in the game amount",
+  "owner.itemsChargeTo": "Charge to",
+  "owner.itemsOtherPlayer": "Another player",
+  "owner.itemsSearchPlayer": "Search a player",
+  "owner.itemsNameField": "Name",
+  "owner.itemsPhoneField": "Phone (optional)",
+  "owner.itemsUseName": "Use this name",
   "owner.sellNoItems": "No items to sell yet.",
   "owner.sellFirstItem": "Add your first item",
   "owner.sellFirstItemStaff": "Ask the owner to add items.",
@@ -1252,6 +1270,13 @@ export function shopActivityLabel(items: number, locale: UiLocale = "ar"): strin
   if (locale === "en") return `Shop · ${items} ${items === 1 ? "item" : "items"}`;
   const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
   return items === 2 ? `المتجر · صنفان` : `المتجر · ${items} ${word}`;
+}
+
+/** The toast after items are put on a game: "Added 3 items - $12". `total` is already formatted. */
+export function itemsAddedToast(items: number, total: string, locale: UiLocale = "ar"): string {
+  if (locale === "en") return `Added ${items} ${items === 1 ? "item" : "items"} · $${total}`;
+  const word = items === 1 ? "صنف" : items === 2 ? "صنفان" : items <= 10 ? "أصناف" : "صنفاً";
+  return items === 2 ? `أُضيف صنفان · $${total}` : `أُضيف ${items} ${word} · $${total}`;
 }
 
 /** The toast after a walk-in sale: "Sold 3 items · $12". `total` is already formatted. */
