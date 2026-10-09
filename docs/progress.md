@@ -6187,3 +6187,18 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Why:** slice B and the throttle fix were committed with their tests written but not run.
 
 **How to verify:** `tsc` clean; `npm test` 99 suites, 927 passed; `npm run test:integration` 45 suites, 372 passed (including `push-new-request.integration.test.ts` and its "throttle claim" block); `npm run build` green. Not covered: a real push arriving on a phone (see the checks in `docs/push-notifications.md`).
+
+## Extend a booking by 30 minutes, commit 1 of 3: domain and use case (branch `feat/extend-booking`)
+
+**What:** the rules and the transaction; no screen yet.
+- **Domain** `booking/domain/extension-plan.ts` (pure): `extensionPlan(booking, pitchConfig, now, nextApprovedStart, timeZone)` returns `{ allowed, reason, newEnd, addedPriceUsd, limit }`. The step is `EXTENSION_STEP_MINUTES = 30`, the cap `EXTENSION_MAX_TOTAL_MINUTES = 180`. Refusals, first one wins: `not_approved`, `ended`, `per_player`, `max_duration`, `next_game` (an APPROVED game starts before the new end; `limit` is its start), `closing` (`bookingFitsOpenHours` fails, so a window that crosses midnight works; `limit` is when the window closes, from the new `openWindowEnd` in `venue/domain/availability.ts`). Price: `priceUsd / current minutes x 30`, half up to cents (`addedPriceForExtension`). `extensionNote` writes "18:00-19:00 → 18:00-19:30" for the due-change note. The fifth parameter `timeZone` (default Asia/Beirut) is an addition to the signature in the brief.
+- **Use case** `booking/application/extend-booking.ts` `extendBooking({ bookingId, expectedEndsAt, addedPriceUsd? })`: needs the new permission `bookings.extend` (`access/domain/can.ts`; OWNER yes, STAFF only when the flag is `true`, so the default is off and no data migration is needed). Authorize first, then the transaction in cancel's order: pitch lock, then booking row lock. After the locks: `expectedEndsAt` must equal the booking's current end, else `booking.changed` (a double tap adds 30 minutes once); then `extensionPlan`; then `rejectOverlappingPending` on the added window (pending requests inside it are declined and recorded as interests, as in approval); then one raw `UPDATE` (`setBookingEndAndPrice`: tenant stamped, `tstzrange(lower(during), newEnd, '[)')`, `priceUsd` raised); then `writeDueIfChanged` with the new reason `EXTENSION` (due raised by the same amount; collected money untouched). An edited amount needs `bookings.adjust_due`, otherwise `access.not_allowed`. Postgres 23P01 (the exclusion constraint) becomes `booking.extend_next_taken`.
+- **Schema:** enum value `EXTENSION` on `BookingDueReason` (migration `20261012090000_extension_due_reason`, additive). New error keys in both languages (`booking.changed`, `booking.extend_*`). `docs/ARCHITECTURE.md` lock-order table has the new row.
+
+**Why:** an owner whose game runs long should add time in a tap, with the money following.
+
+**Files:** `modules/booking/domain/extension-plan.ts`, `modules/booking/application/extend-booking.ts`, `modules/booking/infrastructure/bookings.ts`, `modules/venue/domain/availability.ts`, `modules/access/domain/can.ts`, `modules/booking/domain/suggest-fee.ts`, `prisma/schema.prisma` and the migration, `lib/error-messages.ts`, `test/modules/booking/domain/extension-plan.test.ts`.
+
+**How it connects:** `booking` imports `venue` and `payment` only as before; `extend-booking.ts` follows cancel's lock order (P then B, then the pending set).
+
+**How to verify:** NOT run. Per the task no test suite, build or lint was run; a single `tsc --noEmit` is run at the end of the branch. The migration is not applied anywhere yet.

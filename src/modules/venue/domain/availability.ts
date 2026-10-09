@@ -304,6 +304,28 @@ export function bookingFitsOpenHours(
   );
 }
 
+/**
+ * Where the open window that contains `start` closes (the start's civil day, or the day before
+ * for a window that crosses midnight). Null when `start` sits in no window. For messages
+ * ("Closes at 11:00 PM"); the yes/no check is `bookingFitsOpenHours`.
+ */
+export function openWindowEnd(config: ScheduleConfig, start: Date, timeZone: string): Date | null {
+  let latest: Date | null = null;
+  for (const localDate of windowDaysForStart(start, timeZone)) {
+    for (const window of config.hours[weekdayOfCivilDate(localDate)]) {
+      const utc = windowToUtcRange(window.start, window.end, localDate, timeZone);
+      if (
+        start.getTime() >= utc.start.getTime() &&
+        start.getTime() < utc.end.getTime() &&
+        (latest === null || utc.end.getTime() > latest.getTime())
+      ) {
+        latest = utc.end;
+      }
+    }
+  }
+  return latest;
+}
+
 function zonedParts(
   instant: Date,
   timeZone: string,

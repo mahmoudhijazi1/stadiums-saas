@@ -5,6 +5,14 @@ import type { UiLocale } from "@/lib/locale";
  * Unknown keys and legacy ?error=1 → generic.
  */
 const ARABIC: Record<string, string> = {
+  "booking.changed": "تغيّر هذا الحجز. حدّث الصفحة وحاول مرة أخرى.",
+  "booking.extend_not_approved": "يمكن تمديد المباريات المؤكدة فقط.",
+  "booking.extend_ended": "انتهت هذه المباراة.",
+  "booking.extend_per_player": "لا يمكن تمديد مباراة مقسّمة على اللاعبين.",
+  "booking.extend_max": "الحد الأقصى ٣ ساعات.",
+  "booking.extend_next_game": "هناك مباراة بعدها مباشرة.",
+  "booking.extend_closing": "الملعب يغلق قبل ذلك.",
+  "booking.extend_next_taken": "الوقت التالي محجوز.",
   "push.invalid_subscription": "تعذّر تفعيل الإشعارات على هذا الجهاز.",
   "push.not_configured": "الإشعارات غير مفعّلة على الخادم.",
   "push.rate_limited": "محاولات كثيرة. حاول مرة أخرى بعد قليل.",
@@ -80,6 +88,14 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "booking.changed": "This booking changed. Refresh and try again.",
+  "booking.extend_not_approved": "Only confirmed games can be extended.",
+  "booking.extend_ended": "This game has ended.",
+  "booking.extend_per_player": "A game split per player cannot be extended.",
+  "booking.extend_max": "Maximum 3 hours.",
+  "booking.extend_next_game": "There is a game right after it.",
+  "booking.extend_closing": "The pitch closes before that.",
+  "booking.extend_next_taken": "The next time is taken.",
   "push.invalid_subscription": "Could not turn on notifications on this device.",
   "push.not_configured": "Notifications are not set up on the server.",
   "push.rate_limited": "Too many tries. Try again in a few minutes.",
