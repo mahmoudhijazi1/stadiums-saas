@@ -184,7 +184,7 @@ export async function OwnerToday({
         toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
         toCollectTotal={formatUsdCompact(earlierTotal)}
         free={
-          <Suspense fallback={null}>
+          <Suspense key="free-strip" fallback={null}>
             <FreeStripSection membership={membership} locale={locale} date={date} />
           </Suspense>
         }

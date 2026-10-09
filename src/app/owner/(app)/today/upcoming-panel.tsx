@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode, type Ref, Fragment } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -331,7 +331,7 @@ export function UpcomingPanel({
         </section>
       ) : null}
 
-      {free}
+      {free ? <Fragment key="free-strip">{free}</Fragment> : null}
 
       {toCollect.length > 0 ? (
         <section
