@@ -179,15 +179,12 @@ export function OwnerTabBar({
               aria-label={ui("owner.record", locale)}
               onClick={() => setRecordOpen(true)}
               className={cn(
-                "flex h-14 w-full flex-col items-center justify-center gap-1 rounded-[var(--radius-control)] bg-accent-brand text-accent-ink outline-none",
+                // Icon only and always a circle (never an oval), centred in its slot.
+                "mx-auto grid size-14 place-items-center rounded-full bg-accent-brand text-accent-ink outline-none",
                 "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
-                "lg:h-12 lg:flex-row lg:justify-center lg:gap-2",
               )}
             >
-              <Plus aria-hidden className="size-5 shrink-0" strokeWidth={2.25} />
-              <span className="max-w-full truncate text-xs leading-none font-medium lg:text-sm">
-                {ui("owner.record", locale)}
-              </span>
+              <Plus aria-hidden className="size-7 shrink-0" strokeWidth={2.5} />
             </button>
           </div>
         ) : null}
