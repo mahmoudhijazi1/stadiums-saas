@@ -3,6 +3,8 @@ export const BOOKINGS_CREATE = "bookings.create";
 export const BOOKINGS_CANCEL = "bookings.cancel";
 export const BOOKINGS_NO_SHOW = "bookings.no_show";
 export const BOOKINGS_ADJUST_DUE = "bookings.adjust_due";
+/** Add 30 minutes to a confirmed game. OWNER yes; STAFF only when the flag is granted (default off). */
+export const BOOKINGS_EXTEND = "bookings.extend";
 export const PAYMENTS_COLLECT = "payments.collect";
 export const EXPENSES_RECORD = "expenses.record";
 export const REPORTS_VIEW = "reports.view";
@@ -17,6 +19,7 @@ export type Permission =
   | typeof BOOKINGS_CANCEL
   | typeof BOOKINGS_NO_SHOW
   | typeof BOOKINGS_ADJUST_DUE
+  | typeof BOOKINGS_EXTEND
   | typeof PAYMENTS_COLLECT
   | typeof EXPENSES_RECORD
   | typeof REPORTS_VIEW

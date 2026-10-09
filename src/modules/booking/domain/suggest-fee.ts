@@ -11,6 +11,7 @@ export type DueChangeReason =
   | "DISCOUNT"
   | "WAIVER"
   | "CORRECTION"
+  | "EXTENSION"
   | "SHOP_ITEMS";
 
 export type FeePolicy = {

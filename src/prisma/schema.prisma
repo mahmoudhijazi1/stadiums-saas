@@ -197,6 +197,8 @@ enum BookingDueReason {
   DISCOUNT
   WAIVER
   CORRECTION
+  /// 30 minutes added to a confirmed game (src/modules/booking/application/extend-booking.ts).
+  EXTENSION
   /// UNUSED. Slice 2 wrote it for items added to the booking due; "on the game" is now the booker's tab
   /// and nothing writes it. Postgres cannot drop an enum value, so it stays (docs/DATA-MODEL.md).
   SHOP_ITEMS

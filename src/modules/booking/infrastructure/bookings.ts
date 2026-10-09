@@ -707,6 +707,30 @@ export async function setApprovedNoShow(
  * Write Booking.amountDueUsd. A later change of collection mode, participants,
  * or participant dues must call this in the same transaction (SPEC-15).
  */
+/**
+ * Move the END of an APPROVED game and raise its agreed price, in one statement. The start and the
+ * [) bounds are kept; tenantId is in the SQL (the extension does not stamp raw SQL). The caller
+ * holds the pitch and booking locks. The exclusion constraint is the backstop: an overlap with
+ * another APPROVED game raises 23P01 here.
+ */
+export async function setBookingEndAndPrice(
+  tx: TenantTx,
+  input: { bookingId: string; newEnd: Date; priceUsd: Decimal },
+): Promise<void> {
+  const tenantId = await getCurrentTenantId();
+  const count = await tx.$executeRaw`
+    UPDATE "Booking"
+    SET during = tstzrange(lower(during), ${input.newEnd}, '[)'),
+        "priceUsd" = ${formatUsd(input.priceUsd)}::numeric
+    WHERE id = ${input.bookingId}
+      AND "tenantId" = ${tenantId}
+      AND status = 'APPROVED'::"BookingStatus"
+  `;
+  if (count !== 1) {
+    throw new DomainError("booking.not_found");
+  }
+}
+
 export async function setBookingAmountDue(
   tx: TenantTx,
   bookingId: string,
@@ -739,6 +763,7 @@ export async function insertBookingDueChange(
       | "DISCOUNT"
       | "WAIVER"
       | "CORRECTION"
+      | "EXTENSION"
       | "SHOP_ITEMS";
     note: string | null;
     actorMembershipId: string;

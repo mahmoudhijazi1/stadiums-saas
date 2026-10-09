@@ -8,6 +8,17 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "owner.extendedChip": "+{n} د",
+  "owner.extendedTitle": "مُدّدت المباراة {n} دقيقة",
+  "owner.extend": "تمديد 30 دقيقة",
+  "owner.extendNewTime": "الوقت الجديد",
+  "owner.extendAdded": "السعر المضاف",
+  "owner.extendDeclines": "سيُرفض {n} من الطلبات.",
+  "owner.extendConfirm": "تأكيد",
+  "owner.extendDone": "تم تمديد المباراة.",
+  "owner.extendNextGame": "المباراة التالية الساعة {time}",
+  "owner.extendClosing": "يغلق الملعب الساعة {time}",
+  "owner.extendMax": "الحد الأقصى ٣ ساعات",
   "empty.games": "لا مباريات في هذا اليوم.",
   "empty.gamesNext": "الحجوزات المؤكدة لهذا اليوم تظهر هنا.",
   "push.newRequestTitle": "ملاعب",
@@ -464,6 +475,17 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "owner.extendedChip": "+{n} min",
+  "owner.extendedTitle": "Extended by {n} min",
+  "owner.extend": "Extend 30 min",
+  "owner.extendNewTime": "New time",
+  "owner.extendAdded": "Added price",
+  "owner.extendDeclines": "{n} requests will be declined.",
+  "owner.extendConfirm": "Confirm",
+  "owner.extendDone": "Game extended.",
+  "owner.extendNextGame": "Next game at {time}",
+  "owner.extendClosing": "Closes at {time}",
+  "owner.extendMax": "Max 3 hours",
   "empty.games": "No games on this day.",
   "empty.gamesNext": "Confirmed bookings for this day show here.",
   "push.newRequestTitle": "Lebstads",

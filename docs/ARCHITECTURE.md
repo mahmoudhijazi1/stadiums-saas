@@ -136,6 +136,7 @@ The new-request alert is composed in `app/(public)/alert-owners.ts` and schedule
 | `create-owner-booking.ts` `createOwnerBooking` | P → insert B(new) → B\* (overlapping pending, via `rejectOverlappingPending`) | |
 | `approve-booking.ts` `approveBooking` | P → B\* ({this request} ∪ overlapping pending, one statement, id order) → B\* again (subset, via `rejectOverlappingPending`) | The second lock set ⊆ the first (same query under P; new overlapping PENDING needs P). |
 | `cancel-booking.ts` `cancelBooking` | P → B | |
+| `extend-booking.ts` `extendBooking` | P → B → B\* (overlapping pending, via `rejectOverlappingPending`) | Same first two steps as cancel. The second B\* set is the pending rows inside the added 30 minutes, locked in id order; a collect or adjust on this booking waits on B, never on P. |
 | `record-no-show.ts` `recordNoShow` | P → B | |
 | `dismiss-missed-requests.ts` `dismissMissedRequests` | B\* (missed pending, id order) | No P. |
 | `reject-booking.ts` `rejectBooking` | B (implicit, `setPendingStatus` UPDATE) | Single row. |

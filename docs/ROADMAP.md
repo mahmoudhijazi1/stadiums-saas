@@ -43,6 +43,17 @@ Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not sta
 | Walk-in credit | A walk-in sale is paid in full or refused today; "put it on my tab" needs a person and the Owed screen. |
 | Append-only for Sale / SaleItem | Insert-only by code only, like Payment and LedgerEntry (F-2): no trigger. Revisit with F-2. |
 
+## Extend a booking: next (recorded 2026-10-12)
+
+The first version only adds 30 minutes. Not started, each its own slice:
+
+| Item | Note |
+|---|---|
+| Shorten or undo an extension | There is no way back: Adjust amount can lower the due but the time range stays. Needs its own rules (a refund below collected is out of scope, the freed time becomes free again, who may do it, an `EXTENSION_UNDO` reason or a negative change). |
+| Extend past closing | Closing time is a hard limit today (`booking.extend_closing`). An owner who lets a game run late must change the pitch hours or wait for this. Needs a decision on the price of time outside the schedule. |
+| Move a booking | Change the start (and pitch) of a confirmed game. A different feature: it needs the same lock order and the pending-request rules, plus the player's notification. |
+| A permission screen | `bookings.extend` is granted by editing the staff membership's `permissions` jsonb; there is no screen for it yet (same as the other flags). |
+
 ## Push notifications: next (recorded 2026-10-11)
 
 Slices A (foundation and the test button) and B (the new-request alert) are built; see [push-notifications.md](./push-notifications.md). Slice B's tests are written but were not run when it was committed. Not started, each its own slice:

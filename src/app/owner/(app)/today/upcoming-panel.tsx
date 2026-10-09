@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, type ComponentType, type ReactNode, type Ref, Fragment } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import Link from "next/link";
-import { Ban, ChevronDown, Pencil, UserX, X } from "lucide-react";
+import { Ban, ChevronDown, Clock, Pencil, UserX, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import {
@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ExtendForm, ExtendedMark, type ExtendOfferView } from "./extend-form";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -60,6 +61,8 @@ export type UpcomingRowView = {
   /** Null when the stadium has one pitch: the name would say nothing. */
   pitchName: string | null;
   timeRange: string;
+  /** Minutes added by extensions (30 each); 0 = never extended. Shown as a mark by the time. */
+  extendedMinutes: number;
   dateLabel: string;
   /** Day an owed game belongs to: "Yesterday", a weekday, or the date. */
   dayLabel: string;
@@ -85,6 +88,8 @@ export type UpcomingRowView = {
   whatsAppHref: string | null;
   showCancel: boolean;
   showNoShow: boolean;
+  /** "Extend 30 min": null when the member may not, or the game cannot be extended at all. */
+  extend: ExtendOfferView | null;
   canAdjust: boolean;
   perPlayer: PerPlayerView;
   hoursBefore: number;
@@ -170,7 +175,7 @@ function DueRemainingFigures({
   );
 }
 
-type SheetStep = "details" | "cancel" | "noshow" | "adjust";
+type SheetStep = "details" | "cancel" | "noshow" | "adjust" | "extend";
 
 /** Call and WhatsApp in the sheet header: a 36px circle inside a 44px hit area. */
 function HeaderIcon({
@@ -471,6 +476,7 @@ export function UpcomingPanel({
                       aria-hidden={sheetStep !== "details"}
                     >
                       <ClockRangeText text={sheetRow.timeRange} />
+                      <ExtendedMark minutes={sheetRow.extendedMinutes} locale={locale} />
                     </span>
                   </span>
                 </BottomSheetTitle>
@@ -540,6 +546,7 @@ export function UpcomingPanel({
                   onCancelBooking={() => moveStep("cancel")}
                   onNoShow={() => moveStep("noshow")}
                   onAdjust={() => moveStep("adjust")}
+                  onExtend={() => moveStep("extend")}
                 />
               </BottomSheetBody>
               <BottomSheetBody
@@ -570,6 +577,15 @@ export function UpcomingPanel({
                     onBack={() => moveStep("details")}
                   />
                 ) : null}
+                {sheetStep === "extend" && sheetRow.extend ? (
+                  <ExtendForm
+                    bookingId={sheetRow.id}
+                    offer={sheetRow.extend}
+                    locale={locale}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
                 {sheetStep === "adjust" ? (
                   <AdjustDueForm
                     row={sheetRow}
@@ -593,6 +609,7 @@ export function UpcomingPanel({
 function stepTitle(step: SheetStep, locale: UiLocale): string {
   if (step === "noshow") return ui("owner.noShow", locale);
   if (step === "adjust") return ui("owner.adjustDue", locale);
+  if (step === "extend") return ui("owner.extend", locale);
   return ui("owner.cancel", locale);
 }
 
@@ -635,6 +652,7 @@ function UpcomingRows({
             meta={
               <>
                 <ClockRangeText text={row.timeRange} />
+                <ExtendedMark minutes={row.extendedMinutes} locale={locale} />
                 {row.pitchName ? <span>{row.pitchName}</span> : null}
                 {row.nightHint ? <span>{row.nightHint}</span> : null}
               </>
@@ -682,6 +700,7 @@ function UpcomingRowActions({
   onCancelBooking,
   onNoShow,
   onAdjust,
+  onExtend,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
@@ -695,6 +714,7 @@ function UpcomingRowActions({
   onCancelBooking: () => void;
   onNoShow: () => void;
   onAdjust: () => void;
+  onExtend: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -707,7 +727,8 @@ function UpcomingRowActions({
   const showAdjust = mayAdjust && row.canAdjust;
   const showNoShow = mayNoShow && row.showNoShow;
   const showCancel = mayCancel && row.showCancel;
-  const hasMore = showAdjust || showSplit || showNoShow || showCancel;
+  const showExtend = row.extend !== null;
+  const hasMore = showAdjust || showExtend || showSplit || showNoShow || showCancel;
 
   return (
     <>
@@ -777,6 +798,16 @@ function UpcomingRowActions({
           </button>
           {moreOpen ? (
             <div className="flex flex-col gap-3">
+              {row.extend ? (
+                <ActionRow
+                  icon={Clock}
+                  onClick={onExtend}
+                  disabled={!row.extend.allowed}
+                  hint={row.extend.disabledReason}
+                >
+                  {ui("owner.extend", locale)}
+                </ActionRow>
+              ) : null}
               {showAdjust ? (
                 <ActionRow icon={Pencil} onClick={onAdjust}>
                   {ui("owner.adjustDue", locale)}
@@ -808,12 +839,17 @@ function ActionRow({
   icon: Icon,
   onClick,
   destructive = false,
+  disabled = false,
+  hint,
   buttonRef,
   children,
 }: {
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   onClick: () => void;
   destructive?: boolean;
+  /** Not possible now; `hint` says why. */
+  disabled?: boolean;
+  hint?: string | null;
   buttonRef?: Ref<HTMLButtonElement>;
   children: ReactNode;
 }) {
@@ -822,13 +858,17 @@ function ActionRow({
       ref={buttonRef}
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-60",
         destructive && "text-destructive",
       )}
     >
       <Icon aria-hidden className="size-5 shrink-0" />
-      {children}
+      <span className="flex min-w-0 flex-col">
+        {children}
+        {hint ? <span className="type-caption">{hint}</span> : null}
+      </span>
     </button>
   );
 }

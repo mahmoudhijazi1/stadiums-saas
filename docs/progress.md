@@ -6187,3 +6187,62 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Why:** slice B and the throttle fix were committed with their tests written but not run.
 
 **How to verify:** `tsc` clean; `npm test` 99 suites, 927 passed; `npm run test:integration` 45 suites, 372 passed (including `push-new-request.integration.test.ts` and its "throttle claim" block); `npm run build` green. Not covered: a real push arriving on a phone (see the checks in `docs/push-notifications.md`).
+
+## Extend a booking by 30 minutes, commit 1 of 3: domain and use case (branch `feat/extend-booking`)
+
+**What:** the rules and the transaction; no screen yet.
+- **Domain** `booking/domain/extension-plan.ts` (pure): `extensionPlan(booking, pitchConfig, now, nextApprovedStart, timeZone)` returns `{ allowed, reason, newEnd, addedPriceUsd, limit }`. The step is `EXTENSION_STEP_MINUTES = 30`, the cap `EXTENSION_MAX_TOTAL_MINUTES = 180`. Refusals, first one wins: `not_approved`, `ended`, `per_player`, `max_duration`, `next_game` (an APPROVED game starts before the new end; `limit` is its start), `closing` (`bookingFitsOpenHours` fails, so a window that crosses midnight works; `limit` is when the window closes, from the new `openWindowEnd` in `venue/domain/availability.ts`). Price: `priceUsd / current minutes x 30`, half up to cents (`addedPriceForExtension`). `extensionNote` writes "18:00-19:00 → 18:00-19:30" for the due-change note. The fifth parameter `timeZone` (default Asia/Beirut) is an addition to the signature in the brief.
+- **Use case** `booking/application/extend-booking.ts` `extendBooking({ bookingId, expectedEndsAt, addedPriceUsd? })`: needs the new permission `bookings.extend` (`access/domain/can.ts`; OWNER yes, STAFF only when the flag is `true`, so the default is off and no data migration is needed). Authorize first, then the transaction in cancel's order: pitch lock, then booking row lock. After the locks: `expectedEndsAt` must equal the booking's current end, else `booking.changed` (a double tap adds 30 minutes once); then `extensionPlan`; then `rejectOverlappingPending` on the added window (pending requests inside it are declined and recorded as interests, as in approval); then one raw `UPDATE` (`setBookingEndAndPrice`: tenant stamped, `tstzrange(lower(during), newEnd, '[)')`, `priceUsd` raised); then `writeDueIfChanged` with the new reason `EXTENSION` (due raised by the same amount; collected money untouched). An edited amount needs `bookings.adjust_due`, otherwise `access.not_allowed`. Postgres 23P01 (the exclusion constraint) becomes `booking.extend_next_taken`.
+- **Schema:** enum value `EXTENSION` on `BookingDueReason` (migration `20261012090000_extension_due_reason`, additive). New error keys in both languages (`booking.changed`, `booking.extend_*`). `docs/ARCHITECTURE.md` lock-order table has the new row.
+
+**Why:** an owner whose game runs long should add time in a tap, with the money following.
+
+**Files:** `modules/booking/domain/extension-plan.ts`, `modules/booking/application/extend-booking.ts`, `modules/booking/infrastructure/bookings.ts`, `modules/venue/domain/availability.ts`, `modules/access/domain/can.ts`, `modules/booking/domain/suggest-fee.ts`, `prisma/schema.prisma` and the migration, `lib/error-messages.ts`, `test/modules/booking/domain/extension-plan.test.ts`.
+
+**How it connects:** `booking` imports `venue` and `payment` only as before; `extend-booking.ts` follows cancel's lock order (P then B, then the pending set).
+
+**How to verify:** NOT run. Per the task no test suite, build or lint was run; a single `tsc --noEmit` is run at the end of the branch. The migration is not applied anywhere yet.
+
+## Extend a booking by 30 minutes, commit 2 of 3: the booking sheet (branch `feat/extend-booking`)
+
+**What:**
+- **Button:** in the booking sheet, under the money block, a secondary "Extend 30 min" / "تمديد 30 دقيقة". It exists only for a member with `bookings.extend`, on a confirmed, whole-pay game that has not ended. When the extension is not possible it is shown disabled with the reason underneath: "Next game at 6:00 PM", "Closes at 11:00 PM" (in the member's 12/24-hour setting), "Max 3 hours". Ended, unconfirmed and per-player games show nothing.
+- **Preview:** `booking/application/load-extension-offers.ts` `loadExtensionOffers(games, now)` runs `extensionPlan` for each game of the day (one pending read, one pitch and approved-ranges read per pitch) and counts the pending requests inside the added time. It returns nothing without `bookings.extend`. `app/owner/(app)/today/lists.tsx` turns each offer into `row.extend` (`ExtendOfferView`).
+- **Confirm step:** a new sheet step "extend" (same stage mechanism as cancel, no-show and adjust) with `today/extend-form.tsx`: the new time range, the added price (an input only with `bookings.adjust_due`, otherwise plain text), "N requests will be declined" when there are any, one primary Confirm and a quiet Back. `today/extend-actions.ts` `submitExtendBooking` (zod, then `extendBooking`) returns a result instead of redirecting, so the sheet stays open: it then shows "Game extended", the new range and the new due, and the page refreshes so Today, the free hours, the live minutes left and owed/expected follow from the new range. A `booking.changed` or other refusal shows its message and refreshes too.
+- Copy through `ui()` in Arabic and English; type roles and tokens as in `docs/ui-rules.md`.
+
+**Why:** the owner extends from the sheet where they already collect, without leaving the game.
+
+**Files:** `today/{extend-form.tsx,extend-actions.ts,lists.tsx,upcoming-panel.tsx}`, `booking/application/load-extension-offers.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** the offer is a preview; `extendBooking` repeats every check under the locks. `expectedEndsAt` in the call is the end shown in the sheet, which is how a double tap is told apart from a second, intended extension.
+
+**How to verify:** NOT run. Per the task no test suite, build or lint was run; a single `tsc --noEmit` is run at the end of the branch. The sheet was not rendered in a browser.
+
+## Extend a booking by 30 minutes, commit 3 of 3: tests and docs (branch `feat/extend-booking`)
+
+**What:**
+- **Tests, written and NOT run.** Per the task no test suite, build or lint was run. Unit (commit 1): `extension-plan.test.ts`, table-driven: the cap, ended, wrong status, per-player, next game too close (and exactly touching), closing time (and exactly closing), a window that crosses midnight, rounding, repeated extensions, the note. Integration (`test/integration/extend-booking.integration.test.ts`): the basic extension (time, price, due, an EXTENSION change row with the range note), repeatable, collected money untouched, an edited amount, a negative amount refused; the double tap (two calls with the same `expectedEndsAt` add 30 minutes once; a stale one is `booking.changed`); the 180-minute cap; next-game, closing-time and after-midnight limits; PENDING, REJECTED, CANCELLED, NO_SHOW, ended and per-player refused; staff without `bookings.extend` refused and with it allowed (a different price needs `bookings.adjust_due`); unauthenticated and cross-tenant refused; the preview is empty without the permission; pending requests in the added time become interests on that window; the exclusion constraint as the backstop (infrastructure call and raw SQL); and races, ten iterations each with `Promise.allSettled`, extension against approve of the next slot, owner-create on it, a public request, cancel, collect and adjust due (never an overlap, a due-change chain that matches, only `DomainError` rejections).
+- **Docs:** `DATA-MODEL.md` (EXTENSION), `domain/money.md` (§1 `priceUsd` now changes on extension; §4 how the price is computed, with examples), `NOW.md`, `ROADMAP.md` (later: shorten or undo an extension, extend past closing, move a booking, a permission screen). `docs/domain/booking-lifecycle.md` does not exist, so nothing was added there. `ARCHITECTURE.md` got its lock-order row in commit 1.
+
+**Honest limits:** "during the game" is only unit-tested (an integration test cannot control the wall clock against the pitch hours). `npx tsc --noEmit` was run once at the end of the branch and flagged two errors in the new integration test (`SlotInterest` has no `start`/`end` in the Prisma client); they were fixed by reading the range with raw SQL, and tsc was not run again, as the task allowed one run.
+
+**How to verify:** run `npm test`, `npm run test:integration` and `npm run build` (none was run), apply the migration (`npx prisma migrate deploy --config prisma7.config.ts`), then try it by hand: extend a confirmed game, extend it again, extend the last game of the night until it refuses, extend with a request pending on the next hour (the sheet says how many will be declined), and try as a staff member with and without `bookings.extend`.
+
+## Extend 30 min moves into "More actions" (branch `feat/extend-booking`)
+
+**What:** the Extend button is no longer under the money block. It is the first row of "More actions" in the booking sheet (clock icon), and counts toward showing that menu. When the extension is not possible the row is disabled and the reason sits under its label ("Next game at 6:00 PM", "Closes at 11:00 PM", "Max 3 hours"). `ActionRow` gained `disabled` and `hint`. The confirm step, the rules and the permission are unchanged.
+
+**Files:** `app/owner/(app)/today/upcoming-panel.tsx`.
+
+**How to verify:** `npx tsc --noEmit` clean. No test suite or build was run, and the sheet was not rendered. eslint reports one older error in that file (`setState` in an effect, ROADMAP item 4).
+
+## Extended games show a "+30 min" mark by the time (branch `feat/extend-booking`)
+
+**What:** a game that was extended carries a small pill right after its time interval, on the Today card and in the booking sheet header: "+30 min" / "+٣٠ د" (+60 after two extensions), with a screen-reader text "Extended by 30 min". Never-extended games show nothing.
+- The number is derived, not stored: `booking/application/list-extension-minutes.ts` counts the game's `EXTENSION` due changes (30 each) in one `groupBy` per page, any logged-in member. `lists.tsx` passes it as `UpcomingRowView.extendedMinutes`; `ExtendedMark` (in `today/extend-form.tsx`) draws it.
+- A **free** extension (added price 0) used to log nothing, because `writeDueIfChanged` skips an unchanged due. `extendBooking` now writes the `EXTENSION` row itself in that case, so the mark still shows.
+
+**Files:** `booking/application/{list-extension-minutes,extend-booking}.ts`, `today/{lists,upcoming-panel,extend-form}.tsx`, `lib/ui-copy.ts`, `test/integration/extend-booking.integration.test.ts` (new "extended mark" block: 30 and 60, a free extension, empty list and no login).
+
+**How to verify:** `npx tsc --noEmit` clean. The new tests were written and NOT run; no suite or build was run and the screen was not rendered. Existing extended games from before this change have their `EXTENSION` row, so they show the mark too.
