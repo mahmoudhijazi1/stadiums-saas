@@ -8,6 +8,20 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "owner.notifications": "الإشعارات",
+  "push.working": "لحظة…",
+  "push.unsupported": "هذا المتصفح لا يدعم الإشعارات.",
+  "push.iosInstall": "أضف التطبيق إلى الشاشة الرئيسية أولاً: اضغط زر المشاركة، ثم «إضافة إلى الشاشة الرئيسية»، وافتحه من هناك.",
+  "push.askBody": "فعّل الإشعارات ليصلك تنبيه على هذا الجهاز.",
+  "push.enable": "تفعيل الإشعارات",
+  "push.enabledStatus": "الإشعارات مفعّلة على هذا الجهاز.",
+  "push.test": "إرسال إشعار تجريبي",
+  "push.turnOff": "إيقاف",
+  "push.deniedBody": "الإشعارات محظورة لهذا التطبيق. لتفعيلها: افتح إعدادات الهاتف، ثم إعدادات التطبيق أو المتصفح، ثم الإشعارات، وفعّلها.",
+  "push.testSent": "أُرسل الإشعار. يجب أن يصل خلال لحظات.",
+  "push.testNoDevice": "لا يوجد جهاز مفعّل لحسابك.",
+  "push.testFailed": "تعذّر الوصول إلى هذا الجهاز. حاول مرة أخرى.",
+  "push.turnedOff": "أُوقفت الإشعارات على هذا الجهاز.",
   "push.testTitle": "إشعار تجريبي",
   "push.testBody": "الإشعارات تعمل على هذا الجهاز.",
   "doc.title": "ملاعب",
@@ -445,6 +459,20 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "owner.notifications": "Notifications",
+  "push.working": "One moment…",
+  "push.unsupported": "This browser does not support notifications.",
+  "push.iosInstall": "Add the app to your Home Screen first: tap Share, then Add to Home Screen, and open it from there.",
+  "push.askBody": "Turn on notifications to get an alert on this device.",
+  "push.enable": "Enable notifications",
+  "push.enabledStatus": "Notifications are on for this device.",
+  "push.test": "Send a test notification",
+  "push.turnOff": "Turn off",
+  "push.deniedBody": "Notifications are blocked for this app. To allow them: open the phone's Settings, then the app's or browser's settings, then Notifications, and turn them on.",
+  "push.testSent": "Sent. It should arrive in a moment.",
+  "push.testNoDevice": "No device is turned on for your account.",
+  "push.testFailed": "Could not reach this device. Try again.",
+  "push.turnedOff": "Notifications are off on this device.",
   "push.testTitle": "Test notification",
   "push.testBody": "Notifications work on this device.",
   "doc.title": "Pitches",

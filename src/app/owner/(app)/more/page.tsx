@@ -12,6 +12,7 @@ import { getCurrentTenant } from "@/lib/tenant-context";
 import { publicPageUrl } from "@/lib/public-page-url";
 import { formatRelativeTime } from "@/lib/format-relative-time";
 import { groupedDigits } from "@/lib/ui-copy";
+import { getPushPublicKey } from "@/modules/push/application/push-status";
 
 /**
  * More hub. Old /owner/more/settings redirects here.
@@ -57,6 +58,7 @@ export default async function OwnerMorePage() {
       slug={tenant.slug}
       tenantName={tenant.name}
       mayManageShop={can(membership, SHOP_MANAGE)}
+      pushPublicKey={getPushPublicKey()}
       publicUrl={publicPageUrl(tenant.slug)}
     />
   );

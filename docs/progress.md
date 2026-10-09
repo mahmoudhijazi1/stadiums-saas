@@ -6107,3 +6107,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `push` imports `access` (application) and `lib` only. The cap is per user per tenant, not per user across stadiums, so one stadium's trim never deletes a row of another.
 
 **How to verify:** `npm test` 883 passed; `npm run test:integration` 44 suites, 351 passed (the new `push.integration.test.ts`, 23 tests, lands in commit 4); `npm run build` green.
+
+## Push notifications, commit 3 of 4: service worker handlers and the More > Notifications sheet (branch `feat/push-foundation`)
+
+**What:**
+- `public/sw.js`: a `push` handler that ALWAYS calls `showNotification` (an empty, unreadable or wrongly typed payload falls back to a generic Arabic or English title), with `/icons/icon-192.png`, the payload's tag plus `renotify`, `dir`, `lang` and `data.url`; and a `notificationclick` handler that closes the notification, accepts only a path that starts with `/owner/` on this origin (anything else, including an absolute URL, `//host`, `..` or a backslash, becomes `/owner/requests`), focuses an open `/owner/` window and navigates it, otherwise opens a new window. `install`, `activate` and `fetch` and the cache name are unchanged.
+- More hub: a **Notifications / الإشعارات** row in Preferences (hidden when the VAPID keys are not configured; the page passes the public key from `getPushPublicKey()`), opening a bottom sheet (`more/notifications/notifications-sheet.tsx`). States, each in Arabic and English: checking, unsupported browser, iPhone not installed (Share, then Add to Home Screen), permission not asked (one primary button, "Enable notifications"; the browser prompt is requested only from that tap, as the first call in the handler), enabled (status line, primary "Send a test notification", quiet "Turn off"), denied (how to re-enable in the phone's settings).
+- If permission is already granted and this browser holds a subscription, the sheet re-sends it to the server once per browser session (`sessionStorage`), so a new login on the same phone re-attaches the device.
+- `modules/push/domain/vapid-key.ts` (`vapidKeyToBytes`, pure, safe for the client).
+
+**Why:** the owner needs a way to turn alerts on for a device and see one arrive before the real alert exists.
+
+**Files:** `public/sw.js`, `app/owner/(app)/more/{hub,page}.tsx`, `app/owner/(app)/more/notifications/notifications-sheet.tsx`, `modules/push/domain/vapid-key.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** the sheet imports only the `push` domain (`vapidKeyToBytes`) and the actions; it never imports `push` application or infrastructure (guarded by `test/modules/push/imports.test.ts`).
+
+**How to verify:** `npm test` 883 passed on the committed files; `npm run test:integration` 44 suites, 351 passed; `npm run build` green. NOT verified: the sheet was not rendered and no push was received (no browser or device here); see the manual checks in `docs/push-notifications.md`. `hub.tsx` already had 4 eslint errors (`react-hooks/immutability`, locale code) before this change.

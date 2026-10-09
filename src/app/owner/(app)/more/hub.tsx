@@ -34,6 +34,7 @@ import { SelectField } from "@/components/ui/select-field";
 import { Figure } from "@/components/ui/figure";
 import { SettingsRow, SettingsSection } from "./settings-list";
 import { AccountSheetContent } from "./account/account-sheet";
+import { NotificationsSheetContent } from "./notifications/notifications-sheet";
 
 type SheetId =
   | "rate"
@@ -42,6 +43,7 @@ type SheetId =
   | "language"
   | "appearance"
   | "time"
+  | "notifications"
   | "account";
 
 function PercentField({
@@ -115,6 +117,7 @@ export function MoreHub({
   tenantName,
   publicUrl,
   mayManageShop,
+  pushPublicKey,
 }: {
   locale: UiLocale;
   mayManage: boolean;
@@ -138,6 +141,8 @@ export function MoreHub({
   publicUrl: string;
   /** shop.manage (owner only): the Shop row. */
   mayManageShop: boolean;
+  /** The VAPID public key; null when push is not configured (the Notifications row hides). */
+  pushPublicKey: string | null;
 }) {
   const router = useRouter();
   const [sheet, setSheet] = useState<SheetId | null>(null);
@@ -218,6 +223,12 @@ export function MoreHub({
           onClick={() => setSheet("time")}
           value={<LtrIsolate>{timeLabel}</LtrIsolate>}
         />
+        {pushPublicKey ? (
+          <SettingsRow
+            label={ui("owner.notifications", locale)}
+            onClick={() => setSheet("notifications")}
+          />
+        ) : null}
       </SettingsSection>
 
       <SettingsSection title={ui("owner.account", locale)}>
@@ -410,6 +421,10 @@ export function MoreHub({
                 </SettingsSection>
               </BottomSheetBody>
             </>
+          ) : null}
+
+          {sheet === "notifications" && pushPublicKey ? (
+            <NotificationsSheetContent locale={locale} publicKey={pushPublicKey} />
           ) : null}
 
           {sheet === "account" ? (
