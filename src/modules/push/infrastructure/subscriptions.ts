@@ -68,3 +68,15 @@ export async function listOwnSubscriptions(userId: string): Promise<StoredSubscr
 export async function deleteSubscriptionById(id: string): Promise<void> {
   await db.pushSubscription.deleteMany({ where: { id } });
 }
+
+export type AlertSubscription = StoredSubscription & { userId: string };
+
+/** Every device of these users in this tenant (the extension adds tenantId). */
+export async function listSubscriptionsForUsers(userIds: string[]): Promise<AlertSubscription[]> {
+  if (userIds.length === 0) return [];
+  return db.pushSubscription.findMany({
+    where: { userId: { in: userIds } },
+    select: { id: true, userId: true, endpoint: true, p256dh: true, auth: true, locale: true },
+    orderBy: { createdAt: "desc" },
+  });
+}

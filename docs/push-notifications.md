@@ -1,6 +1,6 @@
 # Push notifications (web push)
 
-**Living.** Written 2026-10-11 with slice A (branch `feat/push-foundation`). What exists: an owner can turn notifications on for a phone and send themselves a test. What does **not** exist yet: the real "new request" alert (slice B, see [ROADMAP.md](./ROADMAP.md)). Nothing in `booking` sends or imports anything from push.
+**Living.** Slice A (2026-10-11): an owner can turn notifications on for a phone and send themselves a test. Slice B (branch `feat/push-new-request`): a player's new request alerts the people who can approve it. Other alert kinds are not built yet (see [ROADMAP.md](./ROADMAP.md)). Nothing in `booking` sends or imports anything from push.
 
 Code: `src/modules/push/`, `public/sw.js`, `src/app/owner/(app)/more/notifications/`. Journey and decisions: the three "Push notifications, commit N of 4" entries in [progress.md](./progress.md).
 
@@ -26,6 +26,33 @@ A normal web page can only talk to you while it is open. **Web push** lets our s
 ```
 
 Every layer has one job: the **domain** functions decide what is allowed and what the message says (pure, unit-tested), the **application** use cases authorize and orchestrate, the **infrastructure** talks to Postgres and to the `web-push` library, and the **service worker** shows the notification.
+
+## The new-request alert (slice B)
+
+```
+ PLAYER                         app/(public)/request-slot.ts                       OWNER'S PHONE
+ ──────                         ───────────────────────────                       ─────────────
+ submits the public form ─────► requestPublicSlot(...)  (its own transaction, commits)
+                                 │  created a PENDING request?  (a taken hour throws instead)
+                                 ├─ after(alertOwnersOfNewRequest)   ← scheduled, not awaited
+ ◄──── redirect ?ok=requested ───┘
+                                 (the response is already gone; now, in the background:)
+                                 alertOwnersOfNewRequest:
+                                   countPendingForAlert()  → N waiting (the badge's rule)
+                                   notifyNewRequest({ N })
+                                     members with bookings.approve → their devices here
+                                     per device: one alert per 120 s? send (5 at a time, 5 s cap) ─► push ─► "New booking request"
+```
+
+**Where it is composed.** `booking` must not import `push`, so the two meet in `app/(public)/alert-owners.ts`, which only the public request action calls. The alert runs inside `after()` (`next/server`, available in the installed Next), which runs once the response is sent. It is never inside the request's transaction, never awaited by the action, and never throws: an error is logged by name only and the player's result does not change. An owner-created booking and the "slot taken" branch (which records an interest, not a pending request) never reach it.
+
+**Who receives it, and why.** The members of this stadium for whom `can(membership, "bookings.approve")` is true: the owner, and staff who were granted that flag. Staff without it can see the requests list but cannot act on a request (BR-97), so a buzz that sends them to a screen where they can do nothing is noise. Every device each recipient has registered in this stadium gets it. Another stadium's members and devices never do: the queries go through the tenant-scoped client.
+
+**What it says.** Generic, in the language each device registered with: the stadium name as the title; "New booking request" for one, "N requests waiting" for more (Arabic: "طلب حجز جديد", "N طلبات بانتظارك"). No player name, no phone: a lock screen is public. Tapping it opens `/owner/requests`. Tag `new-requests` with `renotify`, so a new alert replaces the one still on screen and buzzes again; the same string is the push topic, so a message still waiting at the push service is replaced too. TTL is six hours (21600 s; it was one hour at first). A phone can be off or out of signal for hours, and a request is still there to answer until its slot starts, so an hour dropped alerts the owner would still have wanted; after six hours the request is old news. The test button keeps its 60 s.
+
+**The throttle, and why a skipped alert is not queued.** A device gets at most one new-request alert per 120 seconds (a `RateLimit` row keyed `pushalert:<subscriptionId>`; the window starts at the first alert). A request that arrives inside the window sends nothing to that device. The window is claimed *before* the send, so two requests at the same moment cannot both send; if the send then fails (a `retry` answer, the 5 s timeout, an exception) the claim is released, so the next request can alert that device again. A successful send keeps the claim, and a `gone` answer deletes the row. We do not queue it because (1) the badge and the Requests list already show it the moment the owner opens the app, (2) a queue needs a scheduler we do not have, and (3) the next alert after the window carries the full count ("3 requests waiting"), so nothing is lost, only merged. The throttle is per device, so a second phone is not silenced by the first. This also limits what a flood of fake requests can do to an owner's phone (the public form has its own limits too).
+
+**Sending safely.** Sends run five at a time and each is cut off after 5 seconds, so one slow or dead push service cannot hold up the others or the background task. One device failing (an exception, a timeout, a 500) is counted and the rest continue. A 404 or 410 deletes that device's row. Anything else keeps it. The log line has counts only (`devices`, `sent`, `skipped`, `removed`, `failed`), never a name, phone, endpoint or key. With no VAPID keys (development), a suspended stadium, nothing waiting, or no subscribers, it does nothing and does not error.
 
 ## Glossary
 
@@ -95,6 +122,22 @@ Web push on iOS works only for a web app **added to the Home Screen** (iOS 16.4 
 - Pure domain and the worker run in plain Jest: `test/modules/push/*.test.ts`. The worker test (`service-worker.test.ts`) loads `public/sw.js` into a Node `vm` with a fake `self`, `caches` and `clients`; it proves what the worker does with a push or a click, not that a real browser delivers one.
 - `test/integration/push.integration.test.ts` runs against Postgres with a fake `PushSender` (`test/modules/push/fake-push-sender.ts`): upsert and take-over, the cap, isolation between stadiums, the session cascade, 404/410/500, the rate limit.
 - `test/modules/push/imports.test.ts` pins the rules: `web-push` is imported by one server file, the private key is read by one file, and `booking` never imports `push`.
+
+## Checks to run by hand for the new-request alert (slice B)
+
+Two phones, both logged in as people who may approve (for example the owner on an Android phone and a staff member with "approve" on an iPhone, or the owner on both), each with notifications enabled (slice A checks 1 to 9). A third device or a private window plays the player at the public page.
+
+1. **Basic.** With both phones' apps closed, submit a request from the public page. Both phones buzz within a few seconds: the stadium name and "New booking request" (Arabic or English by the phone's language). The player sees the normal "request sent" page at the normal speed.
+2. **Tap.** Tap the notification: the app opens at Requests, with the new request at the top.
+3. **Throttle.** Submit a second request within two minutes: no new notification on either phone, but the badge and the Requests list show 2.
+4. **Merge.** Wait more than two minutes and submit a third: one notification, "3 requests waiting".
+5. **Replace.** Leave an alert unread on the lock screen, wait two minutes, submit another: the old one is replaced, not stacked.
+6. **Who.** Give a staff member no "approve" permission: they get nothing. Give it: they get it.
+7. **Other stadium.** With a phone enabled in another stadium, a request here does not reach it.
+8. **Not a request.** Create a booking by hand as the owner, and fill an hour that is taken from the public page: no notification in either case.
+9. **Privacy.** Read the lock screen text: no player name or phone. Check `logs/<day>.log`: `New-request alert devices=… sent=… skipped=…` lines, no names or numbers.
+10. **Dead device.** Uninstall the app on one phone, submit a request twice with more than two minutes between: the second time the dead device's row is gone from `PushSubscription` and the other phone is unaffected.
+11. **Suspended.** Suspend the stadium: the public page is unavailable and no alert is sent.
 
 ## Checks to run by hand (needs a real phone)
 

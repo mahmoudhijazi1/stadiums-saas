@@ -45,11 +45,12 @@ Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not sta
 
 ## Push notifications: next (recorded 2026-10-11)
 
-Slice A (foundation and the test button) is built; see [push-notifications.md](./push-notifications.md). Not started, each its own slice:
+Slices A (foundation and the test button) and B (the new-request alert) are built; see [push-notifications.md](./push-notifications.md). Slice B's tests are written but were not run when it was committed. Not started, each its own slice:
 
 | Item | Note |
 |---|---|
-| Slice B: the new-request alert | After the transaction in `requestPublicSlot` commits, a fire-and-forget call composed in `app/` (booking must not import push): notify members for whom `can(membership, "bookings.approve")` is true (staff can see the list but not approve, BR-97), with throttling so a flood of requests is one buzz, not fifty (the tag and topic already replace an earlier alert). A failure to send is logged and never changes the player's response. Do not alert for the "slot taken" branch. Payload stays generic (no player name or phone). |
+| Other alert kinds | A booking cancelled by the player, a payment received, a game starting soon, an unpaid game. Each is a new `PushKind` in `buildPushPayload`, its own recipients and throttle, composed in `app/`. Decide per kind who needs it, so alerts stay rare. |
+| Badge on the app icon from the worker | Today the count badge is set only while the page is open (`LiveQueue` `applyAppBadge`). The worker could call `navigator.setAppBadge` from the push handler using a count in the payload, so the icon shows the number with the app closed. Needs the count added to the payload and a decision on clearing it. |
 | Real notification icons and a badge icon | Today the notification uses the placeholder `icon-192.png`; no monochrome badge icon. Needs real artwork. |
 | Offline, level 1 | The worker still caches only `/offline.html`. A read-only Today for a dropped connection needs a decision on what may be cached for an authenticated page (the security audit passed the worker because it caches none). |
 | Prune dead subscriptions | Only a 404/410 at send time and the session cascade delete rows; a subscription that quietly stops working is kept until its session ends. Revisit with slice B's send results. |

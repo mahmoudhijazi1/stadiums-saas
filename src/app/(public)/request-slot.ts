@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { alertOwnersOfNewRequest } from "./alert-owners";
 import { requestPublicSlot } from "@/modules/booking/application/request-public-slot";
 import { parsePublicSlotRequest } from "@/modules/booking/schemas/public-slot-request";
 import { actionErrorKey } from "@/lib/use-case-error";
@@ -14,6 +16,7 @@ function field(formData: FormData, key: string): string {
  * Thin Server Action (Next 16 forms guide: <form action> + FormData).
  * Validate with Zod, no auth this slice, then requestPublicSlot.
  * redirect() must sit outside try/catch (Next redirect.md: redirect throws).
+ * after() (next/server) schedules the owner push alert once the response is sent.
  */
 export async function submitPublicSlotRequest(formData: FormData) {
   const date = field(formData, "date");
@@ -27,6 +30,9 @@ export async function submitPublicSlotRequest(formData: FormData) {
       end: field(formData, "end"),
     });
     await requestPublicSlot(parsed);
+    // Only a created request gets here (a taken hour throws booking.slot_taken above). The alert
+    // runs after the response, so it can neither delay the redirect nor change the result.
+    after(alertOwnersOfNewRequest);
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitPublicSlotRequest");
     // A taken hour was recorded as interest: say so, not just "taken".

@@ -6136,3 +6136,54 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** the integration setup now sets a throwaway VAPID pair so the "configured" paths run; the real sender is never used in tests.
 
 **How to verify:** `npm test` 913 passed (98 suites); `npm run test:integration` 44 suites, 351 passed; `npm run build` green. NOT verified (no browser or phone here): the page rendering, the permission prompt, and a real push arriving on Android or iPhone. The Mozilla, Apple and Windows hosts in the allowlist are UNVERIFIED against real endpoints. Run the checks in `docs/push-notifications.md`.
+
+## Push notifications, slice B commit 1 of 2: the new-request alert (branch `feat/push-new-request`)
+
+**What:** when a player's public request creates a PENDING booking, the people who can approve get a push on their phones.
+- **Composition in `app/`:** `app/(public)/request-slot.ts` calls `after(alertOwnersOfNewRequest)` (`next/server`, confirmed in the installed Next 16.3.4 docs: `after.md`) right after `requestPublicSlot` returns. A taken hour throws `booking.slot_taken` before that line, so it never alerts; an owner-created booking never reaches this action. `app/(public)/alert-owners.ts` counts the waiting requests (`booking/application/count-pending-for-alert.ts`, the same `countActionablePending` rule as the badge) and hands the number to push. It never throws: an error is logged with its name only (the logger has no warn level, so `info`) and the player's redirect is untouched.
+- **`notifyNewRequest({ pendingCount })`** (`push/application`): nothing happens (no error) when VAPID keys are missing, the tenant is suspended, nothing is waiting, or nobody is subscribed. Recipients are the members of this tenant for whom `can(membership, "bookings.approve")` is true (`access/application/list-approver-user-ids.ts`), and every subscription they hold here. Payload kind `NEW_REQUEST` (`buildPushPayload`): the stadium name as title; "طلب حجز جديد" / "New booking request" for one, "N طلبات بانتظارك" / "N requests waiting" for more; tag `new-requests`, url `/owner/requests`; language per subscription; counts only, no player data. Options: TTL 1 hour, urgency high, topic `new-requests`.
+- **Throttle:** one alert per device per 120 s, `RateLimit` key `pushalert:<subscriptionId>`. A skipped alert is not queued: the badge already shows the count and the next alert carries the full count. Sends run 5 at a time (`mapWithConcurrency`), each capped at 5 s; one failing device never blocks the others; 404/410 deletes the row, anything else keeps it. The log line has counts only.
+
+**Why:** the point of slice A. Staff without `bookings.approve` are skipped because they can see the list but not act (BR-97).
+
+**Files:** `app/(public)/{request-slot,alert-owners}.ts`, `modules/push/application/notify-new-request.ts`, `modules/push/domain/{push-payload,push-options,map-with-concurrency}.ts`, `modules/push/infrastructure/subscriptions.ts`, `modules/access/application/list-approver-user-ids.ts`, `modules/booking/application/count-pending-for-alert.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** `booking` still imports nothing from `push`; `app/` is the only place both are called. Nothing runs inside the request transaction.
+
+**How to verify:** NOT run. Per the task, no test suite, build or lint was run for this commit; only a single `tsc --noEmit` at the end of the branch. Tests are in commit 2, also unrun. No push could be received here.
+
+## Push notifications, slice B commit 2 of 2: tests and docs (branch `feat/push-new-request`)
+
+**What:**
+- **Tests written, NOT run.** Per the task no test suite, build or lint was run on this branch; the only check was one `tsc --noEmit` at the end, which passed with no output. Treat the tests as unverified until `npm test` and `npm run test:integration` are run.
+- Integration (`test/integration/push-new-request.integration.test.ts`, fake sender; `after()` and `redirect()` replaced so the real action `submitPublicSlotRequest` can run): an alert reaches the owner and a staff member with `bookings.approve`, every device of each, and not staff without it; another stadium's members and devices never; the payload is generic, localized per device, has no name or phone, is under 1 KB; a second request within 120 s sends nothing and one after the window (aged by hand in `RateLimit`) sends "2 requests waiting"; the throttle is per device; an owner-created booking and the slot-taken branch schedule nothing; a created request schedules exactly one callback that sends nothing until run; no subscriptions, nothing waiting, a suspended stadium and missing VAPID keys are no-ops without error; a sender that throws or never answers does not fail the request, resolves within the 5 s cap and keeps the rows; one failing device does not block another; 404 and 410 delete, 500 keeps.
+- Unit: NEW_REQUEST text for 1 and N in both languages, send options, `mapWithConcurrency`, and import rules (only the public request action reaches the alert; it is scheduled with `after()` and never awaited).
+- **Docs:** `push-notifications.md` (the flow, who receives it and why, what it says, the throttle and why a skipped alert is not queued, safe sending, the manual checks for two devices), `ARCHITECTURE.md` (composition after the commit, outside the transaction), `NOW.md`, `ROADMAP.md` (other alert kinds, badge on the app icon from the worker; offline level 1 stays listed).
+
+**Files:** `test/integration/push-new-request.integration.test.ts`, `test/modules/push/{new-request-payload,imports}.test.ts`, the docs above.
+
+**How it connects:** nothing new in `src/`; the docs now describe `app/(public)/alert-owners.ts` as the one place booking and push meet.
+
+**How to verify:** run `npm test` and `npm run test:integration` (neither was run for this slice), then the two-device checks in `docs/push-notifications.md` ("Checks to run by hand for the new-request alert"). No push could be received here.
+
+## Push alert: a failed send releases the throttle window; new-request TTL six hours (branch `fix/push-alert-throttle`)
+
+**What:**
+- `notifyNewRequest` still claims the 120 s window before sending (`hitRateLimit` on `pushalert:<subscriptionId>`), so two concurrent requests cannot both send. Now, when the send for that device ends as `retry` (a failure result, the 5 s timeout) or throws, the claim is released with `resetRateLimit`, so the next request can alert that device again. A successful send keeps the claim; `gone` deletes the row as before.
+- `NEW_REQUEST` TTL raised from 3600 to 21600 seconds in `push-options.ts`; `TEST` stays 60.
+
+**Why:** review of the worker and sender found that a failed send used up the window, so a request arriving within two minutes of a failure got no alert on that device; and an hour was short for a phone that is off or out of signal while a request stays answerable until its slot starts.
+
+**Files:** `modules/push/application/notify-new-request.ts`, `modules/push/domain/push-options.ts`, `test/integration/push-new-request.integration.test.ts` (new describe "the throttle claim": retry frees the window, a throw frees it, success keeps it, two concurrent requests send once, gone deletes the row), `test/modules/push/new-request-payload.test.ts`, `docs/push-notifications.md`.
+
+**How it connects:** no new imports; `resetRateLimit` is the existing `lib/rate-limit.ts` function.
+
+**How to verify:** the tests were written and NOT run (per the task no test suite, build or lint was run); only `npx tsc --noEmit`, which passed with no output. Run `npm test` and `npm run test:integration`. Known limit: after a timeout the send may still complete later, so releasing can allow one duplicate alert; accepted.
+
+## Verification of `fix/push-alert-throttle` (includes push slice B)
+
+**What:** the checks that the two earlier branches skipped, run in order on `fix/push-alert-throttle`: `npx tsc --noEmit`, `npm test`, `npm run test:integration`, `npm run build`. Nothing failed, so no code or test was changed.
+
+**Why:** slice B and the throttle fix were committed with their tests written but not run.
+
+**How to verify:** `tsc` clean; `npm test` 99 suites, 927 passed; `npm run test:integration` 45 suites, 372 passed (including `push-new-request.integration.test.ts` and its "throttle claim" block); `npm run build` green. Not covered: a real push arriving on a phone (see the checks in `docs/push-notifications.md`).
