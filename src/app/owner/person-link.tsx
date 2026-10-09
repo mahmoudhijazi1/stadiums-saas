@@ -18,7 +18,7 @@ export function PersonLink({
   personId: string;
   name: string;
   className?: string;
-  /** The name as the heading of a sheet: title size, ink colour, no underline (the chevron says it is a link). */
+  /** The name as the heading of a sheet: strong size, ink colour, no underline (the chevron says it is a link). */
   prominent?: boolean;
 }) {
   return (
@@ -28,14 +28,14 @@ export function PersonLink({
       className={cn(
         "inline-flex min-h-11 w-fit max-w-full items-center gap-1.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
         prominent
-          ? "type-title text-foreground hover:text-action-ink"
+          ? "type-strong text-foreground hover:text-action-ink"
           : "text-sm font-medium text-action-ink underline underline-offset-4",
         className,
       )}
     >
       {prominent ? null : <User aria-hidden className="size-4 shrink-0" />}
       <bdi className="truncate">{name}</bdi>
-      <ChevronRight aria-hidden className={cn("shrink-0 rtl:rotate-180", prominent ? "size-5 text-muted-foreground" : "size-4")} />
+      <ChevronRight aria-hidden className={cn("shrink-0 rtl:rotate-180", prominent ? "size-4 text-muted-foreground" : "size-4")} />
     </Link>
   );
 }

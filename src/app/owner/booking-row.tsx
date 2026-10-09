@@ -161,9 +161,9 @@ export function BookingRow({
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span
           className={cn(
-            // The booker is the first thing to read on the card: the title role (20px, semibold).
+            // The booker is the first thing to read on the card: the strong role (16px, semibold).
             // A cancelled game is muted, not struck through: its pill already says cancelled.
-            "type-title leading-snug break-words",
+            "type-strong leading-snug break-words",
             variant === "cancelled" && "text-muted-foreground",
           )}
         >
