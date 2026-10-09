@@ -81,6 +81,8 @@ model Person {
   bookingParticipants BookingParticipant[]
   userPersonLinks     UserPersonLink[]
   slotInterests       SlotInterest[]
+  /// Shop tabs this person owes (Sale.payerPersonId).
+  shopTabs            Sale[]
 
   @@index([tenantId])
   @@index([tenantId, searchName])
@@ -110,6 +112,8 @@ model Booking {
   pitch        Pitch                    @relation(fields: [pitchId], references: [id])
   participants BookingParticipant[]
   dueChanges   BookingDueChange[]
+  /// Items put on this game: one "on the game" sale and one tab per named payer.
+  sales        Sale[]
 
   @@index([tenantId])
 }
@@ -191,6 +195,8 @@ enum BookingDueReason {
   DISCOUNT
   WAIVER
   CORRECTION
+  /// Shop items put "on the game" (mini shop slice 2).
+  SHOP_ITEMS
 }
 
 /// One change of what is collectible. Never updated or deleted.
@@ -412,35 +418,60 @@ model Sale {
   tenantId              String
   soldAt                DateTime   @default(now())
   createdByMembershipId String
-  /// Reserved for a later slice (items put on a game). Unused and without a foreign key.
+  /// Set when the items were put on a game (slice 2). Null = a walk-in sale.
   bookingId             String?
+  /// A player's tab on that game: a person, or a typed name (with an optional phone) when there is
+  /// no person. Both null with a bookingId = the "on the game" sale, which raises the booking due and
+  /// never has a payment of its own. Both are null on a walk-in sale.
+  /// CHECKs and partial uniques are SQL-only (Sale_payer_needs_booking, Sale_payer_one_identity,
+  /// Sale_payerName_not_blank, Sale_payerPhone_needs_name; Sale_booking_game_key,
+  /// Sale_booking_payer_person_key, Sale_booking_payer_name_key).
+  payerPersonId         String?
+  payerName             String?
+  payerPhone            String?
   createdAt             DateTime   @default(now())
   tenant                Tenant     @relation(fields: [tenantId], references: [id])
   createdBy             Membership @relation(fields: [createdByMembershipId], references: [id])
+  booking               Booking?   @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  payer                 Person?    @relation(fields: [payerPersonId], references: [id], onDelete: Restrict)
   items                 SaleItem[]
 
   @@index([tenantId])
   @@index([tenantId, soldAt])
+  @@index([bookingId])
+  @@index([payerPersonId])
 }
 
 /// A line of a sale, with the unit price frozen at sale time. Insert-only.
-/// CHECK (qty BETWEEN 1 AND 99, "unitPriceUsd" > 0, "lineTotalUsd" = qty * "unitPriceUsd") is SQL-only
-/// (SaleItem_qty_range, SaleItem_unitPriceUsd_positive, SaleItem_lineTotal_matches).
+/// A removal is a second line with a NEGATIVE qty that names the line it reverses (`reversesItemId`),
+/// so nothing is ever updated or deleted. Only the remove use case writes one.
+/// CHECK (qty BETWEEN -99 AND 99 AND qty <> 0, "unitPriceUsd" > 0, "lineTotalUsd" = qty * "unitPriceUsd",
+/// qty > 0 exactly when reversesItemId is null) is SQL-only (SaleItem_qty_range, SaleItem_unitPriceUsd_positive,
+/// SaleItem_lineTotal_matches, SaleItem_reversal_sign). A trigger checks that a reversal names a positive
+/// line of the same sale, item and price and never takes the net quantity below zero.
 model SaleItem {
-  id           String  @id @default(cuid())
-  tenantId     String
-  saleId       String
-  productId    String
-  qty          Int
-  unitPriceUsd Decimal @db.Decimal(12, 2)
-  lineTotalUsd Decimal @db.Decimal(12, 2)
-  tenant       Tenant  @relation(fields: [tenantId], references: [id])
-  sale         Sale    @relation(fields: [saleId], references: [id])
-  product      Product @relation(fields: [productId], references: [id])
+  id             String   @id @default(cuid())
+  tenantId       String
+  saleId         String
+  productId      String
+  qty            Int
+  unitPriceUsd   Decimal  @db.Decimal(12, 2)
+  lineTotalUsd   Decimal  @db.Decimal(12, 2)
+  /// When the line was added: the Shop card counts by it (a line added to a game's tab tomorrow
+  /// belongs to tomorrow). Equal to the sale time on a walk-in sale.
+  addedAt        DateTime @default(now())
+  reversesItemId String?
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  sale           Sale     @relation(fields: [saleId], references: [id])
+  product        Product  @relation(fields: [productId], references: [id])
+  reverses       SaleItem?  @relation("SaleItemReversal", fields: [reversesItemId], references: [id], onDelete: Restrict)
+  reversedBy     SaleItem[] @relation("SaleItemReversal")
 
   @@index([tenantId])
   @@index([saleId])
   @@index([tenantId, productId])
+  @@index([tenantId, addedAt])
+  @@index([reversesItemId])
 }
 
 enum Currency {
