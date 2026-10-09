@@ -6088,3 +6088,22 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `push` imports only `access` (from commit 2) and `lib`; `booking` must never import `push` (a later alert is composed in `app/`). Enforced by `test/modules/push/imports.test.ts`, which also pins `web-push` to one server file and the private key to `push-config.ts`.
 
 **How to verify:** `npm test` 883 passed; `npm run test:integration` 43 suites, 328 passed; `npm run build` green; eslint clean on the new files. `prisma migrate diff` of the migrated test database against the schema shows nothing for `PushSubscription` (one older, unrelated `BookingParticipant` foreign-key difference was already there).
+
+## Push notifications, commit 2 of 4: server actions (branch `feat/push-foundation`)
+
+**What:** three use cases and three thin Server Actions; still nothing calls them from a screen.
+- `subscribePush({ endpoint, keys, locale })`: any logged-in role; user and session come from the cookie (`access/application/require-session.ts` `requireCurrentSession`, new, reads the session row behind the cookie). Validates with the domain functions, then one transaction owned by the use case: a raw `INSERT … ON CONFLICT (endpoint) DO UPDATE` (the conflicting row may belong to another tenant, which the scoped client cannot see; `tenantId` is stamped from the tenant context) and a trim to the newest 10 per user in this tenant. A device used by another user, session or tenant is taken over by the caller.
+- `unsubscribePush({ endpoint })`: deletes only the caller's own row (`userId` + `endpoint`, tenant-scoped).
+- `sendTestPush()`: refuses when the VAPID keys are missing (`push.not_configured`), counts `pushtest:<userId>` in `RateLimit` (5 per 10 minutes, hit before any send), then sends a TEST payload to the caller's own devices in this tenant, each in that device's stored locale. `gone` deletes the row, `retry` keeps it. The log line carries the push service host, the outcome and the status code only.
+- A suspended tenant has no membership (`getCurrentMembership`), so all three refuse with `access.not_allowed`.
+- `app/owner/(app)/more/notifications/actions.ts`: `submitSubscribePush`, `submitUnsubscribePush`, `submitSendTestPush` (zod first fence, then the use case, `actionErrorKey`). New error keys `push.invalid_subscription`, `push.not_configured`, `push.rate_limited` in both languages.
+
+**Why:** the Notifications sheet (commit 3) needs a way to register a device and prove it works.
+
+**Decision recorded, not changed:** `getLiveQueue` (the badge poll) requires only a membership, not `bookings.approve`. BR-97 says staff "cannot approve bookings", and `listPendingRequests` and SPEC-05 let staff see the list, so the badge matching the list is consistent. The push alert in slice B is different: it should go only to members for whom `can(membership, "bookings.approve")` is true.
+
+**Files:** `modules/access/application/require-session.ts`, `modules/push/application/{subscribe-push,send-test-push,push-status}.ts`, `modules/push/infrastructure/subscriptions.ts`, `app/owner/(app)/more/notifications/actions.ts`, `lib/error-messages.ts`.
+
+**How it connects:** `push` imports `access` (application) and `lib` only. The cap is per user per tenant, not per user across stadiums, so one stadium's trim never deletes a row of another.
+
+**How to verify:** `npm test` 883 passed; `npm run test:integration` 44 suites, 351 passed (the new `push.integration.test.ts`, 23 tests, lands in commit 4); `npm run build` green.

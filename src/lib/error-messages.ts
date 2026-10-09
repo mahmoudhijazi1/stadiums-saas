@@ -5,6 +5,9 @@ import type { UiLocale } from "@/lib/locale";
  * Unknown keys and legacy ?error=1 → generic.
  */
 const ARABIC: Record<string, string> = {
+  "push.invalid_subscription": "تعذّر تفعيل الإشعارات على هذا الجهاز.",
+  "push.not_configured": "الإشعارات غير مفعّلة على الخادم.",
+  "push.rate_limited": "محاولات كثيرة. حاول مرة أخرى بعد قليل.",
   "error.generic": "حدث خطأ. حاول مرة أخرى.",
   "form.invalid": "راجع النموذج وحاول مرة أخرى.",
   "access.not_allowed": "لا يمكنك فعل ذلك.",
@@ -77,6 +80,9 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "push.invalid_subscription": "Could not turn on notifications on this device.",
+  "push.not_configured": "Notifications are not set up on the server.",
+  "push.rate_limited": "Too many tries. Try again in a few minutes.",
   "error.generic": "Something went wrong. Try again.",
   "form.invalid": "Check the form and try again.",
   "access.not_allowed": "You are not allowed to do that.",
