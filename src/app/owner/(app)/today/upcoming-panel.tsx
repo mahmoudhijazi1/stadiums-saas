@@ -39,7 +39,9 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ExtendForm, type ExtendOfferView } from "./extend-form";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -85,6 +87,8 @@ export type UpcomingRowView = {
   whatsAppHref: string | null;
   showCancel: boolean;
   showNoShow: boolean;
+  /** "Extend 30 min": null when the member may not, or the game cannot be extended at all. */
+  extend: ExtendOfferView | null;
   canAdjust: boolean;
   perPlayer: PerPlayerView;
   hoursBefore: number;
@@ -170,7 +174,7 @@ function DueRemainingFigures({
   );
 }
 
-type SheetStep = "details" | "cancel" | "noshow" | "adjust";
+type SheetStep = "details" | "cancel" | "noshow" | "adjust" | "extend";
 
 /** Call and WhatsApp in the sheet header: a 36px circle inside a 44px hit area. */
 function HeaderIcon({
@@ -540,6 +544,7 @@ export function UpcomingPanel({
                   onCancelBooking={() => moveStep("cancel")}
                   onNoShow={() => moveStep("noshow")}
                   onAdjust={() => moveStep("adjust")}
+                  onExtend={() => moveStep("extend")}
                 />
               </BottomSheetBody>
               <BottomSheetBody
@@ -570,6 +575,15 @@ export function UpcomingPanel({
                     onBack={() => moveStep("details")}
                   />
                 ) : null}
+                {sheetStep === "extend" && sheetRow.extend ? (
+                  <ExtendForm
+                    bookingId={sheetRow.id}
+                    offer={sheetRow.extend}
+                    locale={locale}
+                    confirmRef={confirmSubmitRef}
+                    onBack={() => moveStep("details")}
+                  />
+                ) : null}
                 {sheetStep === "adjust" ? (
                   <AdjustDueForm
                     row={sheetRow}
@@ -593,6 +607,7 @@ export function UpcomingPanel({
 function stepTitle(step: SheetStep, locale: UiLocale): string {
   if (step === "noshow") return ui("owner.noShow", locale);
   if (step === "adjust") return ui("owner.adjustDue", locale);
+  if (step === "extend") return ui("owner.extend", locale);
   return ui("owner.cancel", locale);
 }
 
@@ -682,6 +697,7 @@ function UpcomingRowActions({
   onCancelBooking,
   onNoShow,
   onAdjust,
+  onExtend,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
@@ -695,6 +711,7 @@ function UpcomingRowActions({
   onCancelBooking: () => void;
   onNoShow: () => void;
   onAdjust: () => void;
+  onExtend: () => void;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -751,6 +768,25 @@ function UpcomingRowActions({
         ) : null}
         {canCollect && mixedOpen ? <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
         <PerPlayerCollect view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
+        {row.extend ? (
+          <div className="flex flex-col gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={!row.extend.allowed}
+              aria-describedby={row.extend.disabledReason ? `extend-why-${row.id}` : undefined}
+              onClick={onExtend}
+            >
+              {ui("owner.extend", locale)}
+            </Button>
+            {row.extend.disabledReason ? (
+              <p id={`extend-why-${row.id}`} className="type-caption">
+                {row.extend.disabledReason}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <BookingItems

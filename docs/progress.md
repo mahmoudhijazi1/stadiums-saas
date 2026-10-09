@@ -6202,3 +6202,19 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `booking` imports `venue` and `payment` only as before; `extend-booking.ts` follows cancel's lock order (P then B, then the pending set).
 
 **How to verify:** NOT run. Per the task no test suite, build or lint was run; a single `tsc --noEmit` is run at the end of the branch. The migration is not applied anywhere yet.
+
+## Extend a booking by 30 minutes, commit 2 of 3: the booking sheet (branch `feat/extend-booking`)
+
+**What:**
+- **Button:** in the booking sheet, under the money block, a secondary "Extend 30 min" / "تمديد 30 دقيقة". It exists only for a member with `bookings.extend`, on a confirmed, whole-pay game that has not ended. When the extension is not possible it is shown disabled with the reason underneath: "Next game at 6:00 PM", "Closes at 11:00 PM" (in the member's 12/24-hour setting), "Max 3 hours". Ended, unconfirmed and per-player games show nothing.
+- **Preview:** `booking/application/load-extension-offers.ts` `loadExtensionOffers(games, now)` runs `extensionPlan` for each game of the day (one pending read, one pitch and approved-ranges read per pitch) and counts the pending requests inside the added time. It returns nothing without `bookings.extend`. `app/owner/(app)/today/lists.tsx` turns each offer into `row.extend` (`ExtendOfferView`).
+- **Confirm step:** a new sheet step "extend" (same stage mechanism as cancel, no-show and adjust) with `today/extend-form.tsx`: the new time range, the added price (an input only with `bookings.adjust_due`, otherwise plain text), "N requests will be declined" when there are any, one primary Confirm and a quiet Back. `today/extend-actions.ts` `submitExtendBooking` (zod, then `extendBooking`) returns a result instead of redirecting, so the sheet stays open: it then shows "Game extended", the new range and the new due, and the page refreshes so Today, the free hours, the live minutes left and owed/expected follow from the new range. A `booking.changed` or other refusal shows its message and refreshes too.
+- Copy through `ui()` in Arabic and English; type roles and tokens as in `docs/ui-rules.md`.
+
+**Why:** the owner extends from the sheet where they already collect, without leaving the game.
+
+**Files:** `today/{extend-form.tsx,extend-actions.ts,lists.tsx,upcoming-panel.tsx}`, `booking/application/load-extension-offers.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** the offer is a preview; `extendBooking` repeats every check under the locks. `expectedEndsAt` in the call is the end shown in the sheet, which is how a double tap is told apart from a second, intended extension.
+
+**How to verify:** NOT run. Per the task no test suite, build or lint was run; a single `tsc --noEmit` is run at the end of the branch. The sheet was not rendered in a browser.
