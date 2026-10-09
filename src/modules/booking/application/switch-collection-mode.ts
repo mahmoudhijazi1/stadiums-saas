@@ -1,3 +1,4 @@
+import { assertNoGameItems } from "@/modules/shop/application/game-items";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -46,6 +47,7 @@ export async function switchToPerPlayer(input: {
       const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) throw new DomainError("booking.not_found");
 
+      await assertNoGameItems(tx, booking.id);
       assertCanSwitchToPerPlayer({
         status: booking.status,
         collectionMode: booking.collectionMode,

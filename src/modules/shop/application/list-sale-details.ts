@@ -10,6 +10,8 @@ import { listSalesWithLines, type SaleLineRow } from "@/modules/shop/infrastruct
 export type SaleDetail = {
   id: string;
   soldAt: Date;
+  /** The player a tab belongs to; null for a walk-in sale. */
+  payerName: string | null;
   lines: SaleLineRow[];
   tenders: { currency: "USD" | "LBP"; amount: Decimal; rateAtTime: Decimal | null; usdEquivalent: Decimal }[];
 };

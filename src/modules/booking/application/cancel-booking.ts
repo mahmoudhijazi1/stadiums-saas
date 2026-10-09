@@ -1,3 +1,4 @@
+import { assertNoGameItems } from "@/modules/shop/application/game-items";
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
@@ -73,6 +74,7 @@ export async function cancelBooking(input: {
         throw new DomainError("booking.not_found");
       }
       assertApprovedForCancel(booking.status);
+      await assertNoGameItems(tx, booking.id);
 
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
       assertCancelWindowOpen({ start: booking.start, now });

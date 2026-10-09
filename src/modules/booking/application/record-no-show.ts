@@ -1,3 +1,4 @@
+import { assertNoGameItems } from "@/modules/shop/application/game-items";
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
@@ -57,6 +58,7 @@ export async function recordNoShow(input: {
         throw new DomainError("booking.not_found");
       }
       assertApprovedForNoShow(booking.status);
+      await assertNoGameItems(tx, booking.id);
       assertEndedForNoShow({ end: booking.end, now });
 
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);

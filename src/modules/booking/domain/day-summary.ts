@@ -10,6 +10,8 @@ export type DaySummaryRow = {
   end: Date;
   amountDueUsd: Decimal;
   collectedUsd: Decimal;
+  /** Unpaid player tabs on the game: owed (or expected) on top of the booking remaining. */
+  tabsRemainingUsd?: Decimal;
 };
 
 export type DaySummary = {
@@ -39,7 +41,7 @@ export function summarizeDay(rows: DaySummaryRow[], now: Date): DaySummary {
     if (row.status === "NO_SHOW") noShows += 1;
     if (row.status === "APPROVED") games += 1;
 
-    const remaining = Decimal.max(row.amountDueUsd.minus(row.collectedUsd), 0);
+    const remaining = Decimal.max(row.amountDueUsd.minus(row.collectedUsd), 0).plus(row.tabsRemainingUsd ?? 0);
     const kind = classifyDue({
       status: row.status,
       start: row.start,

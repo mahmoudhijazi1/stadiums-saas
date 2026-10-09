@@ -46,7 +46,9 @@ export type OwnerSlot = {
   participantId: string;
   slotNumber: number;
   isRequester: boolean;
-  /** Null until the slot is named (slice 4). */
+  /** Null until the slot is named. */
+  personId: string | null;
+  /** Null until the slot is named. */
   name: string | null;
   dueUsd: Decimal;
   paidUsd: Decimal;
@@ -62,8 +64,13 @@ export type OwnerDayBooking = {
   end: Date;
   priceUsd: Decimal;
   amountDueUsd: Decimal;
+  /** The booking only: due minus collected. "Booker pays all remaining" uses this, never the tabs. */
   remaining: Decimal;
   collectedUsd: Decimal;
+  /** Unpaid player tabs (shop items charged to a player). Never part of the booking due. */
+  tabsRemainingUsd: Decimal;
+  /** What the game still owes the stadium overall: the booking remaining (not below zero) plus the tabs. */
+  owedUsd: Decimal;
   collectionMode: "WHOLE" | "PER_PLAYER";
   pitchDefaultPlayerCount: number;
   /** Empty on WHOLE. */
@@ -160,6 +167,7 @@ function groupSlots(rows: SlotRow[]): Map<string, OwnerSlot[]> {
       participantId: row.participantId,
       slotNumber: row.slotNumber,
       isRequester: row.isRequester,
+      personId: row.personId,
       name: row.name,
       dueUsd: row.dueUsd,
       paidUsd: row.paidUsd,
@@ -193,6 +201,8 @@ function toOwnerDayBooking(
     amountDueUsd: row.amountDueUsd,
     remaining: bookingRemaining(row.amountDueUsd, row.collectedUsd),
     collectedUsd: row.collectedUsd,
+    tabsRemainingUsd: row.tabsRemainingUsd,
+    owedUsd: Decimal.max(bookingRemaining(row.amountDueUsd, row.collectedUsd), 0).plus(row.tabsRemainingUsd),
     collectionMode: row.collectionMode,
     pitchDefaultPlayerCount: row.pitchDefaultPlayerCount,
     slots,

@@ -11,6 +11,28 @@ function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
 }
 
+/**
+ * What the players of a game still owe the shop: the sum, over its player tabs, of the tab total
+ * minus what was paid on it (never below zero per tab). A tab is a sale put on the booking with a
+ * payer; the "on the game" sale is part of the booking due instead and is not counted here.
+ * Uses the alias `b` for the booking row.
+ */
+const TABS_REMAINING_SQL = Prisma.sql`COALESCE((
+  SELECT SUM(GREATEST(tab.total - tab.paid, 0))
+  FROM (
+    SELECT
+      (SELECT COALESCE(SUM(si."lineTotalUsd"), 0) FROM "SaleItem" si WHERE si."saleId" = s.id) AS total,
+      (SELECT COALESCE(SUM(t."usdEquivalent"), 0)
+         FROM "Payment" pay JOIN "PaymentTender" t ON t."paymentId" = pay.id
+        WHERE pay."tenantId" = s."tenantId"
+          AND pay."sourceType" = 'SALE'::"PaymentSourceType"
+          AND pay."sourceId" = s.id) AS paid
+    FROM "Sale" s
+    WHERE s."bookingId" = b.id AND s."tenantId" = b."tenantId"
+      AND (s."payerPersonId" IS NOT NULL OR s."payerName" IS NOT NULL)
+  ) tab
+), 0)`;
+
 type BookingInsertStatus = "PENDING" | "APPROVED";
 type BookingInsertSource = "PUBLIC" | "OWNER";
 
@@ -716,7 +738,8 @@ export async function insertBookingDueChange(
       | "PARTIAL_GAME"
       | "DISCOUNT"
       | "WAIVER"
-      | "CORRECTION";
+      | "CORRECTION"
+      | "SHOP_ITEMS";
     note: string | null;
     actorMembershipId: string;
   },
@@ -899,6 +922,8 @@ export type DayBookingRow = {
   priceUsd: Decimal;
   amountDueUsd: Decimal;
   collectedUsd: Decimal;
+  /** Unpaid player tabs on this game (shop items charged to a player). Never part of the booking due. */
+  tabsRemainingUsd: Decimal;
   collectionMode: "WHOLE" | "PER_PLAYER";
   requesterPersonId: string;
   requesterName: string;
@@ -916,6 +941,7 @@ type DayBookingSqlRow = {
   priceUsd: Decimal | string;
   amountDueUsd: Decimal | string;
   collectedUsd: Decimal | string | null;
+  tabsRemainingUsd: Decimal | string | null;
   collectionMode: "WHOLE" | "PER_PLAYER";
   requesterPersonId: string;
   requesterName: string;
@@ -934,6 +960,7 @@ function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
     priceUsd: new Decimal(row.priceUsd.toString()),
     amountDueUsd: new Decimal(row.amountDueUsd.toString()),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    tabsRemainingUsd: new Decimal((row.tabsRemainingUsd ?? 0).toString()),
     collectionMode: row.collectionMode,
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
@@ -974,6 +1001,7 @@ export async function listBookingsForStartDay(
           AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
           AND pay."sourceId" = b.id
       ), 0) AS "collectedUsd",
+      ${TABS_REMAINING_SQL} AS "tabsRemainingUsd",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
@@ -996,7 +1024,7 @@ export async function listBookingsForStartDay(
 
 /**
  * Owed bookings, oldest start first. Same split as classifyDue:
- * ended APPROVED, any NO_SHOW, any CANCELLED, each with due above collected.
+ * ended APPROVED, any NO_SHOW, any CANCELLED, each with due above collected or an unpaid player tab.
  * `limit` includes one extra row so the caller can tell there is more.
  */
 export async function listEndedWithRemaining(
@@ -1018,6 +1046,7 @@ export async function listEndedWithRemaining(
       b."amountDueUsd",
       b."collectionMode"::text AS "collectionMode",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      tabs.usd AS "tabsRemainingUsd",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone"
@@ -1033,8 +1062,9 @@ export async function listEndedWithRemaining(
         AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
         AND pay."sourceId" = b.id
     ) collected ON true
+    JOIN LATERAL (SELECT ${TABS_REMAINING_SQL} AS usd) tabs ON true
     WHERE b."tenantId" = ${tenantId}
-      AND b."amountDueUsd" > collected.usd
+      AND (b."amountDueUsd" > collected.usd OR tabs.usd > 0)
       AND (
         (
           b.status = 'APPROVED'::"BookingStatus"
@@ -1671,5 +1701,87 @@ export async function listOwedParticipations(
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
     participantDueUsd: new Decimal(row.participantDueUsd.toString()),
     allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
+  }));
+}
+
+export type OwedTabSqlRow = {
+  saleId: string;
+  bookingId: string;
+  status: string;
+  start: Date;
+  end: Date;
+  pitchName: string;
+  /** Null when the tab was opened under a typed name. */
+  personId: string | null;
+  name: string;
+  phone: string | null;
+  remainingUsd: Decimal;
+};
+
+/**
+ * Every unpaid player tab on a game that is owed (an ended approved game, any no-show, any
+ * cancelled booking): one query. A tab is never part of the booking due, so the other owed reads
+ * do not see it; the owed summary adds these rows.
+ */
+export async function listOwedTabs(tx: TenantTx, now: Date): Promise<OwedTabSqlRow[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<
+    {
+      saleId: string;
+      bookingId: string;
+      status: string;
+      start: Date | string;
+      end: Date | string;
+      pitchName: string;
+      personId: string | null;
+      name: string;
+      phone: string | null;
+      remainingUsd: { toString(): string };
+    }[]
+  >`
+    SELECT
+      s.id AS "saleId",
+      b.id AS "bookingId",
+      b.status::text AS status,
+      lower(b.during) AS start,
+      upper(b.during) AS end,
+      p.name AS "pitchName",
+      s."payerPersonId" AS "personId",
+      COALESCE(per.name, s."payerName") AS name,
+      COALESCE(per.phone, s."payerPhone") AS phone,
+      (tab.total - tab.paid) AS "remainingUsd"
+    FROM "Sale" s
+    JOIN "Booking" b ON b.id = s."bookingId"
+    JOIN "Pitch" p ON p.id = b."pitchId"
+    LEFT JOIN "Person" per ON per.id = s."payerPersonId"
+    JOIN LATERAL (
+      SELECT
+        (SELECT COALESCE(SUM(si."lineTotalUsd"), 0) FROM "SaleItem" si WHERE si."saleId" = s.id) AS total,
+        (SELECT COALESCE(SUM(t."usdEquivalent"), 0)
+           FROM "Payment" pay JOIN "PaymentTender" t ON t."paymentId" = pay.id
+          WHERE pay."tenantId" = s."tenantId"
+            AND pay."sourceType" = 'SALE'::"PaymentSourceType"
+            AND pay."sourceId" = s.id) AS paid
+    ) tab ON true
+    WHERE s."tenantId" = ${tenantId}
+      AND (s."payerPersonId" IS NOT NULL OR s."payerName" IS NOT NULL)
+      AND tab.total - tab.paid > 0
+      AND (
+        (b.status = 'APPROVED'::"BookingStatus" AND upper(b.during) <= ${now})
+        OR b.status IN ('NO_SHOW'::"BookingStatus", 'CANCELLED'::"BookingStatus")
+      )
+    ORDER BY lower(b.during) DESC, s.id DESC
+  `;
+  return rows.map((row) => ({
+    saleId: row.saleId,
+    bookingId: row.bookingId,
+    status: row.status,
+    start: asDate(row.start),
+    end: asDate(row.end),
+    pitchName: row.pitchName,
+    personId: row.personId,
+    name: row.name,
+    phone: row.phone,
+    remainingUsd: new Decimal(row.remainingUsd.toString()),
   }));
 }

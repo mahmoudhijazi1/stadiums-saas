@@ -4,7 +4,7 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { summarizeOwed, type OwedSummary } from "@/modules/booking/domain/owed";
-import { listOwedParticipations } from "@/modules/booking/infrastructure/bookings";
+import { listOwedParticipations, listOwedTabs } from "@/modules/booking/infrastructure/bookings";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
 
 /**
@@ -18,7 +18,7 @@ export async function listOwed(now: Date = new Date()): Promise<OwedSummary> {
   }
 
   try {
-    const rows = await listOwedParticipations(db, now);
+    const [rows, tabs] = await Promise.all([listOwedParticipations(db, now), listOwedTabs(db, now)]);
     return summarizeOwed(
       rows.map((row) => ({
         bookingId: row.bookingId,
@@ -35,6 +35,7 @@ export async function listOwed(now: Date = new Date()): Promise<OwedSummary> {
         participantRemainingUsd: participantRemaining(row.participantDueUsd, row.allocatedUsd),
       })),
       now,
+      tabs.map((tab) => ({ ...tab, status: tab.status as "APPROVED" | "CANCELLED" | "NO_SHOW" })),
     );
   } catch (error) {
     return await rethrowUnexpected(error, "List owed failed", "listOwed");

@@ -63,10 +63,9 @@ export async function listProductsWithSold(
     { id: string; name: string; priceUsd: { toString(): string }; archivedAt: Date | null; sold: bigint | number | null }[]
   >`
     SELECT p.id, p.name, p."priceUsd", p."archivedAt",
-           COALESCE(SUM(si.qty) FILTER (WHERE s."soldAt" >= ${input.since}), 0) AS sold
+           COALESCE(SUM(si.qty) FILTER (WHERE si."addedAt" >= ${input.since}), 0) AS sold
     FROM "Product" p
     LEFT JOIN "SaleItem" si ON si."productId" = p.id AND si."tenantId" = p."tenantId"
-    LEFT JOIN "Sale" s ON s.id = si."saleId"
     WHERE p."tenantId" = ${tenantId}
       ${input.includeArchived ? Prisma.empty : Prisma.sql`AND p."archivedAt" IS NULL`}
     GROUP BY p.id

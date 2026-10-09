@@ -10,7 +10,8 @@ export type DueChangeReason =
   | "PARTIAL_GAME"
   | "DISCOUNT"
   | "WAIVER"
-  | "CORRECTION";
+  | "CORRECTION"
+  | "SHOP_ITEMS";
 
 export type FeePolicy = {
   cancellationWindowHours: number;

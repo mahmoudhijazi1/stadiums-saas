@@ -22,7 +22,24 @@ export type OwedParticipation = {
   participantRemainingUsd: Decimal;
 };
 
+/** An unpaid player tab on a game that is owed. */
+export type OwedTab = {
+  saleId: string;
+  bookingId: string;
+  status: DueStatus;
+  start: Date;
+  end: Date;
+  pitchName: string;
+  /** Null when the tab was opened under a typed name. */
+  personId: string | null;
+  name: string;
+  phone: string | null;
+  remainingUsd: Decimal;
+};
+
 export type OwedDebt = {
+  /** "game": the booking (or the player's slot); "tab": the shop items charged to the player. */
+  kind: "game" | "tab";
   bookingId: string;
   status: DueStatus;
   start: Date;
@@ -57,7 +74,11 @@ export type OwedSummary = {
  * person's (the requester on a whole-game booking, each slot on a per-player one). Slots
  * with no person share one group. Groups are ordered by their newest debt.
  */
-export function summarizeOwed(rows: readonly OwedParticipation[], now: Date): OwedSummary {
+export function summarizeOwed(
+  rows: readonly OwedParticipation[],
+  now: Date,
+  tabs: readonly OwedTab[] = [],
+): OwedSummary {
   const groups = new Map<string, OwedGroup>();
   const games = new Set<string>();
   let totalUsd = new Decimal(0);
@@ -93,11 +114,44 @@ export function summarizeOwed(rows: readonly OwedParticipation[], now: Date): Ow
       } satisfies OwedGroup);
     group.totalUsd = group.totalUsd.plus(owed);
     group.debts.push({
+      kind: "game",
       bookingId: row.bookingId,
       status: row.status,
       start: row.start,
       end: row.end,
       pitchName: row.pitchName,
+      owedUsd: owed,
+    });
+    groups.set(key, group);
+  }
+
+  // Player tabs: unpaid shop items, owed on the same terms as the game they belong to. A tab opened
+  // under a typed name is grouped by that name (case-insensitive), apart from any person.
+  for (const tab of tabs) {
+    const owed = Decimal.max(tab.remainingUsd, 0);
+    if (classifyDue({ status: tab.status, start: tab.start, end: tab.end, remaining: owed, now }) !== "owed") continue;
+
+    totalUsd = totalUsd.plus(owed);
+    games.add(tab.bookingId);
+    const key = tab.personId ?? `name:${tab.name.trim().toLowerCase()}`;
+    const group =
+      groups.get(key) ??
+      ({
+        personId: tab.personId,
+        name: tab.name,
+        phone: tab.phone,
+        totalUsd: new Decimal(0),
+        games: 0,
+        debts: [],
+      } satisfies OwedGroup);
+    group.totalUsd = group.totalUsd.plus(owed);
+    group.debts.push({
+      kind: "tab",
+      bookingId: tab.bookingId,
+      status: tab.status,
+      start: tab.start,
+      end: tab.end,
+      pitchName: tab.pitchName,
       owedUsd: owed,
     });
     groups.set(key, group);
