@@ -39,6 +39,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
+import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
@@ -863,15 +864,7 @@ function MixedCollectForm({
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor={`lbp-${row.id}`}>{ui("owner.lbp", locale)}</Label>
-        <Input
-          id={`lbp-${row.id}`}
-          type="text"
-          name="lbpAmount"
-          inputMode="numeric"
-          value={lbp}
-          onChange={(event) => setLbp(event.target.value)}
-          className="font-mono"
-        />
+        <LbpInput id={`lbp-${row.id}`} name="lbpAmount" value={lbp} onValueChange={setLbp} className="font-mono" />
       </div>
       <TenderBalance
         usdText={usd}

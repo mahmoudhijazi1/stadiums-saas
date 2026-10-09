@@ -20,6 +20,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
+import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -264,16 +265,7 @@ export function MoreHub({
                 <form action={submitSetExchangeRate} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="lbpPerUsd">{ui("owner.newRate", locale)}</Label>
-                    <Input
-                      id="lbpPerUsd"
-                      dir="ltr"
-                      type="text"
-                      name="lbpPerUsd"
-                      required
-                      inputMode="numeric"
-                      defaultValue={rateDigits ?? ""}
-                      className="font-mono"
-                    />
+                    <LbpInput id="lbpPerUsd" name="lbpPerUsd" required defaultValue={rateDigits ?? ""} className="font-mono" />
                   </div>
                   <SubmitButton className="w-full">
                     {ui("owner.updateRate", locale)}

@@ -12,6 +12,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
+import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
@@ -140,14 +141,7 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
                 ))}
               </div>
               {currency === "LBP" ? (
-                <Input
-                  id="product-price"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={price}
-                  onChange={(event) => setPrice(event.target.value.replace(/\D/g, ""))}
-                  className="font-mono"
-                />
+                <LbpInput id="product-price" value={price} onValueChange={setPrice} className="font-mono" />
               ) : (
                 <MoneyInput id="product-price" value={price} onChange={setPrice} invalid={price !== "" && !isValidUsd(price)} />
               )}

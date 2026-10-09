@@ -13,6 +13,7 @@ import {
 } from "@/modules/ledger/domain/period";
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import { cn } from "cn";
+import { groupDigits } from "@/lib/money-display";
 import { PeriodSheet } from "./period-sheet";
 import { comparedWithLabel, periodChipLabel, rangeLabel } from "./period-label";
 import { moneyHref } from "./query";
@@ -20,7 +21,7 @@ import { moneyHref } from "./query";
 function amountText(amountUsd: Decimal, lbpPerUsd: Decimal | null): string {
   if (lbpPerUsd) {
     const lbp = usdToDisplayLbp(amountUsd.abs(), lbpPerUsd);
-    return `${lbp.toFixed(0)} LBP`;
+    return `${groupDigits(lbp)} LBP`;
   }
   return `$${formatUsdCompact(amountUsd.abs())}`;
 }

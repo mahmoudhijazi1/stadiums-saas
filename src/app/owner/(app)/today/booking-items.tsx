@@ -10,6 +10,7 @@ import { PartsBalance } from "@/app/owner/parts-balance";
 import { TonalCollectButton } from "@/app/owner/tonal-collect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
@@ -311,13 +312,7 @@ function TabRow({
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`tab-lbp-${tab.saleId}`}>{ui("owner.lbp", locale)}</Label>
-                <Input
-                  id={`tab-lbp-${tab.saleId}`}
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={lbp}
-                  onChange={(event) => setLbp(event.target.value)}
-                />
+                <LbpInput id={`tab-lbp-${tab.saleId}`} value={lbp} onValueChange={setLbp} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`tab-usd-${tab.saleId}`}>USD</Label>

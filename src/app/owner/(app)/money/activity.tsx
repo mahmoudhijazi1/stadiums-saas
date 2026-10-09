@@ -24,7 +24,7 @@ import {
   type ExpenseDetailView,
   type SaleDetailView,
 } from "./activity-map";
-import { formatLbpAmount, formatUsdAmount } from "@/lib/money-display";
+import { formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/money-display";
 import { loadMoreActivity } from "./actions";
 import { moneyHref } from "./query";
 
@@ -250,12 +250,12 @@ function ExpenseDetailSheet({
                       <li key={index} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
                         <span className="type-body">
                           <LtrIsolate>
-                            {tender.currency === "USD" ? `$${tender.amount}` : `${tender.amount} LBP`}
+                            {tender.currency === "USD" ? `$${tender.amount}` : `${groupDigits(tender.amount)} LBP`}
                           </LtrIsolate>
                         </span>
                         <span className="type-secondary">
                           {tender.currency === "LBP" && tender.rate ? (
-                            <LtrIsolate>{`@ ${tender.rate} → $${tender.usd}`}</LtrIsolate>
+                            <LtrIsolate>{`@ ${groupDigits(tender.rate)} → $${tender.usd}`}</LtrIsolate>
                           ) : null}
                         </span>
                       </li>
@@ -320,12 +320,12 @@ function SaleDetailSheet({
                       <li key={index} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
                         <span className="type-body">
                           <LtrIsolate>
-                            {tender.currency === "USD" ? `$${tender.amount}` : `${tender.amount} LBP`}
+                            {tender.currency === "USD" ? `$${tender.amount}` : `${groupDigits(tender.amount)} LBP`}
                           </LtrIsolate>
                         </span>
                         <span className="type-secondary">
                           {tender.currency === "LBP" && tender.rate ? (
-                            <LtrIsolate>{`@ ${tender.rate} → $${tender.usd}`}</LtrIsolate>
+                            <LtrIsolate>{`@ ${groupDigits(tender.rate)} → $${tender.usd}`}</LtrIsolate>
                           ) : null}
                         </span>
                       </li>
