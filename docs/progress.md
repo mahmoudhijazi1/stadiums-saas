@@ -5976,3 +5976,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Correction to the entry for change B:** its verify line said the new `shop-lbp` suite had 9 tests and the pricing unit tests 17. The suite has 11 tests (integration total went from 306 to 317); the unit total went from 751 to 772.
 
 **How to verify:** `npm test` 772 passed (91 suites); `npm run test:integration` 43 suites / 327 tests passed (9 new in `shop-change`, plus one new in `shop-sale`); `npm run build` green. The live change line and the toast were not rendered in a browser.
+
+## Mini shop, slice 2: tender order pinned, change shown in whole dollars
+
+**What:**
+- **Order of application (check, no fix needed).** `applyPayment` already settled every tender against its own currency first (`lbpSame`, `usdSame`, for all tenders at once), only then crossed what was left over, and only then computed change; the tenders are one `{ lbp, usd }` pair, so entry order cannot matter. Tests added and passing: a "60,000 ل.ل + $1.50" tab paid with [100,000 ل.ل, $1.50] records 60,000 ل.ل and $1.50 and gives 40,000 ل.ل change (not $0.44), in both orders, at domain level and through `collectTabPayment`; and a case where only the leftover crosses.
+- **Change with cents (display only).** `displayChange` / `formatChange` (`lib/money-display.ts`) show change as whole dollars plus the cents in pounds at the current rate, dollars first: $10 for $4.50 reads "Change: $5 + 45,000 ل.ل". Used by the live line in the tender sheets and the toast (`changeDescription` takes the rate). Nothing recorded changes: the use cases still return and the ledger still holds exactly what they did.
+
+**Files:** `lib/{money-display,ui-copy}.ts`, `app/owner/parts-balance.tsx`, `app/owner/(app)/{sell/sell-screen,today/booking-items}.tsx`; tests `test/modules/shop/pricing.test.ts`, `test/integration/shop-change.integration.test.ts`.
+
+**How to verify:** `npm test` 777 passed; `npm run test:integration` 43 suites / 328 tests passed; `npm run build` green. The live change line and toast were not rendered in a browser.

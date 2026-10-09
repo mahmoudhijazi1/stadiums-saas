@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { describe, expect, it } from "@jest/globals";
-import { formatLbpAmount, formatParts, groupDigits } from "@/lib/money-display";
+import { displayChange, formatChange, formatLbpAmount, formatParts, groupDigits } from "@/lib/money-display";
 import {
   applyPayment,
   dueParts,
@@ -166,6 +166,49 @@ describe("applyPayment", () => {
     const state = fresh([{ usd: "0.00" }]);
     const result = applyPayment({ state, handed: { lbp: d(0), usd: d("2.00") }, rate: RATE });
     expect(result.changeUsd.toFixed(2)).toBe("2.00");
+  });
+});
+
+describe("applyPayment: every tender settles its own currency first, then leftovers cross", () => {
+  const state = fresh([{ usd: "1.50" }, { lbp: "60000", frozen: "0.67" }]);
+
+  it("[100,000 ل.ل, $1.50] on 60,000 ل.ل + $1.50 records both parts and leaves 40,000 ل.ل change, not $0.44", () => {
+    const result = applyPayment({ state, handed: { lbp: d(100000), usd: d("1.50") }, rate: RATE });
+    expect([result.lbpApplied.toFixed(0), result.usdApplied.toFixed(2)]).toEqual(["60000", "1.50"]);
+    expect([result.changeLbp.toFixed(0), result.changeUsd.toFixed(2)]).toEqual(["40000", "0.00"]);
+    expect([result.remLbpAfter.isZero(), result.remUsdAfter.isZero()]).toEqual([true, true]);
+    expect(result.recordedByLbpTender.toFixed(2)).toBe("0.67");
+    expect(result.recordedByUsdTender.toFixed(2)).toBe("1.50");
+  });
+
+  it("the order the tenders are entered in does not matter", () => {
+    const a = applyPayment({ state, handed: { lbp: d(100000), usd: d("1.50") }, rate: RATE });
+    const b = applyPayment({ state, handed: { usd: d("1.50"), lbp: d(100000) }, rate: RATE });
+    expect(b).toEqual(a);
+  });
+
+  it("only what is left after both own-currency settlements crosses over", () => {
+    // $1.00 only against the dollar part, 100,000 pounds: the pounds settle 60,000, the 40,000 left
+    // cross to the 0.50 still owed in dollars (0.44), the rest is change.
+    const result = applyPayment({ state, handed: { lbp: d(100000), usd: d("1.00") }, rate: RATE });
+    expect([result.usdApplied.toFixed(2), result.remUsdAfter.toFixed(2), result.changeLbp.toFixed(0)]).toEqual(["1.44", "0.06", "0"]);
+  });
+});
+
+describe("displayChange", () => {
+  it("shows whole dollars and the cents as pounds at the rate", () => {
+    const shown = displayChange({ lbp: "0", usd: "5.50" }, RATE);
+    expect([shown.usd.toFixed(0), shown.lbp.toFixed(0)]).toEqual(["5", "45000"]);
+    expect(formatChange(shown, "ar")).toBe("$5 + 45,000 ل.ل");
+    expect(formatChange(displayChange({ lbp: "40000", usd: "0" }, RATE), "en")).toBe("40,000 LBP");
+  });
+
+  it("adds to pounds of change already there, leaves whole dollars alone, and needs a rate", () => {
+    const mixed = displayChange({ lbp: "10000", usd: "0.25" }, RATE);
+    expect([mixed.usd.toFixed(0), mixed.lbp.toFixed(0)]).toEqual(["0", "32500"]);
+    expect(displayChange({ lbp: "0", usd: "5.00" }, RATE).lbp.toFixed(0)).toBe("0");
+    const noRate = displayChange({ lbp: "0", usd: "5.50" }, null);
+    expect([noRate.usd.toFixed(2), noRate.lbp.toFixed(0)]).toEqual(["5.50", "0"]);
   });
 });
 

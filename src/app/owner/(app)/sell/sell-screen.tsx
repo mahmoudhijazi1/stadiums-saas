@@ -84,7 +84,7 @@ export function SellScreen({
       toast.success(
         soldToast(result.itemCount, formatParts({ lbp: result.totalLbp, usd: result.totalUsdPart }, locale), locale),
         {
-          description: changeDescription({ lbp: result.changeLbp, usd: result.changeUsd }, locale),
+          description: changeDescription({ lbp: result.changeLbp, usd: result.changeUsd }, locale, lbpPerUsd),
           duration: 8000,
         },
       );

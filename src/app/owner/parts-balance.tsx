@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { parseLbp, parseUsd, isLbpString, isUsdString, normalizeUsdForm } from "@/lib/money";
 import type { UiLocale } from "@/lib/locale";
-import { formatParts } from "@/lib/money-display";
+import { displayChange, formatChange, formatParts } from "@/lib/money-display";
 import { ui } from "@/lib/ui-copy";
 import { applyPayment } from "@/modules/shop/domain/pricing";
 
@@ -58,7 +58,7 @@ export function PartsBalance({
       </p>
       {hasChange ? (
         <p className="type-strong">
-          {ui("owner.changeLabel", locale)}: <LtrIsolate>{formatParts(change, locale)}</LtrIsolate>
+          {ui("owner.changeLabel", locale)}: <LtrIsolate>{formatChange(displayChange(change, rate), locale)}</LtrIsolate>
         </p>
       ) : null}
     </div>

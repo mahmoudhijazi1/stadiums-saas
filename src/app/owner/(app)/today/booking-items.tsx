@@ -234,7 +234,7 @@ function TabCard({
         setError(errorMessage(result.error, locale));
         return;
       }
-      const description = changeDescription({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale);
+      const description = changeDescription({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale, lbpPerUsd);
       if (description) toast.success(description, { duration: 8000 });
       setPaying(false);
       onDone();

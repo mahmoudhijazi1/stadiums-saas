@@ -1,5 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
-import { formatParts } from "@/lib/money-display";
+import { displayChange, formatChange } from "@/lib/money-display";
 import { plural, type PluralForms } from "@/lib/plural";
 
 /**
@@ -1283,10 +1283,15 @@ export function shopActivityLabel(items: number, locale: UiLocale = "ar"): strin
 
 /**
  * "Change: 40,000 ل.ل" / "الباقي للزبون: 40,000 ل.ل": what to hand back, in the currency it was
- * handed over in. Empty when there is none.
+ * handed over in, with cents of dollars shown as pounds at the current rate (`displayChange`).
+ * Empty when there is none.
  */
-export function changeDescription(change: { lbp: string; usd: string }, locale: UiLocale = "ar"): string | undefined {
-  const text = formatParts(change, locale);
+export function changeDescription(
+  change: { lbp: string; usd: string },
+  locale: UiLocale = "ar",
+  rate: string | null = null,
+): string | undefined {
+  const text = formatChange(displayChange(change, rate), locale);
   return text === "0" ? undefined : `${ui("owner.changeLabel", locale)}: ${text}`;
 }
 

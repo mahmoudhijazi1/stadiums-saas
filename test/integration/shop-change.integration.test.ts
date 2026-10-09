@@ -117,6 +117,31 @@ describe("a tab collection gives change", () => {
   });
 });
 
+describe("each tender settles its own currency first", () => {
+  it("[100,000 ل.ل, $1.50] on a 60,000 ل.ل + $1.50 tab records both parts and gives 40,000 ل.ل back, in either order", async () => {
+    const bookingId = await futureBooking(fixture, 30);
+    const other = await futureBooking(fixture, 31);
+    const lines = [{ productId: cola.id, qty: 1 }, { productId: water.id, qty: 3 }];
+    const a = await addBookingItems({ bookingId, lines, payer: booker });
+    const b = await addBookingItems({ bookingId: other, lines, payer: booker });
+
+    const first = await collectTabPayment({ saleId: a.saleId, lbpAmount: "100000", usdAmount: "1.50" });
+    const second = await collectTabPayment({ usdAmount: "1.50", lbpAmount: "100000", saleId: b.saleId });
+    for (const change of [first, second]) {
+      expect([change.changeLbp.toFixed(0), change.changeUsd.toFixed(2)]).toEqual(["40000", "0.00"]);
+    }
+    for (const saleId of [a.saleId, b.saleId]) {
+      const tenders = await platformDb.paymentTender.findMany({ where: { payment: { sourceId: saleId } }, orderBy: { currency: "asc" } });
+      expect(tenders.map((t) => [t.currency, t.amount.toFixed(t.currency === "USD" ? 2 : 0), t.usdEquivalent.toFixed(2)])).toEqual([
+        ["USD", "1.50", "1.50"],
+        ["LBP", "60000", "0.67"],
+      ]);
+    }
+    const tab = (await listBookingItems([bookingId])).get(bookingId)!.tabs[0]!;
+    expect([tab.remainingLbp.toFixed(0), tab.remainingUsd.toFixed(2)]).toEqual(["0", "0.00"]);
+  });
+});
+
 describe("a booking collection is unchanged", () => {
   it("an overpay is still recorded in full", async () => {
     const bookingId = await futureBooking(fixture, 30);
