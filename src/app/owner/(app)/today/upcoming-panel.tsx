@@ -738,9 +738,10 @@ function UpcomingRowActions({
             type="button"
             aria-expanded={mixedOpen}
             onClick={() => setMixedOpen((open) => !open)}
-            className="inline-flex min-h-11 w-fit items-center type-secondary text-muted-foreground underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="-ms-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-3 type-label text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             {mixedOpen ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
+            <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", mixedOpen && "rotate-180")} />
           </button>
         ) : null}
         {canCollect && mixedOpen ? <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
