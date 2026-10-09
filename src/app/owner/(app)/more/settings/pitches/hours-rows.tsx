@@ -143,7 +143,7 @@ export function HoursRows({
               key={row.day}
               className="flex min-h-14 flex-wrap items-center gap-x-1 border-b bg-card px-3 py-1 last:border-b-0"
             >
-              <span className={cn("w-[4.5rem] shrink-0 type-label", !row.open && "text-muted-foreground")}>
+              <span className={cn("w-24 shrink-0 type-label", !row.open && "text-muted-foreground")}>
                 {dayName}
               </span>
               <DaySwitch checked={row.open} onChange={(open) => update(row.day, { open })} name={dayName} />
