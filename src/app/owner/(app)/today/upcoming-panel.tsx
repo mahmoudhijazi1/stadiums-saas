@@ -39,6 +39,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -341,7 +342,9 @@ export function UpcomingPanel({
             rowKeyPrefix="day"
           />
         </section>
-      ) : null}
+      ) : (
+        <EmptyState title={ui("empty.games", locale)} next={ui("empty.gamesNext", locale)} compact />
+      )}
 
       {free ? <Fragment key="free-strip">{free}</Fragment> : null}
 
