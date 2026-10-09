@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
 import { PartsBalance } from "@/app/owner/parts-balance";
+import { TonalCollectButton } from "@/app/owner/tonal-collect";
 import { Button } from "@/components/ui/button";
 import {
   BottomSheet,
@@ -107,9 +108,10 @@ export function SellScreen({
               <LtrIsolate>{totalText}</LtrIsolate>
             </span>
           </div>
-          <Button type="button" className="min-h-11 shrink-0" disabled={itemCount === 0} onClick={startPaying}>
+          {/* The same Collect button as a tab or a game in the booking sheet: bordered ink pill. */}
+          <TonalCollectButton tone="expected" disabled={itemCount === 0} onClick={startPaying}>
             {ui("owner.collect", locale)}
-          </Button>
+          </TonalCollectButton>
         </div>
       </div>
 
