@@ -6165,3 +6165,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** nothing new in `src/`; the docs now describe `app/(public)/alert-owners.ts` as the one place booking and push meet.
 
 **How to verify:** run `npm test` and `npm run test:integration` (neither was run for this slice), then the two-device checks in `docs/push-notifications.md` ("Checks to run by hand for the new-request alert"). No push could be received here.
+
+## Push alert: a failed send releases the throttle window; new-request TTL six hours (branch `fix/push-alert-throttle`)
+
+**What:**
+- `notifyNewRequest` still claims the 120 s window before sending (`hitRateLimit` on `pushalert:<subscriptionId>`), so two concurrent requests cannot both send. Now, when the send for that device ends as `retry` (a failure result, the 5 s timeout) or throws, the claim is released with `resetRateLimit`, so the next request can alert that device again. A successful send keeps the claim; `gone` deletes the row as before.
+- `NEW_REQUEST` TTL raised from 3600 to 21600 seconds in `push-options.ts`; `TEST` stays 60.
+
+**Why:** review of the worker and sender found that a failed send used up the window, so a request arriving within two minutes of a failure got no alert on that device; and an hour was short for a phone that is off or out of signal while a request stays answerable until its slot starts.
+
+**Files:** `modules/push/application/notify-new-request.ts`, `modules/push/domain/push-options.ts`, `test/integration/push-new-request.integration.test.ts` (new describe "the throttle claim": retry frees the window, a throw frees it, success keeps it, two concurrent requests send once, gone deletes the row), `test/modules/push/new-request-payload.test.ts`, `docs/push-notifications.md`.
+
+**How it connects:** no new imports; `resetRateLimit` is the existing `lib/rate-limit.ts` function.
+
+**How to verify:** the tests were written and NOT run (per the task no test suite, build or lint was run); only `npx tsc --noEmit`, which passed with no output. Run `npm test` and `npm run test:integration`. Known limit: after a timeout the send may still complete later, so releasing can allow one duplicate alert; accepted.

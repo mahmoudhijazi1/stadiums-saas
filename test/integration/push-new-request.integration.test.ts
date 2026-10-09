@@ -174,7 +174,7 @@ describe("what is sent", () => {
       expect(entry.payload).not.toContain("ليلى");
       expect(entry.payload).not.toContain("03111001");
       expect(new TextEncoder().encode(entry.payload).length).toBeLessThan(1024);
-      expect(entry.options).toEqual({ ttlSeconds: 3600, urgency: "high", topic: "new-requests" });
+      expect(entry.options).toEqual({ ttlSeconds: 21600, urgency: "high", topic: "new-requests" });
     }
   });
 });
@@ -357,6 +357,69 @@ describe("dead and flaky devices", () => {
 
     const left = await platformDb.pushSubscription.findMany({ select: { endpoint: true } });
     expect(left.map((row) => row.endpoint)).toEqual([endpoint("flaky")]);
+  });
+});
+
+describe("the throttle claim", () => {
+  const claimKey = async () => {
+    const row = await platformDb.pushSubscription.findFirstOrThrow({ select: { id: true } });
+    return `pushalert:${row.id}`;
+  };
+
+  it("a retry result frees the window, so the next request can alert again", async () => {
+    await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
+    actAs(fixture.tenantSlug);
+    fake.results.set(endpoint("phone"), { outcome: "retry", statusCode: 500 });
+
+    expect(await notifyNewRequest({ pendingCount: 1 })).toMatchObject({ sent: 0, failed: 1, skipped: 0 });
+    expect(await platformDb.rateLimit.findUnique({ where: { key: await claimKey() } })).toBeNull();
+
+    fake.results.clear();
+    expect(await notifyNewRequest({ pendingCount: 1 })).toMatchObject({ sent: 1, failed: 0, skipped: 0 });
+  });
+
+  it("a send that throws frees the window too", async () => {
+    await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
+    actAs(fixture.tenantSlug);
+    setPushSender({
+      send: async () => {
+        throw new Error("boom");
+      },
+    });
+    expect(await notifyNewRequest({ pendingCount: 1 })).toMatchObject({ failed: 1 });
+    expect(await platformDb.rateLimit.findUnique({ where: { key: await claimKey() } })).toBeNull();
+  });
+
+  it("a successful send keeps the claim, so the next request inside 120 s is skipped", async () => {
+    await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
+    actAs(fixture.tenantSlug);
+
+    expect(await notifyNewRequest({ pendingCount: 1 })).toMatchObject({ sent: 1 });
+    expect(await platformDb.rateLimit.findUnique({ where: { key: await claimKey() } })).not.toBeNull();
+    expect(await notifyNewRequest({ pendingCount: 2 })).toMatchObject({ sent: 0, skipped: 1 });
+    expect(fake.sent).toHaveLength(1);
+  });
+
+  it("two concurrent requests still send once (the claim is taken before the send)", async () => {
+    await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
+    actAs(fixture.tenantSlug);
+
+    const [first, second] = await Promise.all([
+      notifyNewRequest({ pendingCount: 1 }),
+      notifyNewRequest({ pendingCount: 1 }),
+    ]);
+    expect(first.sent + second.sent).toBe(1);
+    expect(first.skipped + second.skipped).toBe(1);
+    expect(fake.sent).toHaveLength(1);
+  });
+
+  it("a gone result deletes the row", async () => {
+    await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
+    actAs(fixture.tenantSlug);
+    fake.results.set(endpoint("phone"), { outcome: "gone", statusCode: 410 });
+
+    expect(await notifyNewRequest({ pendingCount: 1 })).toMatchObject({ removed: 1 });
+    expect(await platformDb.pushSubscription.count()).toBe(0);
   });
 });
 

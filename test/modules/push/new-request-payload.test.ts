@@ -45,9 +45,9 @@ describe("buildPushPayload NEW_REQUEST", () => {
     expect(Object.keys(payload).sort()).toEqual(["body", "dir", "kind", "lang", "tag", "title", "url"]);
   });
 
-  it("send options: an hour, high urgency, the tag as the topic", () => {
+  it("send options: six hours, high urgency, the tag as the topic", () => {
     expect(pushSendOptions("NEW_REQUEST", "new-requests")).toEqual({
-      ttlSeconds: 3600,
+      ttlSeconds: 21600,
       urgency: "high",
       topic: "new-requests",
     });

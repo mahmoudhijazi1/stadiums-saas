@@ -1,6 +1,6 @@
 import { parseUiLocale } from "@/lib/locale";
 import { logger } from "@/lib/logger";
-import { hitRateLimit } from "@/lib/rate-limit";
+import { hitRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { listApproverUserIds } from "@/modules/access/application/list-approver-user-ids";
 import { getPushSender, type PushResult } from "@/modules/push/application/push-sender";
@@ -34,9 +34,11 @@ type DeviceOutcome = "sent" | "skipped" | "removed" | "failed";
  * module never reads Booking.
  *
  * Recipients: members of THIS tenant with bookings.approve, and each of their devices here.
- * Throttle: one alert per device per 120 s (RateLimit key pushalert:<subscriptionId>). A skipped
- * alert is dropped on purpose: the badge already shows the count, and the next alert carries
- * the full count. Sends run 5 at a time, each capped at 5 s; one failing device never blocks the
+ * Throttle: one alert per device per 120 s (RateLimit key pushalert:<subscriptionId>). The window
+ * is claimed BEFORE sending, so two concurrent requests cannot both send. If the send then fails
+ * (a retry result, a timeout, an exception) the claim is released, so the next request can try
+ * again; a success keeps it. A skipped alert is dropped on purpose: the badge already shows the
+ * count, and the next alert carries the full count. Sends run 5 at a time, each capped at 5 s; one failing device never blocks the
  * others. A 404/410 deletes the row; anything else keeps it. Logs counts only.
  *
  * Nothing to do (and no error) when push is not configured, the tenant is suspended, nobody is
@@ -54,8 +56,11 @@ export async function notifyNewRequest(input: { pendingCount: number }): Promise
 
   const sender = getPushSender();
   const outcomes = await mapWithConcurrency(devices, ALERT_CONCURRENCY, async (device): Promise<DeviceOutcome> => {
+    const key = `pushalert:${device.id}`;
+    let claimed = false;
     try {
-      if ((await hitRateLimit(`pushalert:${device.id}`, ALERT_WINDOW_MS)) > 1) return "skipped";
+      if ((await hitRateLimit(key, ALERT_WINDOW_MS)) > 1) return "skipped";
+      claimed = true;
       const payload = buildPushPayload("NEW_REQUEST", parseUiLocale(device.locale), tenant.name, {
         pendingCount: input.pendingCount,
       });
@@ -72,8 +77,10 @@ export async function notifyNewRequest(input: { pendingCount: number }): Promise
         await deleteSubscriptionById(device.id);
         return "removed";
       }
+      await release(key);
       return "failed";
     } catch {
+      if (claimed) await release(key);
       return "failed";
     }
   });
@@ -90,6 +97,11 @@ export async function notifyNewRequest(input: { pendingCount: number }): Promise
     { useCase: "notifyNewRequest", tenantId: await safeTenantId() },
   );
   return result;
+}
+
+/** Give the window back after a failed send. Best effort: a failure to release only means one skipped alert. */
+async function release(key: string): Promise<void> {
+  await resetRateLimit(key).catch(() => undefined);
 }
 
 /** A send that never answers counts as a failure after `ms`; the timer never keeps the process alive. */

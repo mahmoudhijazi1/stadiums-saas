@@ -9,8 +9,9 @@ export type PushSendOptions = {
 };
 
 /**
- * TEST is only useful right now: a minute, then drop it. NEW_REQUEST stays useful for an hour
- * (a request is still there to answer), and a newer one replaces it by topic.
+ * TEST is only useful right now: a minute, then drop it. NEW_REQUEST stays useful for six hours:
+ * a phone can be off or out of signal for hours, and a request is still there to answer until
+ * its slot starts. A newer one replaces it by topic.
  * Topic is base64url-safe, 32 characters at most.
  */
 export function pushSendOptions(kind: PushKind, tag: string): PushSendOptions {
@@ -19,6 +20,6 @@ export function pushSendOptions(kind: PushKind, tag: string): PushSendOptions {
     case "TEST":
       return { ttlSeconds: 60, urgency: "high", topic };
     case "NEW_REQUEST":
-      return { ttlSeconds: 3600, urgency: "high", topic };
+      return { ttlSeconds: 21600, urgency: "high", topic };
   }
 }
