@@ -6045,3 +6045,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/owner/(app)/today/{upcoming-panel,booking-items}.tsx`, `app/owner/{booking-row,person-link}.tsx`, `components/ui/bottom-sheet.tsx`.
 
 **How to verify:** `npm test` 777 passed; `npm run build` green. Integration not run: no file the integration suites import was touched. The sheet was not rendered in a browser.
+
+## Header shop button replaces the + button (UI, no logic change)
+
+**What:** the center ＋ button and its sheet (Booking / Sell / Expense) are removed from the tab bar (and the `showBooking` / `showExpense` / `showSell` props and `HIDE_RECORD` with them). The header has a shop-bag button beside search that opens `/owner/sell`, shown to members with `shop.sell` (the same check the sheet row used). No quick entry for booking or expense for now; those flows are still reachable from Today and Money. `owner-ia.md`, `owner-ux.md` (banner) and `NOW.md` updated.
+
+**Also on this branch since the compact commit:** the Today summary line is removed and the Games heading shows the count in brackets; the record button became an icon-only circle before it was removed.
+
+**Files:** `app/owner/{header,tab-bar}.tsx`, `app/owner/(app)/layout.tsx`.
+
+**How to verify:** `tsc` and eslint clean on the changed files; unit tests 777 passed on the commit before; build run below. Not rendered in a browser.

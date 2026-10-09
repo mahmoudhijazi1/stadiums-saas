@@ -6,7 +6,7 @@ Living reference for `/owner` structure. **Update this file when tabs or routes 
 
 ## Destinations (amended after the UX-01 audit)
 
-UX-01 supersedes the earlier five tabs (Home, Book, Waitlist, Reports, More). Five destinations behind a shared layout: a floating bottom bar below `lg`, and a 240px start-side rail at `lg`. ＋ is a primary button (center of the bar, top of the rail), not a route. **Do not add a sixth destination** when later products ship — they become rows inside More.
+UX-01 supersedes the earlier five tabs (Home, Book, Waitlist, Reports, More). Five destinations behind a shared layout: a floating bottom bar below `lg`, and a 240px start-side rail at `lg`. There is no ＋ button any more (removed 2026-10-10): the header carries a shop button beside search that opens the counter (`/owner/sell`, members with `shop.sell`). **Do not add a sixth destination** when later products ship — they become rows inside More.
 
 Tab root pages have no large title. Nested pages keep a title and a back button.
 
@@ -14,7 +14,7 @@ Tab root pages have no large title. Nested pages keep a title and a back button.
 |---|---|---|---|
 | Today | `/owner/today` | All pending requests (any date); overdue unpaid APPROVED / unpaid NO_SHOW (BR-49); today’s confirmed (compact rows with chevron; tap opens a bottom sheet: time-dominant header, إبلاغ on the phone row, one remaining hero unless partial, one-tap Collect, mixed-currency behind دفع بعملتين); inline next 7 civil days; `?ok=approved&highlight=` rings the new row | Book date picker, waitlist, rate, period, expenses |
 | Requests | `/owner/requests` | The same pending list as Today, until the Requests slice adds the notify sheet and reject reasons. Badge is the pending count. | Waitlist, rate, period, expenses |
-| ＋ | (sheet) | Booking → `/owner/book`. Expense → `/owner/money`. Hidden when the membership has neither `bookings.create` nor `expenses.record`. | A quick-booking form (later, after person search) |
+| (header) shop button | `/owner/sell` | Beside the search button; hidden without `shop.sell`. Booking and expense have no quick entry for now (Today's free hours and Money still reach them). | — |
 | Money | `/owner/money` | Period summary (hero difference, In/Out tiles + CSS bars); GET period form behind “Change period”; expenses as rows; record form behind “Add expense”. Label is المال / Money. | Exchange-rate **set** form, waitlist, Book, Settings |
 | More | `/owner/more` | Hub list of destinations. Today: Settings | Tab content for Today / Requests / Money |
 
@@ -24,7 +24,7 @@ Tab root pages have no large title. Nested pages keep a title and a back button.
 
 `/owner/suspended` sits outside the shell like `/owner/login`. While the platform has suspended the stadium, the shell, every owner page and `/owner/login` redirect there, and the live poll answers 403 `tenant_suspended`. It shows fixed copy with no tenant data and no reason. For an active stadium it redirects to `/owner/today`, and it never redirects to login, so there is no loop.
 
-Staff without `bookings.create`: `/owner/book` shows an EmptyState, not slots. The ＋ row for Booking is hidden. Staff without `expenses.record`: the Expense row is hidden.
+Staff without `bookings.create`: `/owner/book` shows an EmptyState, not slots. Staff without `shop.sell`: no shop button in the header.
 
 Do not grow a destination by stacking another product’s UI on it. If it is not in the “Contains” column, it belongs on another destination or a **More list row** (see Phase 2+).
 
@@ -68,7 +68,7 @@ New products are **list rows on More**, not a sixth destination:
 |---|---|
 | Settings (rate + time format + pitch list/create/edit; company / staff later) | More → Settings |
 | Tournaments (future bounded context; seam via `pitch_blocks` like Academy) | More list row when that SPEC exists |
-| Shop | More list row (`/owner/more/shop`, owner only); selling is `/owner/sell`, opened from the "+" sheet — not a Reports subsection |
+| Shop | More list row (`/owner/more/shop`, owner only); selling is `/owner/sell`, opened from the shop button in the header — not a Reports subsection |
 | Academy (Phase 3) | More list row — seam is `pitch_blocks`, not a Reports subsection |
 
 ---
@@ -171,7 +171,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Company / stadium info | Settings — Phase 2+ / `tenant.settings` |
 | Staff permission flags UI | Settings later |
 | **Tournaments** | **More list row** (future; `pitch_blocks` seam) |
-| **Shop** | **More list row** (catalog), **"+" → Sell** (`/owner/sell`), **booking sheet → Add items / player tabs**; Money shows the Shop card |
+| **Shop** | **More list row** (catalog), **header shop button → Sell** (`/owner/sell`), **booking sheet → Add items / player tabs**; Money shows the Shop card |
 | **Academy (Phase 3)** | **More list row** |
 | No-show (BR-22 / SPEC-14) | Home — after the hour has ended; unpaid stays for Collect |
 | Public booking request | Not owner — public `/` |

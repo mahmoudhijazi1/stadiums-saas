@@ -4,8 +4,6 @@ import { Suspense } from "react";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
-  BOOKINGS_CREATE,
-  EXPENSES_RECORD,
   SHOP_SELL,
   can,
 } from "@/modules/access/domain/can";
@@ -36,8 +34,6 @@ export default async function OwnerLayout({
   // Every owner page sits under this shell: a suspended tenant never renders it.
   if (tenant.suspended) redirect("/owner/suspended");
   const membership = await getCurrentMembership();
-  const showBooking = membership ? can(membership, BOOKINGS_CREATE) : false;
-  const showExpense = membership ? can(membership, EXPENSES_RECORD) : false;
   const showSell = membership ? can(membership, SHOP_SELL) : false;
   const pending = membership ? await listPendingRequests() : [];
   const actionable = actionablePending(pending, new Date());
@@ -57,12 +53,9 @@ export default async function OwnerLayout({
       <OwnerTabBar
         locale={locale}
         pendingCount={actionable.length}
-        showBooking={showBooking}
-        showExpense={showExpense}
-        showSell={showSell}
       />
       <main className="flex min-w-0 flex-1 flex-col pb-[calc(88px+env(safe-area-inset-bottom))] lg:min-h-dvh lg:pb-0">
-        <OwnerHeader tenantName={tenant.name} publicUrl={publicPageUrl(tenant.slug)} locale={locale} />
+        <OwnerHeader tenantName={tenant.name} publicUrl={publicPageUrl(tenant.slug)} locale={locale} showSell={showSell} />
         <Container className="flex flex-1 flex-col gap-8 py-6">{children}</Container>
       </main>
     </div>

@@ -8,7 +8,7 @@ SPEC-01…14 are shipped on `main`: multi-tenant proxy → Prisma tenant guard (
 
 Shipped since (details and dates in `progress.md`):
 
-- **UX-01** ([owner-ux.md](./owner-ux.md)) — shell (header, business sheet, offline pill, Today / Requests / ＋ / Money / More, `lg` rail), More hub, Today request banner and card states, Requests tab (slot interests, reject chips, approve notify sheet, missed requests, "starts soon" flag, precise relative time, live badge with 20s poll).
+- **UX-01** ([owner-ux.md](./owner-ux.md)) — shell (header, business sheet, offline pill, Today / Requests / Money / More (the ＋ was removed 2026-10-10: a shop button beside search opens the counter), `lg` rail), More hub, Today request banner and card states, Requests tab (slot interests, reject chips, approve notify sheet, missed requests, "starts soon" flag, precise relative time, live badge with 20s poll).
 - **UX-02** ([ux-02-history.md](./ux-02-history.md)) slices 1–2 — Beirut day navigation + `summarizeDay` line; person page + header search results.
 - **SPEC-15** slices 1–2 — per-player foundation (`collectionMode`, `Booking.amountDueUsd`, `splitEvenly` / `personOwedOnBooking`), then per-player mode: `Pitch.defaultPlayerCount` (1–30, default 10), switch Whole ⇄ Per player in the booking sheet, slot list with one-tap USD pay, "Booker pays all remaining", "N of M paid". P1–P5 settled at the spec defaults.
 - **SPEC-16** slices 1–3 — `BookingDueChange` log + `adjustDue`, fee suggestions from tenant policy, cancel / no-show / adjust sheets and Booking rules settings, request-card debt warning, public policy line, WhatsApp fee text.

@@ -8,20 +8,12 @@ import {
   ChartColumn,
   Ellipsis,
   House,
-  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { ui } from "@/lib/ui-copy";
 import { useLiveQueue } from "@/app/owner/live-queue";
 import type { UiLocale } from "@/lib/locale";
 import { cn } from "cn";
-import {
-  BottomSheet,
-  BottomSheetBody,
-  BottomSheetContent,
-  BottomSheetHeader,
-  BottomSheetTitle,
-} from "@/components/ui/bottom-sheet";
 
 type NavLink = {
   kind: "link";
@@ -36,8 +28,6 @@ function tabSelected(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-const rowClass =
-  "flex min-h-11 w-full items-center rounded-[var(--radius-control)] px-3 text-start text-sm font-medium outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 /**
  * One nav, two layouts. Below lg: floating bottom bar, ＋ in the center.
@@ -47,25 +37,13 @@ const rowClass =
 export function OwnerTabBar({
   locale = "ar",
   pendingCount,
-  showBooking,
-  showExpense,
-  showSell,
 }: {
   locale?: UiLocale;
   pendingCount: number;
-  showBooking: boolean;
-  showExpense: boolean;
-  /** shop.sell: the Sell entry. */
-  showSell: boolean;
 }) {
   const pathname = usePathname();
   const live = useLiveQueue();
-  // The "+" (Record) action was hidden on purpose (HIDE_RECORD). It is back on with the shop:
-  // Sell lives in its sheet. Set HIDE_RECORD to true to hide it again.
-  const HIDE_RECORD = false;
-  const showRecord = HIDE_RECORD ? false : showBooking || showExpense || showSell;
   const badgeCount = live?.pendingCount ?? pendingCount;
-  const [recordOpen, setRecordOpen] = useState(false);
   // The tab tapped before the page has loaded, so the pill moves at once. It only counts while
   // the pathname is still the one it was tapped on; a finished navigation takes over by itself
   // (pathname changes), and a failed or cancelled one gives up after a few seconds.
@@ -172,23 +150,6 @@ export function OwnerTabBar({
           aria-hidden
           className="pointer-events-none absolute top-0 left-0 h-12 rounded-full bg-surface-2 opacity-0 data-[ready]:transition-[transform,width] data-[ready]:duration-[220ms] data-[ready]:ease-out motion-reduce:transition-none lg:hidden"
         />
-        {showRecord ? (
-          <div className="order-3 min-w-0 flex-1 lg:order-1 lg:flex-none">
-            <button
-              type="button"
-              aria-label={ui("owner.record", locale)}
-              onClick={() => setRecordOpen(true)}
-              className={cn(
-                // Icon only and always a circle (never an oval), centred in its slot.
-                "mx-auto grid size-14 place-items-center rounded-full bg-accent-brand text-accent-ink outline-none",
-                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
-              )}
-            >
-              <Plus aria-hidden className="size-7 shrink-0" strokeWidth={2.5} />
-            </button>
-          </div>
-        ) : null}
-
         {links.map((tab) => {
           const selected = tab.href === activeHref;
           const Icon = tab.Icon;
@@ -249,43 +210,6 @@ export function OwnerTabBar({
           );
         })}
       </div>
-
-      <BottomSheet open={recordOpen} onOpenChange={setRecordOpen}>
-        <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
-          <BottomSheetHeader>
-            <BottomSheetTitle>{ui("owner.record", locale)}</BottomSheetTitle>
-          </BottomSheetHeader>
-          <BottomSheetBody className="flex flex-col gap-1">
-            {showBooking ? (
-              <Link
-                href="/owner/book"
-                className={rowClass}
-                onClick={() => setRecordOpen(false)}
-              >
-                {ui("owner.recordBooking", locale)}
-              </Link>
-            ) : null}
-            {showSell ? (
-              <Link
-                href="/owner/sell"
-                className={rowClass}
-                onClick={() => setRecordOpen(false)}
-              >
-                {ui("owner.sell", locale)}
-              </Link>
-            ) : null}
-            {showExpense ? (
-              <Link
-                href="/owner/money"
-                className={rowClass}
-                onClick={() => setRecordOpen(false)}
-              >
-                {ui("owner.expenseAction", locale)}
-              </Link>
-            ) : null}
-          </BottomSheetBody>
-        </BottomSheetContent>
-      </BottomSheet>
     </nav>
   );
 }

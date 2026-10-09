@@ -4,22 +4,25 @@ import { OfflinePill } from "@/app/owner/offline-pill";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { cn } from "cn";
-import { Search } from "lucide-react";
+import { Search, ShoppingBag } from "lucide-react";
 
 /**
  * Below lg: a floating surface bar, inset like the bottom nav.
  * At lg: a full-width dark block on the content column.
  * Sticky. It does not hide on scroll.
- * Search opens /owner/search.
+ * Search opens /owner/search; the shop button (members who may sell) opens the counter.
  */
 export function OwnerHeader({
   tenantName,
   publicUrl,
   locale,
+  showSell,
 }: {
   tenantName: string;
   publicUrl: string;
   locale: UiLocale;
+  /** shop.sell: the sell button beside search. */
+  showSell: boolean;
 }) {
   return (
     <header
@@ -37,13 +40,24 @@ export function OwnerHeader({
         )}
       >
         <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} />
-        <Link
-          href="/owner/search"
-          aria-label={ui("owner.search", locale)}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <Search aria-hidden className="size-5" />
-        </Link>
+        <div className="flex shrink-0 items-center">
+          {showSell ? (
+            <Link
+              href="/owner/sell"
+              aria-label={ui("owner.sell", locale)}
+              className="grid size-11 shrink-0 place-items-center rounded-full text-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              <ShoppingBag aria-hidden className="size-5" />
+            </Link>
+          ) : null}
+          <Link
+            href="/owner/search"
+            aria-label={ui("owner.search", locale)}
+            className="grid size-11 shrink-0 place-items-center rounded-full text-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <Search aria-hidden className="size-5" />
+          </Link>
+        </div>
       </div>
       <OfflinePill locale={locale} />
     </header>

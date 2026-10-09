@@ -5,6 +5,8 @@
 **Supersedes:** the previous bottom tab bar (Home, Book, Waitlist, Reports, More), and `docs/owner-ia.md` wherever they disagree. Update `owner-ia.md` in the shell slice so the living route list matches this file.
 **Governing rule:** RULE-12. Every owner-facing action must be faster than writing it on paper.
 
+**Amended 2026-10-10:** the center ＋ button and its sheet (Booking / Sell / Expense) are removed. The header has a shop button beside search that opens `/owner/sell` (members with `shop.sell`); there is no quick entry for booking or expense for now. Wherever this file says ＋, read it as removed.
+
 **Amended after audit** (2026-09-23), then again the same day: the business sheet is a share card plus log out. Language, appearance, and settings live on More. Header content is this file; the bar stays floating below `lg` and a dark block at `lg`, and it never hides on scroll. The `lg` rail stays: same five destinations, with ＋ a primary button at the top of the rail. "Didn't happen" is No-show only (SPEC-14: money stays due, Collect still works; no waive; do not change `recordNoShow` or `cancelBooking`). Settings use `settings.manage` (`OWNER` already passes `can()`). Language and appearance live under Preferences on More. No "Switch business" and no cross-tenant membership query. Session length is unchanged here (a later access task: rolling 30 days). Copy goes through `ui()`. Cancel visibility uses `isPastUnpaidCancel` / `assertApprovedForCancel`. Edit / Move is out of scope. `deriveDisplayState` ships with Today. Person search ships with phone autocomplete; the header search screen is its own later slice. Outstanding-by-person and pitch activity ship with Money.
 
 ---
