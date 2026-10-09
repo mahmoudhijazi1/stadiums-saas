@@ -190,7 +190,6 @@ export function PitchDraftForm({
             {ui("owner.pitchOtherLength", locale)}
           </button>
         </div>
-        <p className="type-caption">{ui("owner.pitchMinutesFull", locale)}</p>
         {otherLength ? (
           <div className="flex items-center gap-2" dir="ltr">
             <Input
