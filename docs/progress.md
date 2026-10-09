@@ -6151,3 +6151,17 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** `booking` still imports nothing from `push`; `app/` is the only place both are called. Nothing runs inside the request transaction.
 
 **How to verify:** NOT run. Per the task, no test suite, build or lint was run for this commit; only a single `tsc --noEmit` at the end of the branch. Tests are in commit 2, also unrun. No push could be received here.
+
+## Push notifications, slice B commit 2 of 2: tests and docs (branch `feat/push-new-request`)
+
+**What:**
+- **Tests written, NOT run.** Per the task no test suite, build or lint was run on this branch; the only check was one `tsc --noEmit` at the end, which passed with no output. Treat the tests as unverified until `npm test` and `npm run test:integration` are run.
+- Integration (`test/integration/push-new-request.integration.test.ts`, fake sender; `after()` and `redirect()` replaced so the real action `submitPublicSlotRequest` can run): an alert reaches the owner and a staff member with `bookings.approve`, every device of each, and not staff without it; another stadium's members and devices never; the payload is generic, localized per device, has no name or phone, is under 1 KB; a second request within 120 s sends nothing and one after the window (aged by hand in `RateLimit`) sends "2 requests waiting"; the throttle is per device; an owner-created booking and the slot-taken branch schedule nothing; a created request schedules exactly one callback that sends nothing until run; no subscriptions, nothing waiting, a suspended stadium and missing VAPID keys are no-ops without error; a sender that throws or never answers does not fail the request, resolves within the 5 s cap and keeps the rows; one failing device does not block another; 404 and 410 delete, 500 keeps.
+- Unit: NEW_REQUEST text for 1 and N in both languages, send options, `mapWithConcurrency`, and import rules (only the public request action reaches the alert; it is scheduled with `after()` and never awaited).
+- **Docs:** `push-notifications.md` (the flow, who receives it and why, what it says, the throttle and why a skipped alert is not queued, safe sending, the manual checks for two devices), `ARCHITECTURE.md` (composition after the commit, outside the transaction), `NOW.md`, `ROADMAP.md` (other alert kinds, badge on the app icon from the worker; offline level 1 stays listed).
+
+**Files:** `test/integration/push-new-request.integration.test.ts`, `test/modules/push/{new-request-payload,imports}.test.ts`, the docs above.
+
+**How it connects:** nothing new in `src/`; the docs now describe `app/(public)/alert-owners.ts` as the one place booking and push meet.
+
+**How to verify:** run `npm test` and `npm run test:integration` (neither was run for this slice), then the two-device checks in `docs/push-notifications.md` ("Checks to run by hand for the new-request alert"). No push could be received here.

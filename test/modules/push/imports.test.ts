@@ -44,4 +44,21 @@ describe("push module imports", () => {
     const readers = all.filter((file) => /VAPID_PRIVATE_KEY/.test(source(file)));
     expect(readers.sort()).toEqual(["src/lib/env.ts", "src/modules/push/infrastructure/push-config.ts"]);
   });
+
+  it("the new-request alert is composed in one place and scheduled after the response", () => {
+    const composers = all.filter((file) => /alert-owners/.test(source(file)) && !file.endsWith("alert-owners.ts"));
+    expect(composers).toEqual(["src/app/(public)/request-slot.ts"]);
+    const action = source("src/app/(public)/request-slot.ts");
+    expect(action).toMatch(/after\(alertOwnersOfNewRequest\)/);
+    expect(action).not.toMatch(/await\s+alertOwnersOfNewRequest/);
+  });
+
+  it("only the public request action reaches the alert (no owner-create path calls it)", () => {
+    const callers = all.filter((file) => /notifyNewRequest|alertOwnersOfNewRequest/.test(source(file)));
+    expect(callers.sort()).toEqual([
+      "src/app/(public)/alert-owners.ts",
+      "src/app/(public)/request-slot.ts",
+      "src/modules/push/application/notify-new-request.ts",
+    ]);
+  });
 });
