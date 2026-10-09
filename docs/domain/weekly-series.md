@@ -17,6 +17,10 @@ Week `k` starts at the anchor's **local wall-clock time** (Asia/Beirut) on `anch
 - a game after midnight (00:30) stays on the **same night** every week;
 - weeks are numbered from 0 (the anchor). Renewing continues from the latest game's number plus one (`occurrenceIndex` reads the number back from the date).
 
+## Length: extensions belong to one week only
+
+A series' `durationMinutes` is always the pitch's **standard game length** (`standardSeriesMinutes`, the grid's `slotDurationMinutes`: what the quick booking gives a new booking at a grid time), never the length of the booking it came from. `makeWeekly` on a booking that was extended by 30 minutes creates standard-length weeks at the standard slot price and stores the standard length; the source booking keeps its own extended range and price. `renewSeries` uses the stored length, never the last game's. The preview and the series row show the standard range. Extending one week later changes that week only.
+
 ## Which weeks can be booked
 
 For each week (`classifyOccurrence`, used both by the preview and, again, under the lock by the use case):

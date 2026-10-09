@@ -11,7 +11,12 @@ import {
   type WeeksResult,
 } from "@/modules/booking/application/series-weeks";
 import { isExclusionViolation } from "@/modules/booking/domain/exclusion";
-import { anchorFromInstant, isSeriesCount, seriesOccurrences } from "@/modules/booking/domain/series";
+import {
+  anchorFromInstant,
+  isSeriesCount,
+  seriesOccurrences,
+  standardSeriesMinutes,
+} from "@/modules/booking/domain/series";
 import {
   findBookingForDecision,
   findBookingForUpdate,
@@ -32,8 +37,9 @@ export type MadeWeekly = WeeksResult & { seriesId: string };
  * Turn one APPROVED booking into a weekly series: the booking's own start is the anchor and it
  * is linked as week 0, then the next `count` weeks (4, 8 or 12) are created the same way as
  * createSeries (same re-checks, same skipping). Refused when the booking is not APPROVED, is
- * already in a series, or its length is not a whole number of minutes up to 3 hours. Lock order:
- * the pitch, then the booking row, then the new rows. `acceptedStarts`, when given, limits the
+ * already in a series. The series length is the pitch's standard game, never the booking's own
+ * (an extension belongs to its week only); the booking keeps its range. Lock order: the pitch,
+ * then the booking row, then the new rows. `acceptedStarts`, when given, limits the
  * weeks to the ones the owner saw in the preview. Needs bookings.create.
  */
 export async function makeWeekly(input: {
@@ -67,10 +73,6 @@ export async function makeWeekly(input: {
       if (await findBookingSeriesId(tx, booking.id)) {
         throw new DomainError("booking.series_exists");
       }
-      const durationMinutes = (booking.end.getTime() - booking.start.getTime()) / 60_000;
-      if (!Number.isInteger(durationMinutes) || durationMinutes <= 0 || durationMinutes > 180) {
-        throw new DomainError("form.invalid");
-      }
       const personId = await findRequesterPersonId(tx, booking.id);
       if (!personId) {
         throw new DomainError("booking.requester_not_found");
@@ -79,6 +81,9 @@ export async function makeWeekly(input: {
       if (!pitch) {
         throw new DomainError("booking.pitch_not_found");
       }
+      const config = parseScheduleConfig(pitch.scheduleConfig);
+      // The standard game length, not the source booking's (it may be extended). The source keeps its own range.
+      const durationMinutes = standardSeriesMinutes(config);
 
       const anchor = anchorFromInstant(booking.start, SERIES_TIME_ZONE);
       const seriesId = await insertSeries(tx, {
@@ -97,7 +102,7 @@ export async function makeWeekly(input: {
 
       const result = await createWeeksUnderLock(tx, {
         pitchId: booking.pitchId,
-        config: parseScheduleConfig(pitch.scheduleConfig),
+        config,
         seriesId,
         personId,
         durationMinutes,

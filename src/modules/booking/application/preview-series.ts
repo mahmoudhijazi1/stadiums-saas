@@ -9,6 +9,7 @@ import {
   isSeriesCount,
   occurrenceIndex,
   seriesOccurrences,
+  standardSeriesMinutes,
   SERIES_MAX_DURATION_MINUTES,
   type OccurrencePreview,
 } from "@/modules/booking/domain/series";
@@ -106,7 +107,12 @@ export async function previewMakeWeekly(input: { bookingId: string; count: numbe
   if (await findBookingSeriesId(db, booking.id)) {
     throw new DomainError("booking.series_exists");
   }
-  const durationMinutes = (booking.end.getTime() - booking.start.getTime()) / 60_000;
+  const pitch = await findPitchById(db, booking.pitchId);
+  if (!pitch) {
+    throw new DomainError("booking.pitch_not_found");
+  }
+  // The standard game, not the booking's own length (it may be extended).
+  const durationMinutes = standardSeriesMinutes(parseScheduleConfig(pitch.scheduleConfig));
   const anchor = anchorFromInstant(booking.start, SERIES_TIME_ZONE);
   return preview({
     pitchId: booking.pitchId,

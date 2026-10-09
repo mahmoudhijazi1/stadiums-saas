@@ -6306,3 +6306,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Honest limits:** the clock-change test depends on the date it runs (it asserts the local time is constant over 12 weeks; whether the span crosses a change depends on the season); the exact change dates are in the unit tests. `npx tsc --noEmit` was run at commits 2, 3 and 4 (clean), more than the single run the task allowed.
 
 **How to verify:** run `npm test`, `npm run test:integration` and `npm run build` (none was run), apply the migration (`npx prisma migrate deploy --config prisma7.config.ts`), then by hand: book a weekly game from a free hour and check the 8 weeks and the WhatsApp text, repeat a game from More actions, book over a week that is already taken, renew, cancel the rest with one paid week, and look at the Today reminder, the More list and the person page.
+
+
+## Fix: a weekly series made from an extended booking keeps the standard length (branch `feat/weekly-series`)
+
+**What:** a series' length is always the pitch's standard game (`standardSeriesMinutes`, the grid's slot length), never the source booking's. `makeWeekly` stores it and creates the new weeks with it (standard range, standard slot price); the source booking keeps its extended range. `previewMakeWeekly` shows the standard range. `renewSeries` already used the stored length, so it continues at the standard one. `createSeries` is unchanged. The old 180-minute check on the source length is gone (it no longer matters).
+
+**Tests (written, NOT run):** in `weekly-series.integration.test.ts`: `makeWeekly` from a booking extended by 30 minutes (preview and weeks 60 minutes at $30, series stored at 60, source still 90 minutes at $45); renew after the last week was extended (new weeks 60 minutes, the extended week untouched); `createSeries` unchanged; and the clock-change test now finds the next Asia/Beirut change at least 15 days away from the run date and anchors the series two weeks before it, asserting 20:00 local on both sides and a 1-hour UTC shift across the change (no clock injection needed).
+
+**Files:** `booking/domain/series.ts`, `booking/application/{make-weekly,preview-series}.ts`, `test/integration/weekly-series.integration.test.ts`, `docs/domain/weekly-series.md` (rule: extensions belong to one week only).
+
+**How to verify:** no test suite, build or lint was run; one `npx tsc --noEmit` at the end. Run `npm run test:integration`, then by hand: extend a game, make it weekly, check the weeks are the normal length and the sheet shows it.

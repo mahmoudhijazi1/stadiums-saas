@@ -5,6 +5,7 @@ import { platformDb } from "@/lib/platform-db";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { cancelRestOfSeries } from "@/modules/booking/application/cancel-rest-of-series";
+import { extendBooking } from "@/modules/booking/application/extend-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";
 import { createSeries } from "@/modules/booking/application/create-series";
@@ -160,6 +161,35 @@ describe("creating a series", () => {
     await assertMoneyInvariants([]);
   });
 
+  it("keeps the local start time on both sides of the next Asia/Beirut clock change, whatever day the test runs", async () => {
+    // The first clock change at least 15 days away; the series starts two weeks before it, so the
+    // anchor is always in the future and the series crosses the change at its third game.
+    const today = civilDateInTimeZone(new Date(), TIME_ZONE);
+    const offsetAtNoon = (daysAhead: number) => {
+      const day = addCalendarDays(today, daysAhead);
+      const noon = new Date(Date.UTC(day.year, day.month - 1, day.day, 12));
+      const part = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, timeZoneName: "longOffset" })
+        .formatToParts(noon)
+        .find((p) => p.type === "timeZoneName")!.value;
+      return part;
+    };
+    let changeDaysAhead = 15;
+    while (offsetAtNoon(changeDaysAhead) === offsetAtNoon(changeDaysAhead - 1)) {
+      changeDaysAhead += 1;
+      if (changeDaysAhead > 500) throw new Error("no clock change found");
+    }
+
+    const { made } = await newSeries(changeDaysAhead - 14, 4, 4); // 20:00-21:00
+    const games = await seriesGames(made.seriesId);
+    expect(games).toHaveLength(4);
+    expect(new Set(games.map((game) => game.local))).toEqual(new Set(["20:00"]));
+
+    // Before the change the weeks are exactly 7 x 24 hours apart; across it they are 1 hour off.
+    const gaps = games.slice(1).map((game, i) => game.start.getTime() - games[i]!.start.getTime());
+    expect(gaps[0]).toBe(WEEK_MS);
+    expect(Math.abs(gaps[1]! - WEEK_MS)).toBe(3_600_000);
+  });
+
   it("keeps a game after midnight on the same local time every week", async () => {
     await platformDb.pitch.update({
       where: { id: fixture.pitchId },
@@ -293,6 +323,35 @@ describe("make weekly and renew", () => {
     await expect(makeWeekly({ bookingId, count: 4 })).rejects.toMatchObject({ key: "booking.series_exists" });
   });
 
+  it("makeWeekly from a booking extended by 30 minutes creates standard-length weeks at the standard price and leaves the source extended", async () => {
+    const slot = await slotAt(3, 3); // 19:00-20:00, the next 30 minutes are free
+    const { bookingId } = await createOwnerBooking({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, ...PERSON });
+    await extendBooking({ bookingId, expectedEndsAt: slot.end, addedPriceUsd: new Decimal("15") });
+
+    const preview = await previewMakeWeekly({ bookingId, count: 4 });
+    expect(preview.durationMinutes).toBe(60);
+    expect(preview.items.every((item) => item.end.getTime() - item.start.getTime() === 3_600_000)).toBe(true);
+    expect(preview.items.every((item) => item.priceUsd?.equals(30))).toBe(true);
+
+    const made = await makeWeekly({ bookingId, count: 4, acceptedStarts: preview.items.map((item) => item.start) });
+    expect(made.created).toHaveLength(4);
+
+    const series = await platformDb.bookingSeries.findUniqueOrThrow({ where: { id: made.seriesId } });
+    expect(series.durationMinutes).toBe(60);
+
+    const games = await seriesGames(made.seriesId);
+    expect(games).toHaveLength(5);
+    // The source keeps its extended range and price; every new week is the standard game.
+    expect(games[0]!.id).toBe(bookingId);
+    expect(games[0]!.end.getTime() - games[0]!.start.getTime()).toBe(90 * 60_000);
+    expect(games[0]!.priceUsd).toBe("45.00");
+    for (const game of games.slice(1)) {
+      expect(game.end.getTime() - game.start.getTime()).toBe(60 * 60_000);
+      expect(game.priceUsd).toBe("30.00");
+    }
+    await expectNoOverlaps(fixture.pitchId);
+  });
+
   it("makeWeekly refuses a booking that is not APPROVED", async () => {
     const slot = await slotAt(3, 3);
     const { bookingId } = await requestPublicSlot({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, name: "ليلى", phone: "03111009" });
@@ -316,6 +375,37 @@ describe("make weekly and renew", () => {
     expect((await renewSeries({ seriesId: made.seriesId, count: 4 })).created).toHaveLength(4);
     expect(await seriesGames(made.seriesId)).toHaveLength(12);
     await expectNoOverlaps(fixture.pitchId);
+  });
+});
+
+describe("an extension belongs to one week only", () => {
+  it("renew after the last week was extended continues at the standard length and price", async () => {
+    const { made } = await newSeries(3, 3, 4);
+    const before = await seriesGames(made.seriesId);
+    const last = before[3]!;
+    await extendBooking({ bookingId: last.id, expectedEndsAt: last.end, addedPriceUsd: new Decimal("15") });
+
+    const preview = await previewRenewal({ seriesId: made.seriesId, count: 4 });
+    expect(preview.durationMinutes).toBe(60);
+    const renewed = await renewSeries({ seriesId: made.seriesId, count: 4, acceptedStarts: preview.items.map((item) => item.start) });
+    expect(renewed.created).toHaveLength(4);
+
+    const after = await seriesGames(made.seriesId);
+    expect(after).toHaveLength(8);
+    expect(after[3]!.end.getTime() - after[3]!.start.getTime()).toBe(90 * 60_000); // still extended
+    for (const game of [...after.slice(0, 3), ...after.slice(4)]) {
+      expect(game.end.getTime() - game.start.getTime()).toBe(60 * 60_000);
+      expect(game.priceUsd).toBe("30.00");
+    }
+    const series = await platformDb.bookingSeries.findUniqueOrThrow({ where: { id: made.seriesId } });
+    expect(series.durationMinutes).toBe(60);
+  });
+
+  it("createSeries from the quick booking is unchanged: it uses the length it is given", async () => {
+    const { made } = await newSeries(3, 1, 4);
+    const games = await seriesGames(made.seriesId);
+    expect(games.every((game) => game.end.getTime() - game.start.getTime() === 3_600_000)).toBe(true);
+    expect((await platformDb.bookingSeries.findUniqueOrThrow({ where: { id: made.seriesId } })).durationMinutes).toBe(60);
   });
 });
 

@@ -66,6 +66,15 @@ export function occurrenceIndex(anchor: SeriesAnchor, start: Date, timeZone: str
 }
 
 /**
+ * The length of every game in a series: the pitch's standard game (what the quick booking gives a
+ * new booking at a grid time), never the length a source booking happens to have now. An extension
+ * belongs to its own week only.
+ */
+export function standardSeriesMinutes(config: ScheduleConfig): number {
+  return config.slotDurationMinutes;
+}
+
+/**
  * What one week costs: the price of the grid slot that starts at this time, scaled to the series
  * length (a 90-minute series on a 60-minute grid pays 1.5 slots), half up to cents. Null when no
  * slot starts at that time that day (the hours changed). Priced at its own time and frozen like
