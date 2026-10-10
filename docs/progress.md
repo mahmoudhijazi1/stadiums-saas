@@ -6357,3 +6357,13 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `expense/application/list-recent-expenses.ts`, `app/owner/(app)/people/[personId]/stats.tsx`, `test/integration/staff-money-gating.integration.test.ts`.
 
 **How to verify:** NOT run. The test uses staff with no flags (every money read refused), staff with only `expenses.record` (records, reads nothing), staff with only `reports.view` (reads, cannot record) and the owner. The hidden "Total paid" is a component and has no automated test: check it by hand with a staff account. Run `npm run test:integration`.
+
+
+## Hardening 2, item 4 of 8: booking horizon (N-9) (branch `security/hardening-2`)
+
+**What:** one constant, `PUBLIC_FUTURE_DAYS = 60` (`booking/domain/public-window.ts`, same size as the owner's `OWNER_FUTURE_DAYS`), used by both sides. The public page (`app/(public)/page.tsx`) shows today for a `?date=` beyond `today + 60` (as it already does for a bad date), and `requestPublicSlot` refuses a start later than the last public day with the new `booking.too_far` (AR and EN in `error-messages.ts`) before the offered-slot check. Before this the page and the use case accepted any date.
+**Not done:** the "other date" calendar chip has no maximum, so a player can still pick a far date and gets today's list. A `maxDate` prop would need the chip's component, which this item did not read.
+
+**Files:** `booking/domain/public-window.ts`, `booking/application/request-public-slot.ts`, `app/(public)/page.tsx`, `lib/error-messages.ts`, `test/modules/booking/domain/public-window.test.ts`, `test/integration/public-window.integration.test.ts`.
+
+**How to verify:** NOT run. Unit: the boundary day is allowed, the next day is not, across a month end. Integration: a request on day 60 is accepted, day 61 and a year ahead are refused with `booking.too_far`, nothing is written for the refused ones. By hand: open `/?date=` with a date 90 days out and check it shows today.

@@ -9,6 +9,7 @@ import { findOrCreatePerson } from "@/modules/people/application/find-or-create-
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import { normalizeName } from "@/modules/people/domain/normalize-name";
 import { overlaps, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
+import { isWithinPublicWindow } from "@/modules/booking/domain/public-window";
 import {
   PUBLIC_MAX_PENDING_PER_PHONE,
   PUBLIC_MAX_REQUESTS_PER_IP,
@@ -63,10 +64,15 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
       const config = parseScheduleConfig(pitch.scheduleConfig);
       const start = new Date(input.start);
       const end = new Date(input.end);
+      const startDay = civilDateInTimeZone(start, TIME_ZONE);
+      // Not further ahead than the public page offers (PUBLIC_FUTURE_DAYS).
+      if (!isWithinPublicWindow(startDay, civilDateInTimeZone(new Date(), TIME_ZONE))) {
+        throw new DomainError("booking.too_far");
+      }
       // Offered, still ahead, priced. Occupancy is checked below, under the lock.
       const slot = resolveOfferedSlot({
         config,
-        localDate: civilDateInTimeZone(start, TIME_ZONE),
+        localDate: startDay,
         timeZone: TIME_ZONE,
         start,
         end,

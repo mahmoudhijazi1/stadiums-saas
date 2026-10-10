@@ -58,6 +58,7 @@ const ARABIC: Record<string, string> = {
   "booking.request_limit": "لا يمكن إرسال طلبات أخرى الآن. حاول لاحقاً أو اتصل بالملعب.",
   "booking.slot_taken_noted": "هذه الساعة حُجزت. سجّلنا اهتمامك وسنبلغك إذا صارت متاحة.",
   "booking.slot_ended": "هذه الساعة انتهت.",
+  "booking.too_far": "لا يمكن طلب موعد بعيد إلى هذا الحد. اختر يوماً أقرب.",
   "booking.slot_unavailable": "الساعة لم تعد متاحة.",
   "booking.pitch_not_found": "الملعب غير موجود.",
   "booking.requester_not_found": "صاحب الطلب غير موجود.",
@@ -148,6 +149,7 @@ const ENGLISH: Record<string, string> = {
   "booking.slot_taken_noted":
     "That hour was just booked. We noted your interest and will tell you if it frees up.",
   "booking.slot_ended": "That hour has ended.",
+  "booking.too_far": "That day is too far ahead to request. Pick a closer day.",
   "booking.slot_unavailable": "The hour is no longer available.",
   "booking.pitch_not_found": "Pitch not found.",
   "booking.requester_not_found": "Requester not found.",

@@ -1,5 +1,6 @@
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
+import { clampPublicDay } from "@/modules/booking/domain/public-window";
 import {
   formatCivilDate,
   type CivilDate,
@@ -33,7 +34,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const now = new Date();
   const today = businessDate(now, tenant.dayStartHour, "Asia/Beirut");
-  const localDate = parseCivilDate(dateParam) ?? today;
+  // A date beyond the public window (PUBLIC_FUTURE_DAYS) shows today, like a bad date.
+  const localDate = clampPublicDay(parseCivilDate(dateParam), today, today);
   const dateValue = formatCivilDate(localDate);
 
   return (
