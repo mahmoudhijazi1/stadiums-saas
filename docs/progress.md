@@ -6638,3 +6638,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Version label only; no code or behaviour changes.
 
 **How to verify:** `git tag -l v1.0.0`; `npm pkg get version` prints `"1.0.0"`. Nothing was run; the Money v2, accent, stadium-info, hardening and weekly-series tests are still unrun together.
+
+## Refactor step 1: dependency-rules guard (branch `refactor/01-guard`)
+
+**When:** 2026-10-10
+
+**What:** `test/architecture/dependency-rules.test.ts` scans every `.ts/.tsx` under `src/` (not `app/generated`, `prisma`), reads static, `export ... from` and dynamic imports, resolves `@/` and relative paths, and enforces five rules: (1) module to module edges, (2) layers inside a module, (3) modules never import `@/app` / `@/components` (a module `ui/` may import `@/components/ui`), (4) `app/` imports module application/domain/schemas/ui only, (5) `lib/` and `components/` import modules only through listed exceptions. `test/architecture/rules.ts` holds the rules as data; each exception has a reason and a planned fate. A second test fails when an exception is stale.
+
+**Why:** Make the import directions in docs/ARCHITECTURE.md §1 a build failure before the cleanup moves code. No application code changed.
+
+**Files:** `test/architecture/dependency-rules.test.ts`, `test/architecture/rules.ts`, `docs/progress.md`.
+
+**How it connects:** Complements, does not duplicate, `test/platform-db-imports.test.ts` and `test/modules/push/imports.test.ts`. Not expressible yet: application/infrastructure importing another module's infrastructure/schemas is common today (payments, rates, pitches), so that is allowed; "pure lib" for domain is a denylist (db, platform-db, logger, tenant-context, env, rate-limit, prisma client).
+
+**How to verify:** `npx jest test/architecture` (4 passed); `npx tsc --noEmit`. Full suites and build not run.
