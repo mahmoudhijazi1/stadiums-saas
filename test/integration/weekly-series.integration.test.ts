@@ -533,8 +533,9 @@ async function seriesOtherTenant() {
 describe("races (10 iterations each)", () => {
   it("createSeries x owner-create on one of its weeks: never an overlap", async () => {
     for (let i = 0; i < 10; i += 1) {
-      const first = await slotAt(3 + i, 0);
-      const week2 = await slotAt(3 + i + 14, 0);
+      // 28 days apart so one iteration's four weeks never touch another's.
+      const first = await slotAt(3 + i * 28, 0);
+      const week2 = await slotAt(3 + i * 28 + 14, 0);
       const settled = await Promise.allSettled([
         createSeries({
           pitchId: fixture.pitchId,
@@ -555,8 +556,9 @@ describe("races (10 iterations each)", () => {
 
   it("createSeries x approve of a pending request on one of its weeks: never an overlap", async () => {
     for (let i = 0; i < 10; i += 1) {
-      const first = await slotAt(3 + i, 1);
-      const week1 = await slotAt(3 + i + 7, 1);
+      // 28 days apart so one iteration's four weeks never touch another's.
+      const first = await slotAt(3 + i * 28, 1);
+      const week1 = await slotAt(3 + i * 28 + 7, 1);
       const { bookingId: pendingId } = await requestPublicSlot({
         pitchId: fixture.pitchId,
         start: week1.startIso,
