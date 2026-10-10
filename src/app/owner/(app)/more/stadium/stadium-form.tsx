@@ -134,7 +134,7 @@ export function StadiumForm({
         <div className="flex items-center gap-3">
           <span
             aria-hidden
-            className="flex size-14 shrink-0 items-center justify-center rounded-xl text-2xl font-bold"
+            className="flex size-14 shrink-0 items-center justify-center rounded-xl type-title"
             style={{ backgroundColor: colours.background, color: colours.text }}
           >
             {firstSymbol(name)}
