@@ -34,8 +34,8 @@ import { dayStartClock, ui, uiCount } from "@/lib/copy";
 import { SelectField } from "@/components/ui/select-field";
 import { Figure } from "@/components/ui/figure";
 import { SettingsRow, SettingsSection } from "@/components/ui/settings-list";
-import { AccountSheetContent } from "./account/account-sheet";
-import { NotificationsSheetContent } from "./notifications/notifications-sheet";
+import { AccountSheetContent } from "@/app/owner/(app)/more/account/_components/account-sheet";
+import { NotificationsSheetContent } from "@/app/owner/(app)/more/notifications/_components/notifications-sheet";
 
 type SheetId =
   | "rate"

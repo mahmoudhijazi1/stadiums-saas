@@ -7086,3 +7086,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** expense/ui imports expense/domain, payment/ui and lib only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app (money page tests) and test/components passed). Full suites and build not run.
+
+## Refactor step 6c, commit 4: route-private files to _components
+
+**When:** 2026-10-10
+
+**What:** git mv into each route's _components folder: people/[personId] games and stats; search results and search-field; more hub, account-sheet, notifications-sheet, weekly-list, stadium-form; settings/pitches form, hours-rows, preview-card, price-cards, time-sheet; book skeleton and date. They import actions and use cases directly, which is allowed in app code. stadium-preview.test.ts reads stadium-form.tsx by path; updated.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/app/owner/(app)/**/_components/*, test/app/owner/stadium-preview.test.ts
+
+**How it connects:** _components are route-private: nothing outside the route imports them except sibling routes that already did (book skeleton, form).
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed (12 suites)). Full suites and build not run.

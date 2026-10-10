@@ -16,10 +16,10 @@ import {
   rulesToPriceCards,
 } from "@/modules/venue/domain/pitch-form-model";
 import type { PitchPriceRule } from "@/modules/venue/schemas/pitch-draft";
-import { HoursRows } from "./hours-rows";
+import { HoursRows } from "@/app/owner/(app)/more/settings/pitches/_components/hours-rows";
 import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
-import { PreviewCard } from "./preview-card";
-import { PriceCards, type PriceCard } from "./price-cards";
+import { PreviewCard } from "@/app/owner/(app)/more/settings/pitches/_components/preview-card";
+import { PriceCards, type PriceCard } from "@/app/owner/(app)/more/settings/pitches/_components/price-cards";
 
 export type PitchFormDefaults = {
   name: string;

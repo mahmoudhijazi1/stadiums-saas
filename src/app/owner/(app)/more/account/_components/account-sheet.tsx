@@ -17,7 +17,7 @@ import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { devicesClosedLabel } from "@/lib/copy";
-import { submitChangeIdentifier, submitChangePassword, submitLogOutOtherDevices } from "./actions";
+import { submitChangeIdentifier, submitChangePassword, submitLogOutOtherDevices } from "@/app/owner/(app)/more/account/actions";
 
 type Step = "home" | "password" | "logout" | "identifier";
 

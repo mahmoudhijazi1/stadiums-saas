@@ -1,7 +1,7 @@
 import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import type { CivilDate } from "@/modules/venue/domain/availability";
-import { civilFromYyyyMmDd } from "./date";
+import { civilFromYyyyMmDd } from "@/app/owner/(app)/book/_components/date";
 import { OwnerSlotPicker } from "@/modules/booking/ui/book-picker";
 import { OWNER_TIME_ZONE } from "@/lib/format/time";
 import { EmptyState } from "@/components/ui/empty-state";

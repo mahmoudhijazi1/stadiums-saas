@@ -16,7 +16,7 @@ import {
   submitSendTestPush,
   submitSubscribePush,
   submitUnsubscribePush,
-} from "./actions";
+} from "@/app/owner/(app)/more/notifications/actions";
 
 type PanelState = "checking" | "unsupported" | "ios_install" | "denied" | "ask" | "enabled";
 

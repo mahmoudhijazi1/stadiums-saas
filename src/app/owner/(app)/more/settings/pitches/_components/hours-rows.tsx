@@ -16,7 +16,7 @@ import {
   type DayRow,
   type HourCycleChoice,
 } from "@/modules/venue/domain/pitch-form-model";
-import { TimeSheet } from "./time-sheet";
+import { TimeSheet } from "@/app/owner/(app)/more/settings/pitches/_components/time-sheet";
 
 type Picking = { day: DayRow["day"]; field: "from" | "to" } | null;
 

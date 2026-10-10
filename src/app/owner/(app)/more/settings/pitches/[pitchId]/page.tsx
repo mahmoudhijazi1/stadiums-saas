@@ -9,7 +9,7 @@ import { ui } from "@/lib/copy";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { getPitchEditor } from "@/modules/venue/application/get-pitch-editor";
 import { submitUpdatePitch } from "../actions";
-import { PitchDraftForm } from "../form";
+import { PitchDraftForm } from "@/app/owner/(app)/more/settings/pitches/_components/form";
 import {
   readHoursGroupsDraft,
   readPriceRulesDraft,

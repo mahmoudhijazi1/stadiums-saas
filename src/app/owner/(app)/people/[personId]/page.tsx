@@ -11,8 +11,8 @@ import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/copy";
 import { weeklyWeekdayAndTime } from "@/modules/booking/ui/series-labels";
 import { listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
-import { PersonGames } from "./games";
-import { PersonStats } from "./stats";
+import { PersonGames } from "@/app/owner/(app)/people/[personId]/_components/games";
+import { PersonStats } from "@/app/owner/(app)/people/[personId]/_components/stats";
 
 /**
  * Person history. Local pitch page: params and searchParams are Promises.

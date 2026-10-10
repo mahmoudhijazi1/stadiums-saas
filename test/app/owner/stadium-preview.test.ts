@@ -8,7 +8,7 @@ import { describe, expect, it } from "@jest/globals";
  * a link-variant Button and the real status pills, with the fixed colours next to the accent.
  */
 const SOURCE = readFileSync(
-  join(process.cwd(), "src", "app", "owner", "(app)", "more", "stadium", "stadium-form.tsx"),
+  join(process.cwd(), "src", "app", "owner", "(app)", "more", "stadium", "_components", "stadium-form.tsx"),
   "utf8",
 );
 

@@ -7,7 +7,7 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { submitCreatePitch } from "../actions";
-import { PitchDraftForm } from "../form";
+import { PitchDraftForm } from "@/app/owner/(app)/more/settings/pitches/_components/form";
 import {
   readHoursGroupsDraft,
   readPriceRulesDraft,
