@@ -1,5 +1,5 @@
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
-import { EXPENSES_RECORD, REPORTS_VIEW, can } from "@/modules/access/domain/can";
+import { EXPENSES_RECORD, REPORTS_VIEW, SHOP_SELL, can } from "@/modules/access/domain/can";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
@@ -18,10 +18,27 @@ import { listOwed } from "@/modules/booking/application/list-owed";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { RecordExpenseSheet } from "./expense-sheet";
-import { MoneyHeadline } from "./headline";
+import { Button } from "@/components/ui/button";
+import { activityHref } from "./query";
+import { CashToday, type CashTodayView } from "./cash-today";
+import { PeriodBar } from "./period-bar";
+import { SummaryCard } from "./summary-card";
 import { ActivityList } from "./activity";
-import { ShopCard } from "./shop-card";
+import { ShopRow, showsShopRow } from "./shop-row";
 import { loadActivityPage } from "./activity-load";
+import { summarizeCash } from "@/modules/payment/application/summarize-cash";
+import { cashLineCurrencies, type CashDay } from "@/modules/payment/domain/cash-day";
+import { businessDate, businessDayUtcRange } from "@/modules/booking/domain/business-day";
+import { getCurrentTenant } from "@/lib/tenant-context";
+import { formatCivilDate } from "@/modules/venue/domain/availability";
+
+function cashView(day: CashDay): CashTodayView {
+  const text = (value: CashDay["net"]) => ({
+    USD: value.USD.toFixed(2),
+    LBP: value.LBP.toFixed(0),
+  });
+  return { net: text(day.net), in: text(day.in), out: text(day.out), shown: cashLineCurrencies(day) };
+}
 
 function categoryLabel(category: ExpenseCategory, locale: UiLocale): string {
   return ui(`cat.${category}`, locale);
@@ -48,13 +65,23 @@ export async function OwnerMoney({
   const rate = await getCurrentRate();
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
   const mayViewReports = can(membership, REPORTS_VIEW);
+  const maySell = can(membership, SHOP_SELL);
   const summary = mayViewReports
     ? await summarizeLedgerPeriod({ from: range.from, to: range.to, compare: true })
     : null;
   const activity = mayViewReports
-    ? await loadActivityPage({ ...range, filter: periodQuery.filter }, locale)
+    ? await loadActivityPage({ ...range, filter: "all", limit: 5 }, locale)
     : null;
   const owed = mayViewReports ? await listOwed() : null;
+  // Cash today: only when the period contains today (the calendar day or the current business day,
+  // which differ between midnight and the day start). One more read, reports.view only.
+  const tenant = await getCurrentTenant();
+  const businessToday = businessDate(new Date(), tenant.dayStartHour);
+  const periodHasToday = [today, formatCivilDate(businessToday)].some((day) => day >= range.from && day <= range.to);
+  const cash =
+    mayViewReports && periodHasToday
+      ? await summarizeCash(businessDayUtcRange(businessToday, tenant.dayStartHour))
+      : null;
   const [shop, supplies] = mayViewReports
     ? await Promise.all([
         summarizeShopPeriod(range),
@@ -67,14 +94,23 @@ export async function OwnerMoney({
   return (
     <div className="flex flex-col gap-8">
       {summary ? (
-        <MoneyHeadline
-          summary={summary}
-          kind={kind}
-          view={periodQuery.view}
-          lbpPerUsd={displayRate}
-          rateKnown={displayRate !== null}
-          locale={locale}
-        />
+        <div className="flex flex-col gap-4">
+          <PeriodBar
+            kind={kind}
+            from={summary.from}
+            to={summary.to}
+            view={periodQuery.view}
+            rateKnown={displayRate !== null}
+            locale={locale}
+          />
+          <SummaryCard
+            summary={summary}
+            kind={kind}
+            view={periodQuery.view}
+            lbpPerUsd={displayRate}
+            locale={locale}
+          />
+        </div>
       ) : null}
 
       {owed && owed.games > 0 ? (
@@ -92,29 +128,44 @@ export async function OwnerMoney({
         </Link>
       ) : null}
 
-      {shop && supplies && (shop.items.length > 0 || supplies.gt(0)) ? (
-        <ShopCard summary={shop} suppliesUsd={supplies} locale={locale} />
-      ) : null}
+      {cash ? <CashToday view={cashView(cash)} locale={locale} /> : null}
 
-      {mayRecordExpense ? (
-        <RecordExpenseSheet
-          periodQuery={periodQuery}
-          today={today}
-          locale={locale}
-          lbpPerUsd={rate ? rate.toString() : null}
-          categoryOptions={EXPENSE_CATEGORIES.map((category) => ({
-            value: category,
-            label: categoryLabel(category, locale),
-          }))}
-        />
+      {mayRecordExpense || maySell ? (
+        <div className="flex gap-2">
+          {mayRecordExpense ? (
+            <RecordExpenseSheet
+              periodQuery={periodQuery}
+              today={today}
+              locale={locale}
+              lbpPerUsd={rate ? rate.toString() : null}
+              membershipId={membership.membershipId}
+              categoryOptions={EXPENSE_CATEGORIES.map((category) => ({
+                value: category,
+                label: categoryLabel(category, locale),
+              }))}
+            />
+          ) : null}
+          {maySell ? (
+            <Button asChild variant="secondary" className="min-h-11 flex-1">
+              <Link href="/owner/sell">{ui("owner.sell", locale)}</Link>
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {activity ? (
         <ActivityList
-          key={`${periodQuery.filter}-${range.from}-${range.to}`}
+          key={`recent-${range.from}-${range.to}`}
+          variant="recent"
+          allHref={activityHref({
+            period: kind,
+            from: kind === "custom" ? range.from : undefined,
+            to: kind === "custom" ? range.to : undefined,
+            view: periodQuery.view,
+          })}
           initialRows={activity.rows}
-          initialCursor={activity.nextCursor}
-          filter={periodQuery.filter}
+          initialCursor={null}
+          filter="all"
           range={range}
           periodKey={{
             period: kind,
@@ -126,6 +177,10 @@ export async function OwnerMoney({
           highlightFirst={highlightNew}
           locale={locale}
         />
+      ) : null}
+
+      {shop && supplies && showsShopRow(shop.items.length, supplies) ? (
+        <ShopRow salesUsd={shop.salesUsd} kind={kind} range={range} view={periodQuery.view} locale={locale} />
       ) : null}
     </div>
   );

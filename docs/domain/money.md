@@ -94,6 +94,17 @@ USD stays the unit of account; **LBP is the price tag and the payment**.
 
 When the cash handed over exceeds what is owed, the excess is **not** recorded: the last tender is reduced to what the sale or tab used and the rest is change for the customer, shown as "Change: X" / "الباقي للزبون: X" in the currency it was handed over in (pounds whole). So $10 for a $4.50 item records $4.50 with $5.50 change; 100,000 ل.ل for 60,000 ل.ل records 60,000 with 40,000 ل.ل change. Excess pounds first settle any dollar part at the current rate (and excess dollars any pound part); only what is beyond both parts is change. The sheets show the change live, computed by the same `applyPayment` the server runs. **Booking collection is unchanged**: it still accepts an overpay and records it in full (RULE-9/10, M8).
 
+### Cash today (a deliberate exception to "everything in USD")
+
+The Money tab shows one line, "Cash today: $140 · 2,700,000 ل.ل", when the selected period contains today. It answers "how many notes should be in the drawer", so it breaks two rules on purpose:
+
+- **Per currency, never converted.** It is the NET of the tenders as recorded: IN tenders minus OUT tenders (an expense paid in cash is OUT), summed separately for USD and LBP. No rate is applied and the two currencies are never added together. A currency that nets to zero is left out (both zero: "$0").
+- **One business day, not a period.** The window is the current business day, from `dayStartHour` to the same hour the next day, the same rule Today uses (`booking/domain/business-day.ts` `businessDate` and `businessDayUtcRange`). A payment recorded at 00:30 with a 06:00 day start belongs to the previous business day. The time of a payment is `Payment.createdAt`, when it was recorded (not the chosen date of an expense).
+
+How it is read: `payment/infrastructure/payments.ts` `sumTendersByDirectionAndCurrency`, one GROUP BY over `PaymentTender` joined to `Payment`, tenant stamped by hand (raw SQL); direction comes from the source type (EXPENSE is OUT; BOOKING and SALE are IN, as `recordPayment` writes the ledger). `payment/domain/cash-day.ts` `buildCashDay` makes the net, in and out per currency. `payment/application/summarize-cash.ts` needs `reports.view`. A tap on the line opens a sheet with in, out and net per currency.
+
+What it is not: it is a count of notes for one business day, never a value, never used in the profit, the totals, the ledger or any report. **Change handed back at the counter is not in it**, because change is never recorded as a tender (a walk-in sale keeps only what the sale owed; see "Change at the counter").
+
 ## 5. Invariants and where each is enforced
 
 | # | Invariant | Code | Database | Nowhere / notes |

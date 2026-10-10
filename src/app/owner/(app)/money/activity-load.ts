@@ -13,7 +13,7 @@ export type ActivityPageView = { rows: ActivityRowView[]; nextCursor: string | n
  * or expense. Each read checks reports.view itself.
  */
 export async function loadActivityPage(
-  input: { from: string; to: string; filter: "all" | "in" | "out"; cursor?: string },
+  input: { from: string; to: string; filter: "all" | "in" | "out"; cursor?: string; limit?: number },
   locale: UiLocale,
 ): Promise<ActivityPageView> {
   const page = await listLedgerActivity(input);

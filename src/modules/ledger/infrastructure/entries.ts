@@ -60,6 +60,38 @@ export async function sumAmountUsdByDirection(
   return totals;
 }
 
+export type DirectionSourceTotal = {
+  direction: "IN" | "OUT";
+  sourceType: string;
+  usd: Decimal;
+  rows: number;
+};
+
+/**
+ * The same period sums as `sumAmountUsdByDirection`, split by source type, with the row count
+ * of each group: one GROUP BY (direction, sourceType). The Money summary derives In, Out, the
+ * In-by-source line and "the previous period has rows" from this one read. No sourceType filter,
+ * so a future source (academy, ...) appears without editing this query.
+ */
+export async function sumAmountUsdByDirectionAndSource(
+  tx: TenantTx,
+  startInclusive: Date,
+  endExclusive: Date,
+): Promise<DirectionSourceTotal[]> {
+  const groups = await tx.ledgerEntry.groupBy({
+    by: ["direction", "sourceType"],
+    where: { occurredAt: { gte: startInclusive, lt: endExclusive } },
+    _sum: { amountUsd: true },
+    _count: { _all: true },
+  });
+  return groups.map((group) => ({
+    direction: group.direction,
+    sourceType: group.sourceType,
+    usd: new Decimal(group._sum.amountUsd ? group._sum.amountUsd.toString() : "0"),
+    rows: group._count._all,
+  }));
+}
+
 export type LedgerEntryRow = {
   id: string;
   direction: "IN" | "OUT";

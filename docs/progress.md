@@ -6573,3 +6573,54 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **Honest limits:** `npx tsc --noEmit` was run twice at the end (the first run found a leftover `"blue"` key in one test, fixed). Nothing was rendered: the preview, the colour variables and the `inert` block are untested in a browser. UNVERIFIED: that `inert` is accepted by this React/TS version (tsc passed, so the type exists) and that the previewed colours show in both themes.
 
 **How to verify:** NOT run. `npm test`; then by hand open More > Stadium info in light and dark, pick each colour, and check the button, the pill, the link and the paid, owed and expected pills.
+
+
+## Money page v2, commit 1 of 4: summary card and cash today (branch `ui/money-v2`)
+
+**What:** the headline and the two In/Out tiles became **one summary card** (`money/summary-card.tsx`): "Profit in October" (or "Loss ...", neutral colour) as the one big figure; the comparison line only when the period before has at least one ledger row (it used to show against an empty period); "In $197 · Out $80", each part opening the activity filtered In or Out; and one muted line splitting In by source from the existing sourceType mapping ("Games $175 · Shop $22", hidden with one source; a future source appears through `sourceName` in `activity-map.ts`, generic until named). The period chip and the $ / LBP toggle are unchanged (`period-bar.tsx`, extracted). `headline.tsx` is gone.
+- **Cash today** (`cash-today.tsx`, `payment/{infrastructure/payments.ts,domain/cash-day.ts,application/summarize-cash.ts}`): one line "Cash today: $140 · 2,700,000 ل.ل" when the period contains today (the calendar day or the current business day); a tap opens a sheet with in, out and net per currency. NET physical cash per currency, never converted or combined, for the current BUSINESS day (`dayStartHour`, same rule as Today); `reports.view`. Documented in `docs/domain/money.md` as a deliberate exception.
+- **Queries per Money render (owner with every permission), money-specific, the layout's membership and tenant reads excluded:** before: rate 1, ledger summary 2 (this period and the previous), activity page 1 + up to 5 name reads (bookings, expenses, sales), owed 2, shop 1, shop supplies 1 = 8 to 13. After this commit: the same, with the summary's two reads now GROUP BY (direction, source) in place of GROUP BY direction (no extra query), plus **1** for cash today (only when the period contains today). So +1 at most.
+- No change to money logic: the ledger, payments and how anything is recorded are untouched; one new read-only query and a widened GROUP BY.
+
+**Files:** `ledger/infrastructure/entries.ts` (`sumAmountUsdByDirectionAndSource`), `ledger/application/summarize-ledger-period.ts` (`inBySource`, `rows`), `payment/**` (above), `app/owner/(app)/money/{panel,period-bar,summary-card,cash-today,activity-map}.ts(x)`, `lib/ui-copy.ts`, `docs/domain/money.md`.
+
+**How to verify:** NOT run (no test, build or lint). Tests are in commit 4. By hand: open Money this month (profit, comparison, In/Out, split), a month with no previous rows (no comparison), a period without today (no cash line), then take a payment after midnight and check which business day the cash line counts it in.
+
+
+## Money page v2, commit 2 of 4: actions row and recent activity (branch `ui/money-v2`)
+
+**What:**
+- **Actions row** under the Owed card (and the cash line): **"+ Expense" / "+ مصروف"**, the one primary button on the page (`expenses.record`), opening the existing expense sheet at once with the amount field focused (`autoFocus` on the dollar field), the category as **chips ordered by this member's most recently used first**, today as the date and the note optional (a blank note is saved as the category's name by `submitRecordExpense`; the schema and `recordExpense` are untouched). **"Sell" / "بيع"** is a secondary button to `/owner/sell` (`shop.sell`). Each is hidden without its permission.
+  - The "most recently used" order is kept **in this browser, per member** (`localStorage` key `expense-categories:<membershipId>`, written when the form is submitted; `expense/domain/category-order.ts` `orderCategories` / `rememberCategory`). Expenses do not record who made them and the task forbids changing how anything is recorded, so a server-side per-member order was not possible without a schema change and an extra query. Another device or a cleared browser starts from the default order.
+- **Recent activity:** the 5 most recent ledger rows of the selected period, no filters, with a link "All activity ›" / "كل الحركات ›". `listLedgerActivity` and `loadActivityPage` take an optional `limit` (default 20, capped at 20). The saved-expense highlight still marks the newest row.
+- **All activity moved to `/owner/money/activity`** (`money/activity/page.tsx`): day grouping, All/In/Out chips and keyset "Show more" are the same `ActivityList` (now with a `variant`, "full" or "recent"); the period, the view and the filter are in the URL, and "In $197" / "Out $80" on the summary card open it already filtered (`activityHref` in `money/query.ts`). reports.view. The period parsing moved to `money/period-url.ts` (`readPeriodQuery`, `resolvePeriod`) so Money and Activity share it.
+- **Queries per Money render:** recent activity reads 6 ledger rows instead of 21 and the same name reads for at most 5 ids; no query was added. Still +1 over the original (cash today).
+
+**Files:** `money/{panel,expense-sheet,actions,activity,query,period-url,summary-card}.ts(x)`, `money/activity/page.tsx`, `ledger/application/list-ledger-activity.ts`, `expense/domain/category-order.ts`, `lib/ui-copy.ts`.
+
+**How to verify:** NOT run (no test, build or lint). Tests in commit 4. By hand: tap "+ Expense" (the sheet opens with the dollar field focused), record an expense in a category, reopen: that category is first; open Money as staff with only `expenses.record` (no reports: no Money page content, see commit 4); check "All activity" keeps the period, and the In/Out links on the summary card open the right filter.
+
+
+## Money page v2, commit 3 of 4: the shop row and the shop page (branch `ui/money-v2`)
+
+**What:** the Shop card (sales and supplies side by side, plus the item list) is gone from Money. In its place, one row: **"Shop · sales $X this month ›" / "المتجر · مبيعات $X هذا الشهر ›"** (`money/shop-row.tsx`, the period phrase follows the chip: today, this week, this month, or "in <name>"), shown only when the period has shop sales or shop-supply expenses. It opens **`/owner/money/shop`** (`money/shop/page.tsx`, reports.view): the sales total, the shop-supplies total, the caption "Sales include items on games that are not paid yet." and the items sold (name, quantity, total). Sales and supplies are never side by side on the main page; the period and the view ride in the URL (`shopHref`). The same two reads as before (`summarizeShopPeriod`, `sumExpenseCategory`) feed the row and the page: no query was added on Money.
+
+**Files:** `money/{shop-row.tsx,shop/page.tsx,panel.tsx,query.ts}`, `lib/ui-copy.ts` (`shopRowLine`, `owner.shopNoSales`), `shop-card.tsx` removed.
+
+**How to verify:** NOT run (no test, build or lint). Tests in commit 4. By hand: a month with shop sales (the row shows, the page lists items), a month with only a shop-supplies expense (the row shows "sales $0"), a month with neither (no row).
+
+
+## Money page v2, commit 4 of 4: tests (written, NOT run) and docs (branch `ui/money-v2`)
+
+**Tests, none run:**
+- Unit: `test/modules/payment/domain/cash-day.test.ts` (net per currency, an expense paid in pounds lowers only the pound net, several tenders add up, empty day, which currencies the line shows); `test/modules/expense/domain/category-order.test.ts` (most recent first, junk from storage ignored, nothing dropped or duplicated, the remembered list stays short); `test/app/owner/money/money-page.test.ts` (Profit / Loss labels in both languages; the comparison hidden when the previous period has no row and shown with one; In split by source listed and hidden with one source or a source with no money; a known source named and a future one shown generically; the In / Out / activity / shop links keep the period, the view and open the right filter; the shop row only with sales or supplies and its phrase).
+- Integration: `test/integration/money-v2.integration.test.ts`: the summary splits In by source, counts rows, previous period zero rows when empty and a loss is negative; **cash today**: net per currency never converted, an expense paid in pounds, a payment at 00:30 belongs to the previous business day (day start 6) and one at 08:00 to the next, an empty day, another stadium's cash never counted, **change handed back is not counted** (a $20 note for a $4.50 sale is $4.50 of cash), an expense recorded through the use case is OUT in the currency paid, and staff with no flags / only `expenses.record` / only `shop.sell` get neither the cash nor the summary; **recent activity** shows at most 5 rows (the limit is capped at the page size); **the activity page** keeps its filter and keyset pages with no row repeated or skipped (20 + 5 In, 5 Out); the shop numbers sum by period (September vs October) with shop supplies separate; staff without reports.view cannot read activity or shop numbers.
+- Not covered by a test: the focus of the amount field, the sheet's chip order in a browser (the pure ordering is tested), the "Money page" gate as a page render (the page shows nothing without reports.view; the use cases that feed it refuse, which is tested).
+
+**Docs:** `ui-rules.md` rule 10 (the Money page layout), `domain/money.md` (cash today, from commit 1), `owner-ia.md` (the new Money layout and sub-pages), `NOW.md`, `ROADMAP.md` (expenses by category, stock and shop profit, a server-side category order, cash by drawer).
+
+**Query count per Money render (money-specific; the layout's membership and tenant reads excluded), before and after:** before 8 to 13 (rate 1, ledger 2, activity 1 + up to 5 name reads, owed 2, shop 1, shop supplies 1); after 9 to 14: the same, plus exactly 1 for cash today when the period contains today. Recent activity reads fewer rows, not more queries; the expense-category order is browser-side; the shop row reuses the two shop reads.
+
+**Honest limits:** `npx tsc --noEmit` was run twice at the end (the first run found a duplicate `owner.noteOptional` key and two `PageProps` route types that only exist after a build; fixed). Nothing was rendered or run. UNVERIFIED: the raw SQL of cash today against a real database, `autoFocus` inside the bottom sheet, and `localStorage` ordering in a browser.
+
+**How to verify:** `npm test`, `npm run test:integration`, `npm run build`; then by hand the checks listed in commits 1 to 3.

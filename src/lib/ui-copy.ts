@@ -380,6 +380,14 @@ const ARABIC: Record<string, string> = {
   "owner.activityAll": "الكل",
   "owner.activityEmpty": "لا حركة في هذه الفترة.",
   "owner.activityGame": "مباراة",
+  "owner.sourceGames": "مباريات",
+  "owner.recentActivity": "آخر الحركات",
+  "owner.shopNoSales": "لا مبيعات في هذه الفترة.",
+  "owner.allActivity": "كل الحركات",
+  "owner.expensePlus": "+ مصروف",
+  "owner.cashToday": "النقد اليوم",
+  "owner.cashNet": "الصافي",
+  "owner.cashTodayNote": "الأوراق والعملات التي تغيّر مكانها في يوم العمل هذا، كل عملة على حدة. ليست قيمة ولا تدخل في المجاميع.",
   "owner.activityPlayer": "لاعب",
   "owner.activityExpense": "مصروف",
   "owner.activityGeneric": "حركة",
@@ -906,6 +914,14 @@ const ENGLISH: Record<string, string> = {
   "owner.activityAll": "All",
   "owner.activityEmpty": "Nothing moved in this period.",
   "owner.activityGame": "Game",
+  "owner.sourceGames": "Games",
+  "owner.recentActivity": "Recent activity",
+  "owner.shopNoSales": "No sales in this period.",
+  "owner.allActivity": "All activity",
+  "owner.expensePlus": "+ Expense",
+  "owner.cashToday": "Cash today",
+  "owner.cashNet": "Net",
+  "owner.cashTodayNote": "Notes and coins that changed hands in this business day, each currency on its own. Not a value and not part of the totals.",
   "owner.activityPlayer": "Player",
   "owner.activityExpense": "Expense",
   "owner.activityGeneric": "Payment",
@@ -1325,6 +1341,26 @@ export function hoursEmptyState(
     title: ui("public.closed", locale),
     next: ui("public.closedNext", locale),
   };
+}
+
+/**
+ * The Money page's shop row: "Shop · sales $120 this month". The amount stays inside the phrase so
+ * the caller can isolate it; the period reads as a short phrase ("this month", "today", ...).
+ */
+export function shopRowLine(
+  kind: "today" | "week" | "month" | "last" | "custom",
+  name: string,
+  amount: string,
+  locale: UiLocale = "ar",
+): string {
+  if (locale === "en") {
+    const when =
+      kind === "today" ? "today" : kind === "week" ? "this week" : kind === "month" ? "this month" : `in ${name}`;
+    return `Shop · sales ${amount} ${when}`;
+  }
+  const when =
+    kind === "today" ? "اليوم" : kind === "week" ? "هذا الأسبوع" : kind === "month" ? "هذا الشهر" : `في ${name}`;
+  return `المتجر · مبيعات ${amount} ${when}`;
 }
 
 /** Pending heading with a Western count. */

@@ -5,6 +5,8 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { parseLbp, parseUsd } from "@/lib/money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { recordExpense } from "@/modules/expense/application/record-expense";
+import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
+import { ui } from "@/lib/ui-copy";
 import { parseRecordExpense } from "@/modules/expense/schemas/record-expense";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { field, redirectOwner } from "@/app/owner/form-query";
@@ -15,9 +17,12 @@ const MONEY_KEEP = ["period", "filter", "from", "to", "view", "displayRate"] as 
 export async function submitRecordExpense(formData: FormData) {
   let errorKey: string | undefined;
   try {
+    // The note is optional on the sheet: a blank one is saved as the category's name.
+    const category = field(formData, "category");
+    const note = field(formData, "description").trim();
     const parsed = parseRecordExpense({
-      category: field(formData, "category"),
-      description: field(formData, "description"),
+      category,
+      description: note || ((EXPENSE_CATEGORIES as readonly string[]).includes(category) ? ui(`cat.${category}`, await getUiLocale()) : ""),
       occurredOn: field(formData, "occurredOn"),
       usdAmount: field(formData, "usdAmount"),
       lbpAmount: field(formData, "lbpAmount"),

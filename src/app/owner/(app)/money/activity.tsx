@@ -26,7 +26,7 @@ import {
 } from "./activity-map";
 import { formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/money-display";
 import { loadMoreActivity } from "./actions";
-import { moneyHref } from "./query";
+import { activityHref } from "./query";
 
 const ICONS = { booking: Trophy, expense: Receipt, shop: Store, generic: ShoppingBag } as const;
 
@@ -50,7 +50,13 @@ export function ActivityList({
   now,
   highlightFirst,
   locale,
+  variant = "full",
+  allHref,
 }: {
+  /** "recent": the Money page's short list (no chips, no Show more, a link to the full page). */
+  variant?: "full" | "recent";
+  /** Where "All activity" goes (recent variant). */
+  allHref?: string;
   initialRows: ActivityRowView[];
   initialCursor: string | null;
   filter: Filter;
@@ -99,12 +105,13 @@ export function ActivityList({
 
   return (
     <section id="activity" className="flex scroll-mt-4 flex-col gap-3">
-      <h3 className="type-section">{ui("owner.activity", locale)}</h3>
+      <h3 className="type-section">{ui(variant === "recent" ? "owner.recentActivity" : "owner.activity", locale)}</h3>
+      {variant === "full" ? (
       <div role="group" aria-label={ui("owner.activity", locale)} className="flex gap-2">
         {chips.map((chip) => (
           <Link
             key={chip.value}
-            href={moneyHref({ ...periodKey, filter: chip.value })}
+            href={activityHref({ ...periodKey, filter: chip.value })}
             scroll={false}
             aria-current={filter === chip.value ? "true" : undefined}
             className={cn(
@@ -116,6 +123,7 @@ export function ActivityList({
           </Link>
         ))}
       </div>
+      ) : null}
 
       {rows.length === 0 ? (
         <p className="type-secondary">{ui("owner.activityEmpty", locale)}</p>
@@ -144,10 +152,19 @@ export function ActivityList({
           {error}
         </p>
       ) : null}
-      {cursor ? (
+      {variant === "full" && cursor ? (
         <Button type="button" variant="secondary" className="w-full" onClick={more} disabled={pending}>
           {ui("owner.showMore", locale)}
         </Button>
+      ) : null}
+      {variant === "recent" && allHref ? (
+        <Link
+          href={allHref}
+          className="inline-flex min-h-11 items-center gap-1 self-start rounded-md type-label text-action-ink outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {ui("owner.allActivity", locale)}
+          <span aria-hidden className="rtl:rotate-180">›</span>
+        </Link>
       ) : null}
 
       <ExpenseDetailSheet detail={detail} onClose={() => setDetail(null)} locale={locale} />

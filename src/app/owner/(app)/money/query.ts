@@ -4,6 +4,24 @@ import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
  * The Money tab's own URL state. A named period keeps just `period`; custom keeps from/to.
  * Pure, so the links, the sheet and the redirect after saving an expense agree.
  */
+/**
+ * The all-activity page's URL: the period, the view and the In / Out filter ride along, so
+ * "In $197" on Money opens the activity already filtered, and a filter chip keeps the period.
+ */
+export function activityHref(
+  query: Partial<Pick<LedgerPeriodQuery, "period" | "from" | "to" | "view" | "displayRate" | "filter">>,
+): string {
+  const href = moneyHref(query);
+  return href.replace("/owner/money", "/owner/money/activity");
+}
+
+/** The shop page of the same period (items sold and shop supplies). */
+export function shopHref(
+  query: Partial<Pick<LedgerPeriodQuery, "period" | "from" | "to" | "view">>,
+): string {
+  return moneyHref(query).replace("/owner/money", "/owner/money/shop");
+}
+
 export function moneyHref(
   query: Partial<Pick<LedgerPeriodQuery, "period" | "from" | "to" | "view" | "displayRate" | "filter">>,
   extra: Record<string, string> = {},

@@ -34,10 +34,17 @@ Do not grow a destination by stacking another product’s UI on it. If it is not
 
 **Money** (`/owner/money` — URL kept; label is المال / Money):
 
-- Period summary: difference is the hero; In = Volt, Out = due-muted; CSS In/Out bars from the two totals (no library, no extra query). Default range is this Beirut calendar month when `from`/`to` are omitted
-- Period GET form (From/To/View/Display rate) collapsed behind “Change period”
-- Recent expenses as compact rows (category icon, description, date, amount). Record form collapsed behind “Add expense”
-- `getCurrentRate()` is a **read** for the LBP display fallback only
+Money page v2 (2026-10-15), top to bottom:
+
+1. The period chip and the $ / LBP toggle (when a rate is known). Default range is this Beirut calendar month when `from`/`to` are omitted.
+2. **Summary card:** "Profit in October" (or "Loss ...", neutral colour) as the one figure; a comparison line only when the previous period has a ledger row; "In $X · Out $Y" (each opens `/owner/money/activity` filtered); a muted In-by-source line ("Games $175 · Shop $22") when there are two or more sources.
+3. **Owed** card (unchanged), when something is owed.
+4. **Cash today** line when the period contains today: net cash per currency for the current business day, never converted; a tap opens in / out / net per currency (`reports.view`; see [domain/money.md](./domain/money.md)).
+5. **Actions row:** "+ Expense" (`expenses.record`, the one primary button: the sheet opens with the amount focused, category chips most recent first per member and browser, today, optional note) and "Sell" (`shop.sell`).
+6. **Recent activity:** the 5 latest rows with "All activity ›".
+7. **Shop row** "Shop · sales $X this month ›" (only with shop sales or supplies) to `/owner/money/shop`.
+
+Sub-pages: `/owner/money/activity` (day grouping, All/In/Out, keyset "Show more"; period and filter in the URL), `/owner/money/shop` (sales, supplies, items sold, caption) and `/owner/money/owed`. `getCurrentRate()` is a **read** for the LBP display fallback only.
 
 **More** (`/owner/more`) is the settings hub. `/owner/more/settings` redirects here and keeps `ok` / `error`.
 
