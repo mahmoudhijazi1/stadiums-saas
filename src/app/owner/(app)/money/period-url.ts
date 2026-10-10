@@ -4,7 +4,8 @@ import {
   type LedgerPeriodQuery,
 } from "@/modules/ledger/schemas/period-query";
 import { rangeForPeriod, type CivilRange, type PeriodKind } from "@/modules/ledger/domain/period";
-import { OWNER_TIME_ZONE, queryString } from "@/app/owner/shared";
+import { OWNER_TIME_ZONE } from "@/lib/format/time";
+import { queryString } from "@/lib/search-params";
 
 /** The Money pages' URL state (period, filter, custom range, view), shared by Money and Activity. */
 export function readPeriodQuery(params: {

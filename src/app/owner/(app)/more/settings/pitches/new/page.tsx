@@ -1,5 +1,6 @@
 import { OwnerBackLink } from "@/components/shell/back-link";
-import { queryString, requireOwnerMembership } from "@/app/owner/shared";
+import { queryString } from "@/lib/search-params";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";

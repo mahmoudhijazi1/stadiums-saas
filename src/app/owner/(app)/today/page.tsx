@@ -1,8 +1,6 @@
 import { Suspense } from "react";
-import {
-  queryString,
-  requireOwnerMembership,
-} from "@/app/owner/shared";
+import { queryString } from "@/lib/search-params";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { OwnerToday } from "./lists";
 import { TodayListsSkeleton } from "./skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";

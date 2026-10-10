@@ -2,7 +2,7 @@
 
 import { actionErrorKey } from "@/lib/use-case-error";
 import { saveStadiumInfo } from "@/modules/stadium/application/stadium-info";
-import { field, redirectOwner } from "@/app/owner/form-query";
+import { field, redirectOwner } from "@/lib/form-query";
 
 const PATH = "/owner/more/stadium";
 

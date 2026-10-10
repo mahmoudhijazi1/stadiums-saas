@@ -7058,3 +7058,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** shell imports module ui only, never application or infrastructure.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
+
+## Refactor step 6c, commit 2: shared.tsx and form-query.ts
+
+**When:** 2026-10-10
+
+**What:** shared.tsx held (a) OWNER_TIME_ZONE and three clock/range formatters bound to it, (b) queryString (searchParams to a string), (c) requireOwnerMembership (auth gate with redirect). form-query.ts held field (FormData reader), ownerQuery and redirectOwner (keep the tab's query after a POST). None knows a business word, so: the time zone constant and formatters went to lib/format/time.ts, queryString to lib/search-params.ts, form-query.ts to lib/form-query.ts (git mv), and the auth gate stays in app as owner/require-owner.ts (git mv of shared.tsx) because it needs the access module and next/navigation redirect, which lib may not import. 31 importers rewritten per name.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/{format/time,search-params,form-query}.ts, src/app/owner/require-owner.ts, importers
+
+**How it connects:** lib imports no module; require-owner is app code.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.

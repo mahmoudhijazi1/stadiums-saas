@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { OwnerBackLink } from "@/components/shell/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";

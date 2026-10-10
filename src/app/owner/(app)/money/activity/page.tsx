@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { OwnerBackLink } from "@/components/shell/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";

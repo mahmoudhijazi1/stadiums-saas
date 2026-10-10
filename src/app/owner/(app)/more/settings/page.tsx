@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 
 /**
  * The settings monolith moved onto /owner/more.

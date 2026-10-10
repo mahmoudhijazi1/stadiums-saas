@@ -244,3 +244,40 @@ function civilDayNumber(instant: Date, timeZone: string): number {
   const [year, month, day] = key.split("-").map(Number);
   return Math.round(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1) / 86_400_000);
 }
+
+/** The owner app's time zone (every stadium is in Lebanon today). */
+export const OWNER_TIME_ZONE = "Asia/Beirut";
+
+export function formatLocalRange(
+  start: Date,
+  end: Date,
+  hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
+): string {
+  const range = formatClockRangeText(
+    start,
+    end,
+    OWNER_TIME_ZONE,
+    hourCycle,
+    locale,
+  );
+  return `${range} (${OWNER_TIME_ZONE})`;
+}
+
+/** Time range without the zone name (Home compact rows). */
+export function formatLocalClockRange(
+  start: Date,
+  end: Date,
+  hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
+): string {
+  return formatClockRangeText(start, end, OWNER_TIME_ZONE, hourCycle, locale);
+}
+
+export function formatLocalClock(
+  value: Date,
+  hourCycle: HourCycle = "h23",
+  locale: ClockLocale = "en",
+): string {
+  return formatLocalHm(value, OWNER_TIME_ZONE, hourCycle, locale);
+}

@@ -14,7 +14,7 @@ import { formatUsdCompact } from "@/lib/format/money";
 import { ui, uiCount } from "@/lib/copy";
 import { countHiddenRequests } from "@/modules/booking/application/count-hidden-requests";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import type { HourCycle } from "@/app/owner/shared";
+import type { HourCycle } from "@/lib/format/time";
 import type { DebtWarning } from "@/modules/booking/domain/debt-warning";
 import { DecisionNotifySheet } from "@/modules/booking/ui/decision-notify";
 import { FreeSlots } from "./free-slots";

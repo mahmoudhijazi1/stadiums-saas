@@ -53,11 +53,7 @@ import { formatParts } from "@/lib/format/money";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { SHOP_SELL } from "@/modules/access/domain/can";
 import type { NetLine } from "@/modules/shop/domain/booking-items";
-import {
-  formatLocalClock,
-  formatLocalClockRange,
-  type HourCycle,
-} from "@/app/owner/shared";
+import { formatLocalClock, formatLocalClockRange, type HourCycle } from "@/lib/format/time";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import {
   loadOutcomeNotify,

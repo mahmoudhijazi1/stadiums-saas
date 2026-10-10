@@ -1,5 +1,5 @@
 import { OwnerBackLink } from "@/components/shell/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";

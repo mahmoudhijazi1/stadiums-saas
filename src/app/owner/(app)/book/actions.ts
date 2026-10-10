@@ -4,7 +4,7 @@ import { actionErrorKey } from "@/lib/use-case-error";
 import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";
 import { createSeries } from "@/modules/booking/application/create-series";
 import { parseOwnerCreateBooking } from "@/modules/booking/schemas/owner-create-booking";
-import { field, redirectOwner } from "@/app/owner/form-query";
+import { field, redirectOwner } from "@/lib/form-query";
 
 const BOOK_KEEP = ["bookOn"] as const;
 const TODAY_KEEP = ["date", "pitch"] as const;

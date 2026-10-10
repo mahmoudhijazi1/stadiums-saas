@@ -4,10 +4,7 @@ import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitch
 import type { UiLocale } from "@/lib/locale";
 import { uiCount } from "@/lib/copy";
 import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
-import {
-  formatLocalClockRange,
-  type HourCycle,
-} from "@/app/owner/shared";
+import { formatLocalClockRange, type HourCycle } from "@/lib/format/time";
 import type { DebtNotice } from "@/modules/booking/ui/notify-list";
 import { FreeSlotList } from "@/modules/booking/ui/free-slot-list";
 

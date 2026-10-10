@@ -6,11 +6,9 @@ import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { OwnerBookSlots } from "./slots";
 import { parseOwnerBookOn } from "./date";
 import { BookSlotsSkeleton } from "./skeleton";
-import {
-  OWNER_TIME_ZONE,
-  queryString,
-  requireOwnerMembership,
-} from "@/app/owner/shared";
+import { OWNER_TIME_ZONE } from "@/lib/format/time";
+import { queryString } from "@/lib/search-params";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { OwnerBackLink } from "@/components/shell/back-link";
 import { DayChips } from "@/modules/venue/ui/day-chips";
 import { EmptyState } from "@/components/ui/empty-state";

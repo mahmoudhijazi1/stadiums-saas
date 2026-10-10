@@ -5,7 +5,7 @@ import { listLivePitchWindows } from "@/modules/booking/application/list-live-pi
 import { createPitch } from "@/modules/venue/application/create-pitch";
 import { updatePitch } from "@/modules/venue/application/update-pitch";
 import { parsePitchDraft } from "@/modules/venue/schemas/pitch-draft";
-import { field, redirectOwner } from "@/app/owner/form-query";
+import { field, redirectOwner } from "@/lib/form-query";
 
 const PITCH_KEEP = [
   "name",

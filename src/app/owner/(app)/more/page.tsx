@@ -1,4 +1,4 @@
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { MoreHub } from "./hub";
 import { SETTINGS_MANAGE, SHOP_MANAGE, can } from "@/modules/access/domain/can";
 import {

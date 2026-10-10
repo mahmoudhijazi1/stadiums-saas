@@ -3,7 +3,7 @@ import { getDayAvailability } from "@/modules/venue/application/get-day-availabi
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { civilFromYyyyMmDd } from "./date";
 import { OwnerSlotPicker } from "@/modules/booking/ui/book-picker";
-import { OWNER_TIME_ZONE } from "@/app/owner/shared";
+import { OWNER_TIME_ZONE } from "@/lib/format/time";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentTenant } from "@/lib/tenant-context";

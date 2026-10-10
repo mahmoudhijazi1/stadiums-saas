@@ -1,5 +1,6 @@
 import { OwnerBackLink } from "@/components/shell/back-link";
-import { formatLocalClockRange, requireOwnerMembership } from "@/app/owner/shared";
+import { formatLocalClockRange } from "@/lib/format/time";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Figure } from "@/components/ui/figure";
 import { getUiLocale } from "@/lib/get-ui-locale";
