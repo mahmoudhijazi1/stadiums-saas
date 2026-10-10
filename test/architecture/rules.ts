@@ -72,9 +72,6 @@ export const EXCEPTIONS: Exception[] = [
   { file: "src/lib/tenant-settings.ts", target: "src/modules/stadium/domain/map-link", rule: 5,
     reason: "validates the map link stored in settings",
     fate: "goes with the split of tenant-settings by key group" },
-  { file: "src/lib/tenant-context.ts", target: "src/modules/stadium/domain/brand-presets", rule: 5,
-    reason: "tenant context carries the brand preset key for the accent colour",
-    fate: "tenant context reads it from the stadium module application in a later step" },
 ];
 
 /** Rule 2: libs a domain or schemas file must not import (they stay pure). */

@@ -2,12 +2,12 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import type { BrandPresetKey } from "@/modules/stadium/domain/brand-presets";
 import { DomainError } from "@/lib/errors";
 import { platformDb } from "@/lib/platform-db";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
   parseTenantSettings,
+  type TenantSettings,
   type TimeDisplay,
 } from "@/lib/tenant-settings";
 
@@ -31,7 +31,7 @@ export type CurrentTenant = {
   phone: string;
   /** The WhatsApp number to use: the phone when "same number" is on, else the separate one. */
   whatsapp: string;
-  brandPreset: BrandPresetKey;
+  brandPreset: TenantSettings["brandPreset"];
 };
 
 /**

@@ -6946,3 +6946,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** shop/ui imports shop/domain, payment/ui (tonal-collect, along the shop -> payment edge) and lib only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 5: tenant-context stops importing stadium
+
+**When:** 2026-10-10
+
+**What:** lib/tenant-context.ts typed brandPreset with BrandPresetKey from stadium/domain/brand-presets; it now types it as TenantSettings['brandPreset'] (from lib/tenant-settings, same type) and returns the stored key as before. The code that needs colours already resolves the key through the stadium module (stadium/domain/brand-identity and accent-css). Removed the rule-5 exception.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/tenant-context.ts, test/architecture/rules.ts
+
+**How it connects:** lib/tenant-context no longer imports any module.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
