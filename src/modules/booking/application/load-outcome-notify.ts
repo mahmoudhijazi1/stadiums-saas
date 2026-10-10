@@ -7,7 +7,7 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { formatUsdCompact } from "@/lib/format/money";
 import { publicPageUrl } from "@/lib/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { findBookingFeeState } from "@/modules/booking/infrastructure/bookings";

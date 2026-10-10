@@ -18,10 +18,10 @@ import { Input } from "@/components/ui/input";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { formatParts } from "@/lib/format/money";
-import { changeDescription, soldToast, ui } from "@/lib/ui-copy";
+import { changeDescription, soldToast, ui } from "@/lib/copy";
 import { submitWalkInSale } from "./actions";
 
 export type { SellItem };

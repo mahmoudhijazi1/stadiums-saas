@@ -30,7 +30,7 @@ import {
   type UiLocale,
 } from "@/lib/locale";
 import type { TimeDisplay } from "@/lib/tenant-settings";
-import { dayStartClock, ui, uiCount } from "@/lib/ui-copy";
+import { dayStartClock, ui, uiCount } from "@/lib/copy";
 import { SelectField } from "@/components/ui/select-field";
 import { Figure } from "@/components/ui/figure";
 import { SettingsRow, SettingsSection } from "./settings-list";

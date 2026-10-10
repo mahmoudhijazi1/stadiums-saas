@@ -5,7 +5,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/format/money";
 import { groupDigits } from "@/lib/format/money";
-import { comparisonLine, profitHeadline, ui } from "@/lib/ui-copy";
+import { comparisonLine, profitHeadline, ui } from "@/lib/copy";
 import type { LedgerPeriodSummary } from "@/modules/ledger/application/summarize-ledger-period";
 import { isCalendarMonth, previousRange, type PeriodKind } from "@/modules/ledger/domain/period";
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";

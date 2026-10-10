@@ -4,7 +4,7 @@ import { weeklyWeekdayAndTime } from "@/app/owner/(app)/series/labels";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";

@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import {
   bookerPaysAllLabel,
   paidOfLine,
   playerLabel,
   ui,
-} from "@/lib/ui-copy";
+} from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

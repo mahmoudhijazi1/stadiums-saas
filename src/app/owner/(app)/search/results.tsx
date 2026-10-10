@@ -3,7 +3,7 @@ import { searchPeople } from "@/modules/people/application/search-people";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 export async function SearchResults({
   locale,

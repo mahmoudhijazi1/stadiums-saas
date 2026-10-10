@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { successMessage } from "@/lib/success-messages";
+import { successMessage } from "@/lib/copy/success";
 
 describe("successMessage", () => {
   it("returns catalog Arabic for a known key", () => {

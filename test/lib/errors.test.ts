@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import { DomainError, UnexpectedError } from "@/lib/errors";
 
 describe("DomainError", () => {

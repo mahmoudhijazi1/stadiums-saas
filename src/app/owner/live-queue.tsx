@@ -17,7 +17,7 @@ import {
   type LiveQueueSnapshot,
 } from "@/modules/booking/domain/live-queue";
 import type { UiLocale } from "@/lib/locale";
-import { uiCount } from "@/lib/ui-copy";
+import { uiCount } from "@/lib/copy";
 
 const LiveQueueContext = createContext<LiveQueueSnapshot | null>(null);
 

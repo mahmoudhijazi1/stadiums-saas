@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /** Debounced query in the URL so results stay a Server Component. */
 export function SearchField({

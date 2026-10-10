@@ -1,5 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 
 /**
  * Local wall-clock for a UTC instant in a named IANA zone.

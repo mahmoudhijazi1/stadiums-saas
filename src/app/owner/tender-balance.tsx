@@ -4,10 +4,10 @@ import Decimal from "decimal.js";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsd } from "@/lib/format/money";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { previewTenders } from "@/modules/payment/domain/tender-preview";
 
 /** Whole pounds with thousands commas ("895,000 LBP"): long LBP figures are hard to read. */

@@ -7,7 +7,7 @@ import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Thin Book RSC. Occupied from Booking; Venue only UTC ranges.

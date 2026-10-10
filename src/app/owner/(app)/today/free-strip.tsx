@@ -9,7 +9,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { shortPeriod, splitDisplayedClock } from "@/lib/format/time";
 import type { FreeChip, FreeStripPitch } from "@/modules/booking/domain/free-strip";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { cn } from "cn";
 import { submitCreateOwnerBooking } from "../book/actions";
 

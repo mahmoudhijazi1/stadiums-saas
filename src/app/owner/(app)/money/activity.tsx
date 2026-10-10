@@ -12,9 +12,9 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { cn } from "cn";
 import {
   dayHeading,

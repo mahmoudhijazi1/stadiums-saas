@@ -2,7 +2,7 @@ import { interestsWithoutPending } from "@/app/owner/(app)/requests/merge-slots"
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import type { UiLocale } from "@/lib/locale";
-import { uiCount } from "@/lib/ui-copy";
+import { uiCount } from "@/lib/copy";
 import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
 import {
   formatLocalClockRange,

@@ -34,7 +34,7 @@ import Decimal from "decimal.js";
 import { formatLocalHm } from "@/lib/format/time";
 import { formatUsd, formatUsdCompact } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
-import { dayStartClock, ui } from "@/lib/ui-copy";
+import { dayStartClock, ui } from "@/lib/copy";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";

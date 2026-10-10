@@ -12,7 +12,7 @@ import {
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /** Plain strings: this crosses to the client. Amounts are decimals as text, in their own currency. */
 export type CashTodayView = {

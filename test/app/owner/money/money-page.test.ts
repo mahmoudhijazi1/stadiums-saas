@@ -4,7 +4,7 @@ import { inSourceParts, showsComparison } from "@/app/owner/(app)/money/summary-
 import { sourceName } from "@/app/owner/(app)/money/activity-map";
 import { showsShopRow } from "@/app/owner/(app)/money/shop-row";
 import { activityHref, moneyHref, shopHref } from "@/app/owner/(app)/money/query";
-import { profitHeadline, shopRowLine, ui } from "@/lib/ui-copy";
+import { profitHeadline, shopRowLine, ui } from "@/lib/copy";
 
 /** Written, not run when authored. The Money page's pure pieces. */
 const d = (value: string) => new Decimal(value);

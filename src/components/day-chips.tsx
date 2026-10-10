@@ -8,7 +8,7 @@ import { DateCalendarChip } from "@/components/date-calendar-chip";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { dayChipClass } from "@/components/day-chip-class";
 import { cn } from "cn";
 

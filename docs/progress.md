@@ -6834,3 +6834,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** format/time.ts imports lib/locale and lib/ui-copy (relative time phrases) only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib/format: 66 passed). Full suites and build not run.
+
+## Refactor step 4, commit 3: copy split by area
+
+**When:** 2026-10-10
+
+**What:** src/lib/ui-copy.ts (1,616 lines) is now src/lib/copy/: one file per area (common, today, requests, money, shop, settings, public, account) each exporting its Arabic and English tables, ui.ts (merges them; ui() unchanged), counted.ts (COUNTED, countedForms, uiCount), helpers.ts (rejectReasonText and every phrase helper), types.ts and index.ts. Callers import from @/lib/copy; no other caller change. 530 keys moved verbatim (60+81+28+129+41+106+32+53), classified by key name; Arabic and English had identical key sets. error-messages.ts and success-messages.ts are copy tables, so they moved (git mv) to copy/errors.ts and copy/success.ts (import @/lib/copy/errors, @/lib/copy/success). New test/lib/copy/areas.test.ts: same keys in ar and en per area, no key in two areas, no empty strings. Existing ui-copy and success tests moved to test/lib/copy/ unchanged. docs/CODEMAP.md has a src/lib section.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/copy/*, every importer of ui-copy / error-messages / success-messages, test/lib/copy/*, docs/CODEMAP.md
+
+**How it connects:** copy/ imports lib/locale, lib/plural and lib/format/money only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib: 30 suites, 241 passed). Full suites and build not run.

@@ -2,7 +2,7 @@ import { loadFreeStrip } from "@/modules/booking/application/load-free-strip";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { FreeStrip } from "./free-strip";
 
 /** Server half of the free strip. Rendered in its own Suspense so it never blocks the list. */

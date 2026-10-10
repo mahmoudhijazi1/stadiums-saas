@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { errorMessage } from "@/lib/error-messages";
-import { ui } from "@/lib/ui-copy";
+import { errorMessage } from "@/lib/copy/errors";
+import { ui } from "@/lib/copy";
 import { submitLogin } from "@/app/owner/login/actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {

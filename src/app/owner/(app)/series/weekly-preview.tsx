@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "cn";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { seriesGamesLabel, ui } from "@/lib/ui-copy";
+import { seriesGamesLabel, ui } from "@/lib/copy";
 import { previewSeriesAction, type WeekView } from "./actions";
 
 export const WEEK_CHOICES = [4, 8, 12] as const;

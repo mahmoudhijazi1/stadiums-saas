@@ -9,7 +9,7 @@ import {
   otherUiLocale,
   type UiLocale,
 } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Header control. Sets cookie + html lang/dir (ar=rtl, en=ltr).

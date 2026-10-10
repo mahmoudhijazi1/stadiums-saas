@@ -2,7 +2,7 @@ import { OwnerBackLink } from "@/app/owner/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { loadStadiumInfo } from "@/modules/platform/application/stadium-info";
 import { submitStadiumInfo } from "./actions";

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState, type ComponentProps } from "react";
 import { Input } from "@/components/ui/input";
-import { groupedDigits } from "@/lib/ui-copy";
+import { groupedDigits } from "@/lib/copy";
 
 /** Latin digits only: Arabic-Indic and Persian digits are converted, everything else dropped. */
 export function toLbpDigits(text: string): string {

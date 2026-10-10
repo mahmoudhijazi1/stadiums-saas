@@ -3,7 +3,7 @@
 import { submitPublicSlotRequest } from "./request-slot";
 import { SlotPicker, type SlotPickerPitch } from "@/components/slot-picker";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Public hours grid. Action + date query stay here; the picker is shared.

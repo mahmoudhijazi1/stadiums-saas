@@ -4,9 +4,9 @@ import { useEffect, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { seriesGamesCount, ui } from "@/lib/ui-copy";
+import { seriesGamesCount, ui } from "@/lib/copy";
 import {
   loadSeriesSheetAction,
   previewCancelRestAction,

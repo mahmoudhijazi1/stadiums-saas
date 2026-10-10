@@ -5,7 +5,7 @@ import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { formatUsdCompact } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { MessageCircle, Phone } from "lucide-react";
 
 export async function PersonStats({

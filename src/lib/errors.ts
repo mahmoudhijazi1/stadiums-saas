@@ -1,6 +1,6 @@
 /**
  * Expected product outcomes vs bugs (DR-004). Throw DomainError with a key;
- * copy lives in error-messages.ts. Never leak Prisma dumps to app/.
+ * copy lives in copy/errors.ts. Never leak Prisma dumps to app/.
  */
 export class DomainError extends Error {
   readonly key: string;

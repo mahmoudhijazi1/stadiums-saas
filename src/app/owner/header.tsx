@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BusinessMenu } from "@/app/owner/business-menu";
 import { OfflinePill } from "@/app/owner/offline-pill";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { cn } from "cn";
 import { Search, ShoppingBag } from "lucide-react";
 

@@ -6,7 +6,7 @@ import { Minus } from "lucide-react";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { cn } from "cn";
 
 /** An item as the grids show it: the price is a USD amount ("1.50") or whole pounds ("20000"). */

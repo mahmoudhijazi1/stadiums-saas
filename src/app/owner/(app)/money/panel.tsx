@@ -17,7 +17,7 @@ import { formatUsdCompact } from "@/lib/format/money";
 import { parseLbp } from "@/lib/format/parse-money";
 import { listOwed } from "@/modules/booking/application/list-owed";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { RecordExpenseSheet } from "./expense-sheet";
 import { Button } from "@/components/ui/button";
 import { activityHref } from "./query";

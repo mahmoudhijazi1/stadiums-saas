@@ -10,7 +10,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/format/money";
 import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { previewMessage } from "@/modules/notification/domain/whatsapp-link";
 import Decimal from "decimal.js";
 import {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { toLbpDigits } from "@/components/ui/lbp-input";
-import { groupedDigits } from "@/lib/ui-copy";
+import { groupedDigits } from "@/lib/copy";
 
 describe("LBP field text", () => {
   it("keeps plain digits whatever was typed or pasted", () => {

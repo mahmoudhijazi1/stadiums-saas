@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { WeeklyConfirm } from "@/app/owner/(app)/series/weekly-confirm";
 
 export type WeeklyItem = {

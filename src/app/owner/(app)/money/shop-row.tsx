@@ -4,7 +4,7 @@ import type Decimal from "decimal.js";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/format/money";
-import { shopRowLine } from "@/lib/ui-copy";
+import { shopRowLine } from "@/lib/copy";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
 import { periodChipLabel } from "./period-label";
 import { shopHref } from "./query";

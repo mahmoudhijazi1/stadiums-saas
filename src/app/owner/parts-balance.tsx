@@ -5,7 +5,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { parseLbp, parseUsd, isLbpString, isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 import type { UiLocale } from "@/lib/locale";
 import { displayChange, formatChange, formatParts } from "@/lib/format/money";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { applyPayment } from "@/modules/shop/domain/pricing";
 
 /** A typed amount, or zero when it is empty or not a valid amount yet. */

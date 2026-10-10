@@ -11,7 +11,7 @@ import {
   cancelPolicyLine,
   rejectReasonText,
   ui,
-} from "@/lib/ui-copy";
+} from "@/lib/copy";
 
 describe("ui", () => {
   it("returns catalog Arabic for a known key", () => {

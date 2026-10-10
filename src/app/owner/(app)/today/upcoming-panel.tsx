@@ -9,7 +9,7 @@ import type { UiLocale } from "@/lib/locale";
 import {
   ui,
   uiCount,
-} from "@/lib/ui-copy";
+} from "@/lib/copy";
 import {
   CountedPhrase,
   InterestPanel,

@@ -1,5 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Request card line (security audit S-6): the name typed on the public form

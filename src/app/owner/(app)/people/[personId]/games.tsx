@@ -16,7 +16,7 @@ import { getCurrentTenant } from "@/lib/tenant-context";
 import { formatUsdCompact } from "@/lib/format/money";
 import Decimal from "decimal.js";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 export async function PersonGames({
   personId,

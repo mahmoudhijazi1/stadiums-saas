@@ -5,7 +5,7 @@ import Link from "next/link";
 import { PersonLink } from "@/app/owner/person-link";
 import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { Button } from "@/components/ui/button";
 import {
   ClockRangeText,

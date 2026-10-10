@@ -4,9 +4,9 @@ import * as React from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
-import { errorMessage } from "@/lib/error-messages"
+import { errorMessage } from "@/lib/copy/errors"
 import type { UiLocale } from "@/lib/locale"
-import { successMessage } from "@/lib/success-messages"
+import { successMessage } from "@/lib/copy/success"
 
 /**
  * Toast from ?ok= / ?error= (and legacy public ?received=1), then strip

@@ -7,7 +7,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { weeklyWeekdayAndTime } from "@/app/owner/(app)/series/labels";
 import { listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
 import { PersonGames } from "./games";

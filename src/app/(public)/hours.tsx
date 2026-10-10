@@ -5,7 +5,7 @@ import { PublicSlotPicker } from "./slot-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { cancelPolicyLine, ui } from "@/lib/ui-copy";
+import { cancelPolicyLine, ui } from "@/lib/copy";
 
 const TIME_ZONE = "Asia/Beirut";
 
