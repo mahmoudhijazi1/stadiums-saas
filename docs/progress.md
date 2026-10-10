@@ -6904,3 +6904,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** No ui folder exists yet; the rule applies as soon as one does.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 2: people/ui
+
+**When:** 2026-10-10
+
+**What:** git mv app/owner/person-link.tsx to modules/people/ui/person-link.tsx (a link to a person's page; props only, no actions, no module imports besides next/link, lucide, cn). Importers: today/upcoming-panel, notify-list, pending-list.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/people/ui/person-link.tsx and its 3 importers
+
+**How it connects:** people/ui imports nothing from application or infrastructure.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; no unit test existed for it). Full suites and build not run.

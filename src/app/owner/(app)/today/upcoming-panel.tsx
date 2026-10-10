@@ -25,7 +25,7 @@ import {
 import { submitCollectPayment } from "./actions";
 import { BookingItems, type BookingItemsPanelView } from "./booking-items";
 import type { SellItem } from "@/app/owner/item-tiles";
-import { PersonLink } from "@/app/owner/person-link";
+import { PersonLink } from "@/modules/people/ui/person-link";
 import { DebtRow } from "./debt-row";
 import { BookingRow, StatusPill, variantOf } from "@/app/owner/booking-row";
 import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";

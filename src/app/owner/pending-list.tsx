@@ -39,7 +39,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { RequestedNameNotice } from "@/app/owner/requested-name-notice";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
-import { PersonLink } from "@/app/owner/person-link";
+import { PersonLink } from "@/modules/people/ui/person-link";
 import { Phone } from "lucide-react";
 
 type PendingRequest = Awaited<ReturnType<typeof listPendingRequests>>[number];

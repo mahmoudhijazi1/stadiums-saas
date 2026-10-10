@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { PersonLink } from "@/app/owner/person-link";
+import { PersonLink } from "@/modules/people/ui/person-link";
 import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
