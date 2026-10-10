@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Person } from "@/app/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
@@ -21,22 +22,28 @@ export async function findPersonByPhone(
 }
 
 /**
- * Insert a person. tenantId is stamped by the extension, not by this function.
+ * Insert a person, or return the one that already has this phone in this tenant.
+ * Two requests with the same new phone can both miss in findPersonByPhone; a plain INSERT would
+ * then fail on the unique index (tenantId, phone) and abort the loser's whole transaction.
+ * `ON CONFLICT DO NOTHING` waits for the other transaction and skips the insert instead, and the
+ * row is then re-read. Raw SQL does not get the extension's stamp, so the tenant is passed here.
+ * The conflict target repeats the partial index predicate (Person_tenantId_phone_key).
  */
 export async function createPerson(
   tx: PeopleTx,
   input: { name: string; phone: string },
 ): Promise<Person> {
   const name = cleanPersonName(input.name);
-  return tx.person.create({
-    // Extension stamps tenantId at runtime. Prisma 7 create XOR still wants
-    // tenantId or tenant on the type (`$extends` does not rewrite inputs).
-    data: {
-      name,
-      phone: input.phone,
-      searchName: normalizeName(name),
-    } as Parameters<typeof tx.person.create>[0]["data"],
-  });
+  const tenantId = await getCurrentTenantId();
+  await tx.$executeRaw`
+    INSERT INTO "Person" ("id", "tenantId", "name", "phone", "searchName")
+    VALUES (${randomUUID()}, ${tenantId}, ${name}, ${input.phone}, ${normalizeName(name)})
+    ON CONFLICT ("tenantId", "phone") WHERE "phone" IS NOT NULL DO NOTHING`;
+  const person = await findPersonByPhone(tx, input.phone);
+  if (!person) {
+    throw new Error("Person missing right after insert");
+  }
+  return person;
 }
 
 export type PersonProfile = {

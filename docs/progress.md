@@ -6326,3 +6326,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `package.json`, `package-lock.json`, `docs/RUNBOOK.md` (new "Framework version" section).
 
 **How to verify:** NOT run. Only one `npx tsc --noEmit`. No test, build or lint was run. Run `npm test`, `npm run test:integration`, `npm run build`, then check the service worker and push by hand.
+
+
+## Hardening 2, item 1 of 8: the same new phone twice (branch `security/hardening-2`)
+
+**What:** `createPerson` (`people/infrastructure/persons.ts`) is now `INSERT ... ON CONFLICT ("tenantId","phone") WHERE "phone" IS NOT NULL DO NOTHING` followed by a re-read, so two requests with the same new phone no longer fail on `Person_tenantId_phone_key` (a plain insert error would also abort the loser's whole transaction, so catching it afterwards was not an option). The raw SQL stamps `tenantId` from the request context.
+
+**Why:** requests on different pitches take different pitch locks, so nothing serialized the person lookup.
+
+**Files:** `people/infrastructure/persons.ts`, `test/integration/person-phone-race.integration.test.ts`.
+
+**How to verify:** NOT run. The test sends two public requests on two pitches with the same new phone, 10 iterations with `Promise.allSettled`: both succeed and one Person row is added each time. Run `npm run test:integration`.
