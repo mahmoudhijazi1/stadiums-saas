@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
-import { PartsBalance } from "@/app/owner/parts-balance";
+import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/modules/shop/ui/item-tiles";
+import { PartsBalance } from "@/modules/shop/ui/parts-balance";
 import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,6 @@ import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { formatParts } from "@/lib/format/money";
 import { changeDescription, soldToast, ui } from "@/lib/copy";
-import { submitWalkInSale } from "./actions";
 
 export type { SellItem };
 
@@ -33,14 +32,27 @@ export type { SellItem };
  * exactly those parts, so the common case is one tap. Only ids and quantities go to the server: it
  * reads the prices itself. A sale must be settled in full.
  */
+export type WalkInSaleInput = {
+  lines: Array<{ productId: string; qty: number }>;
+  usdAmount: string;
+  lbpAmount: string;
+};
+
+export type WalkInSaleResult =
+  | { ok: true; itemCount: number; totalLbp: string; totalUsdPart: string; changeLbp: string; changeUsd: string }
+  | { error: string };
+
 export function SellScreen({
   items,
   lbpPerUsd,
   locale,
+  onSell,
 }: {
   items: SellItem[];
   lbpPerUsd: string | null;
   locale: UiLocale;
+  /** The page passes the real Server Action; this component never imports one. */
+  onSell: (input: WalkInSaleInput) => Promise<WalkInSaleResult>;
 }) {
   const router = useRouter();
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -74,7 +86,7 @@ export function SellScreen({
   function submit() {
     setError(null);
     startTransition(async () => {
-      const result = await submitWalkInSale({
+      const result = await onSell({
         lines: lines.map((line) => ({ productId: line.item.id, qty: line.qty })),
         usdAmount: usd,
         lbpAmount: lbp,

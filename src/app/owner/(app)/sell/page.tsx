@@ -8,7 +8,8 @@ import { ui } from "@/lib/copy";
 import { SHOP_MANAGE, SHOP_SELL, can } from "@/modules/access/domain/can";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { listProducts } from "@/modules/shop/application/products";
-import { SellScreen } from "./sell-screen";
+import { SellScreen } from "@/modules/shop/ui/sell-screen";
+import { submitWalkInSale } from "./actions";
 
 /** The counter: tap items, then Collect. shop.sell (checked in the use cases too). */
 export default async function SellPage() {
@@ -44,6 +45,7 @@ export default async function SellPage() {
       ) : (
         <SellScreen
           locale={locale}
+          onSell={submitWalkInSale}
           lbpPerUsd={rate ? rate.toString() : null}
           items={items.map((item) => ({
             id: item.id,

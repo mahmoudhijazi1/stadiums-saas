@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
+import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/modules/shop/ui/item-tiles";
 import {
   BottomSheet,
   BottomSheetBody,

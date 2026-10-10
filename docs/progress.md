@@ -6932,3 +6932,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** payment/ui imports payment/domain and lib only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 4: shop/ui
+
+**When:** 2026-10-10
+
+**What:** git mv app/owner/item-tiles.tsx, parts-balance.tsx and (app)/sell/sell-screen.tsx to modules/shop/ui. SellScreen no longer imports the Server Action: it takes onSell, typed in the ui file (WalkInSaleInput, WalkInSaleResult, the same shape as the action's SellResult), and sell/page.tsx passes submitWalkInSale. Behaviour is the same call with the same input. parts-balance uses shop/domain/pricing, so it belongs to shop, not payment. Not moved: more/shop/shop-catalog.tsx (imports ../settings/pitches/money-input and ../settings-list, route code that other settings screens share; moving it needs those moved first, step 6b), money/shop-row.tsx (a Money page row, 6b) and today/add-items-sheet.tsx and booking-items.tsx (put items on a game: the use cases live in booking, 6b).
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/shop/ui/{item-tiles,parts-balance,sell-screen}.tsx, (app)/sell/page.tsx and importers
+
+**How it connects:** shop/ui imports shop/domain, payment/ui (tonal-collect, along the shop -> payment edge) and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
