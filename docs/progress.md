@@ -6480,3 +6480,37 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `app/globals.css`, `test/app/accent-guard.test.ts`.
 
 **How to verify:** NOT run (no test, build or lint). By hand: nothing should look different; sidebar and chart colours are unused screens today.
+
+
+## Per-tenant accent, commit 2 of 3: the presets (branch `feat/accent-presets`)
+
+**What:**
+- **One constant, eight presets** (`lib/brand-presets.ts`): lime (the default, reproduces today's colours exactly), blue, sky, indigo, violet, pink, fuchsia, graphite. None is near green, amber or red, which belong to paid, owed and destructive. Each preset has, for the light and the dark theme: `fill` (`--brand`), `onFill` (`--brand-ink`), `ink` (`--action-ink`, accent text) and `ring` (`--ring`). The old logo-only set (green, red, orange, purple, teal, gold, slate) is gone; the stadium-info branch is not merged, so no stored key is affected. The logo uses the preset's light fill and the text on it.
+- **Contrast (measured, WCAG; "bg" and "surface" are the page and card of each theme, the lower is shown). Text needs 4.5:1, the ring 3:1:**
+
+| preset | theme | onFill on fill | ink | ring |
+|---|---|---|---|---|
+| lime | light | 16.13 | 16.97 | 16.97 |
+| lime | dark | 16.13 | 14.53 | 14.53 |
+| blue | light | 5.17 | 6.14 | 4.73 |
+| blue | dark | 7.36 | 6.57 | 6.57 |
+| sky | light | 5.93 | 6.92 | 5.43 |
+| sky | dark | 6.48 | 7.80 | 7.80 |
+| indigo | light | 6.29 | 7.24 | 5.76 |
+| indigo | dark | 5.36 | 5.60 | 5.60 |
+| violet | light | 5.70 | 6.50 | 5.22 |
+| violet | dark | 5.60 | 6.14 | 6.14 |
+| pink | light | 4.60 | 5.53 | 4.21 |
+| pink | dark | 5.68 | 6.31 | 6.31 |
+| fuchsia | light | 4.71 | 5.79 | 4.31 |
+| fuchsia | dark | 6.02 | 6.79 | 6.79 |
+| graphite | light | 10.35 | 9.48 | 9.48 |
+| graphite | dark | 12.02 | 11.26 | 11.26 |
+
+- **Applied server-side:** the root layout (`app/layout.tsx`) resolves the host's preset through `currentBrandIdentity` and emits one `<style id="accent">` in `<head>` (`lib/accent-css.ts`, `accentCss`): `html:root{...}` then `html.dark,html[data-theme="dark"]{...}` setting `--brand`, `--brand-ink`, `--action-ink`, `--ring`. `html:root`/`html.dark` outrank globals.css's `:root`/`.dark`, so it wins whichever stylesheet loads first. Server-rendered, so the first paint already has the colour (no flash). The key is looked up in the constant (`presetOf`): an unknown key, no tenant or a suspended one is the default; the output contains only `#RRGGBB` values from the constant. The owner app and the public page share the root layout. Status colours are not set.
+- **Manifest** `theme_color` is the preset's dark fill (`accentThemeColor`). Note: for the default this is now lime `#D7FF3F` where it was the dark page colour `#111412`, as specified; the browser bar of an installed default app turns lime.
+- **Stadium info:** a live preview (a primary button, the active pill and a link, `accentPreviewCss` scoped under `.accent-preview`; the pill takes the accent only in the dark theme, as in the app) and the line "Colours change the app's buttons and highlights; paid, owed and delete colours stay the same." (AR and EN).
+
+**Files:** `lib/{brand-presets,accent-css,ui-copy}.ts`, `app/{layout.tsx,manifest.ts}`, `app/owner/(app)/more/stadium/stadium-form.tsx`; tests updated for the new keys: `test/lib/{brand-presets,brand-identity,tenant-settings,tenant-settings-stadium}.test.ts`, `test/modules/platform/stadium-info.test.ts`, `test/integration/stadium-info.integration.test.ts`.
+
+**How to verify:** NOT run (no test, build or lint). By hand: pick each colour in Stadium info, save, reload the owner app and the public page in light and dark; check buttons, the focus ring (Tab), a link and the dark active pill; check paid/owed/delete colours are unchanged; check there is no flash of lime on first load. UNVERIFIED: that the `html:root` override beats the `:root` rules in every case (Tailwind v4 layers), and how `--action-ink` text reads on every surface.

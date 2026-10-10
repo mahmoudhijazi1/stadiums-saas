@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { accentPreviewCss } from "@/lib/accent-css";
 import { BRAND_PRESETS, type BrandPresetKey } from "@/lib/brand-presets";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
@@ -135,7 +136,7 @@ export function StadiumForm({
           <span
             aria-hidden
             className="flex size-14 shrink-0 items-center justify-center rounded-xl type-title"
-            style={{ backgroundColor: colours.background, color: colours.text }}
+            style={{ backgroundColor: colours.light.fill, color: colours.light.onFill }}
           >
             {firstSymbol(name)}
           </span>
@@ -152,7 +153,7 @@ export function StadiumForm({
                 />
                 <span
                   className="block size-11 rounded-full border-2 border-transparent peer-checked:border-ink peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50"
-                  style={{ backgroundColor: option.background }}
+                  style={{ backgroundColor: option.light.fill }}
                   title={ui(`owner.brand.${option.key}`, locale)}
                 >
                   <span className="sr-only">{ui(`owner.brand.${option.key}`, locale)}</span>
@@ -161,6 +162,19 @@ export function StadiumForm({
             ))}
           </div>
         </div>
+        <div className="accent-preview flex flex-wrap items-center gap-3 rounded-lg border border-line p-3">
+          <style>{accentPreviewCss(preset)}</style>
+          <span className="pv-button inline-flex min-h-11 items-center rounded-full px-5 type-button">
+            {ui("owner.accentPreviewButton", locale)}
+          </span>
+          <span className="pv-pill inline-flex min-h-9 items-center rounded-full bg-inverse px-4 type-label text-inverse-ink">
+            {ui("owner.accentPreviewTab", locale)}
+          </span>
+          <span className="pv-link type-body font-medium underline underline-offset-4">
+            {ui("owner.accentPreviewLink", locale)}
+          </span>
+        </div>
+        <p className="type-secondary text-ink-muted">{ui("owner.stadiumColourNote", locale)}</p>
       </fieldset>
 
       <SubmitButton className="min-h-11">{ui("owner.stadiumSave", locale)}</SubmitButton>

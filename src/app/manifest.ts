@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
+import { accentThemeColor } from "@/lib/accent-css";
 import { brandIconPath } from "@/lib/brand-identity";
 import { platformDb } from "@/lib/platform-db";
 import { pwaShortName } from "@/lib/pwa-short-name";
@@ -36,7 +37,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     scope: "/owner/",
     display: "standalone",
     background_color: "#F6F5EF",
-    theme_color: "#111412",
+    // The stadium's accent (its dark-theme fill); the default lime for an unknown or suspended host.
+    theme_color: accentThemeColor(identity?.preset),
     // The generated logo of this host's stadium (neutral lebstads for an unknown or suspended one).
     // Versioned, so a changed letter or colour is fetched again.
     icons: [

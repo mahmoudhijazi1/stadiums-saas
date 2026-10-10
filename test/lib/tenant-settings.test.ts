@@ -17,7 +17,7 @@ const feeDefaults = {
 };
 
 function stadiumInfoDefaults() {
-  return { address: "", mapLink: "", phone: "", whatsappSame: true, whatsapp: "", brandPreset: "green" as const };
+  return { address: "", mapLink: "", phone: "", whatsappSame: true, whatsapp: "", brandPreset: "lime" as const };
 }
 
 describe("parseTenantSettings", () => {

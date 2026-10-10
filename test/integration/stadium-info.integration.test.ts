@@ -172,9 +172,9 @@ describe("saveStadiumInfo", () => {
 
 describe("the logo identity of a host", () => {
   it("is the symbol and the preset key of this stadium, and not its name", async () => {
-    await saveStadiumInfo({ ...INFO, name: "Ahmad Stadium", brandPreset: "red" });
+    await saveStadiumInfo({ ...INFO, name: "Ahmad Stadium", brandPreset: "pink" });
     const identity = await loadBrandIdentity(a.tenantSlug);
-    expect(identity).toEqual({ symbol: "A", preset: "red" });
+    expect(identity).toEqual({ symbol: "A", preset: "pink" });
     expect(JSON.stringify(identity)).not.toContain("Ahmad Stadium");
     expect(Object.keys(identity!).sort()).toEqual(["preset", "symbol"]);
   });
@@ -197,23 +197,23 @@ describe("the logo identity of a host", () => {
   });
 
   it("another stadium's host never returns this stadium's identity", async () => {
-    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "red" });
+    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "pink" });
     actAs(b, b.sessionId);
-    await saveStadiumInfo({ ...INFO, name: "Bravo", brandPreset: "teal" });
+    await saveStadiumInfo({ ...INFO, name: "Bravo", brandPreset: "violet" });
 
     actAs(a);
     const onA = await currentBrandIdentity();
     actAs(b);
     const onB = await currentBrandIdentity();
-    expect(onA).toEqual({ symbol: "A", preset: "red" });
-    expect(onB).toEqual({ symbol: "B", preset: "teal" });
+    expect(onA).toEqual({ symbol: "A", preset: "pink" });
+    expect(onB).toEqual({ symbol: "B", preset: "violet" });
     expect(brandVersion(onA)).not.toBe(brandVersion(onB));
   });
 
   it("a change of name or colour changes the version, so caches pick it up", async () => {
-    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "red" });
+    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "pink" });
     const first = brandVersion(await loadBrandIdentity(a.tenantSlug));
-    await saveStadiumInfo({ ...INFO, name: "Alpha Two", brandPreset: "gold" });
+    await saveStadiumInfo({ ...INFO, name: "Alpha Two", brandPreset: "sky" });
     expect(brandVersion(await loadBrandIdentity(a.tenantSlug))).not.toBe(first);
   });
 });

@@ -64,21 +64,21 @@ describe("brandSymbol: the first grapheme", () => {
 
 describe("version and paths", () => {
   it("changes with the symbol or the preset, and nothing else", () => {
-    const base = brandVersion({ symbol: "A", preset: "green" });
-    expect(brandVersion({ symbol: "A", preset: "green" })).toBe(base);
-    expect(brandVersion({ symbol: "B", preset: "green" })).not.toBe(base);
+    const base = brandVersion({ symbol: "A", preset: "lime" });
+    expect(brandVersion({ symbol: "A", preset: "lime" })).toBe(base);
+    expect(brandVersion({ symbol: "B", preset: "lime" })).not.toBe(base);
     expect(brandVersion({ symbol: "A", preset: "blue" })).not.toBe(base);
     expect(brandVersion(null)).toBe("n");
   });
 
   it("does not depend on the rest of the name", () => {
-    expect(brandVersion(brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "red" }))).toBe(
-      brandVersion(brandIdentityOf({ name: "Ali's Pitch", brandPreset: "red" })),
+    expect(brandVersion(brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "pink" }))).toBe(
+      brandVersion(brandIdentityOf({ name: "Ali's Pitch", brandPreset: "pink" })),
     );
   });
 
   it("builds the versioned path and knows the five sizes", () => {
-    expect(brandIconPath("192", { symbol: "A", preset: "green" })).toBe("/brand/icon/192?v=41.green");
+    expect(brandIconPath("192", { symbol: "A", preset: "lime" })).toBe("/brand/icon/192?v=41.lime");
     expect(brandIconPath("512-maskable", null)).toBe("/brand/icon/512-maskable?v=n");
     for (const size of ["32", "180", "192", "512", "512-maskable"]) expect(isBrandIconSize(size)).toBe(true);
     for (const size of ["16", "1024", "192.png", "../192", ""]) expect(isBrandIconSize(size)).toBe(false);
@@ -86,7 +86,7 @@ describe("version and paths", () => {
 });
 
 describe("planBrandIcon", () => {
-  const green = { symbol: "A", preset: "green" as const };
+  const green = { symbol: "A", preset: "lime" as const };
 
   it("is neutral for no identity (unknown or suspended host)", () => {
     const plan = planBrandIcon("192", null, null)!;
@@ -100,7 +100,7 @@ describe("planBrandIcon", () => {
 
   it("uses only the symbol and the preset colours for a stadium", () => {
     const plan = planBrandIcon("512", green, null)!;
-    expect(plan).toMatchObject({ neutral: false, symbol: "A", ...brandColors("green"), px: 512 });
+    expect(plan).toMatchObject({ neutral: false, symbol: "A", ...brandColors("lime"), px: 512 });
   });
 
   it("refuses a size that is not one of the five", () => {
@@ -124,8 +124,8 @@ describe("planBrandIcon", () => {
   });
 
   it("ignores any other input: two stadiums with the same letter and colour draw the same plan", () => {
-    const first = planBrandIcon("192", brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "red" }), null);
-    const second = planBrandIcon("192", brandIdentityOf({ name: "Ali Arena", brandPreset: "red" }), null);
+    const first = planBrandIcon("192", brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "pink" }), null);
+    const second = planBrandIcon("192", brandIdentityOf({ name: "Ali Arena", brandPreset: "pink" }), null);
     expect(first).toEqual(second);
   });
 });

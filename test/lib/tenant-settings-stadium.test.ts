@@ -19,7 +19,7 @@ describe("stadium info in tenant settings", () => {
       phone: "",
       whatsappSame: true,
       whatsapp: "",
-      brandPreset: "green",
+      brandPreset: "lime",
     });
   });
 
@@ -44,9 +44,9 @@ describe("stadium info in tenant settings", () => {
   });
 
   it("reads an unknown or colour-value preset as the default: only keys are accepted", () => {
-    expect(parseTenantSettings({ brandPreset: "#ff0000" }).brandPreset).toBe("green");
-    expect(parseTenantSettings({ brandPreset: "magenta" }).brandPreset).toBe("green");
-    expect(parseTenantSettings({ brandPreset: "gold" }).brandPreset).toBe("gold");
+    expect(parseTenantSettings({ brandPreset: "#ff0000" }).brandPreset).toBe("lime");
+    expect(parseTenantSettings({ brandPreset: "magenta" }).brandPreset).toBe("lime");
+    expect(parseTenantSettings({ brandPreset: "pink" }).brandPreset).toBe("pink");
   });
 
   it("limits the address to 120 characters", () => {

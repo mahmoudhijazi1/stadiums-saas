@@ -9,7 +9,7 @@ const GOOD = {
   phone: "03 123 456",
   whatsappSame: true,
   whatsapp: "",
-  brandPreset: "green",
+  brandPreset: "lime",
 };
 
 function key(raw: unknown): string | null {
