@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { planBrandIcon } from "@/lib/brand-icon-plan";
+import { planBrandIcon } from "@/modules/stadium/domain/brand-icon-plan";
 
 /**
  * The generated logo: one symbol on a preset colour. GET /brand/icon/{32|180|192|512|512-maskable}.

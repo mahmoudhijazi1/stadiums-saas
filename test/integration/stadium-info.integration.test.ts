@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { brandVersion } from "@/lib/brand-identity";
+import { brandVersion } from "@/modules/stadium/domain/brand-identity";
 import { platformDb } from "@/lib/platform-db";
 import { parseTenantSettings } from "@/lib/tenant-settings";
 import { loadBrandIdentity } from "@/modules/platform/application/brand-identity";

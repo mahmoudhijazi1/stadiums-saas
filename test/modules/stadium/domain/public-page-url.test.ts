@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
-import { publicPageUrl } from "@/lib/public-page-url";
+import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
 
 const ORIGINAL_DOMAIN = process.env.APP_BASE_DOMAIN;
 const ORIGINAL_PROTOCOL = process.env.APP_PROTOCOL;

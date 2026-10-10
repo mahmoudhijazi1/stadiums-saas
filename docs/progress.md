@@ -6848,3 +6848,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** copy/ imports lib/locale, lib/plural and lib/format/money only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib: 30 suites, 241 passed). Full suites and build not run.
+
+## Refactor step 5, commit 1: the stadium module, pure code
+
+**When:** 2026-10-10
+
+**What:** Created src/modules/stadium/domain and moved (git mv) brand-presets, brand-icon-plan, brand-identity, accent-css, map-link, public-page-url, qr, pwa-short-name from src/lib and the stadium-info validation from platform/domain; their tests moved to test/modules/stadium/domain/. Importers rewritten. lib/tenant-settings.ts stays: it mixes stadium keys (address, mapLink, phone, whatsapp, whatsappSame, brandPreset) with booking rules (cancel window, fees, split) and time display/day start, so it is not stadium-specific; the split by key group is a later step. Edges: stadium -> access, people; booking -> stadium (public-page-url in the WhatsApp links); platform -> people exception removed. Rule-5 exceptions: tenant-settings -> stadium brand-presets and map-link, tenant-context -> brand-presets (fates recorded). Three platform -> stadium exceptions are temporary (the use cases move next commit). accent-guard test path updated.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/stadium/domain/*, importers, test/modules/stadium/domain/*, test/architecture/rules.ts, test/app/accent-guard.test.ts
+
+**How it connects:** stadium/domain imports only zod, qrcode, lib helpers and people/domain.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed; stadium domain tests, accent-guard, brand, tenant-settings: all passed). Full suites and build not run.

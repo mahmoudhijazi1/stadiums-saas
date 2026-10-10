@@ -8,9 +8,9 @@ import {
   contrastRatio,
   isBrandPresetKey,
   presetOf,
-} from "@/lib/brand-presets";
-import { statusTokens, surfaceTokens, tokenHex } from "../helpers/css-tokens";
-import { chromaOf, contrast, hueDistance, oklabDistance } from "../helpers/oklch";
+} from "@/modules/stadium/domain/brand-presets";
+import { statusTokens, surfaceTokens, tokenHex } from "../../../helpers/css-tokens";
+import { chromaOf, contrast, hueDistance, oklabDistance } from "../../../helpers/oklch";
 
 /**
  * Written, not run when authored. The five accent presets, measured against the REAL status and

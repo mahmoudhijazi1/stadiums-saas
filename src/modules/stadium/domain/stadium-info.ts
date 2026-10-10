@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { BRAND_PRESET_KEYS } from "@/lib/brand-presets";
+import { BRAND_PRESET_KEYS } from "@/modules/stadium/domain/brand-presets";
 import { DomainError } from "@/lib/errors";
-import { isAllowedMapLink } from "@/lib/map-link";
+import { isAllowedMapLink } from "@/modules/stadium/domain/map-link";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import { isPhoneText, normalizePhone, toLebanonNumber } from "@/modules/people/domain/phone";
 

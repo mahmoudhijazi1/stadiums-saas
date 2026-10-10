@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { isAllowedMapLink, MAP_LINK_HOSTS } from "@/lib/map-link";
+import { isAllowedMapLink, MAP_LINK_HOSTS } from "@/modules/stadium/domain/map-link";
 
 /** Written, not run when authored. Stadium info: the map link rule. */
 describe("isAllowedMapLink", () => {

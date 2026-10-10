@@ -1,4 +1,4 @@
-import { DEFAULT_BRAND_PRESET, type BrandPresetKey } from "@/lib/brand-presets";
+import { DEFAULT_BRAND_PRESET, type BrandPresetKey } from "@/modules/stadium/domain/brand-presets";
 
 /**
  * What the generated logo is made of, and nothing more: ONE symbol (the first grapheme of the

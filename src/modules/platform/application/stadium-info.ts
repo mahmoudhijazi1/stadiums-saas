@@ -1,4 +1,4 @@
-import type { BrandPresetKey } from "@/lib/brand-presets";
+import type { BrandPresetKey } from "@/modules/stadium/domain/brand-presets";
 import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { getCurrentTenantId, safeTenantId } from "@/lib/tenant-context";
@@ -6,7 +6,7 @@ import { mergeStadiumInfo, parseTenantSettings } from "@/lib/tenant-settings";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
-import { parseStadiumInfo } from "@/modules/platform/domain/stadium-info";
+import { parseStadiumInfo } from "@/modules/stadium/domain/stadium-info";
 import {
   findTenantNameAndSettings,
   platformTransaction,

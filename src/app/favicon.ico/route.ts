@@ -1,5 +1,5 @@
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { brandIconPath } from "@/lib/brand-identity";
+import { brandIconPath } from "@/modules/stadium/domain/brand-identity";
 
 /**
  * Browsers and crawlers ask for /favicon.ico by default. The icon is generated, so send them to

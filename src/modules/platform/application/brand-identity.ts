@@ -1,4 +1,4 @@
-import { brandIdentityOf, type BrandIdentity } from "@/lib/brand-identity";
+import { brandIdentityOf, type BrandIdentity } from "@/modules/stadium/domain/brand-identity";
 import { parseTenantSettings } from "@/lib/tenant-settings";
 import { findTenantBrandSource } from "@/modules/platform/infrastructure/platform-store";
 

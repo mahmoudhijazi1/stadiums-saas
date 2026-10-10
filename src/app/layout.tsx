@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { accentCss } from "@/lib/accent-css";
-import { brandIconPath } from "@/lib/brand-identity";
+import { accentCss } from "@/modules/stadium/domain/accent-css";
+import { brandIconPath } from "@/modules/stadium/domain/brand-identity";
 import { OwnerServiceWorker } from "@/components/owner-service-worker";
 import { ScrollbarPeek } from "@/components/scrollbar-peek";
 import { ThemeProvider } from "@/components/theme-provider";

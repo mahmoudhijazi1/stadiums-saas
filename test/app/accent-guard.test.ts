@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "@jest/globals";
-import { BRAND_PRESETS } from "@/lib/brand-presets";
+import { BRAND_PRESETS } from "@/modules/stadium/domain/brand-presets";
 
 /**
  * Accent guard. The accent colour is per tenant: the app reads it only through the role tokens
@@ -15,7 +15,7 @@ import { BRAND_PRESETS } from "@/lib/brand-presets";
  */
 const ROOT = process.cwd();
 const SCAN = ["src", "public"];
-const ALLOWED = new Set(["src/app/globals.css", "src/lib/brand-presets.ts"]);
+const ALLOWED = new Set(["src/app/globals.css", "src/modules/stadium/domain/brand-presets.ts"]);
 
 /**
  * Every accent colour of every preset, except the page colours the app uses anyway (carbon and

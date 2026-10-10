@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import type { BrandPresetKey } from "@/lib/brand-presets";
+import type { BrandPresetKey } from "@/modules/stadium/domain/brand-presets";
 import { DomainError } from "@/lib/errors";
 import { platformDb } from "@/lib/platform-db";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";

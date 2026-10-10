@@ -2,8 +2,8 @@
 import jsQR from "jsqr";
 import { PNG } from "pngjs";
 import { afterEach, describe, expect, it } from "@jest/globals";
-import { publicPageUrl } from "@/lib/public-page-url";
-import { QR_PNG_SIZE, qrPng, qrSvg } from "@/lib/qr";
+import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
+import { QR_PNG_SIZE, qrPng, qrSvg } from "@/modules/stadium/domain/qr";
 
 /** Decode a PNG buffer back to the text it holds (a real QR reader, jsQR). */
 export function decodePng(buffer: Buffer): { text: string | null; width: number; height: number; png: PNG } {

@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { headers } from "next/headers";
-import type { BrandIdentity } from "@/lib/brand-identity";
+import type { BrandIdentity } from "@/modules/stadium/domain/brand-identity";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import { loadBrandIdentity } from "@/modules/platform/application/brand-identity";
 

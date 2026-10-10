@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { accentCss, accentThemeColor } from "@/lib/accent-css";
-import { presetOf } from "@/lib/brand-presets";
+import { accentCss, accentThemeColor } from "@/modules/stadium/domain/accent-css";
+import { presetOf } from "@/modules/stadium/domain/brand-presets";
 import { platformDb } from "@/lib/platform-db";
 import { loadBrandIdentity } from "@/modules/platform/application/brand-identity";
 import { saveStadiumInfo } from "@/modules/platform/application/stadium-info";

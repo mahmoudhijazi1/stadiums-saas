@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { accentCss, accentPreviewCss, accentThemeColor } from "@/lib/accent-css";
-import { BRAND_PRESETS, DEFAULT_BRAND_PRESET, presetOf } from "@/lib/brand-presets";
+import { accentCss, accentPreviewCss, accentThemeColor } from "@/modules/stadium/domain/accent-css";
+import { BRAND_PRESETS, DEFAULT_BRAND_PRESET, presetOf } from "@/modules/stadium/domain/brand-presets";
 
 /** Written, not run when authored. The CSS that sets a stadium's accent. */
 const ALL_HEX = new Set<string>(

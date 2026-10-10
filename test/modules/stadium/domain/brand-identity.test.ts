@@ -7,9 +7,9 @@ import {
   brandVersion,
   firstGrapheme,
   isBrandIconSize,
-} from "@/lib/brand-identity";
-import { CACHE_IMMUTABLE, CACHE_SHORT, NEUTRAL_SYMBOL, planBrandIcon } from "@/lib/brand-icon-plan";
-import { NEUTRAL_BRAND, brandColors } from "@/lib/brand-presets";
+} from "@/modules/stadium/domain/brand-identity";
+import { CACHE_IMMUTABLE, CACHE_SHORT, NEUTRAL_SYMBOL, planBrandIcon } from "@/modules/stadium/domain/brand-icon-plan";
+import { NEUTRAL_BRAND, brandColors } from "@/modules/stadium/domain/brand-presets";
 
 /** Written, not run when authored. What the generated logo is made from. */
 describe("brandSymbol: the first grapheme", () => {

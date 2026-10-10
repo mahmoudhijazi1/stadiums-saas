@@ -2,7 +2,7 @@ import { OwnerBackLink } from "@/app/owner/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { publicPageUrl } from "@/lib/public-page-url";
+import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/copy";
 import { PrintButton } from "./print-button";

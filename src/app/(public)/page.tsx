@@ -1,4 +1,4 @@
-import { brandIconPath, brandIdentityOf } from "@/lib/brand-identity";
+import { brandIconPath, brandIdentityOf } from "@/modules/stadium/domain/brand-identity";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { clampPublicDay } from "@/modules/booking/domain/public-window";
