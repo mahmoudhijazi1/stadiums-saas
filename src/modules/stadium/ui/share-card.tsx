@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { QrSheet } from "@/app/owner/qr-sheet";
+import { QrSheet } from "@/modules/stadium/ui/qr-sheet";
 
 /**
  * Public link plus WhatsApp / QR / Copy. `publicUrl` is the canonical link built on the

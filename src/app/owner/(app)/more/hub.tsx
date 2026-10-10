@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { setUiLocale } from "@/app/locale-actions";
-import { ShareCard } from "@/app/owner/share-card";
+import { ShareCard } from "@/modules/stadium/ui/share-card";
 import {
   submitSetBookingRules,
   submitSetExchangeRate,

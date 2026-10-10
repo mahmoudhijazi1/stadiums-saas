@@ -7002,3 +7002,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** venue/ui imports venue/domain and components/ui only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; stadium-preview test passed). Full suites and build not run.
+
+## Refactor step 6b, commit 3: stadium/ui
+
+**When:** 2026-10-10
+
+**What:** git mv owner/qr-sheet.tsx and share-card.tsx to modules/stadium/ui (the public-page QR sheet and the share card; props only, no action or use case). Importers updated.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/stadium/ui/{qr-sheet,share-card}.tsx, importers
+
+**How it connects:** stadium/ui imports components/ui and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
