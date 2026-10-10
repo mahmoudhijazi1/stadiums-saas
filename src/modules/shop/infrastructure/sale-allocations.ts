@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import type { TenantTx } from "@/lib/db";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 
 /**
  * How much of a sale's LBP part and USD part each payment settled. Insert-only, one row per payment.

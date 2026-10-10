@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import { Prisma } from "@/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import type { ItemPrice, PriceCurrency } from "@/modules/shop/domain/pricing";
 

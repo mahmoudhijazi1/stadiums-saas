@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import Decimal from "decimal.js";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";

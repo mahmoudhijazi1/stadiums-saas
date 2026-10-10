@@ -2,9 +2,9 @@
 
 import Decimal from "decimal.js";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { parseLbp, parseUsd, isLbpString, isUsdString, normalizeUsdForm } from "@/lib/money";
+import { parseLbp, parseUsd, isLbpString, isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 import type { UiLocale } from "@/lib/locale";
-import { displayChange, formatChange, formatParts } from "@/lib/money-display";
+import { displayChange, formatChange, formatParts } from "@/lib/format/money";
 import { ui } from "@/lib/ui-copy";
 import { applyPayment } from "@/modules/shop/domain/pricing";
 

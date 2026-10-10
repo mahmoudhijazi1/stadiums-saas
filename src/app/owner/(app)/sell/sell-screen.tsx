@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
-import { formatParts } from "@/lib/money-display";
+import { formatParts } from "@/lib/format/money";
 import { changeDescription, soldToast, ui } from "@/lib/ui-copy";
 import { submitWalkInSale } from "./actions";
 

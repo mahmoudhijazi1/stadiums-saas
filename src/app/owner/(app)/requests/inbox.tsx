@@ -10,7 +10,7 @@ import {
 import type { DebtNotice } from "@/app/owner/notify-list";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { countHiddenRequests } from "@/modules/booking/application/count-hidden-requests";
 import { getCurrentTenant } from "@/lib/tenant-context";

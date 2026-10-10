@@ -1,11 +1,5 @@
 import { z } from "zod";
-import {
-  isLbpString,
-  isUsdString,
-  normalizeUsdForm,
-  parseLbp,
-  parseUsd,
-} from "@/lib/money";
+import { isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
 
 /**
  * Shape of the collect form (SPEC-06 step 4).

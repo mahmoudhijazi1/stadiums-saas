@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { parseUsd } from "@/lib/money";
+import { parseUsd } from "@/lib/format/parse-money";
 import type { ScheduleConfig, Weekday } from "@/modules/venue/domain/schedule-config";
 
 /**

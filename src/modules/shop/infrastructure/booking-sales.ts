@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import type { TenantTx } from "@/lib/db";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import type { StoredLine } from "@/modules/shop/domain/booking-items";
 

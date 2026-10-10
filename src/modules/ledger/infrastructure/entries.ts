@@ -4,7 +4,7 @@ import type {
   PaymentSourceType,
 } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 import type { LedgerEntryRow } from "@/modules/ledger/domain/entry-row";
 
 export type { LedgerEntryRow };

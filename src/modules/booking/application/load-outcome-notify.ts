@@ -4,7 +4,7 @@ import db from "@/lib/db";
 import { messageDayLabel } from "@/modules/booking/application/night-hint";
 import { formatLocalHm } from "@/lib/format-local-hm";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import { publicPageUrl } from "@/lib/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/ui-copy";

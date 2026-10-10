@@ -6806,3 +6806,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Modules importing the client no longer import from app/ by path; rule 3 now has no prisma special case needed beyond the new location.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (prisma generate ok, tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Refactor step 4, commit 1: one money formatting module
+
+**When:** 2026-10-10
+
+**What:** Characterization tests (test/lib/format/money.characterization.test.ts, written against the old files and passing before the move, 11 tests) pin every function's output in Arabic and English. Then lib/money.ts and lib/money-display.ts became lib/format/money.ts (formatUsd, formatUsdCompact, formatUsdMoney, formatUsdAmount, groupDigits, lbpUnit, formatLbpAmount, formatParts, formatChange, displayChange) and lib/format/parse-money.ts (isUsdString, parseUsd, normalizeUsdForm, isLbpString, parseLbp: they share no code with formatting). No function had a duplicate output, so none was dropped. All callers' imports rewritten (52 files; mixed imports split in two); test/lib/money.test.ts moved to test/lib/format/money.test.ts.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/format/{money,parse-money}.ts, every importer, test/lib/format/*, docs/domain/money.md
+
+**How it connects:** format/money.ts imports only decimal.js and the UiLocale type; parse-money.ts imports only decimal.js.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib/format: 59 passed). Full suites and build not run.

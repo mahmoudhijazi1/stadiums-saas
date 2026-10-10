@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 import { ui } from "@/lib/ui-copy";
 import { previewTenders } from "@/modules/payment/domain/tender-preview";
 

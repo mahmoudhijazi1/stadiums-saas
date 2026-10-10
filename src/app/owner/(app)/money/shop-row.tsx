@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import type Decimal from "decimal.js";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import { shopRowLine } from "@/lib/ui-copy";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
 import { periodChipLabel } from "./period-label";

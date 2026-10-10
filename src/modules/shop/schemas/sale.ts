@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/money";
+import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 import { MAX_LINES, QTY_MAX, QTY_MIN } from "@/modules/shop/domain/sale";
 
 function blankToUndefined(value: string | undefined): string | undefined {

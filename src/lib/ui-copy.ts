@@ -1,5 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
-import { displayChange, formatChange } from "@/lib/money-display";
+import { displayChange, formatChange } from "@/lib/format/money";
 import { plural, type PluralForms } from "@/lib/plural";
 
 /**

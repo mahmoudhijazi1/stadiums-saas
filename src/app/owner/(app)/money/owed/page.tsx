@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Figure } from "@/components/ui/figure";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { formatDisplayDate } from "@/lib/format-display-date";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/ui-copy";
 import { PAYMENTS_COLLECT, REPORTS_VIEW, can } from "@/modules/access/domain/can";

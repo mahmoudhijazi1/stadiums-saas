@@ -3,7 +3,7 @@ import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { getPersonBookingStats } from "@/modules/booking/application/get-person-booking-stats";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { MessageCircle, Phone } from "lucide-react";

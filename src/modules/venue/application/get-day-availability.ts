@@ -5,7 +5,8 @@ import {
   type HourCycle,
 } from "@/lib/format-local-hm";
 import { logger } from "@/lib/logger";
-import { formatUsd, parseUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
+import { parseUsd } from "@/lib/format/parse-money";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {

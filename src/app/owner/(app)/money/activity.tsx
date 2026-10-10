@@ -24,7 +24,7 @@ import {
   type ExpenseDetailView,
   type SaleDetailView,
 } from "./activity-map";
-import { formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/money-display";
+import { formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/format/money";
 import { loadMoreActivity } from "./actions";
 import { activityHref } from "./query";
 

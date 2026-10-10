@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { z } from "zod";
-import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/money";
+import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import type { ItemPrice } from "@/modules/shop/domain/pricing";
 

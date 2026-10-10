@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { parseLbp, parseUsd } from "@/lib/money";
+import { parseLbp, parseUsd } from "@/lib/format/parse-money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { recordExpense } from "@/modules/expense/application/record-expense";
 import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";

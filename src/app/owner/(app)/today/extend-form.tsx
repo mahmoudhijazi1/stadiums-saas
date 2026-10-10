@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
-import { normalizeUsdForm } from "@/lib/money";
+import { normalizeUsdForm } from "@/lib/format/parse-money";
 import { ui } from "@/lib/ui-copy";
 import { submitExtendBooking } from "./extend-actions";
 

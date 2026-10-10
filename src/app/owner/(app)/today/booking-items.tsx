@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/error-messages";
 import type { UiLocale } from "@/lib/locale";
-import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/money-display";
+import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/format/money";
 import { changeDescription, ui } from "@/lib/ui-copy";
 import { cn } from "cn";
 import { AddItemsSheet } from "./add-items-sheet";

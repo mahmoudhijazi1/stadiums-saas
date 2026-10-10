@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
-import { formatUsd, formatUsdCompact, formatUsdMoney, isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
+import { formatUsd, formatUsdCompact, formatUsdMoney } from "@/lib/format/money";
+import { isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
 
 describe("parseUsd / formatUsd", () => {
   it("parses a two-decimal string with Decimal, not a float", () => {
