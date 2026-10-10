@@ -18,6 +18,15 @@
 | 12a | Pitch editor: show, before saving, how many upcoming bookings fall outside new hours. Today `updatePitch` refuses the save when a future APPROVED booking would be outside (`venue.hours_approved`) and asks for a confirm for PENDING ones, so a non-blocking "they stay booked" note would be wrong. A pre-save count needs `listLivePitchWindows` on the client path (a new query design). | Open, UI-only follow-up (2026-10-08) | `modules/venue/application/update-pitch.ts` |
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 
+## Money page v2: next (recorded 2026-10-15)
+
+| Item | Note |
+|---|---|
+| Expenses by category | A breakdown of Out by category for the period (the data is there: `sumExpenseCategory`). Not on the main page; a sub-page like Shop. |
+| Stock and shop profit | Profit per item needs the cost of what was bought and a stock count; supplies are bought in lots, so a per-period profit would mislead until stock exists. |
+| Per-member category order on the server | The "most recent first" order is kept in the member's browser. A server-side order needs Expense to record who made it (a schema change). |
+| Cash by drawer or shift | Cash today is one business day for the whole stadium; a count per person or per shift would need tenders to record who took them. |
+
 ## Money tab: next specs (recorded 2026-10-09)
 
 Not started, each its own spec; the Money refactor left room for them.

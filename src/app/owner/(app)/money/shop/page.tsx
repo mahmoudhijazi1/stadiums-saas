@@ -18,7 +18,7 @@ import { moneyHref } from "../query";
  * shop supplies. Never a profit: supplies are bought in lots. reports.view. The sales include
  * items put on games that are not paid yet (see the caption).
  */
-export default async function MoneyShopPage({ searchParams }: PageProps<"/owner/money/shop">) {
+export default async function MoneyShopPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();

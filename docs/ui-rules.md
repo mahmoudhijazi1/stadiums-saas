@@ -145,6 +145,10 @@ Buttons, highlights, accent text and the focus ring take their colour from the s
 
 **Reserved hues.** Green is *paid*, amber/orange/gold is *owed* and red/coral is *destructive*. An accent in those hues would be mistaken for a status (a green "Book" button reads as "paid"; an orange one as "owed"), so no preset is offered in them. The five presets are lime (the default, unchanged), royal blue, sky blue, indigo and mono (graphite). Every chromatic fill must stay at least 40 degrees of OKLCH hue and 0.15 OKLab away from the paid, owed and destructive tokens, in both themes, and the tests read those tokens from `globals.css` so a changed status colour re-runs the check. Teal was tried and dropped: no teal with a real chroma clears the paid green in the light theme. Meaning still never rests on colour alone.
 
+### 10. The Money page layout
+
+Top to bottom: period chip and $ / LBP toggle; one summary card (profit or loss as the one big figure); the Owed card; the cash-today line; the actions row; recent activity (5 rows); the shop row. Rules that follow from the numbered ones above: **one primary button** (rule 5) is "+ Expense", Sell is secondary; the comparison and the source split **hide themselves** when they would say nothing (rule 4: an empty previous period, a single source); a **loss is neutral**, never red (rule 1: red is destructive); sales and shop supplies are **never side by side** on the page (supplies are bought in lots), the shop row shows sales only and the detail page has both; **cash today is the one figure in a currency other than USD** (per currency, never converted, one business day), a documented exception in [domain/money.md](./domain/money.md), shown only to members with reports.view.
+
 ## Audit
 
 Checked against the code on `feat/today-free-slots` (2026-10-01). "Verified" means I read the code path; the booking sheet and Today card were also seen in a screenshot.

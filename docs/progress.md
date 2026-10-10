@@ -6608,3 +6608,19 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **Files:** `money/{shop-row.tsx,shop/page.tsx,panel.tsx,query.ts}`, `lib/ui-copy.ts` (`shopRowLine`, `owner.shopNoSales`), `shop-card.tsx` removed.
 
 **How to verify:** NOT run (no test, build or lint). Tests in commit 4. By hand: a month with shop sales (the row shows, the page lists items), a month with only a shop-supplies expense (the row shows "sales $0"), a month with neither (no row).
+
+
+## Money page v2, commit 4 of 4: tests (written, NOT run) and docs (branch `ui/money-v2`)
+
+**Tests, none run:**
+- Unit: `test/modules/payment/domain/cash-day.test.ts` (net per currency, an expense paid in pounds lowers only the pound net, several tenders add up, empty day, which currencies the line shows); `test/modules/expense/domain/category-order.test.ts` (most recent first, junk from storage ignored, nothing dropped or duplicated, the remembered list stays short); `test/app/owner/money/money-page.test.ts` (Profit / Loss labels in both languages; the comparison hidden when the previous period has no row and shown with one; In split by source listed and hidden with one source or a source with no money; a known source named and a future one shown generically; the In / Out / activity / shop links keep the period, the view and open the right filter; the shop row only with sales or supplies and its phrase).
+- Integration: `test/integration/money-v2.integration.test.ts`: the summary splits In by source, counts rows, previous period zero rows when empty and a loss is negative; **cash today**: net per currency never converted, an expense paid in pounds, a payment at 00:30 belongs to the previous business day (day start 6) and one at 08:00 to the next, an empty day, another stadium's cash never counted, **change handed back is not counted** (a $20 note for a $4.50 sale is $4.50 of cash), an expense recorded through the use case is OUT in the currency paid, and staff with no flags / only `expenses.record` / only `shop.sell` get neither the cash nor the summary; **recent activity** shows at most 5 rows (the limit is capped at the page size); **the activity page** keeps its filter and keyset pages with no row repeated or skipped (20 + 5 In, 5 Out); the shop numbers sum by period (September vs October) with shop supplies separate; staff without reports.view cannot read activity or shop numbers.
+- Not covered by a test: the focus of the amount field, the sheet's chip order in a browser (the pure ordering is tested), the "Money page" gate as a page render (the page shows nothing without reports.view; the use cases that feed it refuse, which is tested).
+
+**Docs:** `ui-rules.md` rule 10 (the Money page layout), `domain/money.md` (cash today, from commit 1), `owner-ia.md` (the new Money layout and sub-pages), `NOW.md`, `ROADMAP.md` (expenses by category, stock and shop profit, a server-side category order, cash by drawer).
+
+**Query count per Money render (money-specific; the layout's membership and tenant reads excluded), before and after:** before 8 to 13 (rate 1, ledger 2, activity 1 + up to 5 name reads, owed 2, shop 1, shop supplies 1); after 9 to 14: the same, plus exactly 1 for cash today when the period contains today. Recent activity reads fewer rows, not more queries; the expense-category order is browser-side; the shop row reuses the two shop reads.
+
+**Honest limits:** `npx tsc --noEmit` was run twice at the end (the first run found a duplicate `owner.noteOptional` key and two `PageProps` route types that only exist after a build; fixed). Nothing was rendered or run. UNVERIFIED: the raw SQL of cash today against a real database, `autoFocus` inside the bottom sheet, and `localStorage` ordering in a browser.
+
+**How to verify:** `npm test`, `npm run test:integration`, `npm run build`; then by hand the checks listed in commits 1 to 3.

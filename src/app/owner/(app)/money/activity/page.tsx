@@ -17,7 +17,7 @@ import { moneyHref } from "../query";
  * $197") and the chips here keep them. reports.view, checked here for the page and again in each
  * use case.
  */
-export default async function MoneyActivityPage({ searchParams }: PageProps<"/owner/money/activity">) {
+export default async function MoneyActivityPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
