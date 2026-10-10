@@ -7030,3 +7030,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** booking/ui passes rule 6: no application, infrastructure or @/app imports; actions arrive as props.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app, test/components, test/modules/booking and people passed. Integration tests (free-strip) typecheck but were not run.). Full suites and build not run.
+
+## Refactor step 6b, docs
+
+**When:** 2026-10-10
+
+**What:** ARCHITECTURE.md lists the ui folders (venue, stadium, booking added) and where the action types live; CODEMAP.md has venue/ui, stadium/ui, booking/ui and the components/ui additions.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/ARCHITECTURE.md, docs/CODEMAP.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.

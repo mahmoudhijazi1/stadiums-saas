@@ -22,7 +22,7 @@ Each module has `domain/ application/ infrastructure/ schemas/` and, where it ow
 | Module | Purpose |
 |---|---|
 | `access` | Login, sessions, permissions (`can()`), passwords, tenant settings |
-| `booking` | Requests, owner bookings, series, cancel, no-show, waitlist, booking items |
+| `booking` | Requests, owner bookings, series, cancel, no-show, waitlist, booking items. `ui/`: booking-row, day-sheet/, day-strip/tabs/nav, free-strip, fee-forms, extend-form, per-player-collect, booking-items, add-items-sheet, upcoming-panel (to be split), series components, request and book components, slot-picker; `action-types.ts` types the action props |
 | `expense` | Expenses and categories |
 | `ledger` | Append-only USD ledger entries and period bounds |
 | `notification` | WhatsApp link composition |
@@ -30,9 +30,11 @@ Each module has `domain/ application/ infrastructure/ schemas/` and, where it ow
 | `people` | Persons, phones, names. `ui/`: person-link |
 | `platform` | Operator-only tenant management; `application/tenant-profile` serves the stadium module |
 | `push` | Web push to owners (new-request alert) |
-| `stadium` | The stadium's own name and info, brand (presets, accent, logo plan), links (map, public URL, QR text), PWA short name. Moved here from `lib/` (brand-*, accent-css, map-link, public-page-url, qr, pwa-short-name) and `platform/` (stadium-info, brand-identity) |
+| `stadium` | The stadium's own name and info, `ui/` qr-sheet and share-card, brand (presets, accent, logo plan), links (map, public URL, QR text), PWA short name. Moved here from `lib/` (brand-*, accent-css, map-link, public-page-url, qr, pwa-short-name) and `platform/` (stadium-info, brand-identity) |
 | `shop` | Products, sales, tabs, supplies, items on a booking. `ui/`: item-tiles, parts-balance, sell-screen |
-| `venue` | Pitches, hours, schedule config, availability |
+| `venue` | Pitches, hours, schedule config, availability. `ui/`: day-chips, date-calendar-chip |
+
+`src/components/ui/` also holds the generic pieces moved in step 6b: settings-list (SettingsSection, SettingsRow), money-input, scrollbar-peek.
 
 ## `src/lib/`
 | Path | Purpose |
