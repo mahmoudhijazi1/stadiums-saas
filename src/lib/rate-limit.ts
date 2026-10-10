@@ -18,7 +18,32 @@ export async function hitRateLimit(key: string, windowMs: number, now = new Date
       "count" = CASE WHEN "RateLimit"."windowStart" <= ${windowOpenAfter}
         THEN 1 ELSE "RateLimit"."count" + 1 END
     RETURNING "count"`;
+  await dropExpiredRateLimits(RATE_LIMIT_RETENTION_MS, RATE_LIMIT_SWEEP_BATCH, now, key);
   return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * A row older than this is past every window and block time in use (the longest is under a day),
+ * so nothing reads it any more. Every write sweeps a few such rows, so the table cannot grow
+ * without bound even when nobody logs in (the login prune is no longer the only cleanup).
+ */
+export const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
+/** Rows one write may delete: bounded so a hit never turns into a big delete. */
+export const RATE_LIMIT_SWEEP_BATCH = 20;
+
+/** Delete up to `limit` rows whose window started before `now - olderThanMs`, never `exceptKey`. */
+export async function dropExpiredRateLimits(
+  olderThanMs: number,
+  limit: number,
+  now = new Date(),
+  exceptKey?: string,
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - olderThanMs);
+  return platformDb.$executeRaw`
+    DELETE FROM "RateLimit" WHERE "key" IN (
+      SELECT "key" FROM "RateLimit"
+      WHERE "windowStart" < ${cutoff} AND "key" <> ${exceptKey ?? ""}
+      ORDER BY "windowStart" ASC LIMIT ${limit})`;
 }
 
 /** Hits so far in the key's current window (0 when none or the window ended). */

@@ -6326,3 +6326,89 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `package.json`, `package-lock.json`, `docs/RUNBOOK.md` (new "Framework version" section).
 
 **How to verify:** NOT run. Only one `npx tsc --noEmit`. No test, build or lint was run. Run `npm test`, `npm run test:integration`, `npm run build`, then check the service worker and push by hand.
+
+
+## Hardening 2, item 1 of 8: the same new phone twice (branch `security/hardening-2`)
+
+**What:** `createPerson` (`people/infrastructure/persons.ts`) is now `INSERT ... ON CONFLICT ("tenantId","phone") WHERE "phone" IS NOT NULL DO NOTHING` followed by a re-read, so two requests with the same new phone no longer fail on `Person_tenantId_phone_key` (a plain insert error would also abort the loser's whole transaction, so catching it afterwards was not an option). The raw SQL stamps `tenantId` from the request context.
+
+**Why:** requests on different pitches take different pitch locks, so nothing serialized the person lookup.
+
+**Files:** `people/infrastructure/persons.ts`, `test/integration/person-phone-race.integration.test.ts`.
+
+**How to verify:** NOT run. The test sends two public requests on two pitches with the same new phone, 10 iterations with `Promise.allSettled`: both succeed and one Person row is added each time. Run `npm run test:integration`.
+
+
+## Hardening 2, item 2 of 8: the tenant guard's update/delete check (branch `security/hardening-2`)
+
+**What:** in `src/lib/db.ts` the Prisma extension no longer pre-checks ownership of `update`/`delete` with a separate `findFirst` on `prismaBase` (another pool connection, outside the caller's transaction: it could not see a row created in that transaction, and with a full pool the caller held one connection while waiting for another). It now adds `tenantId` to the write's own `where` (Prisma's extended unique where), so the write itself is the check, on the caller's connection and transaction. No match (P2025) is still reported as `Tenant scope violation on <Model>.<op>`.
+
+**Files:** `src/lib/db.ts`, `test/integration/tenant-guard-tx.integration.test.ts`.
+
+**How to verify:** NOT run. The test runs as many concurrent `updatePitch` calls as `PG_POOL_MAX` (default 10) with a 20 s hang guard, checks a row created and then updated and deleted inside one transaction, and checks another tenant's row is still refused. The existing isolation test expects the same error text. Run `npm run test:integration`. UNVERIFIED: that every `update`/`delete` call site passes a `where` that accepts the extra `tenantId` (all models in `TENANT_SCOPED_MODELS` have a `tenantId` column; the single `tsc` run is the only check).
+
+
+## Hardening 2, item 3 of 8: staff and money (N-6) (branch `security/hardening-2`)
+
+**What was already gated (reports.view inside the use case):** `summarizeLedgerPeriod`, `listLedgerActivity`, `listExpenseDetails`, `sumExpenseCategory`, `listOwed`, `listBookingLabels`, `summarizeShopPeriod`, `listSaleDetails`; the Money panel and the owed page also check it in the page. Recording an expense needs `expenses.record` only (`recordExpense`).
+**Gaps closed:** `listRecentExpenses` (expense module) only needed a membership ("staff may look"): it now needs `reports.view`; nothing in the app calls it today, so no screen changes. The person page (`people/[personId]/stats.tsx`) now hides lifetime **Total paid** from members without `reports.view`; "owes now" and "expected" stay for every member.
+**Not changed:** `getPersonBookingStats` still computes `totalPaidUsd` server-side (it is only ever rendered by that component).
+
+**Files:** `expense/application/list-recent-expenses.ts`, `app/owner/(app)/people/[personId]/stats.tsx`, `test/integration/staff-money-gating.integration.test.ts`.
+
+**How to verify:** NOT run. The test uses staff with no flags (every money read refused), staff with only `expenses.record` (records, reads nothing), staff with only `reports.view` (reads, cannot record) and the owner. The hidden "Total paid" is a component and has no automated test: check it by hand with a staff account. Run `npm run test:integration`.
+
+
+## Hardening 2, item 4 of 8: booking horizon (N-9) (branch `security/hardening-2`)
+
+**What:** one constant, `PUBLIC_FUTURE_DAYS = 60` (`booking/domain/public-window.ts`, same size as the owner's `OWNER_FUTURE_DAYS`), used by both sides. The public page (`app/(public)/page.tsx`) shows today for a `?date=` beyond `today + 60` (as it already does for a bad date), and `requestPublicSlot` refuses a start later than the last public day with the new `booking.too_far` (AR and EN in `error-messages.ts`) before the offered-slot check. Before this the page and the use case accepted any date.
+**Not done:** the "other date" calendar chip has no maximum, so a player can still pick a far date and gets today's list. A `maxDate` prop would need the chip's component, which this item did not read.
+
+**Files:** `booking/domain/public-window.ts`, `booking/application/request-public-slot.ts`, `app/(public)/page.tsx`, `lib/error-messages.ts`, `test/modules/booking/domain/public-window.test.ts`, `test/integration/public-window.integration.test.ts`.
+
+**How to verify:** NOT run. Unit: the boundary day is allowed, the next day is not, across a month end. Integration: a request on day 60 is accepted, day 61 and a year ahead are refused with `booking.too_far`, nothing is written for the refused ones. By hand: open `/?date=` with a date 90 days out and check it shows today.
+
+
+## Hardening 2, item 5 of 8: a visible line when the inbox is capped (branch `security/hardening-2`)
+
+**What:** the Requests inbox is capped at 200 upcoming plus 50 missed (S-8) but said nothing when it left requests out. It now shows "N more requests are not shown. Handle some to see them." (AR and EN, `owner.requestsHidden`, counted forms) between the queue and the free-slots section, with the real number: `countPendingInboxTotals` (one `COUNT ... FILTER` query) and `hiddenInboxCount` (pure) through the use case `countHiddenRequests`. The caps moved to `booking/domain/pending-inbox.ts` (the query imports them; no change in value).
+
+**Files:** `booking/domain/pending-inbox.ts`, `booking/infrastructure/bookings.ts`, `booking/application/count-hidden-requests.ts`, `app/owner/(app)/requests/inbox.tsx`, `lib/ui-copy.ts`, `test/modules/booking/domain/pending-inbox.test.ts`.
+
+**How to verify:** NOT run. Unit test: 0 at the caps, 1 for one over either cap, 80 for 250 upcoming + 80 missed; the line carries the number in both languages. Not tested with 201 real rows (too heavy for this slice); by hand, lower the constants locally to see the line.
+
+
+## Hardening 2, item 6 of 8: one guard for every /dev page (branch `security/hardening-2`)
+
+**What:** `assertDevOnly` moved from `app/dev/mockups/today/guard.ts` to `src/lib/dev-only.ts` (404 when `NODE_ENV=production`). It is called by the Today mockup page, by `/dev/palette` (which had no guard and was reachable in production), and by a new `app/dev/layout.tsx`, so a page added later is covered too.
+
+**Files:** `lib/dev-only.ts`, `app/dev/{layout.tsx,palette/page.tsx,mockups/today/page.tsx}`, `test/app/dev/{dev-guard,today-mockup}.test.ts`.
+
+**How to verify:** NOT run. The test runs the guard under `NODE_ENV=production`, runs the layout the same way, and scans every `page`/`route` file under `src/app/dev` for `assertDevOnly()`. By hand: `next start` build, open `/dev/palette` and `/dev/mockups/today`: both 404.
+
+
+## Hardening 2, item 7 of 8: rate-limit cleanup on every write (branch `security/hardening-2`)
+
+**What:** `hitRateLimit` (`lib/rate-limit.ts`) now also deletes, after its upsert, up to 20 rows (`RATE_LIMIT_SWEEP_BATCH`) whose window started more than 24 hours ago (`RATE_LIMIT_RETENTION_MS`, longer than every window and block time in use), oldest first, never the key it is counting. So the table is cleaned by public requests, push throttles and password changes too, not only by the prune on login (`pruneRateLimits` stays). "Past its window" means older than the retention, not older than the caller's own window: a row is read only by its own key's window, and a key's next hit restarts that window anyway.
+
+**Files:** `lib/rate-limit.ts`, `test/integration/rate-limit-sweep.integration.test.ts`.
+
+**How to verify:** NOT run. The test seeds old rows and rows one hour old: after one hit the old ones are gone and the recent ones stay; with 25 old rows one hit deletes 20 and the next finishes; the counted key is never removed. UNVERIFIED: the longest block time in use is under 24 hours (login block); check `LOGIN_BLOCK_MS` if it is ever raised above that.
+
+
+## Hardening 2, item 8 of 8: no database password in command arguments (branch `security/hardening-2`)
+
+**What:** `docs/RUNBOOK.md`: the lockout command no longer uses `psql "${DATABASE_URL%%\?*}"` (that put the password in the process arguments); it uses `psql -h localhost -U stadiums -d stadiums`. A new section "Database commands (psql, pg_dump): no password on the command line" states the rule, the reason (other accounts on the shared server can read process arguments and shell history), and the `~/.pgpass` form (`chmod 600`, same host spelling) for `psql` and `pg_dump`. This closes the security-audit-2 note. The host, user and database names in the examples are placeholders: check them against the server's `.env`.
+
+**Files:** `docs/RUNBOOK.md`.
+
+**How to verify:** docs only; nothing run. Try the two commands on the server with a `.pgpass`; `ps` shows no password while they run.
+
+**Correction to the item 7 entry:** the longest block time in use is 15 minutes (`LOGIN_BLOCK_MS`, `PWCHANGE_BLOCK_MS`), so the 24-hour retention is safe; that point is verified, not UNVERIFIED.
+
+
+## Verification of `security/hardening-2` (all four checks run)
+
+**Results:** `npx tsc --noEmit` clean; unit tests 107 suites / 993 tests passed; integration tests 52 suites, 439 tests: 438 passed and 1 failed on the first run, then the failing suite re-run alone, 23/23 passed (the full integration run was not repeated); `npm run build` succeeded.
+**The one failure:** `weekly-series.integration.test.ts`, "createSeries x approve of a pending request": the test's own public request was 3 to 262 days ahead and item 4 (the 60-day public window) correctly refused it with `booking.too_far`. A wrong test expectation, not a logic bug. Fix: the 10 iterations now use six slots a day from day 3 and then day 31, so every request stays inside the window and no iteration touches another. No source changed.
+**Not verified by these runs:** the hidden "Total paid" on the person page, the `/dev` 404 on a production server, and the inbox "N more requests" line with real rows (all by hand).

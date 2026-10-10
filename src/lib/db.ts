@@ -113,31 +113,24 @@ const scoped = prismaBase.$extends({
         //
         // - findUnique: ensure tenantId is on the result for the post-check (inject
         //   into select if the caller omitted it), then null out cross-tenant rows.
-        // - update / delete: PRE-check with findFirst({ ...where, tenantId }). A
-        //   post-check is too late — the write already committed on top-level db.
+        // - update / delete: tenantId goes into the same statement's where (Prisma's
+        //   extended unique where), so ownership is checked atomically by the write itself
+        //   on the caller's own connection and transaction. A separate pre-check on another
+        //   connection could not see rows created in the caller's transaction, and it needed
+        //   a second pool connection while the caller already held one (a hang when the pool
+        //   was full). No row matching id + tenant means P2025: reported as a scope violation.
 
         if (op === "update" || op === "delete") {
-          const { where } = args as { where: Record<string, unknown> };
-          const modelKey =
-            model.charAt(0).toLowerCase() + model.slice(1);
-          const owned = await (
-            prismaBase as unknown as Record<
-              string,
-              {
-                findFirst: (args: {
-                  where: Record<string, unknown>;
-                  select: { id: true };
-                }) => Promise<{ id: string } | null>;
-              }
-            >
-          )[modelKey].findFirst({
-            where: { ...where, tenantId },
-            select: { id: true },
-          });
-          if (!owned) {
-            throw new Error(`Tenant scope violation on ${model}.${operation}`);
+          const writeArgs = args as { where: Record<string, unknown> };
+          writeArgs.where = { ...writeArgs.where, tenantId };
+          try {
+            return await run(args);
+          } catch (error) {
+            if ((error as { code?: string } | null)?.code === "P2025") {
+              throw new Error(`Tenant scope violation on ${model}.${operation}`);
+            }
+            throw error;
           }
-          return run(args);
         }
 
         const selectArgs = args as {

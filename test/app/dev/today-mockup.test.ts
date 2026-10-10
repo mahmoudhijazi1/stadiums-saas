@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "@jest/globals";
 import TodayMockupPage from "@/app/dev/mockups/today/page";
-import { assertDevOnly } from "@/app/dev/mockups/today/guard";
+import { assertDevOnly } from "@/lib/dev-only";
 
 const env = process.env as Record<string, string | undefined>;
 const original = env.NODE_ENV;

@@ -6,6 +6,10 @@ import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/money";
 import Decimal from "decimal.js";
+import {
+  PENDING_INBOX_MISSED_MAX,
+  PENDING_INBOX_UPCOMING_MAX,
+} from "@/modules/booking/domain/pending-inbox";
 
 function asDate(value: Date | string): Date {
   return value instanceof Date ? value : new Date(value);
@@ -228,9 +232,20 @@ function mapPendingRow(row: PendingSqlRow): PendingBookingRow {
   };
 }
 
-/** Page caps (security audit S-8). Decision paths use listPendingBookings (all rows). */
-export const PENDING_INBOX_UPCOMING_MAX = 200;
-export const PENDING_INBOX_MISSED_MAX = 50;
+/** Real totals behind the capped inbox (the caps are in domain/pending-inbox.ts). One query. */
+export async function countPendingInboxTotals(
+  tx: TenantTx,
+  now: Date,
+): Promise<{ upcoming: number; missed: number }> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ upcoming: bigint; missed: bigint }[]>`
+    SELECT
+      COUNT(*) FILTER (WHERE lower(b.during) > ${now})::bigint AS upcoming,
+      COUNT(*) FILTER (WHERE lower(b.during) <= ${now})::bigint AS missed
+    FROM "Booking" b
+    WHERE b."tenantId" = ${tenantId} AND b.status = 'PENDING'::"BookingStatus"`;
+  return { upcoming: Number(rows[0]?.upcoming ?? 0), missed: Number(rows[0]?.missed ?? 0) };
+}
 
 /**
  * The Requests inbox: the next 200 upcoming PENDING plus the 50 latest missed

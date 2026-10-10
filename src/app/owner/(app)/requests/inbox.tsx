@@ -11,7 +11,8 @@ import type { DebtNotice } from "@/app/owner/notify-list";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/money";
-import { ui } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/ui-copy";
+import { countHiddenRequests } from "@/modules/booking/application/count-hidden-requests";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import type { HourCycle } from "@/app/owner/shared";
 import type { DebtWarning } from "@/modules/booking/domain/debt-warning";
@@ -40,9 +41,10 @@ export async function RequestsInbox({
 }) {
   const tenant = await getCurrentTenant();
   const hourCycle: HourCycle = tenant.timeDisplay;
-  const [pending, openWaitlist] = await Promise.all([
+  const [pending, openWaitlist, hidden] = await Promise.all([
     listPendingRequests(),
     listOpenWaitlist(),
+    countHiddenRequests(),
   ]);
   const now = new Date();
   const queue = actionablePending(pending, now);
@@ -91,6 +93,11 @@ export async function RequestsInbox({
         debts={debts}
         showEmpty={missed.length === 0}
       />
+      {hidden > 0 ? (
+        <p className="type-secondary text-ink-muted" role="status">
+          {uiCount("owner.requestsHidden", hidden, locale)}
+        </p>
+      ) : null}
       <FreeSlots
         locale={locale}
         hourCycle={hourCycle}

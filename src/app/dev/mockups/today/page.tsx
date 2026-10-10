@@ -1,7 +1,7 @@
 import { OwnerDayStrip } from "@/app/owner/(app)/today/day-strip";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { queryString } from "@/app/owner/shared";
-import { assertDevOnly } from "./guard";
+import { assertDevOnly } from "@/lib/dev-only";
 import { TodayMockup } from "./today-mockup";
 
 const DAY = { year: 2026, month: 10, day: 1 };

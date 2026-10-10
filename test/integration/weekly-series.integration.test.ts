@@ -556,9 +556,13 @@ describe("races (10 iterations each)", () => {
 
   it("createSeries x approve of a pending request on one of its weeks: never an overlap", async () => {
     for (let i = 0; i < 10; i += 1) {
-      // 28 days apart so one iteration's four weeks never touch another's.
-      const first = await slotAt(3 + i * 28, 1);
-      const week1 = await slotAt(3 + i * 28 + 7, 1);
+      // The pending request is a public one, so it must sit inside the public window (60 days).
+      // Six slots a day: iterations 0-5 use a slot each from day 3, 6-9 reuse them from day 31, so
+      // no two iterations' four weeks touch.
+      const base = i < 6 ? 3 : 31;
+      const slotIndex = i % 6;
+      const first = await slotAt(base, slotIndex);
+      const week1 = await slotAt(base + 7, slotIndex);
       const { bookingId: pendingId } = await requestPublicSlot({
         pitchId: fixture.pitchId,
         start: week1.startIso,
