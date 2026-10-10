@@ -22,7 +22,7 @@ import { insertSeries } from "@/modules/booking/infrastructure/series";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import { findPersonById } from "@/modules/people/infrastructure/persons";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 export type SeriesPerson = { personId: string } | { name: string; phone: string };
 

@@ -12,7 +12,7 @@ import {
   seriesOccurrences,
   seriesWeekdayAndTime,
 } from "@/modules/booking/domain/series";
-import { CLOSED_WEEK_SCHEDULE, parseScheduleConfig, type Weekday } from "@/modules/venue/schemas/schedule-config";
+import { CLOSED_WEEK_SCHEDULE, parseScheduleConfig, type Weekday } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Written, not run when authored. Beirut is UTC+3 in summer and UTC+2 in winter; the clocks go

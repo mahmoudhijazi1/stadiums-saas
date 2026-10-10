@@ -11,7 +11,7 @@ import { listPitches } from "@/modules/venue/infrastructure/pitches";
 import {
   parseScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 export type PitchSummary = {
   id: string;

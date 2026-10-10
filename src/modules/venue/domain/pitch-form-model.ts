@@ -1,7 +1,7 @@
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import type { HoursGroup } from "@/modules/venue/domain/daily-schedule";
-import { WEEKDAYS, type Weekday } from "@/modules/venue/schemas/schedule-config";
+import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Pure conversions between the stored pitch config (hours groups, price rules) and the

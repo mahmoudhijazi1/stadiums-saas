@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { parseUsd } from "@/lib/money";
-import type { ScheduleConfig, Weekday } from "@/modules/venue/schemas/schedule-config";
+import type { ScheduleConfig, Weekday } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Pure availability engine (SPEC-02 step 3 / DR-002 §2.5).

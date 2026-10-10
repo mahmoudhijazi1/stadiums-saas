@@ -29,7 +29,7 @@
 ### Venue and people
 | Table | Kind | What a row is | Columns that need explaining |
 |---|---|---|---|
-| `Pitch` | T | A field. | `scheduleConfig` jsonb (hours, slot length, gaps, price rules), parsed by `venue/schemas/schedule-config.ts` `parseScheduleConfig` before every use. A corrupt row is logged and throws (`update-pitch.ts`, `get-day-availability.ts`). `defaultPlayerCount` is 1–30 (CHECK). |
+| `Pitch` | T | A field. | `scheduleConfig` jsonb (hours, slot length, gaps, price rules), parsed by `venue/domain/schedule-config.ts` `parseScheduleConfig` before every use. A corrupt row is logged and throws (`update-pitch.ts`, `get-day-availability.ts`). `defaultPlayerCount` is 1–30 (CHECK). |
 | `Person` | T | Name + phone at **one** stadium (the same phone at two stadiums = two rows). | `phone` digits only (`people/domain/phone.ts` `normalizePhone`), nullable, unique per tenant when set (partial unique). `name` cleaned by `people/domain/clean-person-name.ts`. `searchName` = `normalizeName(name)`, the Arabic/Latin fold used by search. |
 
 ### Bookings

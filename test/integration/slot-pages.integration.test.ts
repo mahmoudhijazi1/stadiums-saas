@@ -11,7 +11,7 @@ import {
 import {
   CLOSED_WEEK_SCHEDULE,
   parseScheduleConfig,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";

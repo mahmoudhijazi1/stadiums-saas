@@ -2,7 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   CLOSED_WEEK_SCHEDULE,
   parseScheduleConfig,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 const validConfig = {
   slotDurationMinutes: 60,

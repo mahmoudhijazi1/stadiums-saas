@@ -15,7 +15,7 @@ import { isSeriesCount, occurrenceIndex, seriesOccurrences } from "@/modules/boo
 import { lockPitchForUpdate } from "@/modules/booking/infrastructure/bookings";
 import { findSeries, latestSeriesStart } from "@/modules/booking/infrastructure/series";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Continue a series for `count` more weeks (4, 8 or 12), starting the week after its latest

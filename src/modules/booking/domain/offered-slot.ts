@@ -5,7 +5,7 @@ import {
   generateSlotsForDay,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 export type UtcRange = { start: Date; end: Date };
 

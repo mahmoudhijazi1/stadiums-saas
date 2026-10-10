@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { bookingFitsOpenHours, openWindowEnd } from "@/modules/venue/domain/availability";
-import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 /** One extension adds this much. Repeatable until the cap. */
 export const EXTENSION_STEP_MINUTES = 30;

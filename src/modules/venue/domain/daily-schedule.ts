@@ -5,7 +5,7 @@ import {
   parseScheduleConfig,
   type ScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 export type HoursGroup = {
   days: Weekday[];

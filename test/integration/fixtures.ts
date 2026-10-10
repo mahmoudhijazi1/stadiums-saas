@@ -1,9 +1,9 @@
 import { platformDb } from "@/lib/platform-db";
 import { createSession } from "@/modules/access/infrastructure/sessions";
 import { hashPassword } from "@/modules/access/infrastructure/password";
-import { CLOSED_WEEK_SCHEDULE } from "@/modules/venue/schemas/schedule-config";
-import type { ScheduleConfig, Weekday } from "@/modules/venue/schemas/schedule-config";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { CLOSED_WEEK_SCHEDULE } from "@/modules/venue/domain/schedule-config";
+import type { ScheduleConfig, Weekday } from "@/modules/venue/domain/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 const EVENING = [{ start: "16:00", end: "22:00" }];
 

@@ -1,5 +1,5 @@
 import { bookingFitsOpenHours } from "@/modules/venue/domain/availability";
-import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 export type LivePitchWindow = {
   start: Date;

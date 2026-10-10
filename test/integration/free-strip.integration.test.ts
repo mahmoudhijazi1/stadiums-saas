@@ -30,7 +30,7 @@ import {
   CLOSED_WEEK_SCHEDULE,
   parseScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 import { FreeStrip as FreeStripView } from "@/app/owner/(app)/today/free-strip";
 import { createStaffSession, seedMinimalFixture, seedTwoTenants } from "./fixtures";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";

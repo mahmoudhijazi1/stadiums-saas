@@ -10,7 +10,7 @@ import { hoursSaveBlocker } from "@/modules/venue/domain/hours-cover";
 import {
   CLOSED_WEEK_SCHEDULE,
   parseScheduleConfig,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 import { DomainError } from "@/lib/errors";
 
 const WEEKEND = [{ days: ["fri" as const, "sat" as const], priceUsd: "40.00" }];

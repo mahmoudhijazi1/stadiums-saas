@@ -26,7 +26,7 @@ import {
   WEEKDAYS,
   type ScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 const group = (days: Weekday[], open: string, close: string): HoursGroup => ({ days, open, close });
 

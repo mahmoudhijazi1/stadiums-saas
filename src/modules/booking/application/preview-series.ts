@@ -20,7 +20,7 @@ import {
 } from "@/modules/booking/infrastructure/bookings";
 import { findBookingSeriesId, findSeries, latestSeriesStart } from "@/modules/booking/infrastructure/series";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 export type SeriesPreview = {
   pitchId: string;

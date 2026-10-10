@@ -6708,3 +6708,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** people/domain/phone stays pure (imports nothing).
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 5: schedule-config to venue/domain
+
+**When:** 2026-10-10
+
+**What:** git mv venue/schemas/schedule-config.ts to venue/domain/ and updated every importer (src, tests, seed, DATA-MODEL.md). Removed the seven rule-2 exceptions it resolved.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/venue/domain/schedule-config.ts and its importers, test/architecture/rules.ts
+
+**How it connects:** It imports only zod and lib/money, so it is a valid domain file; venue/schemas/pitch-draft now imports it from domain.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
