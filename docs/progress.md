@@ -6337,3 +6337,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `people/infrastructure/persons.ts`, `test/integration/person-phone-race.integration.test.ts`.
 
 **How to verify:** NOT run. The test sends two public requests on two pitches with the same new phone, 10 iterations with `Promise.allSettled`: both succeed and one Person row is added each time. Run `npm run test:integration`.
+
+
+## Hardening 2, item 2 of 8: the tenant guard's update/delete check (branch `security/hardening-2`)
+
+**What:** in `src/lib/db.ts` the Prisma extension no longer pre-checks ownership of `update`/`delete` with a separate `findFirst` on `prismaBase` (another pool connection, outside the caller's transaction: it could not see a row created in that transaction, and with a full pool the caller held one connection while waiting for another). It now adds `tenantId` to the write's own `where` (Prisma's extended unique where), so the write itself is the check, on the caller's connection and transaction. No match (P2025) is still reported as `Tenant scope violation on <Model>.<op>`.
+
+**Files:** `src/lib/db.ts`, `test/integration/tenant-guard-tx.integration.test.ts`.
+
+**How to verify:** NOT run. The test runs as many concurrent `updatePitch` calls as `PG_POOL_MAX` (default 10) with a 20 s hang guard, checks a row created and then updated and deleted inside one transaction, and checks another tenant's row is still refused. The existing isolation test expects the same error text. Run `npm run test:integration`. UNVERIFIED: that every `update`/`delete` call site passes a `where` that accepts the extra `tenantId` (all models in `TENANT_SCOPED_MODELS` have a `tenantId` column; the single `tsc` run is the only check).
