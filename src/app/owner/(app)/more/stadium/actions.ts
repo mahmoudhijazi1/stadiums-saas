@@ -1,7 +1,7 @@
 "use server";
 
 import { actionErrorKey } from "@/lib/use-case-error";
-import { saveStadiumInfo } from "@/modules/platform/application/stadium-info";
+import { saveStadiumInfo } from "@/modules/stadium/application/stadium-info";
 import { field, redirectOwner } from "@/app/owner/form-query";
 
 const PATH = "/owner/more/stadium";

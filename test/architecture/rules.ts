@@ -36,7 +36,7 @@ export const MODULE_EDGES: Record<string, string[]> = {
   shop: ["access", "ledger", "payment", "people"],
   booking: ["access", "notification", "payment", "people", "shop", "stadium", "venue"], // stadium: public-page-url for WhatsApp links
   platform: ["access"],
-  stadium: ["access", "people"], // phone and name rules (people domain) for the stadium info form
+  stadium: ["access", "people", "platform"], // people: phone and name rules; platform: the audited rename and the brand source go through platform/application/tenant-profile
 };
 
 export interface Exception {
@@ -49,15 +49,6 @@ export interface Exception {
 
 /** Rule 1 exceptions: edges outside MODULE_EDGES that exist today. */
 export const MODULE_EDGE_EXCEPTIONS: Exception[] = [
-  { file: "src/modules/platform/application/brand-identity.ts", target: "src/modules/stadium/domain/brand-identity", rule: 1,
-    reason: "the stadium use cases still live in platform until the next commit",
-    fate: "moves to stadium/application in the next commit; delete this entry then" },
-  { file: "src/modules/platform/application/stadium-info.ts", target: "src/modules/stadium/domain/brand-presets", rule: 1,
-    reason: "the stadium use cases still live in platform until the next commit",
-    fate: "moves to stadium/application in the next commit; delete this entry then" },
-  { file: "src/modules/platform/application/stadium-info.ts", target: "src/modules/stadium/domain/stadium-info", rule: 1,
-    reason: "the stadium use cases still live in platform until the next commit",
-    fate: "moves to stadium/application in the next commit; delete this entry then" },
 ];
 
 /** Rules 2 to 5: files that break a rule today. Do not add; fix the code. */

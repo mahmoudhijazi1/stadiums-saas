@@ -6862,3 +6862,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** stadium/domain imports only zod, qrcode, lib helpers and people/domain.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed; stadium domain tests, accent-guard, brand, tenant-settings: all passed). Full suites and build not run.
+
+## Refactor step 5, commit 2: stadium application
+
+**When:** 2026-10-10
+
+**What:** git mv platform/application/stadium-info.ts and brand-identity.ts to stadium/application. The platform module now offers the public use cases in platform/application/tenant-profile.ts (readTenantProfile, updateTenantProfile with the audited rename in the same transaction, readTenantBrandSource); stadium's use cases call those, so platformDb is imported only inside platform/** and test/platform-db-imports.test.ts is unchanged. Same behaviour: one transaction, 'tenant.rename' audit only when the name changed, tenant id from getCurrentTenantId, never from input. stadium/infrastructure not created: the stadium module has no queries of its own (no empty layer). Importers updated (stadium page and actions, current-brand, integration tests). Edge added: stadium -> platform (application); the three temporary platform -> stadium exceptions removed.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/stadium/application/*, src/modules/platform/application/tenant-profile.ts, importers, test/architecture/rules.ts
+
+**How it connects:** stadium/application imports platform/application only; platform imports nothing from stadium.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed; platform-db-imports and stadium domain tests passed. The stadium-info integration test (needs Docker Postgres) was not run.). Full suites and build not run.
