@@ -32,6 +32,8 @@ export async function listLedgerActivity(input: {
   to: string;
   filter?: "all" | "in" | "out";
   cursor?: string;
+  /** Rows per page; 20 unless a caller (the Money page's recent activity) wants fewer. */
+  limit?: number;
 }): Promise<LedgerActivityPage> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, REPORTS_VIEW)) {
@@ -39,17 +41,18 @@ export async function listLedgerActivity(input: {
   }
 
   try {
+    const pageSize = Math.min(Math.max(input.limit ?? ACTIVITY_PAGE_SIZE, 1), ACTIVITY_PAGE_SIZE);
     const bounds = periodBoundsFromCivilRange(input.from, input.to, TIME_ZONE);
     const rows = await listLedgerEntriesPage(db, {
       startInclusive: bounds.startInclusive,
       endExclusive: bounds.endExclusive,
       direction: input.filter === "in" ? "IN" : input.filter === "out" ? "OUT" : undefined,
       cursor: decodeActivityCursor(input.cursor) ?? undefined,
-      take: ACTIVITY_PAGE_SIZE + 1,
+      take: pageSize + 1,
     });
-    const entries = rows.slice(0, ACTIVITY_PAGE_SIZE);
+    const entries = rows.slice(0, pageSize);
     const last = entries.at(-1);
-    const hasMore = rows.length > ACTIVITY_PAGE_SIZE && last !== undefined;
+    const hasMore = rows.length > pageSize && last !== undefined;
     return { entries, nextCursor: hasMore ? encodeActivityCursor(last.occurredAt, last.id) : null };
   } catch (error) {
     return await rethrowUnexpected(error, "List ledger activity failed", "listLedgerActivity");

@@ -1,5 +1,5 @@
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
-import { EXPENSES_RECORD, REPORTS_VIEW, can } from "@/modules/access/domain/can";
+import { EXPENSES_RECORD, REPORTS_VIEW, SHOP_SELL, can } from "@/modules/access/domain/can";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
@@ -18,6 +18,8 @@ import { listOwed } from "@/modules/booking/application/list-owed";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { RecordExpenseSheet } from "./expense-sheet";
+import { Button } from "@/components/ui/button";
+import { activityHref } from "./query";
 import { CashToday, type CashTodayView } from "./cash-today";
 import { PeriodBar } from "./period-bar";
 import { SummaryCard } from "./summary-card";
@@ -63,11 +65,12 @@ export async function OwnerMoney({
   const rate = await getCurrentRate();
   const mayRecordExpense = can(membership, EXPENSES_RECORD);
   const mayViewReports = can(membership, REPORTS_VIEW);
+  const maySell = can(membership, SHOP_SELL);
   const summary = mayViewReports
     ? await summarizeLedgerPeriod({ from: range.from, to: range.to, compare: true })
     : null;
   const activity = mayViewReports
-    ? await loadActivityPage({ ...range, filter: periodQuery.filter }, locale)
+    ? await loadActivityPage({ ...range, filter: "all", limit: 5 }, locale)
     : null;
   const owed = mayViewReports ? await listOwed() : null;
   // Cash today: only when the period contains today (the calendar day or the current business day,
@@ -127,29 +130,42 @@ export async function OwnerMoney({
 
       {cash ? <CashToday view={cashView(cash)} locale={locale} /> : null}
 
-      {shop && supplies && (shop.items.length > 0 || supplies.gt(0)) ? (
-        <ShopCard summary={shop} suppliesUsd={supplies} locale={locale} />
-      ) : null}
-
-      {mayRecordExpense ? (
-        <RecordExpenseSheet
-          periodQuery={periodQuery}
-          today={today}
-          locale={locale}
-          lbpPerUsd={rate ? rate.toString() : null}
-          categoryOptions={EXPENSE_CATEGORIES.map((category) => ({
-            value: category,
-            label: categoryLabel(category, locale),
-          }))}
-        />
+      {mayRecordExpense || maySell ? (
+        <div className="flex gap-2">
+          {mayRecordExpense ? (
+            <RecordExpenseSheet
+              periodQuery={periodQuery}
+              today={today}
+              locale={locale}
+              lbpPerUsd={rate ? rate.toString() : null}
+              membershipId={membership.membershipId}
+              categoryOptions={EXPENSE_CATEGORIES.map((category) => ({
+                value: category,
+                label: categoryLabel(category, locale),
+              }))}
+            />
+          ) : null}
+          {maySell ? (
+            <Button asChild variant="secondary" className="min-h-11 flex-1">
+              <Link href="/owner/sell">{ui("owner.sell", locale)}</Link>
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {activity ? (
         <ActivityList
-          key={`${periodQuery.filter}-${range.from}-${range.to}`}
+          key={`recent-${range.from}-${range.to}`}
+          variant="recent"
+          allHref={activityHref({
+            period: kind,
+            from: kind === "custom" ? range.from : undefined,
+            to: kind === "custom" ? range.to : undefined,
+            view: periodQuery.view,
+          })}
           initialRows={activity.rows}
-          initialCursor={activity.nextCursor}
-          filter={periodQuery.filter}
+          initialCursor={null}
+          filter="all"
           range={range}
           periodKey={{
             period: kind,
@@ -161,6 +177,10 @@ export async function OwnerMoney({
           highlightFirst={highlightNew}
           locale={locale}
         />
+      ) : null}
+
+      {shop && supplies && (shop.items.length > 0 || supplies.gt(0)) ? (
+        <ShopCard summary={shop} suppliesUsd={supplies} locale={locale} />
       ) : null}
     </div>
   );

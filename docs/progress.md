@@ -6585,3 +6585,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **Files:** `ledger/infrastructure/entries.ts` (`sumAmountUsdByDirectionAndSource`), `ledger/application/summarize-ledger-period.ts` (`inBySource`, `rows`), `payment/**` (above), `app/owner/(app)/money/{panel,period-bar,summary-card,cash-today,activity-map}.ts(x)`, `lib/ui-copy.ts`, `docs/domain/money.md`.
 
 **How to verify:** NOT run (no test, build or lint). Tests are in commit 4. By hand: open Money this month (profit, comparison, In/Out, split), a month with no previous rows (no comparison), a period without today (no cash line), then take a payment after midnight and check which business day the cash line counts it in.
+
+
+## Money page v2, commit 2 of 4: actions row and recent activity (branch `ui/money-v2`)
+
+**What:**
+- **Actions row** under the Owed card (and the cash line): **"+ Expense" / "+ مصروف"**, the one primary button on the page (`expenses.record`), opening the existing expense sheet at once with the amount field focused (`autoFocus` on the dollar field), the category as **chips ordered by this member's most recently used first**, today as the date and the note optional (a blank note is saved as the category's name by `submitRecordExpense`; the schema and `recordExpense` are untouched). **"Sell" / "بيع"** is a secondary button to `/owner/sell` (`shop.sell`). Each is hidden without its permission.
+  - The "most recently used" order is kept **in this browser, per member** (`localStorage` key `expense-categories:<membershipId>`, written when the form is submitted; `expense/domain/category-order.ts` `orderCategories` / `rememberCategory`). Expenses do not record who made them and the task forbids changing how anything is recorded, so a server-side per-member order was not possible without a schema change and an extra query. Another device or a cleared browser starts from the default order.
+- **Recent activity:** the 5 most recent ledger rows of the selected period, no filters, with a link "All activity ›" / "كل الحركات ›". `listLedgerActivity` and `loadActivityPage` take an optional `limit` (default 20, capped at 20). The saved-expense highlight still marks the newest row.
+- **All activity moved to `/owner/money/activity`** (`money/activity/page.tsx`): day grouping, All/In/Out chips and keyset "Show more" are the same `ActivityList` (now with a `variant`, "full" or "recent"); the period, the view and the filter are in the URL, and "In $197" / "Out $80" on the summary card open it already filtered (`activityHref` in `money/query.ts`). reports.view. The period parsing moved to `money/period-url.ts` (`readPeriodQuery`, `resolvePeriod`) so Money and Activity share it.
+- **Queries per Money render:** recent activity reads 6 ledger rows instead of 21 and the same name reads for at most 5 ids; no query was added. Still +1 over the original (cash today).
+
+**Files:** `money/{panel,expense-sheet,actions,activity,query,period-url,summary-card}.ts(x)`, `money/activity/page.tsx`, `ledger/application/list-ledger-activity.ts`, `expense/domain/category-order.ts`, `lib/ui-copy.ts`.
+
+**How to verify:** NOT run (no test, build or lint). Tests in commit 4. By hand: tap "+ Expense" (the sheet opens with the dollar field focused), record an expense in a category, reopen: that category is first; open Money as staff with only `expenses.record` (no reports: no Money page content, see commit 4); check "All activity" keeps the period, and the In/Out links on the summary card open the right filter.

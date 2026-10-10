@@ -11,7 +11,7 @@ import { isCalendarMonth, previousRange, type PeriodKind } from "@/modules/ledge
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import { sourceName } from "./activity-map";
 import { comparedWithLabel, periodChipLabel, rangeLabel } from "./period-label";
-import { moneyHref } from "./query";
+import { activityHref } from "./query";
 
 function amountText(amountUsd: Decimal, lbpPerUsd: Decimal | null): string {
   if (lbpPerUsd) {
@@ -79,7 +79,7 @@ export function SummaryCard({
 
       <p className="type-body flex flex-wrap gap-x-2">
         <Link
-          href={`${moneyHref({ period: kind, ...customRange, view, filter: "in" })}#activity`}
+          href={activityHref({ period: kind, ...customRange, view, filter: "in" })}
           className="inline-flex min-h-11 items-center gap-1 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <span>{ui("owner.in", locale)}</span>
@@ -89,7 +89,7 @@ export function SummaryCard({
           ·
         </span>
         <Link
-          href={`${moneyHref({ period: kind, ...customRange, view, filter: "out" })}#activity`}
+          href={activityHref({ period: kind, ...customRange, view, filter: "out" })}
           className="inline-flex min-h-11 items-center gap-1 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <span>{ui("owner.out", locale)}</span>
