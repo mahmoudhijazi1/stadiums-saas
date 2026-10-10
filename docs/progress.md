@@ -6529,3 +6529,35 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Honest limits:** `npx tsc --noEmit` was run once, at the end (after one typing fix in a new test, so twice). Nothing was rendered: no browser check of the override, the preview or the flash. The stadium-info branch's verification (separate entry) was run before this work started.
 
 **How to verify:** `npm test`, `npm run test:integration`, `npm run build`; by hand the checks listed in commit 2.
+
+
+## Colour presets replaced, commit 1 of 2: five presets measured against the real tokens (branch `feat/accent-presets`)
+
+**What:** the eight presets became **five**: lime (the default, values unchanged), **royal** blue, **sky** blue, **indigo** and **mono** (graphite: near-black fill with white text in the light theme, near-white fill with dark text in the dark theme). Pink, fuchsia and violet are gone, and nothing orange, gold, green or red is offered: those hues are the owed, paid and destructive colours. A stored key that no longer exists (blue, pink, violet, teal ...) reads as lime (tested). Each swatch has an aria-label in Arabic and English (`owner.brand.<key>`: "أزرق ملكي" / "Royal blue", "أزرق سماوي" / "Sky blue", "نيلي" / "Indigo", "رمادي فحمي (أحادي اللون)" / "Graphite (mono)", "ليموني" / "Lime").
+
+**Teal was dropped, as the rules require.** A teal leaning cyan passes in the dark theme (for example `#00A4BB`, 0.162 from the dark paid green) but not in the light one: the light paid token is `#047857`, and a teal with a real chroma stays only 0.087 to 0.124 OKLab away from it (0.14 only at hue 230, which is sky), and 0.15 is reached only with a near-black fill (`#04272C`, L 0.25, which is black, not a teal). Thresholds were not lowered. Five presets instead of six.
+
+**Lime is grandfathered** ("values unchanged"): it is tested for text, ink and ring, and exempt from two checks it cannot meet: its light fill is 1.05:1 on paper (a lime button has no edge in the light theme; it has always been this way) and its dark fill is 36.7 degrees of hue from the dark owed amber (threshold 40). Say so if you want lime changed; that would break "unchanged".
+
+**Measured table (computed from the real tokens in `globals.css`; ratios are WCAG contrast, hue is the OKLCH hue distance, dE the OKLab distance; p/o/d = paid / owed / destructive):**
+
+| preset | theme | onFill:fill | ink on bg / card | ring on bg / card | fill:bg | hue p/o/d | dE p/o/d | fill:expected tile |
+|---|---|---|---|---|---|---|---|---|
+| lime | light | 16.13 | 16.97 / 18.54 | 16.97 / 18.54 | 1.05 (exempt) | 44.5 / 74.9 / 83.7 | 0.458 / 0.513 / 0.355 | 1.07 |
+| lime | dark | 16.13 | 16.13 / 14.53 | 16.13 / 14.53 | 16.13 | 42.1 / 36.7 (exempt) / 83.7 | 0.217 / 0.161 / 0.355 | 12.64 |
+| royal | light | 6.29 | 5.76 / 6.29 | 5.76 / 6.29 | 5.76 | 100.4 / 140.2 / 131.5 | 0.239 / 0.304 / 0.408 | 5.12 |
+| royal | dark | 8.73 | 8.58 / 7.74 | 8.58 / 7.74 | 8.58 | 100.7 / 179.5 / 133.6 | 0.212 / 0.295 / 0.292 | 6.73 |
+| sky | light | 5.13 | 4.70 / 5.13 | 4.70 / 5.13 | 4.70 | 80.3 / 160.3 / 151.6 | 0.160 / 0.265 / 0.361 | 4.18 |
+| sky | dark | 8.97 | 8.83 / 7.96 | 8.83 / 7.96 | 8.83 | 74.6 / 153.4 / 159.7 | 0.178 / 0.306 / 0.330 | 6.92 |
+| indigo | light | 6.55 | 5.99 / 6.55 | 5.99 / 6.55 | 5.99 | 121.5 / 119.1 / 110.3 | 0.268 / 0.282 / 0.379 | 5.32 |
+| indigo | dark | 8.49 | 8.36 / 7.54 | 8.36 / 7.54 | 8.36 | 120.7 / 160.5 / 113.5 | 0.245 / 0.299 / 0.274 | 6.55 |
+| mono | light | 16.66 | 15.25 / 16.66 | 15.25 / 16.66 | 15.25 | (exempt) | 0.291 / 0.271 / 0.510 | 13.55 |
+| mono | dark | 16.24 | 16.24 / 14.64 | 16.24 / 14.64 | 16.24 | (exempt) | 0.235 / 0.196 / 0.311 | 12.73 |
+
+Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The tightest passes: sky light dE to paid 0.160 (limit 0.15) and ink on bg 4.70 (limit 4.5).
+
+**Tests (written, NOT run):** `test/lib/brand-presets.test.ts` rewritten: the set, the removed and reserved keys, hex format, lime unchanged, junk and removed keys fall back to lime; and for every preset and both themes: text on fill >= 4.5, ink on page and card >= 4.5, ring >= 3 on page, card and the neutral tile, fill >= 3 against the page (lime exempt), chromatic hue distance >= 40 and OKLab distance >= 0.15 from paid, owed and destructive, blue-family hues, mono chroma and its 3:1 against the expected tile. The status and surface colours are read from `globals.css` by `test/helpers/css-tokens.ts` (never copied); the colour maths is `test/helpers/oklch.ts`. Other tests were moved to the new keys.
+
+**Files:** `lib/brand-presets.ts`, `lib/ui-copy.ts`, `app/owner/(app)/more/stadium/stadium-form.tsx` (aria-label), tests above.
+
+**How to verify:** NOT run (no test, build or lint). The measured numbers above come from a one-off script with the same maths as the helper, not from the test run. Run `npm test`.

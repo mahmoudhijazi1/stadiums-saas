@@ -114,7 +114,7 @@ describe("parseStadiumInfo", () => {
 
   describe("colour and unknown fields", () => {
     it("takes only a preset key", () => {
-      expect(key({ ...GOOD, brandPreset: "blue" })).toBeNull();
+      expect(key({ ...GOOD, brandPreset: "royal" })).toBeNull();
       expect(key({ ...GOOD, brandPreset: "#ff0000" })).toBe("form.invalid");
       expect(key({ ...GOOD, brandPreset: "" })).toBe("form.invalid");
     });

@@ -72,8 +72,8 @@ describe("version and paths", () => {
   });
 
   it("does not depend on the rest of the name", () => {
-    expect(brandVersion(brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "pink" }))).toBe(
-      brandVersion(brandIdentityOf({ name: "Ali's Pitch", brandPreset: "pink" })),
+    expect(brandVersion(brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "royal" }))).toBe(
+      brandVersion(brandIdentityOf({ name: "Ali's Pitch", brandPreset: "royal" })),
     );
   });
 
@@ -124,8 +124,8 @@ describe("planBrandIcon", () => {
   });
 
   it("ignores any other input: two stadiums with the same letter and colour draw the same plan", () => {
-    const first = planBrandIcon("192", brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "pink" }), null);
-    const second = planBrandIcon("192", brandIdentityOf({ name: "Ali Arena", brandPreset: "pink" }), null);
+    const first = planBrandIcon("192", brandIdentityOf({ name: "Ahmad Stadium", brandPreset: "royal" }), null);
+    const second = planBrandIcon("192", brandIdentityOf({ name: "Ali Arena", brandPreset: "royal" }), null);
     expect(first).toEqual(second);
   });
 });

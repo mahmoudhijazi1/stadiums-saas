@@ -148,6 +148,7 @@ export function StadiumForm({
                   name="brandPreset"
                   value={option.key}
                   checked={preset === option.key}
+                  aria-label={ui(`owner.brand.${option.key}`, locale)}
                   onChange={() => setPreset(option.key)}
                   className="peer sr-only"
                 />

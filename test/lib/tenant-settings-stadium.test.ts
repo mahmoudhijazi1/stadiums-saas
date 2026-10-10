@@ -8,7 +8,7 @@ const INFO = {
   phone: "03123456",
   whatsappSame: false,
   whatsapp: "71123456",
-  brandPreset: "blue" as const,
+  brandPreset: "royal" as const,
 };
 
 describe("stadium info in tenant settings", () => {
@@ -46,7 +46,7 @@ describe("stadium info in tenant settings", () => {
   it("reads an unknown or colour-value preset as the default: only keys are accepted", () => {
     expect(parseTenantSettings({ brandPreset: "#ff0000" }).brandPreset).toBe("lime");
     expect(parseTenantSettings({ brandPreset: "magenta" }).brandPreset).toBe("lime");
-    expect(parseTenantSettings({ brandPreset: "pink" }).brandPreset).toBe("pink");
+    expect(parseTenantSettings({ brandPreset: "royal" }).brandPreset).toBe("royal");
   });
 
   it("limits the address to 120 characters", () => {

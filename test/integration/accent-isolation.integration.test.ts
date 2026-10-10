@@ -55,15 +55,15 @@ async function cssOn(fixture: TestFixture) {
 
 describe("the accent follows the host's stadium", () => {
   it("two stadiums with different presets never see each other's colours", async () => {
-    await choose(a, "Alpha", "violet");
+    await choose(a, "Alpha", "royal");
     await choose(b, "Bravo", "sky");
 
     const onA = await cssOn(a);
     const onB = await cssOn(b);
-    const violet = presetOf("violet");
+    const violet = presetOf("royal");
     const sky = presetOf("sky");
 
-    expect(onA).toBe(accentCss("violet"));
+    expect(onA).toBe(accentCss("royal"));
     expect(onB).toBe(accentCss("sky"));
     for (const hex of [violet.light.fill, violet.light.ink, violet.dark.fill]) {
       expect(onA).toContain(hex);
@@ -80,7 +80,7 @@ describe("the accent follows the host's stadium", () => {
   });
 
   it("an unknown host and a suspended stadium get the default, never the stadium's colour", async () => {
-    await choose(a, "Alpha", "pink");
+    await choose(a, "Alpha", "mono");
     expect(accentCss((await loadBrandIdentity("no-such-stadium"))?.preset)).toBe(accentCss("lime"));
 
     await platformDb.tenant.update({ where: { id: a.tenantId }, data: { suspendedAt: new Date() } });
@@ -100,12 +100,12 @@ describe("the accent follows the host's stadium", () => {
     await choose(b, "Bravo", "indigo");
     const beforeB = await cssOn(b);
 
-    await choose(a, "Alpha", "fuchsia");
-    expect(await cssOn(a)).toBe(accentCss("fuchsia"));
+    await choose(a, "Alpha", "mono");
+    expect(await cssOn(a)).toBe(accentCss("mono"));
     expect(await cssOn(b)).toBe(beforeB);
 
     actAs(a, false);
-    expect(accentThemeColor((await currentBrandIdentity())?.preset)).toBe(presetOf("fuchsia").dark.fill);
+    expect(accentThemeColor((await currentBrandIdentity())?.preset)).toBe(presetOf("mono").dark.fill);
     actAs(b, false);
     expect(accentThemeColor((await currentBrandIdentity())?.preset)).toBe(presetOf("indigo").dark.fill);
   });

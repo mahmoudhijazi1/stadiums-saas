@@ -14,8 +14,8 @@ const SHAPE =
 
 describe("accentCss", () => {
   it("sets the four role variables for the light and the dark theme from the preset", () => {
-    const css = accentCss("blue");
-    const blue = presetOf("blue");
+    const css = accentCss("royal");
+    const blue = presetOf("royal");
     expect(css).toContain(`html:root{--brand:${blue.light.fill};--brand-ink:${blue.light.onFill};--action-ink:${blue.light.ink};--ring:${blue.light.ring};}`);
     expect(css).toContain(`{--brand:${blue.dark.fill};--brand-ink:${blue.dark.onFill};--action-ink:${blue.dark.ink};--ring:${blue.dark.ring};}`);
     expect(css.indexOf("html:root")).toBeLessThan(css.indexOf("html.dark"));
@@ -29,7 +29,7 @@ describe("accentCss", () => {
 
   it("an unknown key, no key and junk all give the default (lime)", () => {
     const lime = accentCss(DEFAULT_BRAND_PRESET);
-    for (const junk of ["magenta", "#ff0000", "", "LIME", null, undefined, 7, {}, ["blue"]]) {
+    for (const junk of ["magenta", "#ff0000", "", "LIME", null, undefined, 7, {}, ["royal"]]) {
       expect(accentCss(junk)).toBe(lime);
     }
   });
@@ -61,8 +61,8 @@ describe("accentCss", () => {
   });
 
   it("two presets never share a value they should not: blue's CSS has none of violet's colours", () => {
-    const blue = accentCss("blue");
-    const violet = presetOf("violet");
+    const blue = accentCss("royal");
+    const violet = presetOf("indigo");
     for (const hex of [violet.light.fill, violet.light.ink, violet.dark.fill]) expect(blue).not.toContain(hex);
   });
 });
@@ -77,7 +77,7 @@ describe("accentThemeColor", () => {
 
 describe("accentPreviewCss", () => {
   it("is scoped under .accent-preview and uses only constant values", () => {
-    const css = accentPreviewCss("pink");
+    const css = accentPreviewCss("sky");
     expect(css).toContain(".accent-preview .pv-button");
     for (const hex of css.match(HEX_IN_CSS) ?? []) expect(ALL_HEX.has(hex.toUpperCase())).toBe(true);
     expect(accentPreviewCss('</style><b>')).toBe(accentPreviewCss("lime"));
@@ -86,7 +86,7 @@ describe("accentPreviewCss", () => {
   });
 
   it("the pill takes the accent in the dark theme only", () => {
-    const css = accentPreviewCss("violet");
+    const css = accentPreviewCss("indigo");
     const lightRules = css.split("}").filter((rule) => rule.startsWith("html:root "));
     expect(lightRules.some((rule) => rule.includes(".pv-pill"))).toBe(false);
     expect(css).toContain("html.dark .accent-preview .pv-pill");

@@ -42,7 +42,7 @@ const INFO = {
   phone: "03 123 456",
   whatsappSame: false,
   whatsapp: "71 123 456",
-  brandPreset: "blue",
+  brandPreset: "royal",
 };
 
 async function tenantRow(id: string) {
@@ -62,7 +62,7 @@ describe("saveStadiumInfo", () => {
       phone: "03123456",
       whatsappSame: false,
       whatsapp: "71123456",
-      brandPreset: "blue",
+      brandPreset: "royal",
       // The other settings are untouched.
       timeDisplay: "h23",
       perPlayerSplitEnabled: true,
@@ -165,16 +165,16 @@ describe("saveStadiumInfo", () => {
       phone: "03123456",
       whatsappSame: false,
       whatsapp: "71123456",
-      brandPreset: "blue",
+      brandPreset: "royal",
     });
   });
 });
 
 describe("the logo identity of a host", () => {
   it("is the symbol and the preset key of this stadium, and not its name", async () => {
-    await saveStadiumInfo({ ...INFO, name: "Ahmad Stadium", brandPreset: "pink" });
+    await saveStadiumInfo({ ...INFO, name: "Ahmad Stadium", brandPreset: "mono" });
     const identity = await loadBrandIdentity(a.tenantSlug);
-    expect(identity).toEqual({ symbol: "A", preset: "pink" });
+    expect(identity).toEqual({ symbol: "A", preset: "mono" });
     expect(JSON.stringify(identity)).not.toContain("Ahmad Stadium");
     expect(Object.keys(identity!).sort()).toEqual(["preset", "symbol"]);
   });
@@ -197,21 +197,21 @@ describe("the logo identity of a host", () => {
   });
 
   it("another stadium's host never returns this stadium's identity", async () => {
-    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "pink" });
+    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "mono" });
     actAs(b, b.sessionId);
-    await saveStadiumInfo({ ...INFO, name: "Bravo", brandPreset: "violet" });
+    await saveStadiumInfo({ ...INFO, name: "Bravo", brandPreset: "indigo" });
 
     actAs(a);
     const onA = await currentBrandIdentity();
     actAs(b);
     const onB = await currentBrandIdentity();
-    expect(onA).toEqual({ symbol: "A", preset: "pink" });
-    expect(onB).toEqual({ symbol: "B", preset: "violet" });
+    expect(onA).toEqual({ symbol: "A", preset: "mono" });
+    expect(onB).toEqual({ symbol: "B", preset: "indigo" });
     expect(brandVersion(onA)).not.toBe(brandVersion(onB));
   });
 
   it("a change of name or colour changes the version, so caches pick it up", async () => {
-    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "pink" });
+    await saveStadiumInfo({ ...INFO, name: "Alpha", brandPreset: "mono" });
     const first = brandVersion(await loadBrandIdentity(a.tenantSlug));
     await saveStadiumInfo({ ...INFO, name: "Alpha Two", brandPreset: "sky" });
     expect(brandVersion(await loadBrandIdentity(a.tenantSlug))).not.toBe(first);
