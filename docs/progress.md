@@ -6469,3 +6469,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Results:** `npx tsc --noEmit` clean; unit tests 113 suites / 1064 tests passed (after one fix); integration tests 53 suites / 456 tests passed; `npm run build` succeeded (the build lists `/brand/icon/[size]`).
 **Failures and fixes:** (1) unit, `more-type-guard`: the colour preview in the Stadium info form used raw `text-2xl font-bold`; changed to the `type-title` role (a convention violation, no logic change). (2) Not a test failure but a gap found by the check: deleting `app/favicon.ico` made `/favicon.ico` a 404. Added `app/favicon.ico/route.ts`, a 307 to the host's versioned 32px logo (neutral for the apex, unknown or suspended hosts).
 **Proxy and hosts:** the proxy matcher already skips `/brand/` and `favicon.ico`, so the proxy's host allowlist does not run for them. `/brand/*` therefore works on any host and falls back to the neutral icon for an invalid one; it is not blocked. Verified by reading the matcher and the route, not by a request: check `/favicon.ico` and `/brand/icon/192` on a stadium host and on the apex by hand.
+
+
+## Per-tenant accent, commit 1 of 3: only the tokens (branch `feat/accent-presets`)
+
+**STEP 0 (count):** outside `globals.css` there are **0** hard-coded lime values: no `#d7ff3f`, no `rgb(215,255,63)`, no `lime-*`/`yellow-*` class, no `--ls-volt` in any component, page, `public/` file or the service worker (grep over `src` and `public`). Inside `globals.css` the lime primitive `--ls-volt-500` is defined once and reaches the app through `--brand`, except **6 direct references** that skipped the role token: `--chart-5` (light and dark), `--sidebar-primary` (both) and `--sidebar-ring` (both). Other raw hex values are not accent colours: the page colours `#F6F5EF`/`#111412` in `viewport.themeColor` and the manifest, neutral greys in `global-error.tsx`, black and white in the QR. Components already use `bg-primary`, `bg-selected`, `text-action-ink`, `ring-ring` and `bg-accent-brand` (45 uses of the accent role classes).
+
+**What:** the 6 references now read `var(--brand)` (and `--sidebar-primary-foreground` reads `var(--brand-ink)`), so the whole app follows one set of variables: `--brand` (fill), `--brand-ink` (text on the fill), `--action-ink` (accent text), `--ring` (focus ring). Visual result is identical for the default (the values are the same). New guard `test/app/accent-guard.test.ts`: fails with `file:line` on a raw lime hex, an rgb of it, a `lime-*`/`yellow-*` utility or `--ls-volt` anywhere in `src` or `public` except `globals.css` and `lib/brand-presets.ts`. Status colours (paid, owed, expected) and the destructive coral/red are untouched and never come from the preset.
+
+**Files:** `app/globals.css`, `test/app/accent-guard.test.ts`.
+
+**How to verify:** NOT run (no test, build or lint). By hand: nothing should look different; sidebar and chart colours are unused screens today.
