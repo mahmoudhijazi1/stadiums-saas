@@ -6890,3 +6890,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 1: guard rule 6 for module ui folders
+
+**When:** 2026-10-10
+
+**What:** test/architecture gets rule 6: a file in src/modules/<m>/ui may import components/ui, lib/format, lib/copy, lib/locale, lib/plural, lib/utils (UI_LIBS in rules.ts), its own domain/schemas/ui and other modules' domain/ui along the edge table; it may not import application or infrastructure (own or other), lib/db, the Prisma client, @/app, or server-only packages (server-only, next/headers, next/server). ui gets data and actions through props: a Server Action is a prop typed in the ui file and the page passes it. Tests prove a ui file importing application, infrastructure, @/app, the client, lib/db or a server-only package fails, and the allowed imports pass.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/architecture/dependency-rules.test.ts, test/architecture/rules.ts
+
+**How it connects:** No ui folder exists yet; the rule applies as soon as one does.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.

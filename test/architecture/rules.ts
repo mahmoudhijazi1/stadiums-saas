@@ -14,8 +14,9 @@
  * - Never widen a rule to silence one file: list that file here with a reason.
  *
  * Rules: 1 module edges, 2 layers inside a module, 3 modules never import
- * app/components, 4 app imports module application/domain/schemas only,
- * 5 lib and components import modules only through EXCEPTIONS.
+ * app/components, 4 app imports module application/domain/schemas/ui only,
+ * 5 lib and components import modules only through EXCEPTIONS,
+ * 6 module ui/ folders get data and actions through props (see UI_LIBS below).
  */
 
 export const MODULES = [
@@ -81,3 +82,15 @@ export const IMPURE_LIBS = [
   "src/lib/db", "src/lib/platform-db", "src/lib/logger", "src/lib/tenant-context",
   "src/lib/env", "src/lib/rate-limit",
 ];
+
+/**
+ * Rule 6: the only src/lib folders and files a module ui/ file may import. ui gets data and
+ * actions through props: it never imports application, infrastructure, db, the Prisma client,
+ * @/app or server-only code. A Server Action is a prop typed in the ui file; the page passes it.
+ */
+export const UI_LIBS = [
+  "src/lib/format", "src/lib/copy", "src/lib/locale", "src/lib/plural", "src/lib/utils",
+];
+
+/** Rule 6: packages a module ui/ file must not import. */
+export const UI_SERVER_ONLY_PACKAGES = ["server-only", "next/headers", "next/server"];
