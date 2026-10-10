@@ -10,7 +10,7 @@ import { PublicDayChips } from "./day-chips";
 import { StadiumContact } from "./stadium-contact";
 import { PublicHoursSkeleton } from "./skeletons";
 import { PublicHours } from "./hours";
-import { PublicLangToggle } from "./lang-toggle";
+import { LangToggle } from "@/components/lang-toggle";
 import { Container } from "@/components/ui/container";
 import { UnavailableNotice } from "@/components/unavailable-notice";
 import { FlashToast } from "@/components/ui/flash-toast";
@@ -65,7 +65,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             ) : null}
           </div>
         </div>
-        <PublicLangToggle locale={locale} />
+        <LangToggle locale={locale} />
       </header>
 
       <StadiumContact

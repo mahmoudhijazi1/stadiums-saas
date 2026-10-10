@@ -6666,3 +6666,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 2: dead files
+
+**When:** 2026-10-10
+
+**What:** Deleted the five default Next SVGs in public/ (no references in src, docs, sw.js, config) and the one-line re-exports (public)/lang-toggle.tsx and (public)/locale-actions.ts; the public page imports LangToggle from @/components/lang-toggle. (public)/day-chips.tsx and slot-picker.tsx are thin wrappers that bind props (route, date key, action) of the shared components; left as is.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** public/*.svg, src/app/(public)/{lang-toggle,locale-actions}, (public)/page.tsx
+
+**How it connects:** page now imports the shared component directly.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (see run). Full suites and build not run.
