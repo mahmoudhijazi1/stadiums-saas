@@ -6778,3 +6778,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Follow-up 3: schedule-config test mirrors src
+
+**When:** 2026-10-10
+
+**What:** git mv test/modules/venue/schemas/schedule-config.test.ts to test/modules/venue/domain/.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/modules/venue/domain/schedule-config.test.ts
+
+**How it connects:** Tests mirror src/ (the module moved to venue/domain in cleanup 5).
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
