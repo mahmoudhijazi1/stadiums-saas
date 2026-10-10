@@ -16,13 +16,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
-import {
-  submitCollectAllRemaining,
-  submitCollectSlot,
-  submitSwitchToPerPlayer,
-  submitSwitchToWhole,
-  type PerPlayerResult,
-} from "./actions";
+import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 
 export type SlotView = {
   participantId: string;
@@ -65,6 +59,10 @@ export function PerPlayerCollect({
   mayCollect,
   mayAdjust,
   locale,
+  submitCollectAllRemaining,
+  submitCollectSlot,
+  submitSwitchToPerPlayer,
+  submitSwitchToWhole,
 }: {
   view: PerPlayerView;
   /** "slots": the players and their Pay buttons (the money block). "mode": the Whole / Per player switch (More actions). */
@@ -72,6 +70,10 @@ export function PerPlayerCollect({
   mayCollect: boolean;
   mayAdjust: boolean;
   locale: UiLocale;
+  submitCollectAllRemaining: (input: { bookingId: string }) => Promise<PerPlayerResult>;
+  submitCollectSlot: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
+  submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
+  submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
 }) {
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const [errorKey, setErrorKey] = useState<string | null>(null);

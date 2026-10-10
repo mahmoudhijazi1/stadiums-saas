@@ -11,14 +11,14 @@ import { formatRelativeTime, formatDisplayDate } from "@/lib/format/time";
 import {
   interestsForGroup,
   mergeByTime,
-} from "@/app/owner/(app)/requests/merge-slots";
+} from "@/modules/booking/ui/merge-slots";
 import {
   CountedPhrase,
   DebtNoticeLine,
   NotifyPersonRow,
   RelativeWhen,
   type DebtNotice,
-} from "@/app/owner/notify-list";
+} from "@/modules/booking/ui/notify-list";
 import {
   formatLocalClockRange,
   type HourCycle,
@@ -29,18 +29,19 @@ import {
   submitDismissBooking,
   submitDismissMissed,
 } from "@/app/owner/(app)/today/actions";
-import { RejectRequestButton } from "@/app/owner/(app)/requests/reject-sheet";
+import { RejectRequestButton } from "@/modules/booking/ui/reject-sheet";
 import {
   Card,
   CardContent,
   CardHeader,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { RequestedNameNotice } from "@/app/owner/requested-name-notice";
+import { RequestedNameNotice } from "@/modules/booking/ui/requested-name-notice";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { PersonLink } from "@/modules/people/ui/person-link";
 import { Phone } from "lucide-react";
+import { submitRejectBooking } from "@/app/owner/(app)/today/actions";
 
 type PendingRequest = Awaited<ReturnType<typeof listPendingRequests>>[number];
 
@@ -165,7 +166,7 @@ export async function PendingRequestList({
                                 {ui("owner.approve", locale)}
                               </SubmitButton>
                             </form>
-                            <RejectRequestButton
+                            <RejectRequestButton submitRejectBooking={submitRejectBooking}
                               bookingId={item.request.id}
                               name={item.request.requesterName}
                               locale={locale}

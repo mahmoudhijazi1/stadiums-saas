@@ -1,10 +1,10 @@
 "use client";
 
-import { submitCreateOwnerBooking } from "./actions";
-import { SlotPicker, type SlotPickerPitch } from "@/components/slot-picker";
-import { WeeklyFields } from "@/app/owner/(app)/series/weekly-preview";
+import { SlotPicker, type SlotPickerPitch } from "@/modules/booking/ui/slot-picker";
+import { WeeklyFields } from "@/modules/booking/ui/weekly-preview";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import type { PreviewResult } from "@/modules/booking/ui/action-types";
 
 /**
  * Owner Book grid. Action + bookOn stay here; the picker is shared.
@@ -14,10 +14,14 @@ export function OwnerSlotPicker({
   pitches,
   bookOn,
   locale = "ar",
+  previewSeriesAction,
+  submitCreateOwnerBooking,
 }: {
   pitches: SlotPickerPitch[];
   bookOn: string;
   locale?: UiLocale;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
+  submitCreateOwnerBooking: (formData: FormData) => Promise<void>;
 }) {
   return (
     <SlotPicker
@@ -27,7 +31,7 @@ export function OwnerSlotPicker({
       submitLabel={ui("owner.book", locale)}
       locale={locale}
       extra={({ pitchId, slot, setSubmitLabel }) => (
-        <WeeklyFields
+        <WeeklyFields previewSeriesAction={previewSeriesAction}
           pitchId={pitchId}
           startIso={slot.startIso}
           endIso={slot.endIso}

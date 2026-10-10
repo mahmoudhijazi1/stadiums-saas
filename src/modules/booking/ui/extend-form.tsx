@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { normalizeUsdForm } from "@/lib/format/parse-money";
 import { ui } from "@/lib/copy";
-import { submitExtendBooking } from "./extend-actions";
+import type { ExtendActionResult } from "@/modules/booking/ui/action-types";
 
 /**
  * What "Extend 30 min" would do for one game, prepared on the server (times in the stadium's clock
@@ -65,12 +65,14 @@ export function ExtendForm({
   locale,
   confirmRef,
   onBack,
+  submitExtendBooking,
 }: {
   bookingId: string;
   offer: ExtendOfferView;
   locale: UiLocale;
   confirmRef: Ref<HTMLButtonElement>;
   onBack: () => void;
+  submitExtendBooking: (input: unknown) => Promise<ExtendActionResult>;
 }) {
   const router = useRouter();
   const [price, setPrice] = useState(offer.addedPriceUsd);

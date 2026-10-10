@@ -16,7 +16,7 @@ describe("Stadium info preview", () => {
   it("renders the real components", () => {
     expect(SOURCE).toContain('import { Button } from "@/components/ui/button"');
     expect(SOURCE).toContain('import { dayChipClass } from "@/modules/venue/ui/day-chip-class"');
-    expect(SOURCE).toContain('import { ExpectedPill, StatusPill } from "@/app/owner/booking-row"');
+    expect(SOURCE).toContain('import { ExpectedPill, StatusPill } from "@/modules/booking/ui/booking-row"');
     expect(SOURCE).toMatch(/dayChipClass\(true\)/);
     expect(SOURCE).toMatch(/variant="link"/);
   });

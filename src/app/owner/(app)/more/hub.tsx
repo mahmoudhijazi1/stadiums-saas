@@ -10,7 +10,7 @@ import {
   submitSetExchangeRate,
   submitSetTimeDisplay,
 } from "@/app/owner/(app)/more/settings/actions";
-import { CountedPhrase, RelativeWhen } from "@/app/owner/notify-list";
+import { CountedPhrase, RelativeWhen } from "@/modules/booking/ui/notify-list";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   BottomSheet,

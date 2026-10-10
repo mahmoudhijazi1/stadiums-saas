@@ -34,6 +34,8 @@ import { parseBookingDecision } from "@/modules/booking/schemas/booking-decision
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
 import { field, redirectOwner } from "@/app/owner/form-query";
+import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
+export type { PerPlayerResult };
 
 const TODAY_KEEP = ["date"] as const;
 
@@ -256,11 +258,6 @@ export async function submitCollectPayment(formData: FormData) {
   redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected" });
 }
 
-/**
- * Per-player actions (SPEC-15 slice 2). They do not redirect: ten taps in a row must
- * keep the sheet open. The result carries an error key; success revalidates Today.
- */
-export type PerPlayerResult = { ok: true } | { error: string };
 
 async function perPlayer(
   useCase: string,

@@ -5,7 +5,7 @@ import {
   hasPublicRequestFieldErrors,
   publicRequestFieldErrors,
   type PublicRequestFieldErrors,
-} from "@/lib/request-fields";
+} from "@/modules/booking/domain/request-fields";
 import {
   BottomSheet,
   BottomSheetBody,

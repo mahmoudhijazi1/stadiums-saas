@@ -13,7 +13,8 @@ import {
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { WeeklyConfirm } from "@/app/owner/(app)/series/weekly-confirm";
+import { WeeklyConfirm } from "@/modules/booking/ui/weekly-confirm";
+import { previewSeriesAction, submitSeriesSave } from "@/app/owner/(app)/series/actions";
 
 export type WeeklyItem = {
   seriesId: string;
@@ -72,7 +73,7 @@ export function WeeklyList({
               </BottomSheetTitle>
             </BottomSheetHeader>
             <BottomSheetBody className="pb-4">
-              <WeeklyConfirm
+              <WeeklyConfirm previewSeriesAction={previewSeriesAction} submitSeriesSave={submitSeriesSave}
                 source={{ kind: "renew", seriesId: renewing.seriesId }}
                 locale={locale}
                 confirmRef={confirmRef}

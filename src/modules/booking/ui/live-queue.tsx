@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CountedPhrase } from "@/app/owner/notify-list";
+import { CountedPhrase } from "@/modules/booking/ui/notify-list";
 import {
   liveQueueChanged,
   nextPollDelayMs,

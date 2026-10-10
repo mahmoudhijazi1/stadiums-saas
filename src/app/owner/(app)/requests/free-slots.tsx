@@ -1,4 +1,4 @@
-import { interestsWithoutPending } from "@/app/owner/(app)/requests/merge-slots";
+import { interestsWithoutPending } from "@/modules/booking/ui/merge-slots";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import type { UiLocale } from "@/lib/locale";
@@ -8,8 +8,8 @@ import {
   formatLocalClockRange,
   type HourCycle,
 } from "@/app/owner/shared";
-import type { DebtNotice } from "@/app/owner/notify-list";
-import { FreeSlotList } from "./free-slot-list";
+import type { DebtNotice } from "@/modules/booking/ui/notify-list";
+import { FreeSlotList } from "@/modules/booking/ui/free-slot-list";
 
 type PendingWindow = {
   pitchId: string;

@@ -4,7 +4,7 @@ import {
   freeCount,
   type SheetBooking,
   type SheetPitch,
-} from "@/components/day-sheet/build-day-sheet";
+} from "@/modules/booking/ui/day-sheet/build-day-sheet";
 
 const h = (hour: number, minute = 0) => hour * 60 + minute;
 const pitch: SheetPitch = {

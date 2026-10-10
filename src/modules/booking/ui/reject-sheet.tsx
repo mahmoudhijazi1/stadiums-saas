@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { submitRejectBooking } from "@/app/owner/(app)/today/actions";
 import { Button } from "@/components/ui/button";
 import {
   BottomSheet,
@@ -31,10 +30,12 @@ export function RejectRequestButton({
   bookingId,
   name,
   locale,
+  submitRejectBooking,
 }: {
   bookingId: string;
   name: string;
   locale: UiLocale;
+  submitRejectBooking: (formData: FormData) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<(typeof KINDS)[number]["value"] | "">("");

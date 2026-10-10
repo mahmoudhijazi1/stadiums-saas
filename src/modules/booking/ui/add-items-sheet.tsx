@@ -19,7 +19,8 @@ import type { UiLocale } from "@/lib/locale";
 import { formatParts } from "@/lib/format/money";
 import { addNewLabel, itemsAddedToast, ui } from "@/lib/copy";
 import { cn } from "cn";
-import { searchPayers, submitAddBookingItems, type PayerHit } from "./items-actions";
+import type { PayerHit } from "@/modules/booking/ui/action-types";
+import type { ItemsResult } from "@/modules/booking/ui/action-types";
 
 /** Who already has a tab on this booking (the booker's included, if she has one). */
 export type TabPayer = { personId: string | null; name: string };
@@ -82,6 +83,8 @@ export function AddItemsSheet({
   lbpPerUsd,
   locale,
   onDone,
+  searchPayers,
+  submitAddBookingItems,
 }: {
   open: boolean;
   onClose: () => void;
@@ -93,6 +96,8 @@ export function AddItemsSheet({
   lbpPerUsd: string | null;
   locale: UiLocale;
   onDone: () => void;
+  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
+  submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
 }) {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [payer, setPayer] = useState<Payer>({ kind: "game" });

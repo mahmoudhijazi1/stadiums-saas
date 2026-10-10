@@ -5,15 +5,9 @@ import { formatUsd } from "@/lib/format/money";
 import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { extendBooking } from "@/modules/booking/application/extend-booking";
+import type { ExtendActionResult } from "@/modules/booking/ui/action-types";
+export type { ExtendActionResult };
 
-/**
- * Extend a game by 30 minutes. Returns a result instead of redirecting: the confirm sheet stays
- * open and shows the new range and the new due. The user and the permission come from the session
- * inside the use case; `expectedEndsAt` is the end the owner saw (a double tap adds 30 minutes once).
- */
-export type ExtendActionResult =
-  | { ok: true; amountDueUsd: string; addedPriceUsd: string; declined: number }
-  | { error: string };
 
 const extendSchema = z.strictObject({
   bookingId: z.string().min(1).max(64),

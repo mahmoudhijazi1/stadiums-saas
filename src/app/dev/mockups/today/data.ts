@@ -1,5 +1,5 @@
-import type { BookingTone } from "@/components/day-sheet/booking-card";
-import type { SheetBooking, SheetPitch } from "@/components/day-sheet/build-day-sheet";
+import type { BookingTone } from "@/modules/booking/ui/day-sheet/booking-card";
+import type { SheetBooking, SheetPitch } from "@/modules/booking/ui/day-sheet/build-day-sheet";
 
 /** Hard-coded fake data for the Today day-sheet mockup. No database, no use cases. */
 const h = (hour: number, minute = 0) => hour * 60 + minute;

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { ExpectedPill, StatusPill } from "@/app/owner/booking-row";
+import { ExpectedPill, StatusPill } from "@/modules/booking/ui/booking-row";
 import { cn } from "cn";
 
 export type StadiumFormDefaults = {

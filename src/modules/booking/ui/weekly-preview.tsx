@@ -6,7 +6,8 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { seriesGamesLabel, ui } from "@/lib/copy";
-import { previewSeriesAction, type WeekView } from "./actions";
+import type { WeekView } from "@/modules/booking/ui/action-types";
+import type { PreviewResult } from "@/modules/booking/ui/action-types";
 
 export const WEEK_CHOICES = [4, 8, 12] as const;
 export const DEFAULT_WEEKS = 8;
@@ -36,10 +37,12 @@ export function WeeklyPreview({
   source,
   locale,
   onState,
+  previewSeriesAction,
 }: {
   source: PreviewSource;
   locale: UiLocale;
   onState: (state: PreviewState) => void;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
 }) {
   const [count, setCount] = useState<number>(DEFAULT_WEEKS);
   const [weeks, setWeeks] = useState<WeekView[] | null>(null);
@@ -157,12 +160,14 @@ export function WeeklyFields({
   endIso,
   locale,
   setSubmitLabel,
+  previewSeriesAction,
 }: {
   pitchId: string;
   startIso: string;
   endIso: string;
   locale: UiLocale;
   setSubmitLabel: (label: string | null) => void;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
 }) {
   const [on, setOn] = useState(false);
   const [state, setState] = useState<PreviewState | null>(null);
@@ -203,7 +208,7 @@ export function WeeklyFields({
       </button>
       {on ? (
         <>
-          <WeeklyPreview source={{ kind: "new", pitchId, startIso, endIso }} locale={locale} onState={setState} />
+          <WeeklyPreview previewSeriesAction={previewSeriesAction} source={{ kind: "new", pitchId, startIso, endIso }} locale={locale} onState={setState} />
           {state && state.declines > 0 ? (
             <p role="status" className="type-secondary text-owed">
               {ui("owner.seriesDeclines", locale).replace("{n}", String(state.declines))}

@@ -18,8 +18,9 @@ import type { UiLocale } from "@/lib/locale";
 import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/format/money";
 import { changeDescription, ui } from "@/lib/copy";
 import { cn } from "cn";
-import { AddItemsSheet } from "./add-items-sheet";
-import { submitCollectTab, submitRemoveBookingItem } from "./items-actions";
+import { AddItemsSheet } from "@/modules/booking/ui/add-items-sheet";
+import type { ItemsResult } from "@/modules/booking/ui/action-types";
+import type { PayerHit } from "@/modules/booking/ui/action-types";
 
 /** A line in the currency of its item: `unit` and `total` are USD amounts ("1.50") or whole pounds ("20000"). */
 export type ItemLineView = { id: string; name: string; qty: number; currency: "USD" | "LBP"; unit: string; total: string };
@@ -64,6 +65,10 @@ export function BookingItems({
   view,
   lbpPerUsd,
   locale,
+  searchPayers,
+  submitAddBookingItems,
+  submitCollectTab,
+  submitRemoveBookingItem,
 }: {
   bookingId: string;
   /** The game is confirmed and the member may sell. */
@@ -74,6 +79,10 @@ export function BookingItems({
   view: BookingItemsPanelView;
   lbpPerUsd: string | null;
   locale: UiLocale;
+  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
+  submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
+  submitCollectTab: (input: unknown) => Promise<ItemsResult>;
+  submitRemoveBookingItem: (input: unknown) => Promise<ItemsResult>;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +122,7 @@ export function BookingItems({
       </div>
 
       {view.tabs.map((tab) => (
-        <TabRow
+        <TabRow submitCollectTab={submitCollectTab}
           key={tab.saleId}
           tab={tab}
           owedNow={view.tabsOwed}
@@ -134,7 +143,7 @@ export function BookingItems({
       ) : null}
 
       {mayAdd ? (
-        <AddItemsSheet
+        <AddItemsSheet searchPayers={searchPayers} submitAddBookingItems={submitAddBookingItems}
           open={addOpen}
           onClose={() => setAddOpen(false)}
           bookingId={bookingId}
@@ -213,6 +222,7 @@ function TabRow({
   lbpPerUsd,
   locale,
   onDone,
+  submitCollectTab,
 }: {
   tab: TabItemsView;
   /** Owed (amber) once the game has ended; neutral before. Collecting early stays allowed. */
@@ -224,6 +234,7 @@ function TabRow({
   lbpPerUsd: string | null;
   locale: UiLocale;
   onDone: () => void;
+  submitCollectTab: (input: unknown) => Promise<ItemsResult>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [paying, setPaying] = useState(false);

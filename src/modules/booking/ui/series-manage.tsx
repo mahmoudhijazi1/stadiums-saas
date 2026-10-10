@@ -7,13 +7,10 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { seriesGamesCount, ui } from "@/lib/copy";
-import {
-  loadSeriesSheetAction,
-  previewCancelRestAction,
-  submitCancelRest,
-  type SeriesSheetResult,
-} from "./actions";
-import { WeeklyConfirm } from "./weekly-confirm";
+import type { SeriesSheetResult } from "@/modules/booking/ui/action-types";
+import { WeeklyConfirm } from "@/modules/booking/ui/weekly-confirm";
+import type { CancelRestPreviewResult, CancelRestResult } from "@/modules/booking/ui/action-types";
+import type { PreviewResult, SeriesSaveResult } from "@/modules/booking/ui/action-types";
 
 type View = "list" | "renew" | "cancel" | "cancelled";
 
@@ -27,11 +24,21 @@ export function SeriesManage({
   locale,
   confirmRef,
   onBack,
+  loadSeriesSheetAction,
+  previewCancelRestAction,
+  previewSeriesAction,
+  submitCancelRest,
+  submitSeriesSave,
 }: {
   seriesId: string;
   locale: UiLocale;
   confirmRef: Ref<HTMLButtonElement>;
   onBack: () => void;
+  loadSeriesSheetAction: (input: unknown) => Promise<SeriesSheetResult>;
+  previewCancelRestAction: (input: unknown) => Promise<CancelRestPreviewResult>;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
+  submitCancelRest: (input: unknown) => Promise<CancelRestResult>;
+  submitSeriesSave: (input: unknown) => Promise<SeriesSaveResult>;
 }) {
   const router = useRouter();
   const [view, setView] = useState<View>("list");
@@ -64,7 +71,7 @@ export function SeriesManage({
 
   if (view === "renew") {
     return (
-      <WeeklyConfirm
+      <WeeklyConfirm previewSeriesAction={previewSeriesAction} submitSeriesSave={submitSeriesSave}
         source={{ kind: "renew", seriesId }}
         locale={locale}
         confirmRef={confirmRef}
@@ -77,7 +84,7 @@ export function SeriesManage({
   }
   if (view === "cancel" || view === "cancelled") {
     return (
-      <CancelRest
+      <CancelRest previewCancelRestAction={previewCancelRestAction} submitCancelRest={submitCancelRest}
         seriesId={seriesId}
         locale={locale}
         confirmRef={confirmRef}
@@ -135,6 +142,8 @@ function CancelRest({
   onBack,
   onDone,
   finished,
+  previewCancelRestAction,
+  submitCancelRest,
 }: {
   seriesId: string;
   locale: UiLocale;
@@ -142,6 +151,8 @@ function CancelRest({
   onBack: () => void;
   onDone: () => void;
   finished: boolean;
+  previewCancelRestAction: (input: unknown) => Promise<CancelRestPreviewResult>;
+  submitCancelRest: (input: unknown) => Promise<CancelRestResult>;
 }) {
   const [preview, setPreview] = useState<{ willCancel: number; leftAlone: string[] } | null>(null);
   const [result, setResult] = useState<{ cancelled: number; leftAlone: string[] } | null>(null);

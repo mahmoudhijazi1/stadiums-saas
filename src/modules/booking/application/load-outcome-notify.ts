@@ -14,21 +14,12 @@ import { findBookingFeeState } from "@/modules/booking/infrastructure/bookings";
 import { bookingRemaining } from "@/modules/payment/domain/collect";
 import type { MessageContext, MessageState } from "@/modules/notification/domain/message-intent";
 import { notifyLink, type MessageFacts } from "@/modules/notification/domain/whatsapp-link";
+import type { OutcomeKind, OutcomeNotify } from "@/modules/booking/domain/outcome-notify";
+export type { OutcomeKind, OutcomeNotify };
 
 const TIME_ZONE = "Asia/Beirut";
 
-export type OutcomeKind = "cancelled" | "no_show" | "due";
 
-export type OutcomeNotify = {
-  bookingId: string;
-  kind: OutcomeKind;
-  personId: string;
-  name: string;
-  phone: string | null;
-  message: string;
-  statusLabel: string;
-  whatsAppHref: string | null;
-};
 
 /**
  * One send row after cancel, no-show, or adjust. The body is the saved due

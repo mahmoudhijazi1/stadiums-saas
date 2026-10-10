@@ -16,7 +16,7 @@ import {
   CountedPhrase,
   InterestPanel,
   type NotifyPerson,
-} from "@/app/owner/notify-list";
+} from "@/modules/booking/ui/notify-list";
 
 export type FreeSlotView = {
   key: string;

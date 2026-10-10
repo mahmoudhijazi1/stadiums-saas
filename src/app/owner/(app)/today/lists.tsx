@@ -7,11 +7,11 @@ import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, BOOKINGS_CREATE, BOOKINGS_NO_SHOW
 import { loadSeriesCreated } from "@/modules/booking/application/load-series-created";
 import { loadSeriesInfo, type SeriesInfo } from "@/modules/booking/application/load-series-info";
 import { endingSoon, listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
-import { seriesRowLine, weeklyWeekdayAndTime } from "@/app/owner/(app)/series/labels";
-import { SeriesCreatedSheet } from "@/app/owner/(app)/series/weekly-confirm";
+import { seriesRowLine, weeklyWeekdayAndTime } from "@/modules/booking/ui/series-labels";
+import { SeriesCreatedSheet } from "@/modules/booking/ui/weekly-confirm";
 import { listExtensionMinutes } from "@/modules/booking/application/list-extension-minutes";
 import { loadExtensionOffers, type ExtensionOffer } from "@/modules/booking/application/load-extension-offers";
-import type { ExtendOfferView } from "./extend-form";
+import type { ExtendOfferView } from "@/modules/booking/ui/extend-form";
 import {
   loadOwnerDay,
   type OwnerDayBooking,
@@ -38,15 +38,15 @@ import { dayStartClock, ui } from "@/lib/copy";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";
-import { OwnerDayStrip } from "./day-strip";
-import { DayContent, DayNavProvider } from "./day-nav";
+import { OwnerDayStrip } from "@/modules/booking/ui/day-strip";
+import { DayContent, DayNavProvider } from "@/modules/booking/ui/day-nav";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
 import {
   messageDayLabel,
   nightHint,
 } from "@/modules/booking/application/night-hint";
-import { UpcomingPanel, type UpcomingRowView } from "./upcoming-panel";
-import type { BookingItemsPanelView, ItemLineView } from "./booking-items";
+import { UpcomingPanel, type UpcomingRowView } from "@/modules/booking/ui/upcoming-panel";
+import type { BookingItemsPanelView, ItemLineView } from "@/modules/booking/ui/booking-items";
 import { listBookingItems, type BookingItemsView } from "@/modules/shop/application/list-booking-items";
 import { listProducts } from "@/modules/shop/application/products";
 import { formatParts } from "@/lib/format/money";
@@ -67,7 +67,11 @@ import { upcomingStatus } from "@/modules/booking/domain/home-inbox";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import { isCancelWindowClosed, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
 import { ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
-import { LiveRequestCount } from "@/app/owner/live-queue";
+import { LiveRequestCount } from "@/modules/booking/ui/live-queue";
+import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave } from "@/app/owner/(app)/series/actions";
+import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
+import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
+import { submitExtendBooking } from "@/app/owner/(app)/today/extend-actions";
 
 export async function OwnerToday({
   membership,
@@ -229,7 +233,7 @@ export async function OwnerToday({
         </Link>
       ) : null}
 
-      <UpcomingPanel
+      <UpcomingPanel loadSeriesSheetAction={loadSeriesSheetAction} previewCancelRestAction={previewCancelRestAction} previewSeriesAction={previewSeriesAction} searchPayers={searchPayers} submitAddBookingItems={submitAddBookingItems} submitAdjustBookingDue={submitAdjustBookingDue} submitCancelBooking={submitCancelBooking} submitCancelRest={submitCancelRest} submitCollectAllRemaining={submitCollectAllRemaining} submitCollectPayment={submitCollectPayment} submitCollectSlot={submitCollectSlot} submitCollectTab={submitCollectTab} submitExtendBooking={submitExtendBooking} submitRecordNoShow={submitRecordNoShow} submitRemoveBookingItem={submitRemoveBookingItem} submitSeriesSave={submitSeriesSave} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole}
         toCollect={toUpcomingViews(
           earlierDebts,
           itemsByBooking,

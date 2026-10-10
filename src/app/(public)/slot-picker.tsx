@@ -1,7 +1,7 @@
 "use client";
 
 import { submitPublicSlotRequest } from "./request-slot";
-import { SlotPicker, type SlotPickerPitch } from "@/components/slot-picker";
+import { SlotPicker, type SlotPickerPitch } from "@/modules/booking/ui/slot-picker";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 

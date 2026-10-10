@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import type { DayTab } from "@/modules/booking/domain/day-tabs";
-import { useDayNav } from "./day-nav";
+import { useDayNav } from "@/modules/booking/ui/day-nav";
 
 /**
  * Horizontally scrollable day tabs. Past sits on the right in Arabic, future on the left

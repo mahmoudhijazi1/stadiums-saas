@@ -7,7 +7,7 @@ import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import { DayTabs } from "./day-tabs";
+import { DayTabs } from "@/modules/booking/ui/day-tabs";
 
 /** Date strip for Today (FotMob style). `today` is the business date (06:00 rule). */
 export function OwnerDayStrip({

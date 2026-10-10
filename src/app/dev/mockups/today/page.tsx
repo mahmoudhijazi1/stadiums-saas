@@ -1,4 +1,4 @@
-import { OwnerDayStrip } from "@/app/owner/(app)/today/day-strip";
+import { OwnerDayStrip } from "@/modules/booking/ui/day-strip";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { queryString } from "@/app/owner/shared";
 import { assertDevOnly } from "@/lib/dev-only";

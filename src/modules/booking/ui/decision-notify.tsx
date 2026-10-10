@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   NotifyList,
   type NotifyPerson,
-} from "@/app/owner/notify-list";
+} from "@/modules/booking/ui/notify-list";
 import {
   BottomSheet,
   BottomSheetBody,

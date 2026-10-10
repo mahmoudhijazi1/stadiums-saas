@@ -2,12 +2,12 @@ import type { CurrentMembership } from "@/modules/access/application/get-current
 import { listDebtWarnings } from "@/modules/booking/application/list-debt-warnings";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
-import { MissedRequestSection, PendingRequestList } from "@/app/owner/pending-list";
+import { MissedRequestSection, PendingRequestList } from "@/app/owner/(app)/requests/_components/pending-list";
 import {
   actionablePending,
   missedPending,
 } from "@/modules/booking/domain/expired-request";
-import type { DebtNotice } from "@/app/owner/notify-list";
+import type { DebtNotice } from "@/modules/booking/ui/notify-list";
 import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/format/money";
@@ -16,7 +16,7 @@ import { countHiddenRequests } from "@/modules/booking/application/count-hidden-
 import { getCurrentTenant } from "@/lib/tenant-context";
 import type { HourCycle } from "@/app/owner/shared";
 import type { DebtWarning } from "@/modules/booking/domain/debt-warning";
-import { DecisionNotifySheet } from "./decision-notify";
+import { DecisionNotifySheet } from "@/modules/booking/ui/decision-notify";
 import { FreeSlots } from "./free-slots";
 import { loadDecisionNotify } from "@/modules/booking/application/load-decision-notify";
 

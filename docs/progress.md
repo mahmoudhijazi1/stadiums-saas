@@ -7016,3 +7016,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** stadium/ui imports components/ui and lib only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
+
+## Refactor step 6b, commit 4: booking/ui
+
+**When:** 2026-10-10
+
+**What:** Moved with git mv into modules/booking/ui: booking-row, debt-row, requested-name-notice, notify-list, live-queue, the day-sheet/* files and their builder test, day-strip/day-tabs/day-nav (they use booking/domain day tabs), free-strip, fee-forms, extend-form, per-player-collect, booking-items, add-items-sheet, upcoming-panel (as is; split in step 7), the series components (series-manage, weekly-confirm, weekly-preview, series-labels), decision-notify, free-slot-list, merge-slots, reject-sheet, book-picker, and slot-picker (components -> booking/ui). Every Server Action import became a typed prop with the same name, passed down by the parents and supplied by the route files (today/lists, free-strip-section, book/slots, more/weekly list, requests pending-list). The result types the props need (ItemsResult, PayerHit, ExtendActionResult, PerPlayerResult, WeekView, PreviewResult, SeriesSaveResult, SeriesWeekView, SeriesSheetResult, CancelRestPreviewResult, CancelRestResult) moved to booking/ui/action-types.ts; the actions files re-export them. SeriesCreatedSummary and OutcomeKind/OutcomeNotify moved to booking/domain (series-created, outcome-notify), re-exported by their application files. lib/request-fields.ts moved to booking/domain/request-fields.ts (its only user is slot-picker). pending-list went to requests/_components (one route; an async server component that calls hasSeveralPitches and posts to actions). Not moved, route-level server data loaders that call use cases: today/lists, free-strip-section, requests/inbox, free-slots, book/slots. Removed allowlist entries: slot-picker -> people phone, request-fields -> people phone. The free-strip integration test passes stub action props.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/booking/ui/*, booking/domain/{series-created,outcome-notify,request-fields}.ts, route files, test/integration/free-strip.integration.test.ts, test/architecture/rules.ts
+
+**How it connects:** booking/ui passes rule 6: no application, infrastructure or @/app imports; actions arrive as props.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app, test/components, test/modules/booking and people passed. Integration tests (free-strip) typecheck but were not run.). Full suites and build not run.

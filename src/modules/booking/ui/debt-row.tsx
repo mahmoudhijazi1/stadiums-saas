@@ -2,7 +2,7 @@ import { ClockRangeText } from "@/components/ui/ltr-isolate";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { BookingRow, OwedPill } from "@/app/owner/booking-row";
+import { BookingRow, OwedPill } from "@/modules/booking/ui/booking-row";
 
 /** What the debt variant needs from a booking still owed from an earlier day. */
 export type DebtRowView = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { publicRequestFieldErrors } from "@/lib/request-fields";
+import { publicRequestFieldErrors } from "@/modules/booking/domain/request-fields";
 import { parsePublicSlotRequest } from "@/modules/booking/schemas/public-slot-request";
 import { isPhoneText, normalizePhone, sanitizePhoneInput } from "@/modules/people/domain/phone";
 

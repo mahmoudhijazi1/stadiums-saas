@@ -14,9 +14,10 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { seriesGamesCount, seriesGamesLabel, ui } from "@/lib/copy";
-import type { SeriesCreatedSummary } from "@/modules/booking/application/load-series-created";
-import { submitSeriesSave } from "./actions";
-import { WeeklyPreview, type PreviewSource, type PreviewState } from "./weekly-preview";
+import type { SeriesCreatedSummary } from "@/modules/booking/domain/series-created";
+import { WeeklyPreview, type PreviewSource, type PreviewState } from "@/modules/booking/ui/weekly-preview";
+import type { SeriesSaveResult } from "@/modules/booking/ui/action-types";
+import type { PreviewResult } from "@/modules/booking/ui/action-types";
 
 /**
  * What was created: the weekday and time, the first date, how many games, any week skipped since
@@ -82,11 +83,15 @@ export function WeeklyConfirm({
   locale,
   confirmRef,
   onBack,
+  previewSeriesAction,
+  submitSeriesSave,
 }: {
   source: Extract<PreviewSource, { kind: "booking" } | { kind: "renew" }>;
   locale: UiLocale;
   confirmRef?: Ref<HTMLButtonElement>;
   onBack: () => void;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
+  submitSeriesSave: (input: unknown) => Promise<SeriesSaveResult>;
 }) {
   const router = useRouter();
   const [state, setState] = useState<PreviewState | null>(null);
@@ -136,7 +141,7 @@ export function WeeklyConfirm({
   const ready = state !== null && !state.loading && !state.error && state.bookable > 0;
   return (
     <div className="flex flex-col gap-4">
-      <WeeklyPreview source={source} locale={locale} onState={setState} />
+      <WeeklyPreview previewSeriesAction={previewSeriesAction} source={source} locale={locale} onState={setState} />
       {state && state.declines > 0 ? (
         <p role="status" className="type-secondary text-owed">
           {ui("owner.seriesDeclines", locale).replace("{n}", String(state.declines))}

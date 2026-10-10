@@ -15,20 +15,19 @@ import {
   InterestPanel,
   NotifyPersonRow,
   type NotifyPerson,
-} from "@/app/owner/notify-list";
-import type { OutcomeNotify } from "@/modules/booking/application/load-outcome-notify";
+} from "@/modules/booking/ui/notify-list";
+import type { OutcomeNotify } from "@/modules/booking/domain/outcome-notify";
 import {
   AdjustDueForm,
   CancelDecisionForm,
   NoShowDecisionForm,
-} from "./fee-forms";
-import { submitCollectPayment } from "./actions";
-import { BookingItems, type BookingItemsPanelView } from "./booking-items";
+} from "@/modules/booking/ui/fee-forms";
+import { BookingItems, type BookingItemsPanelView } from "@/modules/booking/ui/booking-items";
 import type { SellItem } from "@/modules/shop/ui/item-tiles";
 import { PersonLink } from "@/modules/people/ui/person-link";
-import { DebtRow } from "./debt-row";
-import { BookingRow, StatusPill, variantOf } from "@/app/owner/booking-row";
-import { PerPlayerCollect, type PerPlayerView } from "./per-player-collect";
+import { DebtRow } from "@/modules/booking/ui/debt-row";
+import { BookingRow, StatusPill, variantOf } from "@/modules/booking/ui/booking-row";
+import { PerPlayerCollect, type PerPlayerView } from "@/modules/booking/ui/per-player-collect";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -40,9 +39,9 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ExtendForm, ExtendedMark, type ExtendOfferView } from "./extend-form";
-import { WeeklyConfirm } from "@/app/owner/(app)/series/weekly-confirm";
-import { SeriesManage } from "@/app/owner/(app)/series/series-manage";
+import { ExtendForm, ExtendedMark, type ExtendOfferView } from "@/modules/booking/ui/extend-form";
+import { WeeklyConfirm } from "@/modules/booking/ui/weekly-confirm";
+import { SeriesManage } from "@/modules/booking/ui/series-manage";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -57,6 +56,7 @@ import {
   MessageCircle,
   Phone,
 } from "lucide-react";
+import type { ItemsResult, PayerHit, ExtendActionResult, PerPlayerResult, PreviewResult, SeriesSaveResult, SeriesSheetResult, CancelRestPreviewResult, CancelRestResult } from "@/modules/booking/ui/action-types";
 
 export type UpcomingRowView = {
   id: string;
@@ -224,6 +224,24 @@ export function UpcomingPanel({
   date,
   lbpPerUsd = null,
   shop = { products: [], maySell: false },
+  loadSeriesSheetAction,
+  previewCancelRestAction,
+  previewSeriesAction,
+  searchPayers,
+  submitAddBookingItems,
+  submitAdjustBookingDue,
+  submitCancelBooking,
+  submitCancelRest,
+  submitCollectAllRemaining,
+  submitCollectPayment,
+  submitCollectSlot,
+  submitCollectTab,
+  submitExtendBooking,
+  submitRecordNoShow,
+  submitRemoveBookingItem,
+  submitSeriesSave,
+  submitSwitchToPerPlayer,
+  submitSwitchToWhole,
 }: {
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
@@ -246,6 +264,24 @@ export function UpcomingPanel({
   lbpPerUsd?: string | null;
   /** The shop catalog for "Add items" on a game, and whether this member may sell. */
   shop?: { products: SellItem[]; maySell: boolean };
+  loadSeriesSheetAction: (input: unknown) => Promise<SeriesSheetResult>;
+  previewCancelRestAction: (input: unknown) => Promise<CancelRestPreviewResult>;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
+  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
+  submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
+  submitAdjustBookingDue: (formData: FormData) => Promise<void>;
+  submitCancelBooking: (formData: FormData) => Promise<void>;
+  submitCancelRest: (input: unknown) => Promise<CancelRestResult>;
+  submitCollectAllRemaining: (input: { bookingId: string }) => Promise<PerPlayerResult>;
+  submitCollectPayment: (formData: FormData) => Promise<void>;
+  submitCollectSlot: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
+  submitCollectTab: (input: unknown) => Promise<ItemsResult>;
+  submitExtendBooking: (input: unknown) => Promise<ExtendActionResult>;
+  submitRecordNoShow: (formData: FormData) => Promise<void>;
+  submitRemoveBookingItem: (input: unknown) => Promise<ItemsResult>;
+  submitSeriesSave: (input: unknown) => Promise<SeriesSaveResult>;
+  submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
+  submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
 }) {
   const [openId, setOpenId] = useState<string | null>(() => (openHighlight && highlight ? highlight : null));
   const [heldRow, setHeldRow] = useState<UpcomingRowView | null>(null);
@@ -538,7 +574,7 @@ export function UpcomingPanel({
                 )}
                 inert={sheetStep !== "details" ? true : undefined}
               >
-                <UpcomingRowActions
+                <UpcomingRowActions searchPayers={searchPayers} submitAddBookingItems={submitAddBookingItems} submitCollectAllRemaining={submitCollectAllRemaining} submitCollectPayment={submitCollectPayment} submitCollectSlot={submitCollectSlot} submitCollectTab={submitCollectTab} submitRemoveBookingItem={submitRemoveBookingItem} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole}
                   key={`${sheetRow.id}:${sheetRow.remainingUsd}`}
                   row={sheetRow}
                   lbpPerUsd={lbpPerUsd}
@@ -566,7 +602,7 @@ export function UpcomingPanel({
                 inert={sheetStep === "details" ? true : undefined}
               >
                 {sheetStep === "cancel" ? (
-                  <CancelDecisionForm
+                  <CancelDecisionForm submitCancelBooking={submitCancelBooking}
                     row={sheetRow}
                     locale={locale}
                     date={date}
@@ -576,7 +612,7 @@ export function UpcomingPanel({
                   />
                 ) : null}
                 {sheetStep === "noshow" ? (
-                  <NoShowDecisionForm
+                  <NoShowDecisionForm submitRecordNoShow={submitRecordNoShow}
                     row={sheetRow}
                     locale={locale}
                     date={date}
@@ -586,7 +622,7 @@ export function UpcomingPanel({
                   />
                 ) : null}
                 {sheetStep === "extend" && sheetRow.extend ? (
-                  <ExtendForm
+                  <ExtendForm submitExtendBooking={submitExtendBooking}
                     bookingId={sheetRow.id}
                     offer={sheetRow.extend}
                     locale={locale}
@@ -595,7 +631,7 @@ export function UpcomingPanel({
                   />
                 ) : null}
                 {sheetStep === "series" && sheetRow.series ? (
-                  <SeriesManage
+                  <SeriesManage loadSeriesSheetAction={loadSeriesSheetAction} previewCancelRestAction={previewCancelRestAction} previewSeriesAction={previewSeriesAction} submitCancelRest={submitCancelRest} submitSeriesSave={submitSeriesSave}
                     seriesId={sheetRow.series.seriesId}
                     locale={locale}
                     confirmRef={confirmSubmitRef}
@@ -603,7 +639,7 @@ export function UpcomingPanel({
                   />
                 ) : null}
                 {sheetStep === "repeat" ? (
-                  <WeeklyConfirm
+                  <WeeklyConfirm previewSeriesAction={previewSeriesAction} submitSeriesSave={submitSeriesSave}
                     source={{ kind: "booking", bookingId: sheetRow.id }}
                     locale={locale}
                     confirmRef={confirmSubmitRef}
@@ -611,7 +647,7 @@ export function UpcomingPanel({
                   />
                 ) : null}
                 {sheetStep === "adjust" ? (
-                  <AdjustDueForm
+                  <AdjustDueForm submitAdjustBookingDue={submitAdjustBookingDue}
                     row={sheetRow}
                     locale={locale}
                     date={date}
@@ -734,6 +770,15 @@ function UpcomingRowActions({
   onExtend,
   onRepeat,
   onSeries,
+  searchPayers,
+  submitAddBookingItems,
+  submitCollectAllRemaining,
+  submitCollectPayment,
+  submitCollectSlot,
+  submitCollectTab,
+  submitRemoveBookingItem,
+  submitSwitchToPerPlayer,
+  submitSwitchToWhole,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
@@ -750,6 +795,15 @@ function UpcomingRowActions({
   onExtend: () => void;
   onRepeat: () => void;
   onSeries: () => void;
+  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
+  submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
+  submitCollectAllRemaining: (input: { bookingId: string }) => Promise<PerPlayerResult>;
+  submitCollectPayment: (formData: FormData) => Promise<void>;
+  submitCollectSlot: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
+  submitCollectTab: (input: unknown) => Promise<ItemsResult>;
+  submitRemoveBookingItem: (input: unknown) => Promise<ItemsResult>;
+  submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
+  submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -816,11 +870,11 @@ function UpcomingRowActions({
             <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", mixedOpen && "rotate-180")} />
           </button>
         ) : null}
-        {canCollect && mixedOpen ? <MixedCollectForm row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
-        <PerPlayerCollect view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
+        {canCollect && mixedOpen ? <MixedCollectForm submitCollectPayment={submitCollectPayment} row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
+        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
       </section>
 
-      <BookingItems
+      <BookingItems searchPayers={searchPayers} submitAddBookingItems={submitAddBookingItems} submitCollectTab={submitCollectTab} submitRemoveBookingItem={submitRemoveBookingItem}
         bookingId={row.id}
         canAdd={shop.maySell && row.approved}
         mayRemove={mayAdjust}
@@ -865,7 +919,7 @@ function UpcomingRowActions({
                 </ActionRow>
               ) : null}
               {showSplit ? (
-                <PerPlayerCollect view={row.perPlayer} part="mode" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
+                <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="mode" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
               ) : null}
               {showNoShow ? (
                 <ActionRow icon={UserX} onClick={onNoShow}>
@@ -932,10 +986,12 @@ function MixedCollectForm({
   row,
   lbpPerUsd,
   locale,
+  submitCollectPayment,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
   locale: UiLocale;
+  submitCollectPayment: (formData: FormData) => Promise<void>;
 }) {
   const [usd, setUsd] = useState(row.remainingUsd);
   const [lbp, setLbp] = useState("");

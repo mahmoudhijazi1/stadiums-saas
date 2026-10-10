@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ui } from "@/lib/copy";
-import { useLiveQueue } from "@/app/owner/live-queue";
+import { useLiveQueue } from "@/modules/booking/ui/live-queue";
 import type { UiLocale } from "@/lib/locale";
 import { cn } from "cn";
 

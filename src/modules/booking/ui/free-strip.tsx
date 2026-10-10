@@ -3,15 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { SlotBookSheet } from "@/components/slot-picker";
-import { WeeklyFields } from "@/app/owner/(app)/series/weekly-preview";
+import { SlotBookSheet } from "@/modules/booking/ui/slot-picker";
+import { WeeklyFields } from "@/modules/booking/ui/weekly-preview";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { shortPeriod, splitDisplayedClock } from "@/lib/format/time";
 import type { FreeChip, FreeStripPitch } from "@/modules/booking/domain/free-strip";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
 import { cn } from "cn";
-import { submitCreateOwnerBooking } from "../book/actions";
+import type { PreviewResult } from "@/modules/booking/ui/action-types";
 
 /** Chips shown per pitch before "+N more". */
 const CHIP_LIMIT = 12;
@@ -49,12 +49,16 @@ export function FreeStrip({
   day,
   mayBook,
   locale,
+  previewSeriesAction,
+  submitCreateOwnerBooking,
 }: {
   pitches: FreeStripPitch[];
   showPitchNames: boolean;
   day: string;
   mayBook: boolean;
   locale: UiLocale;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
+  submitCreateOwnerBooking: (formData: FormData) => Promise<void>;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -213,7 +217,7 @@ export function FreeStrip({
           submitLabel={ui("owner.book", locale)}
           locale={locale}
           extra={({ pitchId, slot, setSubmitLabel }) => (
-            <WeeklyFields
+            <WeeklyFields previewSeriesAction={previewSeriesAction}
               pitchId={pitchId}
               startIso={slot.startIso}
               endIso={slot.endIso}

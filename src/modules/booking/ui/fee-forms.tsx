@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent, type Ref } from "react";
-import { CountedPhrase } from "@/app/owner/notify-list";
+import { CountedPhrase } from "@/modules/booking/ui/notify-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,12 +13,7 @@ import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
 import { ui, uiCount } from "@/lib/copy";
 import { previewMessage } from "@/modules/notification/domain/whatsapp-link";
 import Decimal from "decimal.js";
-import {
-  submitAdjustBookingDue,
-  submitCancelBooking,
-  submitRecordNoShow,
-} from "./actions";
-import type { UpcomingRowView } from "./upcoming-panel";
+import type { UpcomingRowView } from "@/modules/booking/ui/upcoming-panel";
 
 type FeeChoice = "PLAYER" | "OWNER";
 type FeeMode = "shown" | "edit" | "waive";
@@ -30,6 +25,7 @@ export function CancelDecisionForm({
   mayAdjust,
   confirmRef,
   onBack,
+  submitCancelBooking,
 }: {
   row: UpcomingRowView;
   locale: UiLocale;
@@ -37,6 +33,7 @@ export function CancelDecisionForm({
   mayAdjust: boolean;
   confirmRef: Ref<HTMLButtonElement>;
   onBack: () => void;
+  submitCancelBooking: (formData: FormData) => Promise<void>;
 }) {
   const [initiator, setInitiator] = useState<FeeChoice>("PLAYER");
   const [mode, setMode] = useState<FeeMode>("shown");
@@ -121,6 +118,7 @@ export function NoShowDecisionForm({
   mayAdjust,
   confirmRef,
   onBack,
+  submitRecordNoShow,
 }: {
   row: UpcomingRowView;
   locale: UiLocale;
@@ -128,6 +126,7 @@ export function NoShowDecisionForm({
   mayAdjust: boolean;
   confirmRef: Ref<HTMLButtonElement>;
   onBack: () => void;
+  submitRecordNoShow: (formData: FormData) => Promise<void>;
 }) {
   const [mode, setMode] = useState<FeeMode>("shown");
   const [feeExact, setFeeExact] = useState(row.noShowFeeExact);
@@ -175,12 +174,14 @@ export function AdjustDueForm({
   date,
   confirmRef,
   onBack,
+  submitAdjustBookingDue,
 }: {
   row: UpcomingRowView;
   locale: UiLocale;
   date?: string;
   confirmRef: Ref<HTMLButtonElement>;
   onBack: () => void;
+  submitAdjustBookingDue: (formData: FormData) => Promise<void>;
 }) {
   const [blocked, setBlocked] = useState(false);
 
