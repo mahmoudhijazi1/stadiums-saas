@@ -47,7 +47,7 @@ async function slot(pitchId: string, daysAhead: number, index: number) {
     occupied: [],
   })[index];
   if (!found) throw new Error("no slot");
-  return { startIso: found.start.toISOString(), endIso: found.end.toISOString() };
+  return { start: found.start.toISOString(), end: found.end.toISOString() };
 }
 
 describe("the same new phone on two pitches at once", () => {
