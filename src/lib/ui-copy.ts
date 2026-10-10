@@ -1167,6 +1167,19 @@ const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
       other: "{n} requests",
     },
   },
+  "owner.requestsHidden": {
+    ar: {
+      one: "طلب آخر واحد غير معروض. عالج بعض الطلبات ليظهر.",
+      two: "طلبان آخران غير معروضين. عالج بعض الطلبات لتظهر.",
+      few: "{n} طلبات أخرى غير معروضة. عالج بعض الطلبات لتظهر.",
+      many: "{n} طلباً آخر غير معروض. عالج بعض الطلبات لتظهر.",
+      other: "{n} طلب آخر غير معروض. عالج بعض الطلبات لتظهر.",
+    },
+    en: {
+      one: "{n} more request is not shown. Handle some to see it.",
+      other: "{n} more requests are not shown. Handle some to see them.",
+    },
+  },
   "owner.spanMinutes": {
     ar: {
       one: "دقيقة",

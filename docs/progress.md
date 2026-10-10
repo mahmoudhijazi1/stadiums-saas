@@ -6367,3 +6367,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `booking/domain/public-window.ts`, `booking/application/request-public-slot.ts`, `app/(public)/page.tsx`, `lib/error-messages.ts`, `test/modules/booking/domain/public-window.test.ts`, `test/integration/public-window.integration.test.ts`.
 
 **How to verify:** NOT run. Unit: the boundary day is allowed, the next day is not, across a month end. Integration: a request on day 60 is accepted, day 61 and a year ahead are refused with `booking.too_far`, nothing is written for the refused ones. By hand: open `/?date=` with a date 90 days out and check it shows today.
+
+
+## Hardening 2, item 5 of 8: a visible line when the inbox is capped (branch `security/hardening-2`)
+
+**What:** the Requests inbox is capped at 200 upcoming plus 50 missed (S-8) but said nothing when it left requests out. It now shows "N more requests are not shown. Handle some to see them." (AR and EN, `owner.requestsHidden`, counted forms) between the queue and the free-slots section, with the real number: `countPendingInboxTotals` (one `COUNT ... FILTER` query) and `hiddenInboxCount` (pure) through the use case `countHiddenRequests`. The caps moved to `booking/domain/pending-inbox.ts` (the query imports them; no change in value).
+
+**Files:** `booking/domain/pending-inbox.ts`, `booking/infrastructure/bookings.ts`, `booking/application/count-hidden-requests.ts`, `app/owner/(app)/requests/inbox.tsx`, `lib/ui-copy.ts`, `test/modules/booking/domain/pending-inbox.test.ts`.
+
+**How to verify:** NOT run. Unit test: 0 at the caps, 1 for one over either cap, 80 for 250 upcoming + 80 missed; the line carries the number in both languages. Not tested with 201 real rows (too heavy for this slice); by hand, lower the constants locally to see the line.
