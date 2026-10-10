@@ -7,6 +7,7 @@ import {
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 import { PublicDayChips } from "./day-chips";
+import { StadiumContact } from "./stadium-contact";
 import { PublicHoursSkeleton } from "./skeletons";
 import { PublicHours } from "./hours";
 import { PublicLangToggle } from "./lang-toggle";
@@ -55,10 +56,24 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             height={48}
             className="size-12 shrink-0 rounded-xl"
           />
-          <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
+          <div className="flex min-w-0 flex-col">
+            <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
+            {tenant.address ? (
+              <p className="type-secondary text-ink-muted" dir="auto">
+                {tenant.address}
+              </p>
+            ) : null}
+          </div>
         </div>
         <PublicLangToggle locale={locale} />
       </header>
+
+      <StadiumContact
+        mapLink={tenant.mapLink}
+        phone={tenant.phone}
+        whatsapp={tenant.whatsapp}
+        locale={locale}
+      />
 
       <PublicDayChips
         today={today}
@@ -78,6 +93,10 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           />
         </Suspense>
       </section>
+
+      <footer className="pt-4 text-center type-caption text-ink-muted">
+        {ui("public.poweredBy", locale)}
+      </footer>
     </Container>
     </main>
   );

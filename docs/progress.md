@@ -6441,3 +6441,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How it connects:** the route imports the platform module only through its use case; the platformDb allowlist already covers `src/modules/platform/`.
 
 **How to verify:** NOT run: no test suite, build or lint; `npx tsc --noEmit` was run once in commit 1 only. Tests are in commit 4. By hand: open `/brand/icon/512` on a stadium host (letter on its colour) and on the apex (neutral); view the manifest; install the app and compare the icon; send a test push and check its icon; suspend a stadium and check its host serves the neutral icon. UNVERIFIED: that Satori falls back from the Latin face to the Arabic face per glyph for Arabic names (the font-family list `BrandLatin, Brand` is set for it), and that "•" exists in the Latin face.
+
+
+## Stadium info, commit 3 of 4: the public page shows the info (branch `feat/stadium-info`)
+
+**What:** `app/(public)/page.tsx`: the header shows the logo, the name and, when set, the address. Under it, `stadium-contact.tsx` renders up to three buttons, each only when its value exists: **Open in Maps** (`target="_blank" rel="noopener noreferrer"`; the link is checked again with the same host rule that saved it), **Call** (`tel:+961…`) and **WhatsApp** (a plain `wa.me/<number>` chat built by `whatsAppChatHref`, no prefilled text; the number is the phone when "same number" is on). Nothing set, nothing rendered. A small muted footer line "مدعوم من lebstads" / "Powered by lebstads", plain text with no link. The rest of the page is unchanged. Only the current tenant's values reach the page (`getCurrentTenant()` from the Host), so no other stadium can appear (BR-64).
+
+**Files:** `app/(public)/{page.tsx,stadium-contact.tsx}`, `lib/ui-copy.ts` (`public.openInMaps`, `public.call`, `public.whatsapp`, `public.poweredBy`).
+
+**How to verify:** NOT run. By hand: set an address, map link, phone and a separate WhatsApp number; open the public page in Arabic and English; check the three buttons and their targets, that clearing the map link hides that button, and the footer.
