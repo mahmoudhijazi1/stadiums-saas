@@ -4,7 +4,7 @@ import { currentBrandIdentity } from "@/app/brand/current-brand";
 import { accentCss } from "@/modules/stadium/domain/accent-css";
 import { brandIconPath } from "@/modules/stadium/domain/brand-identity";
 import { OwnerServiceWorker } from "@/components/owner-service-worker";
-import { ScrollbarPeek } from "@/components/scrollbar-peek";
+import { ScrollbarPeek } from "@/components/ui/scrollbar-peek";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUiLocale } from "@/lib/get-ui-locale";

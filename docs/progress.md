@@ -6974,3 +6974,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6b, commit 1: generic pieces to components/ui
+
+**When:** 2026-10-10
+
+**What:** git mv settings-list (SettingsSection, SettingsRow), money-input (MoneyInput, isValidUsd) and scrollbar-peek to src/components/ui; every importer updated (hub, pitches form/page/price-cards, shop-catalog, period-sheet, root layout); the money-input test moved to test/components/.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/components/ui/{settings-list,money-input,scrollbar-peek}.tsx, importers, test/components/*
+
+**How it connects:** Generic UI: no module imports.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; moved money-input test 23 passed (with test/components)). Full suites and build not run.

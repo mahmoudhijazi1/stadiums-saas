@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { isValidUsd, padCents, sanitizeUsd } from "@/app/owner/(app)/more/settings/pitches/money-input";
+import { isValidUsd, padCents, sanitizeUsd } from "@/components/ui/money-input";
 import { previewSummaryLabel, unusedTimeLabel } from "@/lib/copy";
 
 describe("sanitizeUsd", () => {

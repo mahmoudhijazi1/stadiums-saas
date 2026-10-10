@@ -20,8 +20,8 @@ import type { UiLocale } from "@/lib/locale";
 import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
-import { isValidUsd, MoneyInput } from "../settings/pitches/money-input";
-import { SettingsRow, SettingsSection } from "../settings-list";
+import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
+import { SettingsRow, SettingsSection } from "@/components/ui/settings-list";
 import { submitArchiveProduct, submitCreateProduct, submitUpdateProduct } from "./actions";
 
 /** The price is a USD amount ("1.50") or whole pounds ("20000"), in the item's own currency. */
