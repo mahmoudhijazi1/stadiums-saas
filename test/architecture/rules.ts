@@ -26,7 +26,7 @@ export const MODULES = [
 /** Rule 1: module -> modules it may import. Anything else fails. */
 export const MODULE_EDGES: Record<string, string[]> = {
   access: [],
-  notification: ["people"], // whatsapp-link uses toLebanonNumber (people/domain/phone)
+  notification: ["people"], // Lebanese phone rule is a people domain rule used to build wa.me links (domain to domain)
   ledger: ["access"],
   people: ["access"],
   venue: ["access"],
@@ -69,7 +69,7 @@ export const EXCEPTIONS: Exception[] = [
     fate: "move phone helpers to src/lib" },
   { file: "src/lib/tenant-settings.ts", target: "src/modules/people/domain/phone", rule: 5,
     reason: "toLebanonNumber for the stadium's published phones, a pure function",
-    fate: "move phone helpers to src/lib" },
+    fate: "moves to the stadium module in step 5" },
 ];
 
 /** Rule 2: libs a domain or schemas file must not import (they stay pure). */

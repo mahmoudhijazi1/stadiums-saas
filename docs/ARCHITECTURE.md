@@ -15,7 +15,7 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 | Module | Imports modules | Never imports |
 |---|---|---|
 | `access` | none | everything else |
-| `notification` | people (`domain/phone`: `toLebanonNumber`) | everything else (`domain/whatsapp-link.ts` only) |
+| `notification` | people (`domain/phone`, domain to domain: the Lebanese phone rule is a people domain rule used to build wa.me links) | everything else (`domain/whatsapp-link.ts` only) |
 | `push` | access | every other module. `booking` and the rest never import `push`: a future alert is composed in `app/` (the use case that commits, then a call from the action). Enforced by `test/modules/push/imports.test.ts` |
 | `people` | access | booking, payment, venue |
 | `venue` | access | booking (CLAUDE.md: "Venue never imports Booking") |

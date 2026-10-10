@@ -6750,3 +6750,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** app/ no longer reaches ledger infrastructure.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Follow-up 1: tenant-settings exception fate, notification -> people reason
+
+**When:** 2026-10-10
+
+**What:** The rule-5 exception for lib/tenant-settings.ts now says its fate is 'moves to the stadium module in step 5' (phone helpers stay in people). notification -> people is kept, with the reason recorded in rules.ts and docs/ARCHITECTURE.md.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/architecture/rules.ts, docs/ARCHITECTURE.md
+
+**How it connects:** Guard data and docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
