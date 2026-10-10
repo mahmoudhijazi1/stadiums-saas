@@ -165,3 +165,12 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 - **New runtime dependency: `qrcode`** (MIT, 1.5.4; its own dependencies `pngjs`, `yargs` and `dijkstrajs` are MIT too, and none of them has an install script). Used only in `src/lib/qr.ts`, which only server code imports. Dev only: `jsqr` (Apache-2.0, decodes the PNG in tests), `pngjs`, `@types/qrcode`, `@types/pngjs`.
 - **What it encodes:** `publicPageUrl(slug)`, the same link the Copy and WhatsApp buttons use: `APP_PROTOCOL://<slug>.APP_BASE_DOMAIN/`. So **the QR points at the production site only when `APP_PROTOCOL` and `APP_BASE_DOMAIN` are set correctly in the server `.env`** (`https` and `lebstads.com` in production). With `APP_BASE_DOMAIN` empty the route answers 503 rather than encode a wrong link. Printed posters keep working only as long as the domain and the slug do not change: check them before sending anything to print.
 - The tenant is resolved from the host only; no query parameter can change the encoded text. Black on white, 4-module quiet zone, error correction Q, PNG 1024 x 1024.
+
+
+## Framework version
+
+**Next.js 16.3.8** (`next` and `eslint-config-next`, pinned exactly; React 19.2.8). Raised from 16.3.4 on 2026-10-14.
+
+- 16.3.6 fixes GHSA-vcvr-r3jv-pc5j (remote code execution in `next/og` `ImageResponse`): do not use `ImageResponse` below it.
+- 16.3.8 fixes image-optimization SSRF (GHSA-cjq9-62q9-8jv4), metadata image routes leaking through `dynamicParams` (GHSA-f87g-xv8r-7p7x), SSG/ISR cache poisoning (GHSA-4jqv-mc3x-m676, GHSA-mcj8-r9mp-w47p) and `use cache` leaks (GHSA-3w37-wq28-93x7, GHSA-h694-7cp9-m8p3).
+- After any upgrade: `npm test`, `npm run test:integration`, `npm run build`, then check the installed app (service worker, manifest, push) by hand. The 16.3.4 to 16.3.8 upgrade itself was verified only with `npx tsc --noEmit`.

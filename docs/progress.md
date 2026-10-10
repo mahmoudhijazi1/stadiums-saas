@@ -6317,3 +6317,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `booking/domain/series.ts`, `booking/application/{make-weekly,preview-series}.ts`, `test/integration/weekly-series.integration.test.ts`, `docs/domain/weekly-series.md` (rule: extensions belong to one week only).
 
 **How to verify:** no test suite, build or lint was run; one `npx tsc --noEmit` at the end. Run `npm run test:integration`, then by hand: extend a game, make it weekly, check the weeks are the normal length and the sheet shows it.
+
+
+## Chore: Next.js 16.3.4 to 16.3.8 (branch `chore/next-upgrade`)
+
+**What:** `next` and `eslint-config-next` bumped to 16.3.8 (exact pins). Reason: GHSA-vcvr-r3jv-pc5j (`next/og` ImageResponse RCE, fixed in 16.3.6) and the 16.3.8 security fixes (image SSRF, metadata image routes, cache poisoning). The release notes for 16.3.5 to 16.3.8 list no change to proxy, `after()`, route handlers, metadata, manifest or service worker headers; 16.3.5 adds a CSP nonce to script tags of loading and template files, and fixes disk-cache handling for `next/image`.
+
+**Files:** `package.json`, `package-lock.json`, `docs/RUNBOOK.md` (new "Framework version" section).
+
+**How to verify:** NOT run. Only one `npx tsc --noEmit`. No test, build or lint was run. Run `npm test`, `npm run test:integration`, `npm run build`, then check the service worker and push by hand.
