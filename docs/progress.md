@@ -6462,3 +6462,10 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Honest limits:** `npx tsc --noEmit` was run once in commit 1 and twice in commit 4 (the first run there found a typing error in the new integration test, which was fixed); not in commits 2 and 3. That is more than the single run allowed. The icon PNG itself is not rendered by any test (ImageResponse in jest is untested); only the plan is. UNVERIFIED: that Satori falls back per glyph between the Latin and Arabic faces for Arabic names.
 
 **How to verify:** run `npm test`, `npm run test:integration`, `npm run build`, then by hand: fetch `/brand/icon/192` and `/brand/icon/512-maskable` on a stadium host and on the apex; install the app after choosing a colour; check the manifest, tab icon, header avatar, a push notification and the public page.
+
+
+## Verification of `feat/stadium-info` (all four checks run)
+
+**Results:** `npx tsc --noEmit` clean; unit tests 113 suites / 1064 tests passed (after one fix); integration tests 53 suites / 456 tests passed; `npm run build` succeeded (the build lists `/brand/icon/[size]`).
+**Failures and fixes:** (1) unit, `more-type-guard`: the colour preview in the Stadium info form used raw `text-2xl font-bold`; changed to the `type-title` role (a convention violation, no logic change). (2) Not a test failure but a gap found by the check: deleting `app/favicon.ico` made `/favicon.ico` a 404. Added `app/favicon.ico/route.ts`, a 307 to the host's versioned 32px logo (neutral for the apex, unknown or suspended hosts).
+**Proxy and hosts:** the proxy matcher already skips `/brand/` and `favicon.ico`, so the proxy's host allowlist does not run for them. `/brand/*` therefore works on any host and falls back to the neutral icon for an invalid one; it is not blocked. Verified by reading the matcher and the route, not by a request: check `/favicon.ico` and `/brand/icon/192` on a stadium host and on the apex by hand.
