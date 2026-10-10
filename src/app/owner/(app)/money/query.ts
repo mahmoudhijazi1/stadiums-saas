@@ -15,6 +15,13 @@ export function activityHref(
   return href.replace("/owner/money", "/owner/money/activity");
 }
 
+/** The shop page of the same period (items sold and shop supplies). */
+export function shopHref(
+  query: Partial<Pick<LedgerPeriodQuery, "period" | "from" | "to" | "view">>,
+): string {
+  return moneyHref(query).replace("/owner/money", "/owner/money/shop");
+}
+
 export function moneyHref(
   query: Partial<Pick<LedgerPeriodQuery, "period" | "from" | "to" | "view" | "displayRate" | "filter">>,
   extra: Record<string, string> = {},

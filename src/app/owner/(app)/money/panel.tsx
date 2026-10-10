@@ -24,7 +24,7 @@ import { CashToday, type CashTodayView } from "./cash-today";
 import { PeriodBar } from "./period-bar";
 import { SummaryCard } from "./summary-card";
 import { ActivityList } from "./activity";
-import { ShopCard } from "./shop-card";
+import { ShopRow, showsShopRow } from "./shop-row";
 import { loadActivityPage } from "./activity-load";
 import { summarizeCash } from "@/modules/payment/application/summarize-cash";
 import { cashLineCurrencies, type CashDay } from "@/modules/payment/domain/cash-day";
@@ -179,8 +179,8 @@ export async function OwnerMoney({
         />
       ) : null}
 
-      {shop && supplies && (shop.items.length > 0 || supplies.gt(0)) ? (
-        <ShopCard summary={shop} suppliesUsd={supplies} locale={locale} />
+      {shop && supplies && showsShopRow(shop.items.length, supplies) ? (
+        <ShopRow salesUsd={shop.salesUsd} kind={kind} range={range} view={periodQuery.view} locale={locale} />
       ) : null}
     </div>
   );

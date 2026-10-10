@@ -6599,3 +6599,12 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **Files:** `money/{panel,expense-sheet,actions,activity,query,period-url,summary-card}.ts(x)`, `money/activity/page.tsx`, `ledger/application/list-ledger-activity.ts`, `expense/domain/category-order.ts`, `lib/ui-copy.ts`.
 
 **How to verify:** NOT run (no test, build or lint). Tests in commit 4. By hand: tap "+ Expense" (the sheet opens with the dollar field focused), record an expense in a category, reopen: that category is first; open Money as staff with only `expenses.record` (no reports: no Money page content, see commit 4); check "All activity" keeps the period, and the In/Out links on the summary card open the right filter.
+
+
+## Money page v2, commit 3 of 4: the shop row and the shop page (branch `ui/money-v2`)
+
+**What:** the Shop card (sales and supplies side by side, plus the item list) is gone from Money. In its place, one row: **"Shop · sales $X this month ›" / "المتجر · مبيعات $X هذا الشهر ›"** (`money/shop-row.tsx`, the period phrase follows the chip: today, this week, this month, or "in <name>"), shown only when the period has shop sales or shop-supply expenses. It opens **`/owner/money/shop`** (`money/shop/page.tsx`, reports.view): the sales total, the shop-supplies total, the caption "Sales include items on games that are not paid yet." and the items sold (name, quantity, total). Sales and supplies are never side by side on the main page; the period and the view ride in the URL (`shopHref`). The same two reads as before (`summarizeShopPeriod`, `sumExpenseCategory`) feed the row and the page: no query was added on Money.
+
+**Files:** `money/{shop-row.tsx,shop/page.tsx,panel.tsx,query.ts}`, `lib/ui-copy.ts` (`shopRowLine`, `owner.shopNoSales`), `shop-card.tsx` removed.
+
+**How to verify:** NOT run (no test, build or lint). Tests in commit 4. By hand: a month with shop sales (the row shows, the page lists items), a month with only a shop-supplies expense (the row shows "sales $0"), a month with neither (no row).

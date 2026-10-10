@@ -382,6 +382,7 @@ const ARABIC: Record<string, string> = {
   "owner.activityGame": "مباراة",
   "owner.sourceGames": "مباريات",
   "owner.recentActivity": "آخر الحركات",
+  "owner.shopNoSales": "لا مبيعات في هذه الفترة.",
   "owner.noteOptional": "ملاحظة (اختياري)",
   "owner.allActivity": "كل الحركات",
   "owner.expensePlus": "+ مصروف",
@@ -916,6 +917,7 @@ const ENGLISH: Record<string, string> = {
   "owner.activityGame": "Game",
   "owner.sourceGames": "Games",
   "owner.recentActivity": "Recent activity",
+  "owner.shopNoSales": "No sales in this period.",
   "owner.noteOptional": "Note (optional)",
   "owner.allActivity": "All activity",
   "owner.expensePlus": "+ Expense",
@@ -1341,6 +1343,26 @@ export function hoursEmptyState(
     title: ui("public.closed", locale),
     next: ui("public.closedNext", locale),
   };
+}
+
+/**
+ * The Money page's shop row: "Shop · sales $120 this month". The amount stays inside the phrase so
+ * the caller can isolate it; the period reads as a short phrase ("this month", "today", ...).
+ */
+export function shopRowLine(
+  kind: "today" | "week" | "month" | "last" | "custom",
+  name: string,
+  amount: string,
+  locale: UiLocale = "ar",
+): string {
+  if (locale === "en") {
+    const when =
+      kind === "today" ? "today" : kind === "week" ? "this week" : kind === "month" ? "this month" : `in ${name}`;
+    return `Shop · sales ${amount} ${when}`;
+  }
+  const when =
+    kind === "today" ? "اليوم" : kind === "week" ? "هذا الأسبوع" : kind === "month" ? "هذا الشهر" : `في ${name}`;
+  return `المتجر · مبيعات ${amount} ${when}`;
 }
 
 /** Pending heading with a Western count. */
