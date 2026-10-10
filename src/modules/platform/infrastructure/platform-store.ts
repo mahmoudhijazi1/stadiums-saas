@@ -4,7 +4,8 @@ import { platformDb } from "@/lib/platform-db";
 /**
  * Platform tables and cross-tenant reads. The only module besides tenant
  * lookup, sessions and users that uses platformDb (see the import guard test).
- * Never called inside a tenant-scoped request: the CLI runs in its own process.
+ * The CLI runs in its own process. The few request-time callers (stadium info, brand identity)
+ * run outside any tenant `$transaction`, with the tenant id taken from the request's Host.
  */
 export type PlatformTx = Prisma.TransactionClient;
 

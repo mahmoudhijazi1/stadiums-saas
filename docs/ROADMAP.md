@@ -43,6 +43,18 @@ Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not sta
 | Walk-in credit | A walk-in sale is paid in full or refused today; "put it on my tab" needs a person and the Owed screen. |
 | Append-only for Sale / SaleItem | Insert-only by code only, like Payment and LedgerEntry (F-2): no trigger. Revisit with F-2. |
 
+## Stadium info and logo: next (recorded 2026-10-14)
+
+The first version is a generated letter logo from 8 colour presets. Not started, each its own slice:
+
+| Item | Note |
+|---|---|
+| Optional logo upload | Needs file checks (type by content, size, dimensions), resizing to the icon sizes, stripping metadata including GPS, and backups of the stored files (today nothing but the database is backed up). |
+| Colour presets for the app accent | Today the preset only colours the logo; the app's own accent does not change. |
+| Cover photo on the public page | Same file handling as the logo upload. |
+| Update an installed icon | An installed PWA keeps the icon it had at install time; the screen warns about it. A reinstall is the only fix today. |
+| A full public page redesign | This job only added the info, the buttons and the footer line. |
+
 ## Weekly bookings: next (recorded 2026-10-13)
 
 The first version is owner-made, up front, weekly only. Not started, each its own slice:
