@@ -22,13 +22,15 @@ export function BusinessMenu({
   tenantName,
   publicUrl,
   locale,
+  logoSrc,
 }: {
   tenantName: string;
   publicUrl: string;
   locale: UiLocale;
+  /** The stadium's generated logo (/brand/icon/192, versioned). */
+  logoSrc: string;
 }) {
   const [open, setOpen] = useState(false);
-  const initial = Array.from(tenantName.trim())[0] ?? "•";
 
   return (
     <>
@@ -39,12 +41,8 @@ export function BusinessMenu({
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
       >
-        <span
-          aria-hidden
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-accent-brand font-heading text-sm text-accent-ink"
-        >
-          {initial}
-        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}
+        <img src={logoSrc} alt="" width={36} height={36} className="size-9 shrink-0 rounded-full" />
         <span className="truncate font-heading text-base leading-tight font-medium">
           {tenantName}
         </span>
@@ -54,12 +52,8 @@ export function BusinessMenu({
       <BottomSheet open={open} onOpenChange={setOpen}>
         <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
           <BottomSheetHeader className="items-center pe-4 text-center">
-            <span
-              aria-hidden
-              className="mx-auto grid size-14 place-items-center rounded-full bg-accent-brand font-heading text-xl text-accent-ink"
-            >
-              {initial}
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}
+            <img src={logoSrc} alt="" width={56} height={56} className="mx-auto size-14 rounded-full" />
             <BottomSheetTitle className="text-center">{tenantName}</BottomSheetTitle>
           </BottomSheetHeader>
           <BottomSheetBody className="flex flex-col items-center gap-4">

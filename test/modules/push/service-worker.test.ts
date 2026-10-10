@@ -66,7 +66,7 @@ describe("push handler", () => {
     expect(showNotification).toHaveBeenCalledTimes(1);
     expect(showNotification).toHaveBeenCalledWith("Ahmad", {
       body: "hi",
-      icon: "/icons/icon-192.png",
+      icon: "/brand/icon/192",
       tag: "owner-test",
       renotify: true,
       dir: "rtl",
@@ -87,7 +87,7 @@ describe("push handler", () => {
     expect(showNotification).toHaveBeenCalledTimes(1);
     const [title, options] = showNotification.mock.calls[0]!;
     expect(title.length).toBeGreaterThan(0);
-    expect(options).toMatchObject({ icon: "/icons/icon-192.png", renotify: true, data: { url: "/owner/requests" } });
+    expect(options).toMatchObject({ icon: "/brand/icon/192", renotify: true, data: { url: "/owner/requests" } });
     expect(typeof options.tag).toBe("string");
   });
 

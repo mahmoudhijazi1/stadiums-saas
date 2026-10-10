@@ -36,6 +36,14 @@ export async function updateTenantNameAndSettings(
   await tx.tenant.update({ where: { id: tenantId }, data: { name: data.name, settings: data.settings } });
 }
 
+/** The inputs of a stadium's generated logo by host slug: name, settings and suspension only. */
+export async function findTenantBrandSource(slug: string) {
+  return platformDb.tenant.findUnique({
+    where: { slug },
+    select: { name: true, settings: true, suspendedAt: true },
+  });
+}
+
 export async function writeAudit(
   tx: PlatformTx,
   entry: { action: string; tenantId: string | null; actor: string; detail: Prisma.InputJsonObject },

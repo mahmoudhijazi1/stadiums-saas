@@ -1,3 +1,4 @@
+import { brandIconPath, brandIdentityOf } from "@/lib/brand-identity";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { clampPublicDay } from "@/modules/booking/domain/public-window";
@@ -45,7 +46,17 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <FlashToast locale={locale} />
       </Suspense>
       <header className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}
+          <img
+            src={brandIconPath("192", brandIdentityOf(tenant))}
+            alt=""
+            width={48}
+            height={48}
+            className="size-12 shrink-0 rounded-xl"
+          />
+          <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
+        </div>
         <PublicLangToggle locale={locale} />
       </header>
 

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { currentBrandIdentity } from "@/app/brand/current-brand";
+import { brandIconPath } from "@/lib/brand-identity";
 import { OwnerServiceWorker } from "@/components/owner-service-worker";
 import { ScrollbarPeek } from "@/components/scrollbar-peek";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -62,9 +64,15 @@ const plexMono = localFont({
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getUiLocale();
+  // Per request: this host's generated logo (neutral lebstads when the host names no active stadium).
+  const identity = await currentBrandIdentity();
   return {
     title: ui("doc.title", locale),
     description: "Book a pitch. Collect in cash.",
+    icons: {
+      icon: [{ url: brandIconPath("32", identity), sizes: "32x32", type: "image/png" }],
+      apple: [{ url: brandIconPath("180", identity), sizes: "180x180", type: "image/png" }],
+    },
   };
 }
 
