@@ -6385,3 +6385,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `lib/dev-only.ts`, `app/dev/{layout.tsx,palette/page.tsx,mockups/today/page.tsx}`, `test/app/dev/{dev-guard,today-mockup}.test.ts`.
 
 **How to verify:** NOT run. The test runs the guard under `NODE_ENV=production`, runs the layout the same way, and scans every `page`/`route` file under `src/app/dev` for `assertDevOnly()`. By hand: `next start` build, open `/dev/palette` and `/dev/mockups/today`: both 404.
+
+
+## Hardening 2, item 7 of 8: rate-limit cleanup on every write (branch `security/hardening-2`)
+
+**What:** `hitRateLimit` (`lib/rate-limit.ts`) now also deletes, after its upsert, up to 20 rows (`RATE_LIMIT_SWEEP_BATCH`) whose window started more than 24 hours ago (`RATE_LIMIT_RETENTION_MS`, longer than every window and block time in use), oldest first, never the key it is counting. So the table is cleaned by public requests, push throttles and password changes too, not only by the prune on login (`pruneRateLimits` stays). "Past its window" means older than the retention, not older than the caller's own window: a row is read only by its own key's window, and a key's next hit restarts that window anyway.
+
+**Files:** `lib/rate-limit.ts`, `test/integration/rate-limit-sweep.integration.test.ts`.
+
+**How to verify:** NOT run. The test seeds old rows and rows one hour old: after one hit the old ones are gone and the recent ones stay; with 25 old rows one hit deletes 20 and the next finishes; the counted key is never removed. UNVERIFIED: the longest block time in use is under 24 hours (login block); check `LOGIN_BLOCK_MS` if it is ever raised above that.
