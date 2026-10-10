@@ -8,6 +8,42 @@ import { plural, type PluralForms } from "@/lib/plural";
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
 const ARABIC: Record<string, string> = {
+  "owner.seriesSheetTitle": "الحجز الثابت",
+  "owner.seriesRowLine": "↻ أسبوعي · كل {weekday} {time} · بقي {left} · حتى {until}",
+  "owner.seriesRowEnded": "↻ أسبوعي · كل {weekday} {time} · انتهى",
+  "owner.seriesCardMark": "حجز أسبوعي",
+  "owner.seriesWeek.upcoming": "قادمة",
+  "owner.seriesWeek.played": "لُعبت",
+  "owner.seriesWeek.cancelled": "ملغاة",
+  "owner.seriesWeek.no_show": "لم يحضر",
+  "owner.seriesRenew": "تجديد 8 أسابيع أخرى",
+  "owner.seriesCancelRest": "إلغاء الباقي",
+  "owner.seriesCancelAsk": "ستُلغى {games} بلا رسوم.",
+  "owner.seriesLeftAlone": "هذه الأسابيع عليها مدفوعات وتبقى. ألغِها واحدة واحدة:",
+  "owner.seriesCancelConfirm": "نعم، ألغِ الباقي",
+  "owner.seriesCancelDone": "أُلغيت {games}.",
+  "owner.weeklyBookings": "الحجوزات الثابتة",
+  "owner.weeklyEvery": "كل {weekday} {time}",
+  "owner.weeklyPerson": "أسبوعياً كل {weekday} {time}",
+  "owner.weeklyLeft": "بقي {n}",
+  "owner.weeklyRenew": "تجديد",
+  "owner.weeklyEmpty": "لا حجوزات ثابتة.",
+  "owner.weeklyEmptyNext": "الحجز الثابت يظهر هنا.",
+  "owner.weeklyEndingOne": "حجز ثابت ينتهي قريباً: {name}، {weekday} {time}",
+  "owner.weeklyEndingMany": "{n} حجوزات ثابتة تنتهي قريباً",
+  "owner.repeatWeekly": "كرّر كل أسبوع",
+  "owner.seriesWeeks": "عدد الأسابيع",
+  "owner.seriesTaken": "محجوز",
+  "owner.seriesOutside": "خارج ساعات العمل",
+  "owner.seriesPast": "مضى",
+  "owner.seriesDeclines": "سيُرفض {n} من الطلبات",
+  "owner.seriesNone": "لا يوجد أسبوع متاح.",
+  "owner.seriesChecking": "نتحقق من الأسابيع…",
+  "owner.seriesCreatedTitle": "تم الحجز الثابت",
+  "owner.seriesCreatedLine": "كل {weekday} الساعة {time}، ابتداءً من {day}",
+  "owner.seriesSkippedLead": "تخطّينا (صار محجوزاً بعد المعاينة):",
+  "owner.seriesWhatsApp": "أرسل التأكيد عبر واتساب",
+  "owner.seriesDone": "تم",
   "owner.extendedChip": "+{n} د",
   "owner.extendedTitle": "مُدّدت المباراة {n} دقيقة",
   "owner.extend": "تمديد 30 دقيقة",
@@ -475,6 +511,42 @@ const ARABIC: Record<string, string> = {
 };
 
 const ENGLISH: Record<string, string> = {
+  "owner.seriesSheetTitle": "Weekly booking",
+  "owner.seriesRowLine": "↻ Weekly · every {weekday} {time} · {left} left · until {until}",
+  "owner.seriesRowEnded": "↻ Weekly · every {weekday} {time} · ended",
+  "owner.seriesCardMark": "Weekly booking",
+  "owner.seriesWeek.upcoming": "Upcoming",
+  "owner.seriesWeek.played": "Played",
+  "owner.seriesWeek.cancelled": "Cancelled",
+  "owner.seriesWeek.no_show": "No-show",
+  "owner.seriesRenew": "Renew 8 more weeks",
+  "owner.seriesCancelRest": "Cancel the rest",
+  "owner.seriesCancelAsk": "{games} will be cancelled with no fee.",
+  "owner.seriesLeftAlone": "These weeks have payments and stay. Cancel them one by one:",
+  "owner.seriesCancelConfirm": "Yes, cancel the rest",
+  "owner.seriesCancelDone": "{games} cancelled.",
+  "owner.weeklyBookings": "Weekly bookings",
+  "owner.weeklyEvery": "Every {weekday} {time}",
+  "owner.weeklyPerson": "Weekly every {weekday} {time}",
+  "owner.weeklyLeft": "{n} left",
+  "owner.weeklyRenew": "Renew",
+  "owner.weeklyEmpty": "No weekly bookings.",
+  "owner.weeklyEmptyNext": "A weekly booking shows here.",
+  "owner.weeklyEndingOne": "Weekly booking ending soon: {name}, {weekday} {time}",
+  "owner.weeklyEndingMany": "{n} weekly bookings ending soon",
+  "owner.repeatWeekly": "Repeat weekly",
+  "owner.seriesWeeks": "Number of weeks",
+  "owner.seriesTaken": "Taken",
+  "owner.seriesOutside": "Outside hours",
+  "owner.seriesPast": "Past",
+  "owner.seriesDeclines": "{n} requests will be declined",
+  "owner.seriesNone": "No week is free.",
+  "owner.seriesChecking": "Checking the weeks…",
+  "owner.seriesCreatedTitle": "Weekly booking made",
+  "owner.seriesCreatedLine": "Every {weekday} at {time}, starting {day}",
+  "owner.seriesSkippedLead": "Skipped (taken since the preview):",
+  "owner.seriesWhatsApp": "Send the confirmation on WhatsApp",
+  "owner.seriesDone": "Done",
   "owner.extendedChip": "+{n} min",
   "owner.extendedTitle": "Extended by {n} min",
   "owner.extend": "Extend 30 min",
@@ -1415,3 +1487,35 @@ export function groupedDigits(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+
+/** "Book 7 games" / "احجز 7 مباريات" (verb "book"), "Add 7 games" / "أضف 7 مباريات" (verb "add"). */
+export function seriesGamesLabel(verb: "book" | "add", count: number, locale: UiLocale = "ar"): string {
+  if (locale === "en") {
+    return plural("en", count, {
+      one: `${verb === "book" ? "Book" : "Add"} {n} game`,
+      other: `${verb === "book" ? "Book" : "Add"} {n} games`,
+    });
+  }
+  const lead = verb === "book" ? "احجز" : "أضف";
+  return plural("ar", count, {
+    zero: `${lead} {n} مباراة`,
+    one: `${lead} مباراة`,
+    two: `${lead} مباراتين`,
+    few: `${lead} {n} مباريات`,
+    many: `${lead} {n} مباراة`,
+    other: `${lead} {n} مباراة`,
+  });
+}
+
+/** "7 games" / "7 مباريات" for a plain count. */
+export function seriesGamesCount(count: number, locale: UiLocale = "ar"): string {
+  if (locale === "en") return plural("en", count, { one: "{n} game", other: "{n} games" });
+  return plural("ar", count, {
+    zero: "{n} مباراة",
+    one: "مباراة",
+    two: "مباراتان",
+    few: "{n} مباريات",
+    many: "{n} مباراة",
+    other: "{n} مباراة",
+  });
+}

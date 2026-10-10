@@ -10,7 +10,9 @@ export type MessageIntent =
   | "DECLINED"
   | "CANCELLED"
   | "SLOT_AVAILABLE"
-  | "PAYMENT_REMINDER";
+  | "PAYMENT_REMINDER"
+  /** A weekly series was booked: the weekday, the time, the first date and how many games. */
+  | "SERIES_CONFIRMED";
 
 /** Where the link is offered. */
 export type MessageContext =
@@ -18,6 +20,8 @@ export type MessageContext =
   | "booking_header"
   /** The WhatsApp button on a person's page. */
   | "person_page"
+  /** Right after booking a weekly series. */
+  | "after_series"
   /** Right after approving a request. */
   | "after_approve"
   /** Right after rejecting a request. */
@@ -55,6 +59,8 @@ export function messageIntentFor(context: MessageContext, state: MessageState = 
       return state.gameEnded && state.owed ? "PAYMENT_REMINDER" : null;
     case "person_page":
       return null;
+    case "after_series":
+      return "SERIES_CONFIRMED";
     case "after_approve":
       return "CONFIRMED";
     case "after_reject":

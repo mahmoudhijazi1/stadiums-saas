@@ -49,6 +49,8 @@ async function insertBookingDuring(
     end: Date;
     priceUsd: Decimal;
     requestedName?: string | null;
+    /** The weekly series this game belongs to (owner-created series only). */
+    seriesId?: string | null;
   },
   status: BookingInsertStatus,
   source: BookingInsertSource,
@@ -60,7 +62,7 @@ async function insertBookingDuring(
   await tx.$executeRaw`
     INSERT INTO "Booking" (
       "id", "tenantId", "pitchId", "during", "status", "source",
-      "priceUsd", "amountDueUsd", "collectionMode", "requestedName"
+      "priceUsd", "amountDueUsd", "collectionMode", "requestedName", "seriesId"
     )
     VALUES (
       ${id},
@@ -72,7 +74,8 @@ async function insertBookingDuring(
       ${price}::decimal,
       ${price}::decimal,
       'WHOLE'::"CollectionMode",
-      ${input.requestedName ?? null}
+      ${input.requestedName ?? null},
+      ${input.seriesId ?? null}
     )
   `;
 
@@ -125,7 +128,7 @@ export async function lockPitchForUpdate(
  */
 export async function insertApprovedOwnerBooking(
   tx: TenantTx,
-  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal },
+  input: { pitchId: string; start: Date; end: Date; priceUsd: Decimal; seriesId?: string | null },
 ): Promise<string> {
   return insertBookingDuring(tx, input, "APPROVED", "OWNER");
 }

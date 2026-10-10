@@ -52,6 +52,23 @@ export function bookingConfirmedMessage(input: {
   return `مرحبا ${embed(input.name)}، تأكد حجزك في ${embed(input.stadiumName)} يوم ${embed(input.day)} الساعة ${embed(input.time)}${pitch}. منشوفك!`;
 }
 
+/** A weekly series was booked. Arabic is Lebanese. */
+export function seriesConfirmedMessage(input: {
+  name: string;
+  stadiumName: string;
+  weekday: string;
+  time: string;
+  /** The first date, already formatted ("Tuesday 14 October"). */
+  day: string;
+  games: number;
+  locale?: MessageLocale;
+}): string {
+  if (input.locale === "en") {
+    return `Hello ${embed(input.name)}, your weekly booking at ${embed(input.stadiumName)} is confirmed: every ${embed(input.weekday)} at ${embed(input.time)}, starting ${embed(input.day)}, ${input.games} games. See you!`;
+  }
+  return `مرحبا ${embed(input.name)}، تأكد حجزك الثابت في ${embed(input.stadiumName)}: كل ${embed(input.weekday)} الساعة ${embed(input.time)}، ابتداءً من ${embed(input.day)}، ${input.games} مباريات. منشوفك!`;
+}
+
 /**
  * Booking rejected. {reason} is " (reason)" or empty.
  * `ending: "wait"` is the auto-reject after someone else was approved.
@@ -224,6 +241,10 @@ export type MessageFacts = {
   since?: string;
   /** Who cancelled. */
   initiator?: "OWNER" | "PLAYER";
+  /** The weekday of a weekly series ("Tuesday"). */
+  weekday?: string;
+  /** How many games a weekly series has. */
+  games?: number;
 };
 
 function need<T>(value: T | undefined | null, what: string): T {
@@ -248,6 +269,13 @@ export function composeMessage(intent: MessageIntent, facts: MessageFacts, local
       return facts.fee ? bookingCancelledByPlayerFeeMessage({ ...shared, fee: facts.fee }) : bookingCancelledByPlayerMessage(shared);
     case "SLOT_AVAILABLE":
       return slotAvailableMessage({ ...shared, stadiumName: facts.stadiumName });
+    case "SERIES_CONFIRMED":
+      return seriesConfirmedMessage({
+        ...shared,
+        stadiumName: facts.stadiumName,
+        weekday: need(facts.weekday, "the weekday"),
+        games: need(facts.games, "the number of games"),
+      });
     case "PAYMENT_REMINDER":
       return paymentReminderMessage({
         name: facts.name,

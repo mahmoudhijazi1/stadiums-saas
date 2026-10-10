@@ -27,6 +27,8 @@ export default async function OwnerTodayPage({
     date?: string | string[];
     notify?: string | string[];
     bookingId?: string | string[];
+    series?: string | string[];
+    skipped?: string | string[];
   };
   const highlight = queryString(query.highlight);
   // From Money > Activity: open the game's sheet straight away (not just the highlight).
@@ -34,6 +36,9 @@ export default async function OwnerTodayPage({
   const date = queryString(query.date);
   const notify = outcomeKind(queryString(query.notify));
   const bookingId = queryString(query.bookingId);
+  // Right after a weekly series was booked: the result sheet.
+  const series = queryString(query.series);
+  const skipped = queryString(query.skipped);
 
   return (
     <section className="flex flex-col gap-4">
@@ -46,6 +51,8 @@ export default async function OwnerTodayPage({
           date={date}
           notify={notify}
           bookingId={bookingId}
+          series={series}
+          skipped={skipped}
         />
       </Suspense>
     </section>

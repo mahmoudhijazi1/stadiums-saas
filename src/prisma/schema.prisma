@@ -39,6 +39,7 @@ model Tenant {
   saleItems           SaleItem[]
   saleAllocations     SaleAllocation[]
   pushSubscriptions   PushSubscription[]
+  bookingSeries       BookingSeries[]
   /// Set by the platform operator (scripts/platform.ts). Null = active. Sessions and
   /// data are untouched; resume clears both columns (decision 7).
   suspendedAt         DateTime?
@@ -50,19 +51,20 @@ model Tenant {
 
 /// A pitch/field that belongs to exactly one tenant (tenantId is required)
 model Pitch {
-  id                 String         @id @default(cuid())
+  id                 String          @id @default(cuid())
   tenantId           String
   name               String
   /// Opening hours, slot length, gaps, pricing (DR-002 §2.4). Zod-validated in app code, not here.
   /// Default is a closed week so existing rows are valid jsonb (SPEC-02 step 1).
-  scheduleConfig     Json           @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
+  scheduleConfig     Json            @default("{ \"slotDurationMinutes\": 60, \"gapMinutes\": 0, \"hours\": { \"mon\": [], \"tue\": [], \"wed\": [], \"thu\": [], \"fri\": [], \"sat\": [], \"sun\": [] }, \"defaultPriceUsd\": \"0.00\", \"priceRules\": [] }")
   /// Players expected per game; the default count when a booking is split per player (SPEC-15 P2).
   /// CHECK ("defaultPlayerCount" BETWEEN 1 AND 30) is SQL-only (Pitch_defaultPlayerCount_range).
-  defaultPlayerCount Int            @default(10)
-  createdAt          DateTime       @default(now())
-  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  defaultPlayerCount Int             @default(10)
+  createdAt          DateTime        @default(now())
+  tenant             Tenant          @relation(fields: [tenantId], references: [id])
   bookings           Booking[]
   slotInterests      SlotInterest[]
+  bookingSeries      BookingSeries[]
 
   @@index([tenantId])
 }
@@ -85,6 +87,7 @@ model Person {
   slotInterests       SlotInterest[]
   /// Shop tabs this person owes (Sale.payerPersonId).
   shopTabs            Sale[]
+  bookingSeries       BookingSeries[]
 
   @@index([tenantId])
   @@index([tenantId, searchName])
@@ -116,8 +119,12 @@ model Booking {
   dueChanges     BookingDueChange[]
   /// Items put on this game: one tab per payer (the booker's included).
   sales          Sale[]
+  /// The weekly series this game belongs to, if any. A series is only the link (BookingSeries).
+  seriesId       String?
+  series         BookingSeries?           @relation(fields: [seriesId], references: [id])
 
   @@index([tenantId])
+  @@index([seriesId])
 }
 
 /// Who is on a booking. The public requester is a row with isRequester (DR-002 §2.10).
@@ -237,17 +244,18 @@ model User {
 
 /// This user may work at this stadium. tenantId required (DR-001). Unique per tenant+user.
 model Membership {
-  id          String             @id @default(cuid())
-  tenantId    String
-  userId      String
-  role        MembershipRole
+  id            String             @id @default(cuid())
+  tenantId      String
+  userId        String
+  role          MembershipRole
   /// Zod-validated at the app edge (DR-003 §5). Default empty = staff has no extra flags.
-  permissions Json               @default("{}")
-  createdAt   DateTime           @default(now())
-  tenant      Tenant             @relation(fields: [tenantId], references: [id])
-  user        User               @relation(fields: [userId], references: [id])
-  dueChanges  BookingDueChange[]
-  sales       Sale[]
+  permissions   Json               @default("{}")
+  createdAt     DateTime           @default(now())
+  tenant        Tenant             @relation(fields: [tenantId], references: [id])
+  user          User               @relation(fields: [userId], references: [id])
+  dueChanges    BookingDueChange[]
+  sales         Sale[]
+  bookingSeries BookingSeries[]
 
   @@unique([tenantId, userId])
   @@index([tenantId])
@@ -594,4 +602,29 @@ model PushSubscription {
   @@index([tenantId, userId])
   @@index([sessionId])
   @@index([userId, createdAt])
+}
+
+/// A weekly recurring booking: the link between ordinary APPROVED bookings that are all created up
+/// front (Booking.seriesId). No background job, no virtual bookings. Week k starts at the anchor's
+/// local wall-clock time (Asia/Beirut) on anchorDate + 7k days. tenantId required (DR-001).
+model BookingSeries {
+  id                    String     @id @default(cuid())
+  tenantId              String
+  pitchId               String
+  personId              String
+  /// Local date of week 0, and its local time "HH:mm".
+  anchorDate            DateTime   @db.Date
+  anchorTime            String     @db.VarChar(5)
+  durationMinutes       Int
+  createdByMembershipId String
+  createdAt             DateTime   @default(now())
+  tenant                Tenant     @relation(fields: [tenantId], references: [id])
+  pitch                 Pitch      @relation(fields: [pitchId], references: [id])
+  person                Person     @relation(fields: [personId], references: [id])
+  createdBy             Membership @relation(fields: [createdByMembershipId], references: [id])
+  bookings              Booking[]
+
+  @@index([tenantId])
+  @@index([pitchId])
+  @@index([personId])
 }

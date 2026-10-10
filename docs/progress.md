@@ -6246,3 +6246,74 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `booking/application/{list-extension-minutes,extend-booking}.ts`, `today/{lists,upcoming-panel,extend-form}.tsx`, `lib/ui-copy.ts`, `test/integration/extend-booking.integration.test.ts` (new "extended mark" block: 30 and 60, a free extension, empty list and no login).
 
 **How to verify:** `npx tsc --noEmit` clean. The new tests were written and NOT run; no suite or build was run and the screen was not rendered. Existing extended games from before this change have their `EXTENSION` row, so they show the mark too.
+
+## Weekly recurring bookings, commit 1 of 4: domain and use cases (branch `feat/weekly-series`)
+
+**What:** the data and rules; no screen yet.
+- **Model:** occurrences are REAL bookings, APPROVED and owner-created, made up front, each priced at its own time and frozen. A series is only the link: table `BookingSeries` (`pitchId`, `personId`, `anchorDate` + `anchorTime` = week 0 in Asia/Beirut, `durationMinutes`, `createdByMembershipId`; in `TENANT_SCOPED_MODELS`) and a nullable `Booking.seriesId` (FK RESTRICT, indexed). Migration `20261013090000_booking_series`, additive. No job, no virtual bookings.
+- **Domain** `booking/domain/series.ts` (pure): `seriesOccurrences(anchor, count, timeZone, firstIndex)` = the anchor's local wall-clock time on anchor date + 7k calendar days, converted to UTC for that day (the 20:00 game stays 20:00 across the October clock change; a 00:30 game stays on the same night); `occurrenceIndex`; `occurrencePrice` (the grid slot's price at that time, scaled to the series length, half up); `classifyOccurrence` / `buildSeriesPreview` mark each week `free`, `taken`, `outside_hours` (`bookingFitsOpenHours`, or no slot at that time) or `past`, and count the pending requests a free week would decline. Counts offered: 4, 8, 12 (default 8). The code has no owner-booking horizon constant, so all three options are offered.
+- **Use cases** (`booking/application/`): `createSeries` (authorize `bookings.create`, then one transaction: pitch lock once, person found or created like the quick booking, series row, then `createWeeksUnderLock` re-checks each accepted start and skips a taken one into `skipped`; if nothing could be booked it writes nothing, `booking.series_none`; pending requests inside a created week are declined into interests; 23P01 becomes `booking.series_retry`), `makeWeekly` (an APPROVED booking not already in a series becomes week 0, the next `count` weeks are created), `renewSeries` (continues after the series' latest game), `cancelRestOfSeries` (`bookings.cancel`: every upcoming APPROVED week, no fee, a week with collected money is left alone and returned in `kept`; pitch lock, then each booking row `FOR UPDATE` in ascending id order). `preview-series.ts` gives the same verdicts as a preview for a new series, "repeat weekly" on a booking, and a renewal. `makeWeekly` and `renewSeries` accept `acceptedStarts` (the weeks the owner saw).
+- `insertApprovedOwnerBooking` takes an optional `seriesId`. New error keys in both languages. `docs/ARCHITECTURE.md` lock-order table has the four new rows.
+
+**Why:** a regular team that plays every Tuesday should be booked once, not every week.
+
+**Files:** `booking/domain/series.ts`, `booking/application/{create-series,make-weekly,renew-series,cancel-rest-of-series,preview-series,series-weeks}.ts`, `booking/infrastructure/{series,bookings}.ts`, `prisma/schema.prisma` and the migration, `lib/{db,error-messages}.ts`, `test/modules/booking/domain/series.test.ts`.
+
+**How it connects:** `booking` imports `venue`, `people` and `payment` as before; nothing imports booking's series code except `app/`.
+
+**How to verify:** NOT run. Per the task no test suite, build or lint was run; one `tsc --noEmit` is run at the end of the branch. The migration is not applied anywhere yet.
+
+## Weekly recurring bookings, commit 2 of 4: creating a series (branch `feat/weekly-series`)
+
+**What:**
+- **Quick-booking sheet** (the sheet opened from a free hour on Today and from the Book grid): after the player's name and phone, a "Repeat weekly" / "كرّر كل أسبوع" switch. On: chips 4 / 8 / 12 (default 8), the preview list (one line per week: its date, and a mark for taken, outside hours, past, or "N requests will be declined"), and the primary button states the real count: "Book 7 games" / "احجز 7 مباريات" (`seriesGamesLabel`, Arabic plural forms). The sheet got an optional `extra` block (`SlotFormExtra` in `components/slot-picker.tsx`) that can relabel the button; the public page passes none.
+- **Saving:** `submitCreateOwnerBooking` calls `createSeries` when `weeklyCount` is present, with the weeks the owner saw (`acceptedStart` fields), then redirects to Today with `?series=…&skipped=…`. Today opens a result sheet (`SeriesCreatedSheet`): who, "every Tuesday at 8:00 PM, starting …", how many games, any week skipped since the preview, and the WhatsApp confirmation.
+- **Booking sheet, More actions:** a "Repeat weekly" row (shown to members with `bookings.create` on a confirmed game that has not ended and is not in a series), opening a confirm step with the same chips and preview, starting next week; the button says "Add N games"; the result is the same panel.
+- **WhatsApp:** new intent `SERIES_CONFIRMED` and context `after_series` in `messageIntentFor`, with Arabic (Lebanese) and English text in `composeMessage` (`seriesConfirmedMessage`): the weekday, the time, the first date, the number of games.
+- New server pieces: `load-series-info.ts` (which games are in a series and how many are left, one query), `load-series-created.ts` (the result sheet, read from saved rows), and `series/actions.ts` (`previewSeriesAction`, `submitSeriesSave`).
+
+**Why:** a regular team booked once, with the owner seeing exactly what will be created.
+
+**Files:** `app/owner/(app)/series/{actions.ts,weekly-preview.tsx,weekly-confirm.tsx}`, `components/slot-picker.tsx`, `book/{actions.ts,picker.tsx}`, `today/{free-strip,lists,page,upcoming-panel}.tsx`, `modules/booking/application/{load-series-info,load-series-created}.ts`, `modules/notification/domain/{message-intent,whatsapp-link}.ts`, `lib/ui-copy.ts`.
+
+**How it connects:** `notification` still imports nothing from `booking`. The preview and the use case use the same `classifyOccurrence`, so a week shown as free is re-checked with the same rule under the pitch lock.
+
+**How to verify:** NOT run. No suite, build or lint was run; `npx tsc --noEmit` was run at this commit (clean), more often than the one run the task allowed. Nothing was rendered in a browser.
+
+## Weekly recurring bookings, commit 3 of 4: managing series (branch `feat/weekly-series`)
+
+**What:**
+- **In any occurrence's sheet**, a row at the top: "↻ Weekly · every Tue 8:00 PM · 5 left · until Dec 1" (or "· ended"), built from the saved series (`load-series-info.ts`, one query per page). It opens the **series sheet** (a new sheet step, `series/series-manage.tsx`): the series' weeks with their status (upcoming, played, cancelled, no-show), **Renew 8 more weeks** (the same chips and preview as creating, starting after the latest game; needs `bookings.create`) and **Cancel the rest** (destructive text button, needs `bookings.cancel`). Its confirm says how many games will be cancelled with no fee and lists, before anything is done, the weeks left alone because they have payments ("cancel them one by one"); after it, it shows the same.
+- **More > Business > Weekly bookings** (`/owner/more/weekly`): every series with games left, soonest first: player, "Every Tue 8:00 PM", the pitch when the stadium has several, "N left", and Renew. One aggregate query (`listActiveSeries`, a lateral count per series).
+- **Today:** when any series has 2 games left or fewer, one line above the games: "Weekly booking ending soon: Hassan, Tue 8:00 PM ›" or "N weekly bookings ending soon ›", linking to the list. Shown on today's page to members with `bookings.create`; it reuses the list's single query (`endingSoon`).
+- **Cards:** a "↻" with an aria-label ("Weekly booking") on line 2 of a booking card. **Person page:** "↻ Weekly every Tue 8:00 PM" for each series the person still has games in.
+- New: `list-weekly-bookings.ts`, `series-sheet.ts` (`loadSeriesSheet`, `previewCancelRest`), `series/labels.ts`, `series/actions.ts` (`loadSeriesSheetAction`, `previewCancelRestAction`, `submitCancelRest`), `more/weekly/{page,weekly-list}.tsx`; copy through `ui()` in both languages.
+
+**Why:** a series must be visible, renewable and endable without hunting through games one by one.
+
+**Files:** `modules/booking/application/{list-weekly-bookings,series-sheet}.ts`, `modules/booking/infrastructure/series.ts`, `app/owner/(app)/series/*`, `more/{hub.tsx,weekly/*}`, `today/{lists,upcoming-panel}.tsx`, `people/[personId]/page.tsx`, `lib/ui-copy.ts`.
+
+**How it connects:** the More list is not behind `settings.manage` (the page needs only a login; Renew needs `bookings.create`), but its hub row sits in the Business section, which is shown to members with `settings.manage`.
+
+**How to verify:** NOT run. No suite, build or lint was run; `npx tsc --noEmit` was run at this commit too (clean). Nothing was rendered in a browser.
+
+## Weekly recurring bookings, commit 4 of 4: tests and docs (branch `feat/weekly-series`)
+
+**What:**
+- **Tests, written and NOT run.** Per the task no test suite, build or lint was run. Unit (commit 1, `series.test.ts`): `seriesOccurrences` across the late-October clock change and for a 00:30 anchor, `firstIndex` numbering, `occurrenceIndex`, `occurrencePrice` (scaled, and null when no slot starts there), `classifyOccurrence` / `buildSeriesPreview` (free, taken, adjacent, outside hours, past, pending counts), the weekday and time label; plus `test/modules/notification/series-message.test.ts` for `SERIES_CONFIRMED` in both languages. Integration (`test/integration/weekly-series.integration.test.ts`): a 12-week series at the same local time (`to_char(... AT TIME ZONE 'Asia/Beirut')`) with real bookings, priced and frozen; a game after midnight; nothing bookable writes nothing; a taken week skipped; a week booked between the preview and the confirm skipped and reported (`index 2, taken`), not a failure; pending requests declined into interests and counted by the preview; invalid counts and unseen weeks refused; `makeWeekly` links the original booking and refuses a PENDING one or one already in a series; `renewSeries` continues with no gap or duplicate, twice; `cancelRestOfSeries` skips started and paid weeks, charges no fee (due 0, `CANCELLATION_NO_FEE`) and is safe to run twice; the Today reminder is absent at 3 games left and present at 2; permissions for create, renew, make weekly (`bookings.create`) and cancel the rest (`bookings.cancel`); unauthenticated and cross-tenant (pitch and series ids) refused; and two race loops of 10 iterations with `Promise.allSettled`, `createSeries` against owner-create on one of its weeks and against approving a pending request on one of its weeks: never an overlap.
+- **Docs:** new `docs/domain/weekly-series.md` (the model, when each week starts, which weeks can be booked, what each action does and needs); `DATA-MODEL.md` (BookingSeries, `Booking.seriesId`), `owner-ia.md` (More row, the series sheet, the Today line), `NOW.md`, `ROADMAP.md` (player-requested series, editing a series, monthly prepaid series, academy sessions reusing the series model, a holiday skip). The lock-order rows are in `ARCHITECTURE.md` (commit 1).
+
+**Honest limits:** the clock-change test depends on the date it runs (it asserts the local time is constant over 12 weeks; whether the span crosses a change depends on the season); the exact change dates are in the unit tests. `npx tsc --noEmit` was run at commits 2, 3 and 4 (clean), more than the single run the task allowed.
+
+**How to verify:** run `npm test`, `npm run test:integration` and `npm run build` (none was run), apply the migration (`npx prisma migrate deploy --config prisma7.config.ts`), then by hand: book a weekly game from a free hour and check the 8 weeks and the WhatsApp text, repeat a game from More actions, book over a week that is already taken, renew, cancel the rest with one paid week, and look at the Today reminder, the More list and the person page.
+
+
+## Fix: a weekly series made from an extended booking keeps the standard length (branch `feat/weekly-series`)
+
+**What:** a series' length is always the pitch's standard game (`standardSeriesMinutes`, the grid's slot length), never the source booking's. `makeWeekly` stores it and creates the new weeks with it (standard range, standard slot price); the source booking keeps its extended range. `previewMakeWeekly` shows the standard range. `renewSeries` already used the stored length, so it continues at the standard one. `createSeries` is unchanged. The old 180-minute check on the source length is gone (it no longer matters).
+
+**Tests (written, NOT run):** in `weekly-series.integration.test.ts`: `makeWeekly` from a booking extended by 30 minutes (preview and weeks 60 minutes at $30, series stored at 60, source still 90 minutes at $45); renew after the last week was extended (new weeks 60 minutes, the extended week untouched); `createSeries` unchanged; and the clock-change test now finds the next Asia/Beirut change at least 15 days away from the run date and anchors the series two weeks before it, asserting 20:00 local on both sides and a 1-hour UTC shift across the change (no clock injection needed).
+
+**Files:** `booking/domain/series.ts`, `booking/application/{make-weekly,preview-series}.ts`, `test/integration/weekly-series.integration.test.ts`, `docs/domain/weekly-series.md` (rule: extensions belong to one week only).
+
+**How to verify:** no test suite, build or lint was run; one `npx tsc --noEmit` at the end. Run `npm run test:integration`, then by hand: extend a game, make it weekly, check the weeks are the normal length and the sheet shows it.
