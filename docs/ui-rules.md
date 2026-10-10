@@ -139,6 +139,10 @@ Reference information never pushes an action below the fold. A collapsed row may
 
 ---
 
+### 9. The accent is per stadium; status colours are not
+
+Buttons, highlights, accent text and the focus ring take their colour from the stadium's preset (More > Business > Stadium info), through the tokens `--brand`, `--brand-ink`, `--action-ink` and `--ring` only. A component never writes an accent hex or a `lime-*` class: `test/app/accent-guard.test.ts` fails on it. **Paid, owed, expected and the destructive coral are fixed** (rule 1): they never come from a preset, and no preset is near green, amber or red, so a coloured button cannot be mistaken for a money state. Meaning still never rests on colour alone.
+
 ## Audit
 
 Checked against the code on `feat/today-free-slots` (2026-10-01). "Verified" means I read the code path; the booking sheet and Today card were also seen in a screenshot.

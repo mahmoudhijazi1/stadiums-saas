@@ -6514,3 +6514,18 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `lib/{brand-presets,accent-css,ui-copy}.ts`, `app/{layout.tsx,manifest.ts}`, `app/owner/(app)/more/stadium/stadium-form.tsx`; tests updated for the new keys: `test/lib/{brand-presets,brand-identity,tenant-settings,tenant-settings-stadium}.test.ts`, `test/modules/platform/stadium-info.test.ts`, `test/integration/stadium-info.integration.test.ts`.
 
 **How to verify:** NOT run (no test, build or lint). By hand: pick each colour in Stadium info, save, reload the owner app and the public page in light and dark; check buttons, the focus ring (Tab), a link and the dark active pill; check paid/owed/delete colours are unchanged; check there is no flash of lime on first load. UNVERIFIED: that the `html:root` override beats the `:root` rules in every case (Tailwind v4 layers), and how `--action-ink` text reads on every surface.
+
+
+## Per-tenant accent, commit 3 of 3: tests (written, NOT run) and docs (branch `feat/accent-presets`)
+
+**Tests, none run:**
+- `test/lib/brand-presets.test.ts` (rewritten for the new shape in commit 2): eight distinct keys, lime default; every value a #RRGGBB hex; **text on the fill >= 4.5:1, accent text >= 4.5:1 on the page and the card, focus ring >= 3:1, in both themes, all computed in the test**; lime equals today's colours; no preset green-dominant or red/amber; the logo and neutral icon pairs; a non-key (hex, `javascript:`, empty, wrong case, null, objects) is the default and never throws.
+- `test/lib/accent-css.test.ts`: the four role variables for both themes from the preset; an exact output shape for every preset; unknown, null and junk keys give lime; a hostile key (`</style><script>...`) gives the default and the output holds only hex values from the constant; status and destructive variables never appear; the default equals globals.css; the manifest colour is the dark fill; the preview CSS is scoped and constant-only, and the pill takes the accent in dark only.
+- `test/integration/accent-isolation.integration.test.ts`: two stadiums with different presets (violet, sky) each get only their own colours on their own host; a stadium that never chose gets lime; an unknown host and a suspended stadium get lime; a junk key stored in the database reads as lime; changing one stadium's colour changes its CSS and manifest colour and not the other's.
+- `test/app/accent-guard.test.ts` (from commit 1) now also fails on any preset accent hex outside `globals.css` and the constant.
+
+**Docs:** `theme.md` §2 (banner: shipped as presets, with the selectors and the rules), `ui-rules.md` (new rule 9: accent per stadium, status colours fixed), `NOW.md`, `ROADMAP.md` (dark/light logo variants, the uploaded logo).
+
+**Honest limits:** `npx tsc --noEmit` was run once, at the end (after one typing fix in a new test, so twice). Nothing was rendered: no browser check of the override, the preview or the flash. The stadium-info branch's verification (separate entry) was run before this work started.
+
+**How to verify:** `npm test`, `npm run test:integration`, `npm run build`; by hand the checks listed in commit 2.

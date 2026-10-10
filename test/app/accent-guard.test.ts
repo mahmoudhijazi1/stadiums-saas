@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "@jest/globals";
+import { BRAND_PRESETS } from "@/lib/brand-presets";
 
 /**
  * Accent guard. The accent colour is per tenant: the app reads it only through the role tokens
@@ -16,7 +17,21 @@ const ROOT = process.cwd();
 const SCAN = ["src", "public"];
 const ALLOWED = new Set(["src/app/globals.css", "src/lib/brand-presets.ts"]);
 
+/**
+ * Every accent colour of every preset, except the page colours the app uses anyway (carbon and
+ * white). Naming one outside the constant would bypass the tenant's choice.
+ */
+const NEUTRAL = new Set(["#111412", "#FFFFFF"]);
+const PRESET_HEXES = [
+  ...new Set(
+    BRAND_PRESETS.flatMap((preset) => [preset.light, preset.dark].flatMap((set) => Object.values(set))).filter(
+      (hex) => !NEUTRAL.has(hex.toUpperCase()),
+    ),
+  ),
+];
+
 const RAW = [
+  new RegExp(`(?:${PRESET_HEXES.join("|")})\\b`, "i"),
   /#d7ff3f\b/i, // the default (lime) fill
   /\brgba?\(\s*215\s*,\s*255\s*,\s*63\b/i,
   /\b(?:bg|text|border|ring|ring-offset|fill|stroke|from|to|via|outline|decoration|accent|caret|shadow)-(?:lime|yellow)-\d/,
@@ -63,6 +78,8 @@ describe("accent colour only through the tokens", () => {
       'className="text-lime-400"',
       "border-yellow-300",
       "fill: var(--ls-volt-500)",
+      'style={{ background: "#2563EB" }}',
+      "color: #a78bfa",
     ]) {
       expect({ line, caught: RAW.some((pattern) => pattern.test(line)) }).toEqual({ line, caught: true });
     }
