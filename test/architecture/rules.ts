@@ -26,7 +26,7 @@ export const MODULES = [
 /** Rule 1: module -> modules it may import. Anything else fails. */
 export const MODULE_EDGES: Record<string, string[]> = {
   access: [],
-  notification: [],
+  notification: ["people"], // Lebanese phone rule is a people domain rule used to build wa.me links (domain to domain)
   ledger: ["access"],
   people: ["access"],
   venue: ["access"],
@@ -58,33 +58,6 @@ export const MODULE_EDGE_EXCEPTIONS: Exception[] = [
 
 /** Rules 2 to 5: files that break a rule today. Do not add; fix the code. */
 export const EXCEPTIONS: Exception[] = [
-  { file: "src/modules/venue/domain/availability.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/venue/domain/daily-schedule.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/venue/domain/hours-cover.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/venue/domain/pitch-form-model.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/booking/domain/extension-plan.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/booking/domain/offered-slot.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/booking/domain/series.ts", target: "src/modules/venue/schemas/schedule-config", rule: 2,
-    reason: "ScheduleConfig type and WEEKDAYS live in a schemas file but are domain concepts",
-    fate: "move schedule-config to venue/domain; then delete these entries" },
-  { file: "src/modules/push/infrastructure/web-push-sender.ts", target: "src/modules/push/application/push-sender", rule: 2,
-    reason: "implements the PushSender port declared in application",
-    fate: "move the port to push/domain" },
-  { file: "src/app/owner/(app)/money/activity-map.ts", target: "src/modules/ledger/infrastructure/entries", rule: 4,
-    reason: "type-only (LedgerEntryRow)",
-    fate: "export the row type from ledger/application or domain" },
   { file: "src/components/day-chips.tsx", target: "src/modules/venue/domain/availability", rule: 5,
     reason: "pure availability helper used by a shared component",
     fate: "move the helper to src/lib or a module ui/ folder" },
@@ -92,8 +65,11 @@ export const EXCEPTIONS: Exception[] = [
     reason: "sanitizePhoneInput, a pure function",
     fate: "move to src/lib or a module ui/ folder" },
   { file: "src/lib/request-fields.ts", target: "src/modules/people/domain/phone", rule: 5,
-    reason: "documented in docs/ARCHITECTURE.md §1: normalizePhone, a pure function",
+    reason: "documented in docs/ARCHITECTURE.md §1: phone helpers, pure functions",
     fate: "move phone helpers to src/lib" },
+  { file: "src/lib/tenant-settings.ts", target: "src/modules/people/domain/phone", rule: 5,
+    reason: "toLebanonNumber for the stadium's published phones, a pure function",
+    fate: "moves to the stadium module in step 5" },
 ];
 
 /** Rule 2: libs a domain or schemas file must not import (they stay pure). */

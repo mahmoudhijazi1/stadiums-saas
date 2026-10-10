@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { isUsdString, normalizeUsdForm } from "@/lib/money";
-import { WEEKDAYS, type Weekday } from "@/modules/venue/schemas/schedule-config";
+import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
 import {
   assertUniqueHoursDays,
   type HoursGroup,

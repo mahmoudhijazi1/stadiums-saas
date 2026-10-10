@@ -13,10 +13,10 @@ Multi-tenant back-office for football stadium owners in Lebanon. It replaces the
 |---|---|
 | Any new feature | `docs/requirements/brd.md` §7 (RULE-1…12), then `docs/decisions/` for constraints. Never invent a decision — if no DR covers it, say so and stop. |
 | Tenancy, isolation, `platformDb`, transactions | DR-001, `docs/guides/prisma-transaction-tenant-guard.md` (one-pool / ALS rule) |
-| Schema / data model | DR-002 (+ `.cursor/rules/200-database-prisma.mdc`) |
+| Schema / data model | DR-002 (+ `docs/archive/cursor-rules/200-database-prisma.mdc`) |
 | Login, sessions, permissions, `can()` | DR-003, SPEC-04 |
 | Errors, logging, `?error=` keys | DR-004, SPEC-12, `docs/guides/error-handling-logging-audit.md` |
-| Arabic / RTL / copy (`ui()`) | DR-005, SPEC-13 (+ `.cursor/rules/100-rtl-i18n.mdc`) |
+| Arabic / RTL / copy (`ui()`) | DR-005, SPEC-13 (+ `docs/archive/cursor-rules/100-rtl-i18n.mdc`) |
 | Money: collect, tenders, rate, ledger | DR-002 §2.14–2.21, SPEC-06, SPEC-08 |
 | Per-player payments (BR-41–49) | `docs/specs/SPEC-15-per-player-payments.md` |
 | Fees, waivers, due adjustments, cancellation policy | `docs/specs/SPEC-16-due-adjustments.md` |
@@ -39,6 +39,18 @@ SPECs, DRs and audits are **historical**: never rewrite their bodies; at most a 
 - Every payment writes its ledger row in the same transaction. Ledger is append-only, USD only. Money is `Decimal`, never float.
 - Warn, never block the owner from taking money (RULE-9/10). Logical CSS properties only; LTR-isolate numbers/phones/times; all copy via `ui()`.
 - Framework APIs come from `node_modules/next/dist/docs/` and installed Prisma docs, not memory.
+
+Recovered from the archived Cursor rules ([docs/archive/cursor-rules/](docs/archive/cursor-rules/); DR-002, DR-005, `docs/guides/testing-jest.md` have the detail):
+- The no-double-booking exclusion constraint lives in a hand-written SQL migration. Never remove it, never model it in the schema DSL.
+- `tenantId` on every tenant-owned table, child tables included.
+- Payment, PaymentTender, LedgerEntry, BookingDueChange and ExchangeRate are append-only in code: corrections are new rows.
+- USD is `Decimal(12,2)`, LBP is `Decimal(18,0)` or `BigInt`; times are `timestamptz` in UTC.
+- Repositories use the transaction client they are given, never the global `db` inside a transaction.
+- Every query lives in `infrastructure/`; a read across more than two entities goes through a named function.
+- jsonb (`scheduleConfig`, tenant `settings`) is Zod-validated at the application edge.
+- Domain types: things with real invariants (Booking, Payment, Money) get domain types; plain data may use Prisma types.
+- Western digits in the Arabic UI; tenant-written content (pitch and product names) is never translated; no `next-intl` (DR-005).
+- Every slice ships its tests.
 
 ## docs/progress.md — append-only build log
 - **NEVER read it in full** (4,000+ lines). For recent context only, and only if needed: `tail -n 100 docs/progress.md`.

@@ -25,7 +25,7 @@ import {
   parseScheduleConfig,
   type ScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
 import { assertMoneyInvariants } from "./invariants";

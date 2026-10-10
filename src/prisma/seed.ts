@@ -7,7 +7,7 @@ import {
   parseScheduleConfig,
   type ScheduleConfig,
   type Weekday,
-} from "../modules/venue/schemas/schedule-config";
+} from "../modules/venue/domain/schedule-config";
 import { logger } from "../lib/logger";
 import { hashPassword } from "../modules/access/infrastructure/password";
 import { assertSeedAllowed } from "./seed-guard";

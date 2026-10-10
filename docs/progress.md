@@ -6652,3 +6652,143 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Complements, does not duplicate, `test/platform-db-imports.test.ts` and `test/modules/push/imports.test.ts`. Not expressible yet: application/infrastructure importing another module's infrastructure/schemas is common today (payments, rates, pitches), so that is allowed; "pure lib" for domain is a denylist (db, platform-db, logger, tenant-context, env, rate-limit, prisma client).
 
 **How to verify:** `npx jest test/architecture` (4 passed); `npx tsc --noEmit`. Full suites and build not run.
+
+## Cleanup 1: docs/CODEMAP.md
+
+**When:** 2026-10-10
+
+**What:** Added a one-line-per-folder and per-module map with purpose, when to read and last verified commit.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/CODEMAP.md, docs/progress.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 2: dead files
+
+**When:** 2026-10-10
+
+**What:** Deleted the five default Next SVGs in public/ (no references in src, docs, sw.js, config) and the one-line re-exports (public)/lang-toggle.tsx and (public)/locale-actions.ts; the public page imports LangToggle from @/components/lang-toggle. (public)/day-chips.tsx and slot-picker.tsx are thin wrappers that bind props (route, date key, action) of the shared components; left as is.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** public/*.svg, src/app/(public)/{lang-toggle,locale-actions}, (public)/page.tsx
+
+**How it connects:** page now imports the shared component directly.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (see run). Full suites and build not run.
+
+## Cleanup 3: git hygiene, .cursor archived
+
+**When:** 2026-10-10
+
+**What:** tsconfig.tsbuildinfo (via *.tsbuildinfo) and logs/ (via /logs/* with .gitkeep) were already ignored and untracked, so .gitignore is unchanged. Moved .cursor/rules to docs/archive/cursor-rules/ with git mv; updated the pointers in CLAUDE.md, README.md, docs/README.md and folder-structure.md (the historical guides cursor-rules.md and cursor-workflow.md are left as written).
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** .cursor/rules -> docs/archive/cursor-rules, CLAUDE.md, README.md, docs/README.md, docs/guides/folder-structure.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (see run). Full suites and build not run.
+
+## Cleanup 4: one phone rule
+
+**When:** 2026-10-10
+
+**What:** Merged src/lib/lebanon-phone.ts (toLebanonNumber) into src/modules/people/domain/phone.ts and deleted it; the five importers (stadium-contact, tenant-settings, whatsapp-link, stadium-info) now import from there. Its tests moved into test/modules/people/domain/phone.test.ts with every case kept. Two knock-on guard changes, not widenings of behaviour: MODULE_EDGES gains notification -> people (downward, no cycle; ARCHITECTURE.md table updated), and lib/tenant-settings.ts gets a rule-5 exception beside request-fields, fate 'move phone helpers to src/lib'.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/people/domain/phone.ts, src/lib/lebanon-phone.ts (deleted), importers, test/modules/people/domain/phone.test.ts, test/architecture/rules.ts, docs/ARCHITECTURE.md, docs/DATA-MODEL.md
+
+**How it connects:** people/domain/phone stays pure (imports nothing).
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 5: schedule-config to venue/domain
+
+**When:** 2026-10-10
+
+**What:** git mv venue/schemas/schedule-config.ts to venue/domain/ and updated every importer (src, tests, seed, DATA-MODEL.md). Removed the seven rule-2 exceptions it resolved.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/venue/domain/schedule-config.ts and its importers, test/architecture/rules.ts
+
+**How it connects:** It imports only zod and lib/money, so it is a valid domain file; venue/schemas/pitch-draft now imports it from domain.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 6: push sender port to push/domain
+
+**When:** 2026-10-10
+
+**What:** git mv push/application/push-sender.ts to push/domain/push-sender.ts and cut it down to the port types (PushTarget, PushResult, PushSender); a new thin application/push-sender.ts keeps the get/set registry (it needs the real sender from infrastructure) and re-exports the types, so existing importers and tests are unchanged. web-push-sender.ts imports the port from domain. Removed the rule-2 exception.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/push/domain/push-sender.ts, src/modules/push/application/push-sender.ts, infrastructure/web-push-sender.ts, test/architecture/rules.ts
+
+**How it connects:** infrastructure no longer imports application.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 7: LedgerEntryRow to ledger/domain
+
+**When:** 2026-10-10
+
+**What:** Moved the LedgerEntryRow type to ledger/domain/entry-row.ts; infrastructure/entries.ts imports and re-exports it (list-ledger-activity unchanged); money/activity-map.ts imports it from domain. Removed the rule-4 exception.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/ledger/domain/entry-row.ts, ledger/infrastructure/entries.ts, src/app/owner/(app)/money/activity-map.ts, test/architecture/rules.ts
+
+**How it connects:** app/ no longer reaches ledger infrastructure.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Follow-up 1: tenant-settings exception fate, notification -> people reason
+
+**When:** 2026-10-10
+
+**What:** The rule-5 exception for lib/tenant-settings.ts now says its fate is 'moves to the stadium module in step 5' (phone helpers stay in people). notification -> people is kept, with the reason recorded in rules.ts and docs/ARCHITECTURE.md.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/architecture/rules.ts, docs/ARCHITECTURE.md
+
+**How it connects:** Guard data and docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Follow-up 2: CLAUDE.md non-negotiables recovered from .cursor
+
+**When:** 2026-10-10
+
+**What:** Added ten one-line rules to the Non-negotiables section of CLAUDE.md (exclusion constraint, tenantId everywhere, append-only tables, Decimal/timestamptz, tx client, queries in infrastructure, jsonb Zod, domain types with real invariants, digits and untranslated tenant content, tests per slice).
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** CLAUDE.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Follow-up 3: schedule-config test mirrors src
+
+**When:** 2026-10-10
+
+**What:** git mv test/modules/venue/schemas/schedule-config.test.ts to test/modules/venue/domain/.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/modules/venue/domain/schedule-config.test.ts
+
+**How it connects:** Tests mirror src/ (the module moved to venue/domain in cleanup 5).
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.

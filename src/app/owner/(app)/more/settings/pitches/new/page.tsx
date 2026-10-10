@@ -12,7 +12,7 @@ import {
   readPriceRulesDraft,
 } from "@/modules/venue/schemas/pitch-draft";
 import { DEFAULT_FROM, DEFAULT_TO } from "@/modules/venue/domain/pitch-form-model";
-import { WEEKDAYS } from "@/modules/venue/schemas/schedule-config";
+import { WEEKDAYS } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Create pitch. settings.manage. Local Next page.md: searchParams is a Promise.

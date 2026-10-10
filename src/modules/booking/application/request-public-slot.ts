@@ -30,7 +30,7 @@ import {
 import type { PublicSlotRequest } from "@/modules/booking/schemas/public-slot-request";
 import { civilDateInTimeZone } from "@/modules/venue/domain/availability";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 const TIME_ZONE = "Asia/Beirut";
 

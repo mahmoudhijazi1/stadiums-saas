@@ -9,7 +9,7 @@ import {
   CLOSED_WEEK_SCHEDULE,
   parseScheduleConfig,
   type ScheduleConfig,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 const BEIRUT = "Asia/Beirut";
 const WED = { year: 2026, month: 9, day: 9 };

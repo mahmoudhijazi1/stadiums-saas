@@ -7,7 +7,7 @@ import {
   extensionPlan,
   type ExtensibleBooking,
 } from "@/modules/booking/domain/extension-plan";
-import { CLOSED_WEEK_SCHEDULE, parseScheduleConfig, type Weekday } from "@/modules/venue/schemas/schedule-config";
+import { CLOSED_WEEK_SCHEDULE, parseScheduleConfig, type Weekday } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Written, not run when authored. Beirut is UTC+3 on these July dates, so 18:00 local is 15:00Z.

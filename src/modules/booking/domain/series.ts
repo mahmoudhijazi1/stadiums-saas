@@ -8,7 +8,7 @@ import {
   windowDaysForStart,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 /**
  * Weekly recurring bookings. A series is only the link between ordinary APPROVED bookings that

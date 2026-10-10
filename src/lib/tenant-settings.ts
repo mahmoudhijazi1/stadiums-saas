@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BRAND_PRESET_KEYS, DEFAULT_BRAND_PRESET } from "@/lib/brand-presets";
-import { toLebanonNumber } from "@/lib/lebanon-phone";
+import { toLebanonNumber } from "@/modules/people/domain/phone";
 import { isAllowedMapLink } from "@/lib/map-link";
 
 /**

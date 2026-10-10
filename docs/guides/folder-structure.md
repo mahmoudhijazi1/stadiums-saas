@@ -101,7 +101,7 @@ src/
   prisma/                       ← schema.prisma, migrations/, seed.ts, seed-guard.ts (refuses production and any DB but stadiums_dev / stadiums_test)
 ```
 
-Also at repo root (not under `src/`): `docs/`, `scripts/` (operator tools run with `tsx`: `set-password.ts`, `platform.ts` with `platform-cli.ts`, shared terminal code in `scripts/lib/operator-io.ts`; see `docs/RUNBOOK.md`), `test/` (Jest unit + `test/integration/`), `docker-compose.yml`, `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`.
+Also at repo root (not under `src/`): `docs/`, `scripts/` (operator tools run with `tsx`: `set-password.ts`, `platform.ts` with `platform-cli.ts`, shared terminal code in `scripts/lib/operator-io.ts`; see `docs/RUNBOOK.md`), `test/` (Jest unit + `test/integration/`), `docker-compose.yml`, `AGENTS.md`, `CLAUDE.md`, `docs/archive/cursor-rules/` (archived Cursor rules).
 
 ---
 

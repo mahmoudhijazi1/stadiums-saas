@@ -5,7 +5,7 @@ import { shopActivityLabel, ui } from "@/lib/ui-copy";
 import type { BookingLabel } from "@/modules/booking/application/list-booking-labels";
 import type { ExpenseDetail } from "@/modules/expense/application/list-expense-details";
 import type { SaleDetail } from "@/modules/shop/application/list-sale-details";
-import type { LedgerEntryRow } from "@/modules/ledger/infrastructure/entries";
+import type { LedgerEntryRow } from "@/modules/ledger/domain/entry-row";
 import { addCalendarDays, civilDateInTimeZone, formatCivilDate } from "@/modules/venue/domain/availability";
 
 const TZ = "Asia/Beirut";

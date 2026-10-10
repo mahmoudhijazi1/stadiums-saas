@@ -9,7 +9,7 @@ import {
 import { overlappingPendingIds } from "@/modules/booking/domain/offered-slot";
 import { listApprovedRanges, listPendingBookings } from "@/modules/booking/infrastructure/bookings";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 const TIME_ZONE = "Asia/Beirut";
 

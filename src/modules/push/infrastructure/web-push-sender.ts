@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import type { PushResult, PushSender } from "@/modules/push/application/push-sender";
+import type { PushResult, PushSender } from "@/modules/push/domain/push-sender";
 import { readPushConfig } from "@/modules/push/infrastructure/push-config";
 
 /**

@@ -12,7 +12,7 @@ import {
   hoursSaveBlocker,
 } from "@/modules/venue/domain/hours-cover";
 import { findPitch, updatePitchRow } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 import type { PitchDraft } from "@/modules/venue/schemas/pitch-draft";
 
 const TIME_ZONE = "Asia/Beirut";

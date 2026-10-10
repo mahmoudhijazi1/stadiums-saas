@@ -12,7 +12,7 @@ import {
   civilDateInTimeZone,
   generateSlotsForDay,
 } from "@/modules/venue/domain/availability";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 import { FakePushSender } from "../modules/push/fake-push-sender";
 import type { TestFixture } from "./fixtures";
 import { createStaffSession, seedMinimalFixture } from "./fixtures";

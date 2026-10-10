@@ -23,7 +23,7 @@ import {
 } from "@/modules/booking/infrastructure/bookings";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 const TIME_ZONE = "Asia/Beirut";
 const MAX_ADDED_PRICE_USD = new Decimal(100_000);

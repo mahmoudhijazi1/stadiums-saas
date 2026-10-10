@@ -22,7 +22,7 @@ import {
   type DayRow,
   type HourCycleChoice,
 } from "@/modules/venue/domain/pitch-form-model";
-import { WEEKDAYS, type ScheduleConfig, type Weekday } from "@/modules/venue/schemas/schedule-config";
+import { WEEKDAYS, type ScheduleConfig, type Weekday } from "@/modules/venue/domain/schedule-config";
 
 const TIME_ZONE = "Asia/Beirut";
 

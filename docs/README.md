@@ -24,7 +24,7 @@ docs/
   requirements/             ← product source of truth (BRD)
 ```
 
-Agent rules that load automatically stay in `.cursor/rules/` (not under `docs/`). See [guides/cursor-rules.md](./guides/cursor-rules.md).
+Old Cursor agent rules are archived in `docs/archive/cursor-rules/`; CLAUDE.md is the live guide. See [guides/cursor-rules.md](./guides/cursor-rules.md).
 
 ## Naming conventions
 

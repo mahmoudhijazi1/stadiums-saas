@@ -9,7 +9,7 @@ import {
   insertRequesterParticipant,
   listApprovedRanges,
 } from "@/modules/booking/infrastructure/bookings";
-import type { ScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
 export const SERIES_TIME_ZONE = "Asia/Beirut";
 

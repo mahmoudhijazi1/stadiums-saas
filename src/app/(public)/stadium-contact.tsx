@@ -1,6 +1,6 @@
 import { MapPin, MessageCircle, Phone } from "lucide-react";
 import { isAllowedMapLink } from "@/lib/map-link";
-import { toLebanonNumber } from "@/lib/lebanon-phone";
+import { toLebanonNumber } from "@/modules/people/domain/phone";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { whatsAppChatHref } from "@/modules/notification/domain/whatsapp-link";

@@ -1,5 +1,5 @@
 import { DomainError } from "@/lib/errors";
-import { toLebanonNumber } from "@/lib/lebanon-phone";
+import { toLebanonNumber } from "@/modules/people/domain/phone";
 import { messageIntentFor, type MessageContext, type MessageIntent, type MessageState } from "@/modules/notification/domain/message-intent";
 
 export type MessageLocale = "ar" | "en";

@@ -18,7 +18,7 @@ import {
   parseScheduleConfig,
   type ScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 const BEIRUT = "Asia/Beirut";
 /** Wednesday 9 Sep 2026 */

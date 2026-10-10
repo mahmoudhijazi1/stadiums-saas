@@ -24,7 +24,7 @@ import {
   civilDateInTimeZone,
   generateSlotsForDay,
 } from "@/modules/venue/domain/availability";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 import type { TestFixture } from "./fixtures";
 import { createStaffSession, seedMinimalFixture } from "./fixtures";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";

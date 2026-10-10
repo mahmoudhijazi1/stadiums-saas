@@ -14,7 +14,7 @@ import {
   listPitches,
   updatePitchRow,
 } from "@/modules/venue/infrastructure/pitches";
-import { CLOSED_WEEK_SCHEDULE } from "@/modules/venue/schemas/schedule-config";
+import { CLOSED_WEEK_SCHEDULE } from "@/modules/venue/domain/schedule-config";
 import {
   clearRequestStubs,
   setSessionCookie,

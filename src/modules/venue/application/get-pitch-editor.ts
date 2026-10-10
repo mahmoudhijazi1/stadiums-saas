@@ -13,7 +13,7 @@ import type { PitchPriceRule } from "@/modules/venue/schemas/pitch-draft";
 import {
   parseScheduleConfig,
   type Weekday,
-} from "@/modules/venue/schemas/schedule-config";
+} from "@/modules/venue/domain/schedule-config";
 
 export type PitchEditor = {
   id: string;

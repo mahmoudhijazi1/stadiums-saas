@@ -15,7 +15,7 @@ import {
   rulesToPriceCards,
 } from "@/modules/venue/domain/pitch-form-model";
 import { parsePitchDraft } from "@/modules/venue/schemas/pitch-draft";
-import { parseScheduleConfig } from "@/modules/venue/schemas/schedule-config";
+import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 import type { TestFixture } from "./fixtures";
 import { createStaffSession, seedMinimalFixture } from "./fixtures";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";

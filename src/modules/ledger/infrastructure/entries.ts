@@ -5,6 +5,9 @@ import type {
 } from "@/app/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/money";
+import type { LedgerEntryRow } from "@/modules/ledger/domain/entry-row";
+
+export type { LedgerEntryRow };
 
 /**
  * Append-only USD movement. Same source as the payment (DR-002 §2.21).
@@ -91,15 +94,6 @@ export async function sumAmountUsdByDirectionAndSource(
     rows: group._count._all,
   }));
 }
-
-export type LedgerEntryRow = {
-  id: string;
-  direction: "IN" | "OUT";
-  amountUsd: Decimal;
-  occurredAt: Date;
-  sourceType: string;
-  sourceId: string;
-};
 
 /**
  * One page of ledger movements in a period, newest first. Keyset on (occurredAt, id): the
