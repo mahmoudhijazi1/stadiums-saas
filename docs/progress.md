@@ -6624,3 +6624,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **Honest limits:** `npx tsc --noEmit` was run twice at the end (the first run found a duplicate `owner.noteOptional` key and two `PageProps` route types that only exist after a build; fixed). Nothing was rendered or run. UNVERIFIED: the raw SQL of cash today against a real database, `autoFocus` inside the bottom sheet, and `localStorage` ordering in a browser.
 
 **How to verify:** `npm test`, `npm run test:integration`, `npm run build`; then by hand the checks listed in commits 1 to 3.
+
+## Release v1.0.0
+
+**When:** 2026-10-10
+
+**What:** The app is marked version 1.0.0: `package.json` and `package-lock.json` say `1.0.0` (was `0.1.0`), and the commit is tagged `v1.0.0` in git.
+
+**Why:** A named release point after the Money page v2 merge (main at 8755756).
+
+**Files:** `package.json`, `package-lock.json`, `docs/progress.md`.
+
+**How it connects:** Version label only; no code or behaviour changes.
+
+**How to verify:** `git tag -l v1.0.0`; `npm pkg get version` prints `"1.0.0"`. Nothing was run; the Money v2, accent, stadium-info, hardening and weekly-series tests are still unrun together.
