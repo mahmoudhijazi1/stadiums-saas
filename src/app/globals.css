@@ -264,15 +264,15 @@
   --chart-2: var(--ls-carbon-500);
   --chart-3: var(--ls-carbon-900);
   --chart-4: var(--ls-carbon-600);
-  --chart-5: var(--ls-volt-500);
+  --chart-5: var(--brand);
   --sidebar: var(--ls-carbon-900);
   --sidebar-foreground: var(--ls-paper-100);
-  --sidebar-primary: var(--ls-volt-500);
-  --sidebar-primary-foreground: var(--ls-carbon-900);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-ink);
   --sidebar-accent: var(--ls-carbon-800);
   --sidebar-accent-foreground: var(--ls-paper-100);
   --sidebar-border: color-mix(in oklab, var(--ls-carbon-600) 40%, transparent);
-  --sidebar-ring: var(--ls-volt-500);
+  --sidebar-ring: var(--brand);
 }
 
 .dark,
@@ -300,15 +300,15 @@
   --chart-2: var(--ls-carbon-300);
   --chart-3: var(--ls-paper-100);
   --chart-4: var(--ls-carbon-600);
-  --chart-5: var(--ls-volt-500);
+  --chart-5: var(--brand);
   --sidebar: var(--ls-carbon-900);
   --sidebar-foreground: var(--ls-paper-100);
-  --sidebar-primary: var(--ls-volt-500);
-  --sidebar-primary-foreground: var(--ls-carbon-900);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-ink);
   --sidebar-accent: var(--ls-carbon-800);
   --sidebar-accent-foreground: var(--ls-paper-100);
   --sidebar-border: color-mix(in oklab, var(--ls-carbon-600) 40%, transparent);
-  --sidebar-ring: var(--ls-volt-500);
+  --sidebar-ring: var(--brand);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -12,6 +12,7 @@ import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { latestRequestedAtIso } from "@/modules/booking/domain/live-queue";
 import { LiveQueue } from "@/app/owner/live-queue";
 import { OwnerHeader } from "@/app/owner/header";
+import { brandIconPath, brandIdentityOf } from "@/lib/brand-identity";
 import { OwnerTabBar } from "@/app/owner/tab-bar";
 import { Container } from "@/components/ui/container";
 import { FlashToast } from "@/components/ui/flash-toast";
@@ -55,7 +56,13 @@ export default async function OwnerLayout({
         pendingCount={actionable.length}
       />
       <main className="flex min-w-0 flex-1 flex-col pb-[calc(88px+env(safe-area-inset-bottom))] lg:min-h-dvh lg:pb-0">
-        <OwnerHeader tenantName={tenant.name} publicUrl={publicPageUrl(tenant.slug)} locale={locale} showSell={showSell} />
+        <OwnerHeader
+          tenantName={tenant.name}
+          publicUrl={publicPageUrl(tenant.slug)}
+          locale={locale}
+          showSell={showSell}
+          logoSrc={brandIconPath("192", brandIdentityOf(tenant))}
+        />
         <Container className="flex flex-1 flex-col gap-8 py-6">{children}</Container>
       </main>
     </div>

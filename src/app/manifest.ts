@@ -1,5 +1,8 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
+import { currentBrandIdentity } from "@/app/brand/current-brand";
+import { accentThemeColor } from "@/lib/accent-css";
+import { brandIconPath } from "@/lib/brand-identity";
 import { platformDb } from "@/lib/platform-db";
 import { pwaShortName } from "@/lib/pwa-short-name";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
@@ -25,6 +28,8 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     if (trimmed) name = trimmed;
   }
 
+  const identity = await currentBrandIdentity();
+
   return {
     name,
     short_name: pwaShortName(name),
@@ -32,22 +37,15 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     scope: "/owner/",
     display: "standalone",
     background_color: "#F6F5EF",
-    theme_color: "#111412",
+    // The stadium's accent (its dark-theme fill); the default lime for an unknown or suspended host.
+    theme_color: accentThemeColor(identity?.preset),
+    // The generated logo of this host's stadium (neutral lebstads for an unknown or suspended one).
+    // Versioned, so a changed letter or colour is fetched again.
     icons: [
+      { src: brandIconPath("192", identity), sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: brandIconPath("512", identity), sizes: "512x512", type: "image/png", purpose: "any" },
       {
-        src: "/icons/icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icons/icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/icons/icon-512-maskable.png",
+        src: brandIconPath("512-maskable", identity),
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

@@ -13,7 +13,12 @@ const feeDefaults = {
   noShowFeePercent: 100,
   perPlayerSplitEnabled: false,
   dayStartHour: 6,
+  ...stadiumInfoDefaults(),
 };
+
+function stadiumInfoDefaults() {
+  return { address: "", mapLink: "", phone: "", whatsappSame: true, whatsapp: "", brandPreset: "lime" as const };
+}
 
 describe("parseTenantSettings", () => {
   it("defaults empty object to h23 and the fee policy", () => {
@@ -129,6 +134,7 @@ describe("mergeBookingRules", () => {
       noShowFeePercent: 0,
       perPlayerSplitEnabled: false,
       dayStartHour: 6,
+      ...stadiumInfoDefaults(),
     });
   });
 });

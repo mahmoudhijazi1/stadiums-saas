@@ -19,6 +19,7 @@ const ARABIC: Record<string, string> = {
   pitch_created: "أُضيف الملعب.",
   pitch_updated: "حُفظ الملعب.",
   rules_saved: "حُفظت قواعد الحجز.",
+  stadium_saved: "حُفظت معلومات الملعب.",
   due_adjusted: "عُدّل المبلغ.",
 };
 
@@ -37,6 +38,7 @@ const ENGLISH: Record<string, string> = {
   pitch_created: "Pitch added.",
   pitch_updated: "Pitch saved.",
   rules_saved: "Booking rules saved.",
+  stadium_saved: "Stadium info saved.",
   due_adjusted: "Amount adjusted.",
 };
 

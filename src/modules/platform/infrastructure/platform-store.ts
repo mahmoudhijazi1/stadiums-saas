@@ -4,7 +4,8 @@ import { platformDb } from "@/lib/platform-db";
 /**
  * Platform tables and cross-tenant reads. The only module besides tenant
  * lookup, sessions and users that uses platformDb (see the import guard test).
- * Never called inside a tenant-scoped request: the CLI runs in its own process.
+ * The CLI runs in its own process. The few request-time callers (stadium info, brand identity)
+ * run outside any tenant `$transaction`, with the tenant id taken from the request's Host.
  */
 export type PlatformTx = Prisma.TransactionClient;
 
@@ -16,6 +17,31 @@ export async function findTenantBySlug(slug: string) {
   return platformDb.tenant.findUnique({
     where: { slug },
     select: { id: true, slug: true, suspendedAt: true },
+  });
+}
+
+/** The tenant's name and raw settings by id (the id comes from the request context, never from input). */
+export async function findTenantNameAndSettings(tx: PlatformTx, tenantId: string) {
+  return tx.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, settings: true } });
+}
+
+/**
+ * Write the display name and the settings of ONE tenant by id. The slug is not a column of this
+ * write, so it cannot change.
+ */
+export async function updateTenantNameAndSettings(
+  tx: PlatformTx,
+  tenantId: string,
+  data: { name: string; settings: Prisma.InputJsonObject },
+): Promise<void> {
+  await tx.tenant.update({ where: { id: tenantId }, data: { name: data.name, settings: data.settings } });
+}
+
+/** The inputs of a stadium's generated logo by host slug: name, settings and suspension only. */
+export async function findTenantBrandSource(slug: string) {
+  return platformDb.tenant.findUnique({
+    where: { slug },
+    select: { name: true, settings: true, suspendedAt: true },
   });
 }
 

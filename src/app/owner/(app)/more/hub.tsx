@@ -201,6 +201,7 @@ export function MoreHub({
             <SettingsRow label={ui("owner.shop", locale)} href="/owner/more/shop" />
           ) : null}
           <SettingsRow label={ui("owner.weeklyBookings", locale)} href="/owner/more/weekly" />
+          <SettingsRow label={ui("owner.stadiumInfo", locale)} href="/owner/more/stadium" />
           <SettingsRow
             label={ui("owner.publicPage", locale)}
             onClick={() => setSheet("public")}

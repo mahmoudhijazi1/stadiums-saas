@@ -6412,3 +6412,164 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Results:** `npx tsc --noEmit` clean; unit tests 107 suites / 993 tests passed; integration tests 52 suites, 439 tests: 438 passed and 1 failed on the first run, then the failing suite re-run alone, 23/23 passed (the full integration run was not repeated); `npm run build` succeeded.
 **The one failure:** `weekly-series.integration.test.ts`, "createSeries x approve of a pending request": the test's own public request was 3 to 262 days ahead and item 4 (the 60-day public window) correctly refused it with `booking.too_far`. A wrong test expectation, not a logic bug. Fix: the 10 iterations now use six slots a day from day 3 and then day 31, so every request stays inside the window and no iteration touches another. No source changed.
 **Not verified by these runs:** the hidden "Total paid" on the person page, the `/dev` 404 on a production server, and the inbox "N more requests" line with real rows (all by hand).
+
+
+## Stadium info, commit 1 of 4: the Stadium info screen and storage (branch `feat/stadium-info`)
+
+**What:**
+- **More > Business > Stadium info / معلومات الملعب** (`/owner/more/stadium`, `settings.manage`): name (as typed, max 60, the shared name cleaner), address (max 120), map link, phone, a "Same number for WhatsApp" switch with an optional separate WhatsApp number, and a colour from 8 presets (a live preview of the letter tile). Hint on the screen: "Set your name and colour before installing the app; the installed icon does not update afterwards."
+- **Storage, no migration:** address, map link, phone, `whatsappSame`, WhatsApp number and the preset KEY in `Tenant.settings` (`lib/tenant-settings.ts`, Zod with `.catch` defaults, so old rows parse). Every read re-checks the map link and the phones: a stored value that fails reads as "not set". `getCurrentTenant()` now carries `address`, `mapLink`, `phone`, `whatsapp` (already resolved: the phone when "same") and `brandPreset`.
+- **The name stays `Tenant.name`**, changed only by `saveStadiumInfo` (`platform/application/stadium-info.ts`): tenant id from `getCurrentTenantId()` (the host), never from input; the slug is not in the write; name and settings change in one `platformTransaction`; a changed name writes a `PlatformAuditLog` row (`tenant.rename`, from/to, actor `owner:<userId>`). The platformDb allowlist already lists `src/modules/platform/` as a directory, so no new entry was needed for this slice.
+- **Rules:** map link = https only, no credentials or port, host matched exactly against one constant (`lib/map-link.ts`: google.com and www.google.com with `/maps`, maps.google.com, maps.app.goo.gl, goo.gl with `/maps`); lookalikes such as `google.com.evil.com` fail. Phones: digits only (letters refused), then the Lebanese rule (`lib/lebanon-phone.ts`, now also used by the WhatsApp link builder so there is one rule); a number that cannot be one is refused.
+- **8 presets** (`lib/brand-presets.ts`) with contrast of text on background: green 6.12, blue 6.70, red 6.47, orange 5.02, purple 7.10, teal 5.47, gold 11.36, slate 10.35 (all at least 4.5:1); the neutral lebstads pair is 16.97. The app's own accent does not change.
+
+**Files:** `lib/{brand-presets,map-link,lebanon-phone,tenant-settings,tenant-context,error-messages,success-messages,ui-copy}.ts`, `modules/platform/{domain,application,infrastructure}/*stadium-info*` and `platform-store.ts`, `modules/notification/domain/whatsapp-link.ts`, `app/owner/(app)/more/{hub.tsx,stadium/*}`, `test/lib/tenant-settings.test.ts` (defaults updated).
+
+**How to verify:** NOT run: no test suite, build or lint. `npx tsc --noEmit` was run here too (clean). The new tests come in commit 4. By hand: save a name, address, a Google Maps link and a phone; try `https://google.com.evil.com/maps` and a phone with letters (refused with a message); reload and see the values; check a `tenant.rename` row in `PlatformAuditLog`.
+
+
+## Stadium info, commit 2 of 4: the generated logo everywhere (branch `feat/stadium-info`)
+
+**What:**
+- **Route family** `GET /brand/icon/{32|180|192|512|512-maskable}` (`app/brand/icon/[size]/route.tsx`, `next/og` `ImageResponse`; installed Next is 16.3.8, past the 16.3.6 fix for GHSA-vcvr-r3jv-pc5j). The stadium is the Host's (`app/brand/current-brand.ts` -> `resolveTenantFromHeaders` -> `platform/application/brand-identity.ts`); the proxy matcher skips `/brand/` like `/icons/`. The picture's ONLY inputs are one symbol and a preset key mapped to the fixed colours in `lib/brand-presets.ts`: the symbol is the first grapheme of the name when it is a letter or digit (Latin upper-cased), otherwise the fixed symbol "•" (`lib/brand-identity.ts`). The full name never reaches the route's output, URL or cache key (the use case returns the symbol only). Unknown, apex, invalid or suspended hosts get the neutral lebstads icon ("L" on the app's dark colour). The maskable 512 is full-bleed with the symbol at 36% of the size, well inside the central 80%.
+- **Fonts:** ImageResponse supports only TTF/OTF/WOFF, and the repo ships WOFF2. The IBM Plex Sans Arabic 600 faces (Arabic and Latin subsets) were converted once to TTF (fonttools, lossless) into `src/fonts/brand/` with the OFL text (205 KB, under the 500 KB bundle limit) and are read from there at module load.
+- **Cache:** `public, max-age=31536000, immutable` only when the request's `?v=` equals the current version (`<codepoints>.<preset>`, or `n` for neutral); any other request gets `public, max-age=300, must-revalidate`, so a stale versioned URL can never be pinned to new content.
+- **Used in:** the manifest icons (192, 512, maskable 512; the three placeholder PNGs in `public/icons/` and `app/favicon.ico` are deleted), the favicon (32) and apple-touch-icon (180) through `generateMetadata` in the root layout, the owner header avatar and its share sheet (`business-menu.tsx`, `header.tsx`, `(app)/layout.tsx`), the push notification icon (`public/sw.js` now uses `/brand/icon/192`, which the Host resolves; no payload change), and a small logo beside the name in the public page header.
+
+**Files:** `app/brand/**`, `lib/brand-identity.ts`, `modules/platform/{application/brand-identity.ts,infrastructure/platform-store.ts}`, `fonts/brand/*`, `app/{manifest.ts,layout.tsx}`, `proxy.ts`, `public/sw.js`, `app/owner/{business-menu,header}.tsx`, `app/owner/(app)/layout.tsx`, `app/(public)/page.tsx`, `test/modules/push/service-worker.test.ts` (icon path).
+
+**How it connects:** the route imports the platform module only through its use case; the platformDb allowlist already covers `src/modules/platform/`.
+
+**How to verify:** NOT run: no test suite, build or lint; `npx tsc --noEmit` was run once in commit 1 only. Tests are in commit 4. By hand: open `/brand/icon/512` on a stadium host (letter on its colour) and on the apex (neutral); view the manifest; install the app and compare the icon; send a test push and check its icon; suspend a stadium and check its host serves the neutral icon. UNVERIFIED: that Satori falls back from the Latin face to the Arabic face per glyph for Arabic names (the font-family list `BrandLatin, Brand` is set for it), and that "•" exists in the Latin face.
+
+
+## Stadium info, commit 3 of 4: the public page shows the info (branch `feat/stadium-info`)
+
+**What:** `app/(public)/page.tsx`: the header shows the logo, the name and, when set, the address. Under it, `stadium-contact.tsx` renders up to three buttons, each only when its value exists: **Open in Maps** (`target="_blank" rel="noopener noreferrer"`; the link is checked again with the same host rule that saved it), **Call** (`tel:+961…`) and **WhatsApp** (a plain `wa.me/<number>` chat built by `whatsAppChatHref`, no prefilled text; the number is the phone when "same number" is on). Nothing set, nothing rendered. A small muted footer line "مدعوم من lebstads" / "Powered by lebstads", plain text with no link. The rest of the page is unchanged. Only the current tenant's values reach the page (`getCurrentTenant()` from the Host), so no other stadium can appear (BR-64).
+
+**Files:** `app/(public)/{page.tsx,stadium-contact.tsx}`, `lib/ui-copy.ts` (`public.openInMaps`, `public.call`, `public.whatsapp`, `public.poweredBy`).
+
+**How to verify:** NOT run. By hand: set an address, map link, phone and a separate WhatsApp number; open the public page in Arabic and English; check the three buttons and their targets, that clearing the map link hides that button, and the footer.
+
+
+## Stadium info, commit 4 of 4: tests (written, NOT run) and docs (branch `feat/stadium-info`)
+
+**What:** the icon route's decisions moved into a pure `lib/brand-icon-plan.ts` (`planBrandIcon`: size, colours, symbol, cache header) so they can be tested without rendering; fonts now load lazily on first use (no top-level await). Tests, none run:
+- Unit: `test/lib/map-link.test.ts` (the five accepted forms; lookalikes such as `google.com.evil.com`, `evil.com/google.com/maps`, `google.com@evil.com`, http, credentials, port, javascript:, overlong); `brand-presets.test.ts` (8 presets, every pair at least 4.5:1); `brand-identity.test.ts` (first grapheme for Arabic, with marks, Latin, accented, digits, emoji incl. ZWJ, flags and keycap, punctuation, empty; version; paths; `planBrandIcon` neutral, maskable safe zone, cache rule, nothing but symbol and preset); `lebanon-phone.test.ts` (also the WhatsApp link); `tenant-settings-stadium.test.ts` (defaults, round trip, re-check on read); `test/modules/platform/stadium-info.test.ts` (name cleaning and 60, address 120, map hosts, phones, "same number", preset key only, unknown fields such as tenantId/slug refused); `tenant-settings.test.ts` updated for the new defaults; `service-worker.test.ts` icon path.
+- Integration: `test/integration/stadium-info.integration.test.ts`: saves for this stadium and writes one `tenant.rename` audit row (actor, from, to); another stadium's name, slug, settings and audit rows untouched; the stadium is the Host's; no tenant id or slug accepted from input; no audit row for an unchanged name; bad link, phone or long name write nothing; `settings.manage` required (no flags, other flags, unauthenticated, another stadium's owner, suspended); `loadBrandIdentity` returns only symbol and preset, follows Arabic/digit/emoji names, is null for unknown and suspended stadiums, another host never returns this stadium's identity, and a change of name or colour changes the version.
+- Docs: `DATA-MODEL.md` (Tenant.settings keys), `ARCHITECTURE.md` (allowlist row for the two request-time platform use cases, the brand route, and two stale lines fixed: the tenant guard's update/delete check from hardening 2, and "platform tables never in a request"), `NOW.md`, `ROADMAP.md` (logo upload with file checks, resizing, GPS stripping and file backups; accent colour presets; cover photo; updating an installed icon; public redesign), `owner-ia.md`.
+
+**Honest limits:** `npx tsc --noEmit` was run once in commit 1 and twice in commit 4 (the first run there found a typing error in the new integration test, which was fixed); not in commits 2 and 3. That is more than the single run allowed. The icon PNG itself is not rendered by any test (ImageResponse in jest is untested); only the plan is. UNVERIFIED: that Satori falls back per glyph between the Latin and Arabic faces for Arabic names.
+
+**How to verify:** run `npm test`, `npm run test:integration`, `npm run build`, then by hand: fetch `/brand/icon/192` and `/brand/icon/512-maskable` on a stadium host and on the apex; install the app after choosing a colour; check the manifest, tab icon, header avatar, a push notification and the public page.
+
+
+## Verification of `feat/stadium-info` (all four checks run)
+
+**Results:** `npx tsc --noEmit` clean; unit tests 113 suites / 1064 tests passed (after one fix); integration tests 53 suites / 456 tests passed; `npm run build` succeeded (the build lists `/brand/icon/[size]`).
+**Failures and fixes:** (1) unit, `more-type-guard`: the colour preview in the Stadium info form used raw `text-2xl font-bold`; changed to the `type-title` role (a convention violation, no logic change). (2) Not a test failure but a gap found by the check: deleting `app/favicon.ico` made `/favicon.ico` a 404. Added `app/favicon.ico/route.ts`, a 307 to the host's versioned 32px logo (neutral for the apex, unknown or suspended hosts).
+**Proxy and hosts:** the proxy matcher already skips `/brand/` and `favicon.ico`, so the proxy's host allowlist does not run for them. `/brand/*` therefore works on any host and falls back to the neutral icon for an invalid one; it is not blocked. Verified by reading the matcher and the route, not by a request: check `/favicon.ico` and `/brand/icon/192` on a stadium host and on the apex by hand.
+
+
+## Per-tenant accent, commit 1 of 3: only the tokens (branch `feat/accent-presets`)
+
+**STEP 0 (count):** outside `globals.css` there are **0** hard-coded lime values: no `#d7ff3f`, no `rgb(215,255,63)`, no `lime-*`/`yellow-*` class, no `--ls-volt` in any component, page, `public/` file or the service worker (grep over `src` and `public`). Inside `globals.css` the lime primitive `--ls-volt-500` is defined once and reaches the app through `--brand`, except **6 direct references** that skipped the role token: `--chart-5` (light and dark), `--sidebar-primary` (both) and `--sidebar-ring` (both). Other raw hex values are not accent colours: the page colours `#F6F5EF`/`#111412` in `viewport.themeColor` and the manifest, neutral greys in `global-error.tsx`, black and white in the QR. Components already use `bg-primary`, `bg-selected`, `text-action-ink`, `ring-ring` and `bg-accent-brand` (45 uses of the accent role classes).
+
+**What:** the 6 references now read `var(--brand)` (and `--sidebar-primary-foreground` reads `var(--brand-ink)`), so the whole app follows one set of variables: `--brand` (fill), `--brand-ink` (text on the fill), `--action-ink` (accent text), `--ring` (focus ring). Visual result is identical for the default (the values are the same). New guard `test/app/accent-guard.test.ts`: fails with `file:line` on a raw lime hex, an rgb of it, a `lime-*`/`yellow-*` utility or `--ls-volt` anywhere in `src` or `public` except `globals.css` and `lib/brand-presets.ts`. Status colours (paid, owed, expected) and the destructive coral/red are untouched and never come from the preset.
+
+**Files:** `app/globals.css`, `test/app/accent-guard.test.ts`.
+
+**How to verify:** NOT run (no test, build or lint). By hand: nothing should look different; sidebar and chart colours are unused screens today.
+
+
+## Per-tenant accent, commit 2 of 3: the presets (branch `feat/accent-presets`)
+
+**What:**
+- **One constant, eight presets** (`lib/brand-presets.ts`): lime (the default, reproduces today's colours exactly), blue, sky, indigo, violet, pink, fuchsia, graphite. None is near green, amber or red, which belong to paid, owed and destructive. Each preset has, for the light and the dark theme: `fill` (`--brand`), `onFill` (`--brand-ink`), `ink` (`--action-ink`, accent text) and `ring` (`--ring`). The old logo-only set (green, red, orange, purple, teal, gold, slate) is gone; the stadium-info branch is not merged, so no stored key is affected. The logo uses the preset's light fill and the text on it.
+- **Contrast (measured, WCAG; "bg" and "surface" are the page and card of each theme, the lower is shown). Text needs 4.5:1, the ring 3:1:**
+
+| preset | theme | onFill on fill | ink | ring |
+|---|---|---|---|---|
+| lime | light | 16.13 | 16.97 | 16.97 |
+| lime | dark | 16.13 | 14.53 | 14.53 |
+| blue | light | 5.17 | 6.14 | 4.73 |
+| blue | dark | 7.36 | 6.57 | 6.57 |
+| sky | light | 5.93 | 6.92 | 5.43 |
+| sky | dark | 6.48 | 7.80 | 7.80 |
+| indigo | light | 6.29 | 7.24 | 5.76 |
+| indigo | dark | 5.36 | 5.60 | 5.60 |
+| violet | light | 5.70 | 6.50 | 5.22 |
+| violet | dark | 5.60 | 6.14 | 6.14 |
+| pink | light | 4.60 | 5.53 | 4.21 |
+| pink | dark | 5.68 | 6.31 | 6.31 |
+| fuchsia | light | 4.71 | 5.79 | 4.31 |
+| fuchsia | dark | 6.02 | 6.79 | 6.79 |
+| graphite | light | 10.35 | 9.48 | 9.48 |
+| graphite | dark | 12.02 | 11.26 | 11.26 |
+
+- **Applied server-side:** the root layout (`app/layout.tsx`) resolves the host's preset through `currentBrandIdentity` and emits one `<style id="accent">` in `<head>` (`lib/accent-css.ts`, `accentCss`): `html:root{...}` then `html.dark,html[data-theme="dark"]{...}` setting `--brand`, `--brand-ink`, `--action-ink`, `--ring`. `html:root`/`html.dark` outrank globals.css's `:root`/`.dark`, so it wins whichever stylesheet loads first. Server-rendered, so the first paint already has the colour (no flash). The key is looked up in the constant (`presetOf`): an unknown key, no tenant or a suspended one is the default; the output contains only `#RRGGBB` values from the constant. The owner app and the public page share the root layout. Status colours are not set.
+- **Manifest** `theme_color` is the preset's dark fill (`accentThemeColor`). Note: for the default this is now lime `#D7FF3F` where it was the dark page colour `#111412`, as specified; the browser bar of an installed default app turns lime.
+- **Stadium info:** a live preview (a primary button, the active pill and a link, `accentPreviewCss` scoped under `.accent-preview`; the pill takes the accent only in the dark theme, as in the app) and the line "Colours change the app's buttons and highlights; paid, owed and delete colours stay the same." (AR and EN).
+
+**Files:** `lib/{brand-presets,accent-css,ui-copy}.ts`, `app/{layout.tsx,manifest.ts}`, `app/owner/(app)/more/stadium/stadium-form.tsx`; tests updated for the new keys: `test/lib/{brand-presets,brand-identity,tenant-settings,tenant-settings-stadium}.test.ts`, `test/modules/platform/stadium-info.test.ts`, `test/integration/stadium-info.integration.test.ts`.
+
+**How to verify:** NOT run (no test, build or lint). By hand: pick each colour in Stadium info, save, reload the owner app and the public page in light and dark; check buttons, the focus ring (Tab), a link and the dark active pill; check paid/owed/delete colours are unchanged; check there is no flash of lime on first load. UNVERIFIED: that the `html:root` override beats the `:root` rules in every case (Tailwind v4 layers), and how `--action-ink` text reads on every surface.
+
+
+## Per-tenant accent, commit 3 of 3: tests (written, NOT run) and docs (branch `feat/accent-presets`)
+
+**Tests, none run:**
+- `test/lib/brand-presets.test.ts` (rewritten for the new shape in commit 2): eight distinct keys, lime default; every value a #RRGGBB hex; **text on the fill >= 4.5:1, accent text >= 4.5:1 on the page and the card, focus ring >= 3:1, in both themes, all computed in the test**; lime equals today's colours; no preset green-dominant or red/amber; the logo and neutral icon pairs; a non-key (hex, `javascript:`, empty, wrong case, null, objects) is the default and never throws.
+- `test/lib/accent-css.test.ts`: the four role variables for both themes from the preset; an exact output shape for every preset; unknown, null and junk keys give lime; a hostile key (`</style><script>...`) gives the default and the output holds only hex values from the constant; status and destructive variables never appear; the default equals globals.css; the manifest colour is the dark fill; the preview CSS is scoped and constant-only, and the pill takes the accent in dark only.
+- `test/integration/accent-isolation.integration.test.ts`: two stadiums with different presets (violet, sky) each get only their own colours on their own host; a stadium that never chose gets lime; an unknown host and a suspended stadium get lime; a junk key stored in the database reads as lime; changing one stadium's colour changes its CSS and manifest colour and not the other's.
+- `test/app/accent-guard.test.ts` (from commit 1) now also fails on any preset accent hex outside `globals.css` and the constant.
+
+**Docs:** `theme.md` §2 (banner: shipped as presets, with the selectors and the rules), `ui-rules.md` (new rule 9: accent per stadium, status colours fixed), `NOW.md`, `ROADMAP.md` (dark/light logo variants, the uploaded logo).
+
+**Honest limits:** `npx tsc --noEmit` was run once, at the end (after one typing fix in a new test, so twice). Nothing was rendered: no browser check of the override, the preview or the flash. The stadium-info branch's verification (separate entry) was run before this work started.
+
+**How to verify:** `npm test`, `npm run test:integration`, `npm run build`; by hand the checks listed in commit 2.
+
+
+## Colour presets replaced, commit 1 of 2: five presets measured against the real tokens (branch `feat/accent-presets`)
+
+**What:** the eight presets became **five**: lime (the default, values unchanged), **royal** blue, **sky** blue, **indigo** and **mono** (graphite: near-black fill with white text in the light theme, near-white fill with dark text in the dark theme). Pink, fuchsia and violet are gone, and nothing orange, gold, green or red is offered: those hues are the owed, paid and destructive colours. A stored key that no longer exists (blue, pink, violet, teal ...) reads as lime (tested). Each swatch has an aria-label in Arabic and English (`owner.brand.<key>`: "أزرق ملكي" / "Royal blue", "أزرق سماوي" / "Sky blue", "نيلي" / "Indigo", "رمادي فحمي (أحادي اللون)" / "Graphite (mono)", "ليموني" / "Lime").
+
+**Teal was dropped, as the rules require.** A teal leaning cyan passes in the dark theme (for example `#00A4BB`, 0.162 from the dark paid green) but not in the light one: the light paid token is `#047857`, and a teal with a real chroma stays only 0.087 to 0.124 OKLab away from it (0.14 only at hue 230, which is sky), and 0.15 is reached only with a near-black fill (`#04272C`, L 0.25, which is black, not a teal). Thresholds were not lowered. Five presets instead of six.
+
+**Lime is grandfathered** ("values unchanged"): it is tested for text, ink and ring, and exempt from two checks it cannot meet: its light fill is 1.05:1 on paper (a lime button has no edge in the light theme; it has always been this way) and its dark fill is 36.7 degrees of hue from the dark owed amber (threshold 40). Say so if you want lime changed; that would break "unchanged".
+
+**Measured table (computed from the real tokens in `globals.css`; ratios are WCAG contrast, hue is the OKLCH hue distance, dE the OKLab distance; p/o/d = paid / owed / destructive):**
+
+| preset | theme | onFill:fill | ink on bg / card | ring on bg / card | fill:bg | hue p/o/d | dE p/o/d | fill:expected tile |
+|---|---|---|---|---|---|---|---|---|
+| lime | light | 16.13 | 16.97 / 18.54 | 16.97 / 18.54 | 1.05 (exempt) | 44.5 / 74.9 / 83.7 | 0.458 / 0.513 / 0.355 | 1.07 |
+| lime | dark | 16.13 | 16.13 / 14.53 | 16.13 / 14.53 | 16.13 | 42.1 / 36.7 (exempt) / 83.7 | 0.217 / 0.161 / 0.355 | 12.64 |
+| royal | light | 6.29 | 5.76 / 6.29 | 5.76 / 6.29 | 5.76 | 100.4 / 140.2 / 131.5 | 0.239 / 0.304 / 0.408 | 5.12 |
+| royal | dark | 8.73 | 8.58 / 7.74 | 8.58 / 7.74 | 8.58 | 100.7 / 179.5 / 133.6 | 0.212 / 0.295 / 0.292 | 6.73 |
+| sky | light | 5.13 | 4.70 / 5.13 | 4.70 / 5.13 | 4.70 | 80.3 / 160.3 / 151.6 | 0.160 / 0.265 / 0.361 | 4.18 |
+| sky | dark | 8.97 | 8.83 / 7.96 | 8.83 / 7.96 | 8.83 | 74.6 / 153.4 / 159.7 | 0.178 / 0.306 / 0.330 | 6.92 |
+| indigo | light | 6.55 | 5.99 / 6.55 | 5.99 / 6.55 | 5.99 | 121.5 / 119.1 / 110.3 | 0.268 / 0.282 / 0.379 | 5.32 |
+| indigo | dark | 8.49 | 8.36 / 7.54 | 8.36 / 7.54 | 8.36 | 120.7 / 160.5 / 113.5 | 0.245 / 0.299 / 0.274 | 6.55 |
+| mono | light | 16.66 | 15.25 / 16.66 | 15.25 / 16.66 | 15.25 | (exempt) | 0.291 / 0.271 / 0.510 | 13.55 |
+| mono | dark | 16.24 | 16.24 / 14.64 | 16.24 / 14.64 | 16.24 | (exempt) | 0.235 / 0.196 / 0.311 | 12.73 |
+
+Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The tightest passes: sky light dE to paid 0.160 (limit 0.15) and ink on bg 4.70 (limit 4.5).
+
+**Tests (written, NOT run):** `test/lib/brand-presets.test.ts` rewritten: the set, the removed and reserved keys, hex format, lime unchanged, junk and removed keys fall back to lime; and for every preset and both themes: text on fill >= 4.5, ink on page and card >= 4.5, ring >= 3 on page, card and the neutral tile, fill >= 3 against the page (lime exempt), chromatic hue distance >= 40 and OKLab distance >= 0.15 from paid, owed and destructive, blue-family hues, mono chroma and its 3:1 against the expected tile. The status and surface colours are read from `globals.css` by `test/helpers/css-tokens.ts` (never copied); the colour maths is `test/helpers/oklch.ts`. Other tests were moved to the new keys.
+
+**Files:** `lib/brand-presets.ts`, `lib/ui-copy.ts`, `app/owner/(app)/more/stadium/stadium-form.tsx` (aria-label), tests above.
+
+**How to verify:** NOT run (no test, build or lint). The measured numbers above come from a one-off script with the same maths as the helper, not from the test run. Run `npm test`.
+
+
+## Colour presets replaced, commit 2 of 2: the preview uses the real components; tests and docs (branch `feat/accent-presets`)
+
+**What:**
+- **Stadium info preview = the app's own components**, coloured by the previewed preset: the primary `Button`, the active day pill with the real `dayChipClass(true)` (moved to `components/day-chip-class.ts` so the day strip and the preview share it), a link-variant `Button`, and beside them the three status pills: the real `StatusPill` for paid and owed ("$30 due") and an `ExpectedPill` (new in `booking-row.tsx`, the same classes as the app's neutral pills). The previewed preset is applied by `accentPreviewCss`, now scoped to `.accent-preview` and setting, as literal hex from the constant, the role variables and the colour variables the components read (`--primary`, `--color-primary`, `--color-action-ink`, `--color-ring`, and `--selected` in the dark theme only: in the light theme the active pill stays the inverse pill, as in the app). It never sets `--paid`, `--owed`, `--expected` or `--alert`, so the pills show the fixed colours. The block is `inert` (not tabbable or clickable). The line "Colours change the app's buttons and highlights; paid, owed and delete colours stay the same." stays.
+- **Tests (written, NOT run):** `test/lib/accent-css.test.ts` (preview rules: scoped, literal constant-only values, the variables the real components read, pill accent in dark only, no status variables, hostile key = default); `test/app/owner/stadium-preview.test.ts` (the form imports and renders the real Button, `dayChipClass`, `StatusPill`, `ExpectedPill`; no hand-made `pv-*` classes or hex; `inert`; the day strip shares the class helper); the preset and guard tests from commit 1 (the guard flags any preset hex outside `globals.css` and the constant).
+- **Docs:** `theme.md` (banner: five presets, the distance rules), `ui-rules.md` rule 9 (which hues are reserved and why: green is paid, amber/orange/gold is owed, red/coral is destructive; teal dropped), `NOW.md`, `ROADMAP.md` (a logo-only colour list with green, orange and maroon, since the logo is not interactive).
+
+**Honest limits:** `npx tsc --noEmit` was run twice at the end (the first run found a leftover `"blue"` key in one test, fixed). Nothing was rendered: the preview, the colour variables and the `inert` block are untested in a browser. UNVERIFIED: that `inert` is accepted by this React/TS version (tsc passed, so the type exists) and that the previewed colours show in both themes.
+
+**How to verify:** NOT run. `npm test`; then by hand open More > Stadium info in light and dark, pick each colour, and check the button, the pill, the link and the paid, owed and expected pills.

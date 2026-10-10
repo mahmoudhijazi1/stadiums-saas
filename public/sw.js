@@ -3,7 +3,8 @@ const OFFLINE_URL = "/offline.html";
 
 // Push (owner alerts). Where a tap goes when the payload's url is missing or not an owner path.
 const DEFAULT_URL = "/owner/requests";
-const NOTIFICATION_ICON = "/icons/icon-192.png";
+// The generated logo of this host's stadium: the route picks the stadium from the Host.
+const NOTIFICATION_ICON = "/brand/icon/192";
 // Shown when a push arrives empty or unreadable. A browser that is told "userVisibleOnly" must
 // show something for every push, or it may drop the subscription.
 const FALLBACK = {

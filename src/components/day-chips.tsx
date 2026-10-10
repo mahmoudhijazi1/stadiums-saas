@@ -9,6 +9,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
+import { dayChipClass } from "@/components/day-chip-class";
 import { cn } from "cn";
 
 /** How many civil days the day-chip strip shows (public + Book). Not Home’s COMING_DAYS booking horizon. */
@@ -95,17 +96,6 @@ export function DayChips({
         </li>
       </ul>
     </nav>
-  );
-}
-
-function dayChipClass(selected: boolean): string {
-  return cn(
-    "flex h-14 w-full min-w-0 flex-col items-center justify-center rounded-[var(--radius-md)] border px-1 py-1.5 text-xs outline-none",
-    "transition-[background-color,color,border-color] duration-150 ease-out motion-reduce:transition-none",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
-    selected
-      ? "border-transparent bg-selected text-selected-ink"
-      : "border-line bg-surface text-ink hover:bg-surface-2",
   );
 }
 

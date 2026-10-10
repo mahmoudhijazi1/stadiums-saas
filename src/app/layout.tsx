@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { currentBrandIdentity } from "@/app/brand/current-brand";
+import { accentCss } from "@/lib/accent-css";
+import { brandIconPath } from "@/lib/brand-identity";
 import { OwnerServiceWorker } from "@/components/owner-service-worker";
 import { ScrollbarPeek } from "@/components/scrollbar-peek";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -62,9 +65,15 @@ const plexMono = localFont({
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getUiLocale();
+  // Per request: this host's generated logo (neutral lebstads when the host names no active stadium).
+  const identity = await currentBrandIdentity();
   return {
     title: ui("doc.title", locale),
     description: "Book a pitch. Collect in cash.",
+    icons: {
+      icon: [{ url: brandIconPath("32", identity), sizes: "32x32", type: "image/png" }],
+      apple: [{ url: brandIconPath("180", identity), sizes: "180x180", type: "image/png" }],
+    },
   };
 }
 
@@ -81,6 +90,10 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getUiLocale();
+  // This host's stadium accent, server-rendered in <head> so the first paint already has it (no
+  // flash of the default). Only constants from BRAND_PRESETS reach the CSS; an unknown key, a
+  // missing or suspended stadium gives the default.
+  const identity = await currentBrandIdentity();
   return (
     <html
       lang={htmlLang(locale)}
@@ -88,6 +101,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${manrope.variable} ${plexArabic.variable} ${plexArabicLatin.variable} ${display.variable} ${plexMono.variable} h-full bg-background antialiased`}
     >
+      <head>
+        <style id="accent" dangerouslySetInnerHTML={{ __html: accentCss(identity?.preset) }} />
+      </head>
       <body className="min-h-svh flex flex-col">
         <ThemeProvider>
           <OwnerServiceWorker />

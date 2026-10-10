@@ -1,3 +1,4 @@
+import { brandIconPath, brandIdentityOf } from "@/lib/brand-identity";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { clampPublicDay } from "@/modules/booking/domain/public-window";
@@ -6,6 +7,7 @@ import {
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 import { PublicDayChips } from "./day-chips";
+import { StadiumContact } from "./stadium-contact";
 import { PublicHoursSkeleton } from "./skeletons";
 import { PublicHours } from "./hours";
 import { PublicLangToggle } from "./lang-toggle";
@@ -45,9 +47,33 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         <FlashToast locale={locale} />
       </Suspense>
       <header className="flex items-center justify-between gap-3">
-        <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}
+          <img
+            src={brandIconPath("192", brandIdentityOf(tenant))}
+            alt=""
+            width={48}
+            height={48}
+            className="size-12 shrink-0 rounded-xl"
+          />
+          <div className="flex min-w-0 flex-col">
+            <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
+            {tenant.address ? (
+              <p className="type-secondary text-ink-muted" dir="auto">
+                {tenant.address}
+              </p>
+            ) : null}
+          </div>
+        </div>
         <PublicLangToggle locale={locale} />
       </header>
+
+      <StadiumContact
+        mapLink={tenant.mapLink}
+        phone={tenant.phone}
+        whatsapp={tenant.whatsapp}
+        locale={locale}
+      />
 
       <PublicDayChips
         today={today}
@@ -67,6 +93,10 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           />
         </Suspense>
       </section>
+
+      <footer className="pt-4 text-center type-caption text-ink-muted">
+        {ui("public.poweredBy", locale)}
+      </footer>
     </Container>
     </main>
   );

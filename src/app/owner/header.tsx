@@ -17,10 +17,13 @@ export function OwnerHeader({
   publicUrl,
   locale,
   showSell,
+  logoSrc,
 }: {
   tenantName: string;
   publicUrl: string;
   locale: UiLocale;
+  /** The stadium's generated logo URL (versioned). */
+  logoSrc: string;
   /** shop.sell: the sell button beside search. */
   showSell: boolean;
 }) {
@@ -39,7 +42,7 @@ export function OwnerHeader({
           "xl:max-w-6xl",
         )}
       >
-        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} />
+        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} logoSrc={logoSrc} />
         <div className="flex shrink-0 items-center">
           {showSell ? (
             <Link

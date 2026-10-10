@@ -58,6 +58,6 @@ function renewSessionCookie(request: NextRequest, response: NextResponse) {
 export const config = {
   // Run on normal pages; skip Next.js static files and images
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|apple-touch-icon|manifest\\.webmanifest|sw\\.js|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|apple-touch-icon|manifest\\.webmanifest|sw\\.js|icons/|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
