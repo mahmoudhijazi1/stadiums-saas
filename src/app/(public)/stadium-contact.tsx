@@ -1,5 +1,5 @@
 import { MapPin, MessageCircle, Phone } from "lucide-react";
-import { isAllowedMapLink } from "@/lib/map-link";
+import { isAllowedMapLink } from "@/modules/stadium/domain/map-link";
 import { toLebanonNumber } from "@/modules/people/domain/phone";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";

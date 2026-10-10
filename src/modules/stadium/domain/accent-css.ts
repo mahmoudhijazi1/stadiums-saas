@@ -1,4 +1,4 @@
-import { presetOf, type AccentSet } from "@/lib/brand-presets";
+import { presetOf, type AccentSet } from "@/modules/stadium/domain/brand-presets";
 
 /**
  * The CSS that sets a stadium's accent. Pure and closed: the only inputs are a preset KEY (looked

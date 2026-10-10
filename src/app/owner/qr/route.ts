@@ -1,6 +1,6 @@
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
-import { publicPageUrl } from "@/lib/public-page-url";
-import { qrPng, qrSvg } from "@/lib/qr";
+import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
+import { qrPng, qrSvg } from "@/modules/stadium/domain/qr";
 import { getCurrentTenant } from "@/lib/tenant-context";
 
 /**

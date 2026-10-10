@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { parseStadiumInfo, STADIUM_ADDRESS_MAX, STADIUM_NAME_MAX } from "@/modules/platform/domain/stadium-info";
+import { parseStadiumInfo, STADIUM_ADDRESS_MAX, STADIUM_NAME_MAX } from "@/modules/stadium/domain/stadium-info";
 
 /** Written, not run when authored. The Stadium info form's validation. */
 const GOOD = {

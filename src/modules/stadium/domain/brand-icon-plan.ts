@@ -3,8 +3,8 @@ import {
   isBrandIconSize,
   type BrandIconSize,
   type BrandIdentity,
-} from "@/lib/brand-identity";
-import { brandColors, NEUTRAL_BRAND } from "@/lib/brand-presets";
+} from "@/modules/stadium/domain/brand-identity";
+import { brandColors, NEUTRAL_BRAND } from "@/modules/stadium/domain/brand-presets";
 
 /**
  * Everything the icon route draws, decided without any I/O so it can be tested: the size, the

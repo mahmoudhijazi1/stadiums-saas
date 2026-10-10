@@ -1,4 +1,4 @@
-import type { BrandPresetKey } from "@/lib/brand-presets";
+import type { BrandPresetKey } from "@/modules/stadium/domain/brand-presets";
 import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { getCurrentTenantId, safeTenantId } from "@/lib/tenant-context";
@@ -6,13 +6,8 @@ import { mergeStadiumInfo, parseTenantSettings } from "@/lib/tenant-settings";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
-import { parseStadiumInfo } from "@/modules/platform/domain/stadium-info";
-import {
-  findTenantNameAndSettings,
-  platformTransaction,
-  updateTenantNameAndSettings,
-  writeAudit,
-} from "@/modules/platform/infrastructure/platform-store";
+import { parseStadiumInfo } from "@/modules/stadium/domain/stadium-info";
+import { readTenantProfile, updateTenantProfile } from "@/modules/platform/application/tenant-profile";
 
 export type StadiumInfo = {
   name: string;
@@ -36,7 +31,7 @@ async function requireManager() {
 export async function loadStadiumInfo(): Promise<StadiumInfo> {
   await requireManager();
   const tenantId = await getCurrentTenantId();
-  const row = await platformTransaction((tx) => findTenantNameAndSettings(tx, tenantId));
+  const row = await readTenantProfile(tenantId);
   const settings = parseTenantSettings(row.settings);
   return {
     name: row.name,
@@ -63,26 +58,17 @@ export async function saveStadiumInfo(raw: unknown): Promise<void> {
   const tenantId = await getCurrentTenantId();
 
   try {
-    await platformTransaction(async (tx) => {
-      const current = await findTenantNameAndSettings(tx, tenantId);
-      const settings = mergeStadiumInfo(current.settings, {
+    await updateTenantProfile(tenantId, `owner:${membership.userId}`, (current) => ({
+      name: info.name,
+      settings: mergeStadiumInfo(current.settings, {
         address: info.address,
         mapLink: info.mapLink,
         phone: info.phone,
         whatsappSame: info.whatsappSame,
         whatsapp: info.whatsapp,
         brandPreset: info.brandPreset,
-      });
-      await updateTenantNameAndSettings(tx, tenantId, { name: info.name, settings });
-      if (current.name !== info.name) {
-        await writeAudit(tx, {
-          action: "tenant.rename",
-          tenantId,
-          actor: `owner:${membership.userId}`,
-          detail: { from: current.name, to: info.name },
-        });
-      }
-    });
+      }),
+    }));
     logger.info("Stadium info saved", undefined, { useCase: "saveStadiumInfo", tenantId: await safeTenantId() });
   } catch (error) {
     await rethrowUnexpected(error, "Save stadium info failed", "saveStadiumInfo");

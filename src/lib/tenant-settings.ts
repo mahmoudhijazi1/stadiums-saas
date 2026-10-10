@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { BRAND_PRESET_KEYS, DEFAULT_BRAND_PRESET } from "@/lib/brand-presets";
+import { BRAND_PRESET_KEYS, DEFAULT_BRAND_PRESET } from "@/modules/stadium/domain/brand-presets";
 import { toLebanonNumber } from "@/modules/people/domain/phone";
-import { isAllowedMapLink } from "@/lib/map-link";
+import { isAllowedMapLink } from "@/modules/stadium/domain/map-link";
 
 /**
  * Tenant.settings jsonb (DR-002 §2.6). First knob: owner clock display.

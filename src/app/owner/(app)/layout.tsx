@@ -1,4 +1,4 @@
-import { publicPageUrl } from "@/lib/public-page-url";
+import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentTenant } from "@/lib/tenant-context";
@@ -12,7 +12,7 @@ import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { latestRequestedAtIso } from "@/modules/booking/domain/live-queue";
 import { LiveQueue } from "@/app/owner/live-queue";
 import { OwnerHeader } from "@/app/owner/header";
-import { brandIconPath, brandIdentityOf } from "@/lib/brand-identity";
+import { brandIconPath, brandIdentityOf } from "@/modules/stadium/domain/brand-identity";
 import { OwnerTabBar } from "@/app/owner/tab-bar";
 import { Container } from "@/components/ui/container";
 import { FlashToast } from "@/components/ui/flash-toast";

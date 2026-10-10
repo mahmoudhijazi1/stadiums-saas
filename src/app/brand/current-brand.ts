@@ -1,8 +1,8 @@
 import { cache } from "react";
 import { headers } from "next/headers";
-import type { BrandIdentity } from "@/lib/brand-identity";
+import type { BrandIdentity } from "@/modules/stadium/domain/brand-identity";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
-import { loadBrandIdentity } from "@/modules/platform/application/brand-identity";
+import { loadBrandIdentity } from "@/modules/stadium/application/brand-identity";
 
 /**
  * The logo identity of the stadium the request's Host names, or null (neutral lebstads icon) for

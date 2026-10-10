@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { accentPreviewCss } from "@/lib/accent-css";
-import { BRAND_PRESETS, type BrandPresetKey } from "@/lib/brand-presets";
+import { accentPreviewCss } from "@/modules/stadium/domain/accent-css";
+import { BRAND_PRESETS, type BrandPresetKey } from "@/modules/stadium/domain/brand-presets";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { sanitizePhoneInput } from "@/modules/people/domain/phone";

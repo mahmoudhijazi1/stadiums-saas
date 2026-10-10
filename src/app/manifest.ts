@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { accentThemeColor } from "@/lib/accent-css";
-import { brandIconPath } from "@/lib/brand-identity";
+import { accentThemeColor } from "@/modules/stadium/domain/accent-css";
+import { brandIconPath } from "@/modules/stadium/domain/brand-identity";
 import { platformDb } from "@/lib/platform-db";
-import { pwaShortName } from "@/lib/pwa-short-name";
+import { pwaShortName } from "@/modules/stadium/domain/pwa-short-name";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 
 const FALLBACK_NAME = "lebstads";

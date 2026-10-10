@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { pwaShortName } from "@/lib/pwa-short-name";
+import { pwaShortName } from "@/modules/stadium/domain/pwa-short-name";
 
 describe("pwaShortName", () => {
   it("cuts English names on a word boundary", () => {
