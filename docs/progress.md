@@ -6792,3 +6792,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Tests mirror src/ (the module moved to venue/domain in cleanup 5).
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Refactor step 3: Prisma client moves out of src/app
+
+**When:** 2026-10-10
+
+**What:** The generated client was gitignored (made by prisma generate), not tracked. Generator output is now src/generated/prisma (src/prisma/schema.prisma); regenerated, old src/app/generated deleted. Updated 13+ imports (@/generated/prisma/...), seed.ts relative import, .gitignore, ci.yml comment (CI already ran prisma generate before the build), the guard's skip list and its type check, the two older scan tests, docs (ARCHITECTURE, RUNBOOK incl. a new 'Build order on the server' section, CODEMAP). Historical audits and this log still name the old path. No jest/eslint/Docker/scripts referenced it.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/prisma/schema.prisma, .gitignore, .github/workflows/ci.yml, src/**, test/architecture/dependency-rules.test.ts, test/platform-db-imports.test.ts, test/modules/push/imports.test.ts, docs/{ARCHITECTURE,RUNBOOK,CODEMAP}.md
+
+**How it connects:** Modules importing the client no longer import from app/ by path; rule 3 now has no prisma special case needed beyond the new location.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (prisma generate ok, tsc clean, architecture 4 passed). Full suites and build not run.

@@ -49,7 +49,7 @@ jobs:
       - name: Install
         run: npm ci
 
-      # Client is gitignored (src/app/generated/prisma). Same as a fresh local clone.
+      # Client is gitignored (src/generated/prisma). Same as a fresh local clone.
       - name: Generate Prisma client
         run: npx prisma generate --config prisma7.config.ts
 

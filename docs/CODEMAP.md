@@ -6,12 +6,13 @@
 ## `src/` folders
 | Folder | Purpose |
 |---|---|
+| `generated/` | Prisma client, output of `prisma generate` (gitignored; run it after install and before build) |
 | `app/` | Next.js routes, Server Actions, layouts; thin (validate, authorize, delegate) |
 | `components/` | Shared React components (`ui/` primitives, pickers, chips, theme) |
 | `lib/` | Cross-cutting helpers: db clients, env, logger, locale and copy, money display, errors |
 | `modules/` | Business logic per context, each with `domain/ application/ infrastructure/ schemas/` |
 | `fonts/` | Font files (`brand/` TTFs for generated icons) |
-| `prisma/` | Prisma schema, migrations, seed |
+| `prisma/` | Prisma schema, migrations, seed (client is generated to `generated/`) |
 | `proxy.ts` | Request proxy: host check, tenant slug, cookie renewal |
 | `instrumentation.ts` | Next.js startup hook |
 

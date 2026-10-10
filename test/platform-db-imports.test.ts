@@ -24,7 +24,7 @@ function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
-    if (path.includes(join("src", "app", "generated"))) continue;
+    if (path.includes(join("src", "generated"))) continue;
     if (statSync(path).isDirectory()) out.push(...sourceFiles(path));
     else if (/\.(ts|tsx|mts)$/.test(entry)) out.push(relative(ROOT, path).split("\\").join("/"));
   }

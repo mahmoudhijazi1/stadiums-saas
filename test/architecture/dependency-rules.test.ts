@@ -11,7 +11,7 @@ function files(dir: string): string[] {
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
     const rel = relative(ROOT, path).split("\\").join("/");
-    if (rel === "src/app/generated" || rel === "src/prisma") continue;
+    if (rel === "src/generated" || rel === "src/prisma") continue;
     if (statSync(path).isDirectory()) out.push(...files(path));
     else if (/\.(ts|tsx)$/.test(entry)) out.push(rel);
   }
@@ -58,7 +58,7 @@ const edges: Edge[] = files(join(ROOT, "src")).flatMap((file) => {
 
 const excused = (list: Exception[], e: Edge, rule: number) =>
   list.some((x) => x.file === e.file && x.target === e.target && x.rule === rule);
-const isPrisma = (t: string) => t.startsWith("src/app/generated/");
+const isPrisma = (t: string) => t.startsWith("src/generated/");
 const impure = (t: string) => isPrisma(t) || IMPURE_LIBS.some((l) => t === l || t.startsWith(l + "/"));
 
 function violations(): string[] {

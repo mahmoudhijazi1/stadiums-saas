@@ -1,4 +1,4 @@
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import type { CivilDate } from "@/modules/venue/domain/availability";

@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
