@@ -19,6 +19,23 @@ export async function findTenantBySlug(slug: string) {
   });
 }
 
+/** The tenant's name and raw settings by id (the id comes from the request context, never from input). */
+export async function findTenantNameAndSettings(tx: PlatformTx, tenantId: string) {
+  return tx.tenant.findUniqueOrThrow({ where: { id: tenantId }, select: { name: true, settings: true } });
+}
+
+/**
+ * Write the display name and the settings of ONE tenant by id. The slug is not a column of this
+ * write, so it cannot change.
+ */
+export async function updateTenantNameAndSettings(
+  tx: PlatformTx,
+  tenantId: string,
+  data: { name: string; settings: Prisma.InputJsonObject },
+): Promise<void> {
+  await tx.tenant.update({ where: { id: tenantId }, data: { name: data.name, settings: data.settings } });
+}
+
 export async function writeAudit(
   tx: PlatformTx,
   entry: { action: string; tenantId: string | null; actor: string; detail: Prisma.InputJsonObject },

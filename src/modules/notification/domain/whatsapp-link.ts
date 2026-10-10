@@ -1,4 +1,5 @@
 import { DomainError } from "@/lib/errors";
+import { toLebanonNumber } from "@/lib/lebanon-phone";
 import { messageIntentFor, type MessageContext, type MessageIntent, type MessageState } from "@/modules/notification/domain/message-intent";
 
 export type MessageLocale = "ar" | "en";
@@ -200,20 +201,8 @@ function reasonClause(reason: string | null | undefined): string {
 }
 
 function toLebanonWhatsAppNumber(phoneDigits: string): string {
-  if (!/^\d+$/.test(phoneDigits)) {
-    throw new DomainError("notification.bad_phone");
-  }
-
-  let e164: string;
-  if (phoneDigits.startsWith("961")) {
-    e164 = phoneDigits;
-  } else if (phoneDigits.startsWith("0")) {
-    e164 = `961${phoneDigits.slice(1)}`;
-  } else {
-    e164 = `961${phoneDigits}`;
-  }
-
-  if (!/^961\d{7,}$/.test(e164)) {
+  const e164 = toLebanonNumber(phoneDigits);
+  if (e164 === null) {
     throw new DomainError("notification.bad_phone");
   }
   return e164;

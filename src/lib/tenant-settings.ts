@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { BRAND_PRESET_KEYS, DEFAULT_BRAND_PRESET } from "@/lib/brand-presets";
+import { toLebanonNumber } from "@/lib/lebanon-phone";
+import { isAllowedMapLink } from "@/lib/map-link";
 
 /**
  * Tenant.settings jsonb (DR-002 §2.6). First knob: owner clock display.
@@ -30,6 +33,17 @@ const tenantSettingsSchema = z
     perPlayerSplitEnabled: z.boolean().catch(false),
     /** Local hour a business day starts (0..6). Absent or junk: 6, so old rows are unchanged. */
     dayStartHour: z.number().int().min(0).max(6).catch(DEFAULT_DAY_START_HOUR),
+    /** Stadium info (shown on the public page). The name is Tenant.name, not here. */
+    address: z.string().max(120).catch(""),
+    /** Re-checked on every read: a stored value that is not an allowed map link reads as none. */
+    mapLink: z.string().refine((value) => value === "" || isAllowedMapLink(value)).catch(""),
+    /** Digits as typed (03…); a value that is not a Lebanese number reads as none. */
+    phone: z.string().refine((value) => value === "" || toLebanonNumber(value) !== null).catch(""),
+    /** True: the phone above is also the WhatsApp number. */
+    whatsappSame: z.boolean().catch(true),
+    whatsapp: z.string().refine((value) => value === "" || toLebanonNumber(value) !== null).catch(""),
+    /** A key of BRAND_PRESETS, never a colour value. */
+    brandPreset: z.enum(BRAND_PRESET_KEYS).catch(DEFAULT_BRAND_PRESET),
   })
   .strip();
 
@@ -84,6 +98,17 @@ export function mergeBookingRules(
 ): TenantSettings {
   const parsed = parseTenantSettings(current);
   return tenantSettingsSchema.parse({ ...parsed, ...rules });
+}
+
+export type StadiumInfoSettings = Pick<
+  TenantSettings,
+  "address" | "mapLink" | "phone" | "whatsappSame" | "whatsapp" | "brandPreset"
+>;
+
+/** Merge the stadium info keys onto current settings and re-parse (write path). */
+export function mergeStadiumInfo(current: unknown, info: StadiumInfoSettings): TenantSettings {
+  const parsed = parseTenantSettings(current);
+  return tenantSettingsSchema.parse({ ...parsed, ...info });
 }
 
 /** Merge one key onto current settings and re-parse (write path). */

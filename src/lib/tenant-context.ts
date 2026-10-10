@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import type { BrandPresetKey } from "@/lib/brand-presets";
 import { DomainError } from "@/lib/errors";
 import { platformDb } from "@/lib/platform-db";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
@@ -24,6 +25,13 @@ export type CurrentTenant = {
   dayStartHour: number;
   /** Suspended by the platform operator (decision 7). Loaded in the same query. */
   suspended: boolean;
+  /** What the stadium published about itself. Empty string = not set. */
+  address: string;
+  mapLink: string;
+  phone: string;
+  /** The WhatsApp number to use: the phone when "same number" is on, else the separate one. */
+  whatsapp: string;
+  brandPreset: BrandPresetKey;
 };
 
 /**
@@ -68,6 +76,11 @@ async function loadTenant(): Promise<CurrentTenant> {
     perPlayerSplitEnabled: settings.perPlayerSplitEnabled,
     dayStartHour: settings.dayStartHour,
     suspended: tenant.suspendedAt !== null,
+    address: settings.address,
+    mapLink: settings.mapLink,
+    phone: settings.phone,
+    whatsapp: settings.whatsappSame ? settings.phone : settings.whatsapp,
+    brandPreset: settings.brandPreset,
   };
 }
 
