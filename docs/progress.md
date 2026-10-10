@@ -6960,3 +6960,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** lib/tenant-context no longer imports any module.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, docs
+
+**When:** 2026-10-10
+
+**What:** ARCHITECTURE.md: a 'Module ui/ folders' paragraph with rule 6 and the current ui folders. CODEMAP.md: the ui rule in one line and the ui files of people, payment and shop.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/ARCHITECTURE.md, docs/CODEMAP.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.

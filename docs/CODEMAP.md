@@ -17,6 +17,8 @@
 | `instrumentation.ts` | Next.js startup hook |
 
 ## `src/modules/`
+Each module has `domain/ application/ infrastructure/ schemas/` and, where it owns components, `ui/`. **ui gets data and actions through props** (rule 6): no application, infrastructure, db or `@/app` imports; a Server Action is a prop the page passes.
+
 | Module | Purpose |
 |---|---|
 | `access` | Login, sessions, permissions (`can()`), passwords, tenant settings |
@@ -24,12 +26,12 @@
 | `expense` | Expenses and categories |
 | `ledger` | Append-only USD ledger entries and period bounds |
 | `notification` | WhatsApp link composition |
-| `payment` | Collect, tenders, rates, per-player payments, due adjustments |
-| `people` | Persons, phones, names |
+| `payment` | Collect, tenders, rates, per-player payments, due adjustments. `ui/`: tender-balance, tonal-collect |
+| `people` | Persons, phones, names. `ui/`: person-link |
 | `platform` | Operator-only tenant management; `application/tenant-profile` serves the stadium module |
 | `push` | Web push to owners (new-request alert) |
 | `stadium` | The stadium's own name and info, brand (presets, accent, logo plan), links (map, public URL, QR text), PWA short name. Moved here from `lib/` (brand-*, accent-css, map-link, public-page-url, qr, pwa-short-name) and `platform/` (stadium-info, brand-identity) |
-| `shop` | Products, sales, tabs, supplies, items on a booking |
+| `shop` | Products, sales, tabs, supplies, items on a booking. `ui/`: item-tiles, parts-balance, sell-screen |
 | `venue` | Pitches, hours, schedule config, availability |
 
 ## `src/lib/`
