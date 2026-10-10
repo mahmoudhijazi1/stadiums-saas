@@ -110,6 +110,16 @@ export function StatusPill({
   }
 }
 
+/** The neutral "expected" pill: "$12 expected". Same classes as the other neutral pills. */
+export function ExpectedPill({ amountUsd, word }: { amountUsd: string; word: string }) {
+  return (
+    <span className={cn(PILL, "bg-expected-subtle text-muted-foreground")}>
+      <LtrIsolate>${amountUsd}</LtrIsolate>
+      <span>{word}</span>
+    </span>
+  );
+}
+
 /** Owed token and icon: "$30 due" / "$12 left". */
 export function OwedPill({ amountUsd, word }: { amountUsd: string; word: string }) {
   return (

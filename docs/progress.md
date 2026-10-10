@@ -6561,3 +6561,15 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **Files:** `lib/brand-presets.ts`, `lib/ui-copy.ts`, `app/owner/(app)/more/stadium/stadium-form.tsx` (aria-label), tests above.
 
 **How to verify:** NOT run (no test, build or lint). The measured numbers above come from a one-off script with the same maths as the helper, not from the test run. Run `npm test`.
+
+
+## Colour presets replaced, commit 2 of 2: the preview uses the real components; tests and docs (branch `feat/accent-presets`)
+
+**What:**
+- **Stadium info preview = the app's own components**, coloured by the previewed preset: the primary `Button`, the active day pill with the real `dayChipClass(true)` (moved to `components/day-chip-class.ts` so the day strip and the preview share it), a link-variant `Button`, and beside them the three status pills: the real `StatusPill` for paid and owed ("$30 due") and an `ExpectedPill` (new in `booking-row.tsx`, the same classes as the app's neutral pills). The previewed preset is applied by `accentPreviewCss`, now scoped to `.accent-preview` and setting, as literal hex from the constant, the role variables and the colour variables the components read (`--primary`, `--color-primary`, `--color-action-ink`, `--color-ring`, and `--selected` in the dark theme only: in the light theme the active pill stays the inverse pill, as in the app). It never sets `--paid`, `--owed`, `--expected` or `--alert`, so the pills show the fixed colours. The block is `inert` (not tabbable or clickable). The line "Colours change the app's buttons and highlights; paid, owed and delete colours stay the same." stays.
+- **Tests (written, NOT run):** `test/lib/accent-css.test.ts` (preview rules: scoped, literal constant-only values, the variables the real components read, pill accent in dark only, no status variables, hostile key = default); `test/app/owner/stadium-preview.test.ts` (the form imports and renders the real Button, `dayChipClass`, `StatusPill`, `ExpectedPill`; no hand-made `pv-*` classes or hex; `inert`; the day strip shares the class helper); the preset and guard tests from commit 1 (the guard flags any preset hex outside `globals.css` and the constant).
+- **Docs:** `theme.md` (banner: five presets, the distance rules), `ui-rules.md` rule 9 (which hues are reserved and why: green is paid, amber/orange/gold is owed, red/coral is destructive; teal dropped), `NOW.md`, `ROADMAP.md` (a logo-only colour list with green, orange and maroon, since the logo is not interactive).
+
+**Honest limits:** `npx tsc --noEmit` was run twice at the end (the first run found a leftover `"blue"` key in one test, fixed). Nothing was rendered: the preview, the colour variables and the `inert` block are untested in a browser. UNVERIFIED: that `inert` is accepted by this React/TS version (tsc passed, so the type exists) and that the previewed colours show in both themes.
+
+**How to verify:** NOT run. `npm test`; then by hand open More > Stadium info in light and dark, pick each colour, and check the button, the pill, the link and the paid, owed and expected pills.

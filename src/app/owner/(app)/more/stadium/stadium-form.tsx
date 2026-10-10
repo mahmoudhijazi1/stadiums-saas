@@ -6,9 +6,13 @@ import { BRAND_PRESETS, type BrandPresetKey } from "@/lib/brand-presets";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { sanitizePhoneInput } from "@/modules/people/domain/phone";
+import { dayChipClass } from "@/components/day-chip-class";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { ExpectedPill, StatusPill } from "@/app/owner/booking-row";
 import { cn } from "cn";
 
 export type StadiumFormDefaults = {
@@ -163,17 +167,26 @@ export function StadiumForm({
             ))}
           </div>
         </div>
-        <div className="accent-preview flex flex-wrap items-center gap-3 rounded-lg border border-line p-3">
+        {/* The app's own components, coloured by the previewed preset (see accentPreviewCss). */}
+        <div inert className="accent-preview flex flex-col gap-3 rounded-lg border border-line p-3">
           <style>{accentPreviewCss(preset)}</style>
-          <span className="pv-button inline-flex min-h-11 items-center rounded-full px-5 type-button">
-            {ui("owner.accentPreviewButton", locale)}
-          </span>
-          <span className="pv-pill inline-flex min-h-9 items-center rounded-full bg-inverse px-4 type-label text-inverse-ink">
-            {ui("owner.accentPreviewTab", locale)}
-          </span>
-          <span className="pv-link type-body font-medium underline underline-offset-4">
-            {ui("owner.accentPreviewLink", locale)}
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" tabIndex={-1}>
+              {ui("owner.accentPreviewButton", locale)}
+            </Button>
+            <span className={cn(dayChipClass(true), "w-16")}>
+              <span className="w-full truncate text-center">{ui("public.today", locale)}</span>
+              <LtrIsolate className="type-strong tabular-nums">14</LtrIsolate>
+            </span>
+            <Button type="button" variant="link" tabIndex={-1}>
+              {ui("owner.accentPreviewLink", locale)}
+            </Button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill display={{ kind: "paid" }} amountUsd="30" locale={locale} />
+            <StatusPill display={{ kind: "unpaid" }} amountUsd="30" locale={locale} />
+            <ExpectedPill amountUsd="30" word={ui("owner.expectedWord", locale)} />
+          </div>
         </div>
         <p className="type-secondary text-ink-muted">{ui("owner.stadiumColourNote", locale)}</p>
       </fieldset>

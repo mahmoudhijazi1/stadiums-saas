@@ -67,7 +67,7 @@ describe("version and paths", () => {
     const base = brandVersion({ symbol: "A", preset: "lime" });
     expect(brandVersion({ symbol: "A", preset: "lime" })).toBe(base);
     expect(brandVersion({ symbol: "B", preset: "lime" })).not.toBe(base);
-    expect(brandVersion({ symbol: "A", preset: "blue" })).not.toBe(base);
+    expect(brandVersion({ symbol: "A", preset: "royal" })).not.toBe(base);
     expect(brandVersion(null)).toBe("n");
   });
 

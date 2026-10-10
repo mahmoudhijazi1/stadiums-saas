@@ -76,19 +76,44 @@ describe("accentThemeColor", () => {
 });
 
 describe("accentPreviewCss", () => {
-  it("is scoped under .accent-preview and uses only constant values", () => {
-    const css = accentPreviewCss("sky");
-    expect(css).toContain(".accent-preview .pv-button");
-    for (const hex of css.match(HEX_IN_CSS) ?? []) expect(ALL_HEX.has(hex.toUpperCase())).toBe(true);
-    expect(accentPreviewCss('</style><b>')).toBe(accentPreviewCss("lime"));
-    // Every rule is under .accent-preview: nothing leaks to the page.
+  const css = accentPreviewCss("sky");
+  const sky = presetOf("sky");
+
+  it("is scoped under .accent-preview in every rule, so nothing leaks to the page", () => {
     for (const rule of css.split("}").filter(Boolean)) expect(rule).toContain(".accent-preview");
   });
 
-  it("the pill takes the accent in the dark theme only", () => {
-    const css = accentPreviewCss("indigo");
-    const lightRules = css.split("}").filter((rule) => rule.startsWith("html:root "));
-    expect(lightRules.some((rule) => rule.includes(".pv-pill"))).toBe(false);
-    expect(css).toContain("html.dark .accent-preview .pv-pill");
+  it("uses only literal #RRGGBB values from the constant", () => {
+    for (const hex of css.match(HEX_IN_CSS) ?? []) expect(ALL_HEX.has(hex.toUpperCase())).toBe(true);
+    expect(css).not.toMatch(/var\(/);
+  });
+
+  it("sets the role variables and the ones the real components read, for light and dark", () => {
+    const light = css.split("}")[0]!;
+    for (const name of ["--brand", "--brand-ink", "--action-ink", "--ring", "--primary", "--primary-foreground", "--color-primary", "--color-action-ink"]) {
+      expect(light).toContain(`${name}:`);
+    }
+    expect(light).toContain(`--primary:${sky.light.fill}`);
+    expect(css).toContain(`html.dark .accent-preview{`);
+    expect(css).toContain(`html[data-theme="dark"] .accent-preview{`);
+  });
+
+  it("the active pill takes the accent in the dark theme only (the light pill stays the inverse one)", () => {
+    const [lightRule, darkRule] = css.split("}");
+    expect(lightRule).not.toContain("--selected");
+    expect(lightRule).not.toContain("--color-selected");
+    expect(darkRule).toContain(`--selected:${sky.dark.fill}`);
+    expect(darkRule).toContain(`--color-selected-ink:${sky.dark.onFill}`);
+  });
+
+  it("never sets a status or destructive variable, so the pills beside it keep their colours", () => {
+    for (const name of ["--paid", "--owed", "--expected", "--alert", "--destructive", "--success"]) {
+      expect(css).not.toContain(name);
+    }
+  });
+
+  it("an unknown or hostile key is the default preview", () => {
+    expect(accentPreviewCss("</style><b>")).toBe(accentPreviewCss("lime"));
+    expect(accentPreviewCss(undefined)).toBe(accentPreviewCss("lime"));
   });
 });

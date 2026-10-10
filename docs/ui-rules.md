@@ -141,7 +141,9 @@ Reference information never pushes an action below the fold. A collapsed row may
 
 ### 9. The accent is per stadium; status colours are not
 
-Buttons, highlights, accent text and the focus ring take their colour from the stadium's preset (More > Business > Stadium info), through the tokens `--brand`, `--brand-ink`, `--action-ink` and `--ring` only. A component never writes an accent hex or a `lime-*` class: `test/app/accent-guard.test.ts` fails on it. **Paid, owed, expected and the destructive coral are fixed** (rule 1): they never come from a preset, and no preset is near green, amber or red, so a coloured button cannot be mistaken for a money state. Meaning still never rests on colour alone.
+Buttons, highlights, accent text and the focus ring take their colour from the stadium's preset (More > Business > Stadium info), through the tokens `--brand`, `--brand-ink`, `--action-ink` and `--ring` only. A component never writes an accent hex or a `lime-*` class: `test/app/accent-guard.test.ts` fails on it. **Paid, owed, expected and the destructive coral are fixed** (rule 1): they never come from a preset.
+
+**Reserved hues.** Green is *paid*, amber/orange/gold is *owed* and red/coral is *destructive*. An accent in those hues would be mistaken for a status (a green "Book" button reads as "paid"; an orange one as "owed"), so no preset is offered in them. The five presets are lime (the default, unchanged), royal blue, sky blue, indigo and mono (graphite). Every chromatic fill must stay at least 40 degrees of OKLCH hue and 0.15 OKLab away from the paid, owed and destructive tokens, in both themes, and the tests read those tokens from `globals.css` so a changed status colour re-runs the check. Teal was tried and dropped: no teal with a real chroma clears the paid green in the light theme. Meaning still never rests on colour alone.
 
 ## Audit
 

@@ -50,6 +50,7 @@ The first version is a generated letter logo from 8 colour presets. Not started,
 | Item | Note |
 |---|---|
 | Optional logo upload | Needs file checks (type by content, size, dimensions), resizing to the icon sizes, stripping metadata including GPS, and backups of the stored files (today nothing but the database is backed up). |
+| A logo-only colour list | The logo is not interactive, so it could offer colours the accent cannot: green, orange, maroon and the like. That needs its own key next to the accent preset and a contrast check for the letter only. |
 | Dark and light logo variants | The generated logo is one image for both themes (the preset's light fill). A dark-theme variant, and the same choice for the manifest icons, would follow the dark fill already in the preset. |
 | The uploaded logo | With an uploaded logo the accent could be picked from it (with contrast checks) instead of from the eight presets. |
 | Cover photo on the public page | Same file handling as the logo upload. |

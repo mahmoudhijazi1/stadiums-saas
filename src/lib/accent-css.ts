@@ -28,22 +28,35 @@ export function accentThemeColor(key: unknown): string {
 }
 
 /**
- * Rules for the Stadium info preview only: three sample parts (a primary button, the dark-theme
- * active pill, a link) coloured by one preset, scoped under `.accent-preview` so they do not leak
- * into the page. They use literal colours because custom properties already resolved on <html>
- * would not change inside the preview.
+ * Rules for the Stadium info preview only. The preview renders the app's REAL components (the
+ * primary button, the day pill, a link, the status pills), so they must see the previewed preset
+ * and not the stadium's saved one. Custom properties that already resolved on <html> (for example
+ * --color-primary, which Tailwind built from var(--primary)) are inherited as plain values, so
+ * overriding --brand on a wrapper would change nothing. The wrapper therefore sets, as literal
+ * #RRGGBB values from the constant, the role variables AND the Tailwind colour variables the real
+ * components read. The dark theme also sets --selected, because the active pill takes the accent
+ * only there; in the light theme it stays the inverse pill, exactly as in the app. The status
+ * variables (--paid, --owed, --expected, --alert) are never set: the pills beside the accent show
+ * the fixed colours.
  */
+function previewDeclarations(set: AccentSet, withSelected: boolean): string {
+  return (
+    `--brand:${set.fill};--brand-ink:${set.onFill};--action-ink:${set.ink};--ring:${set.ring};` +
+    `--primary:${set.fill};--primary-foreground:${set.onFill};` +
+    `--color-primary:${set.fill};--color-primary-foreground:${set.onFill};` +
+    `--color-accent-brand:${set.fill};--color-accent-ink:${set.onFill};` +
+    `--color-action-ink:${set.ink};--color-ring:${set.ring};` +
+    (withSelected
+      ? `--selected:${set.fill};--selected-ink:${set.onFill};--color-selected:${set.fill};--color-selected-ink:${set.onFill};`
+      : "")
+  );
+}
+
 export function accentPreviewCss(key: unknown): string {
   const { light, dark } = presetOf(key);
-  const rules = (set: AccentSet, prefix: string, pill: boolean) =>
-    `${prefix}.accent-preview .pv-button{background:${set.fill};color:${set.onFill}}` +
-    // The active pill takes the accent only in the dark theme; in the light theme it is the
-    // inverse (carbon) pill, exactly as in the app.
-    (pill ? `${prefix}.accent-preview .pv-pill{background:${set.fill};color:${set.onFill}}` : "") +
-    `${prefix}.accent-preview .pv-link{color:${set.ink}}`;
   return (
-    rules(light, "html:root ", false) +
-    rules(dark, "html.dark ", true) +
-    rules(dark, 'html[data-theme="dark"] ', true)
+    `html:root .accent-preview{${previewDeclarations(light, false)}}` +
+    `html.dark .accent-preview{${previewDeclarations(dark, true)}}` +
+    `html[data-theme="dark"] .accent-preview{${previewDeclarations(dark, true)}}`
   );
 }
