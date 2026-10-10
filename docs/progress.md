@@ -6876,3 +6876,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** stadium/application imports platform/application only; platform imports nothing from stadium.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed; platform-db-imports and stadium domain tests passed. The stadium-info integration test (needs Docker Postgres) was not run.). Full suites and build not run.
+
+## Refactor step 5, commit 3: docs for the stadium module
+
+**When:** 2026-10-10
+
+**What:** docs/ARCHITECTURE.md: module table has a stadium row (access, people, platform/application/tenant-profile), booking -> stadium, the platform row and the platformDb allowlist row now describe tenant-profile (the allowlist itself is unchanged), the lib exceptions list the stadium targets. docs/CODEMAP.md: the stadium module and what left lib/ and platform/. docs/DATA-MODEL.md: moved paths in the Tenant row.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/ARCHITECTURE.md, docs/CODEMAP.md, docs/DATA-MODEL.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed). Full suites and build not run.

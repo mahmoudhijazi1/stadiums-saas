@@ -26,8 +26,9 @@
 | `notification` | WhatsApp link composition |
 | `payment` | Collect, tenders, rates, per-player payments, due adjustments |
 | `people` | Persons, phones, names |
-| `platform` | Operator-only tenant management and stadium info |
+| `platform` | Operator-only tenant management; `application/tenant-profile` serves the stadium module |
 | `push` | Web push to owners (new-request alert) |
+| `stadium` | The stadium's own name and info, brand (presets, accent, logo plan), links (map, public URL, QR text), PWA short name. Moved here from `lib/` (brand-*, accent-css, map-link, public-page-url, qr, pwa-short-name) and `platform/` (stadium-info, brand-identity) |
 | `shop` | Products, sales, tabs, supplies, items on a booking |
 | `venue` | Pitches, hours, schedule config, availability |
 
