@@ -6764,3 +6764,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Guard data and docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Follow-up 2: CLAUDE.md non-negotiables recovered from .cursor
+
+**When:** 2026-10-10
+
+**What:** Added ten one-line rules to the Non-negotiables section of CLAUDE.md (exclusion constraint, tenantId everywhere, append-only tables, Decimal/timestamptz, tx client, queries in infrastructure, jsonb Zod, domain types with real invariants, digits and untranslated tenant content, tests per slice).
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** CLAUDE.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.

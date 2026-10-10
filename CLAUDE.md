@@ -40,6 +40,18 @@ SPECs, DRs and audits are **historical**: never rewrite their bodies; at most a 
 - Warn, never block the owner from taking money (RULE-9/10). Logical CSS properties only; LTR-isolate numbers/phones/times; all copy via `ui()`.
 - Framework APIs come from `node_modules/next/dist/docs/` and installed Prisma docs, not memory.
 
+Recovered from the archived Cursor rules ([docs/archive/cursor-rules/](docs/archive/cursor-rules/); DR-002, DR-005, `docs/guides/testing-jest.md` have the detail):
+- The no-double-booking exclusion constraint lives in a hand-written SQL migration. Never remove it, never model it in the schema DSL.
+- `tenantId` on every tenant-owned table, child tables included.
+- Payment, PaymentTender, LedgerEntry, BookingDueChange and ExchangeRate are append-only in code: corrections are new rows.
+- USD is `Decimal(12,2)`, LBP is `Decimal(18,0)` or `BigInt`; times are `timestamptz` in UTC.
+- Repositories use the transaction client they are given, never the global `db` inside a transaction.
+- Every query lives in `infrastructure/`; a read across more than two entities goes through a named function.
+- jsonb (`scheduleConfig`, tenant `settings`) is Zod-validated at the application edge.
+- Domain types: things with real invariants (Booking, Payment, Money) get domain types; plain data may use Prisma types.
+- Western digits in the Arabic UI; tenant-written content (pitch and product names) is never translated; no `next-intl` (DR-005).
+- Every slice ships its tests.
+
 ## docs/progress.md — append-only build log
 - **NEVER read it in full** (4,000+ lines). For recent context only, and only if needed: `tail -n 100 docs/progress.md`.
 - **NEVER rewrite, reorganize, reformat, or edit past entries.**
