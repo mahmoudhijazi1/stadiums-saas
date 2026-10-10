@@ -1,7 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { messageDayLabel } from "@/modules/booking/application/night-hint";
-import { formatLocalHm } from "@/lib/format-local-hm";
+import { formatLocalHm } from "@/lib/format/time";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { logger } from "@/lib/logger";
 import { getCurrentTenant } from "@/lib/tenant-context";

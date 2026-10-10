@@ -94,7 +94,7 @@ src/
     client-ip.ts                ← Client IP from TRUSTED_CLIENT_IP_HEADER only
     locale.ts / get-ui-locale.ts / ui-copy.ts
     error-messages.ts / success-messages.ts / errors.ts / use-case-error.ts
-    request-fields.ts / format-local-hm.ts / utils.ts
+    request-fields.ts / format/time.ts / utils.ts
     # No lib/auth.ts — sessions + can() live in modules/access/
     # No lib/i18n.ts — dictionaries are the files above (no next-intl yet)
 

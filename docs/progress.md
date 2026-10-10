@@ -6820,3 +6820,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** format/money.ts imports only decimal.js and the UiLocale type; parse-money.ts imports only decimal.js.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib/format: 59 passed). Full suites and build not run.
+
+## Refactor step 4, commit 2: one time formatting module
+
+**When:** 2026-10-10
+
+**What:** Characterization tests (test/lib/format/time.characterization.test.ts, 66 tests with the moved ones; generated from the old code and checked: 00:30 after midnight, 12/24-hour, Arabic and English) pin formatDisplayDate, formatLocalHm and the clock-range helpers, formatRelativeTime and the app-local helpers. format-display-date.ts, format-local-hm.ts and format-relative-time.ts became lib/format/time.ts (same exported names); importers rewritten (one merged import per file) and their tests moved to test/lib/format/. App-local helpers kept: book/date.ts (parsing, no formatting), today/date-label.ts, money/period-label.ts and series/labels.ts compose the shared formatDisplayDate/formatLocalHm with their own rules and copy (today/yesterday, month chip, series line) and produce different outputs, so none could be replaced. Domain time-zone arithmetic files untouched; of the five named files only booking/application/load-series-created.ts formats for display (via the shared formatters); padStart in ledger/domain/period.ts and venue/domain/availability.ts builds ISO keys, not display.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/format/time.ts, importers, test/lib/format/*, docs/guides/folder-structure.md
+
+**How it connects:** format/time.ts imports lib/locale and lib/ui-copy (relative time phrases) only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib/format: 66 passed). Full suites and build not run.

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatRelativeTime } from "@/lib/format-relative-time";
-import type { HourCycle } from "@/lib/format-local-hm";
+import { formatRelativeTime, type HourCycle } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 
 const ZONE = "Asia/Beirut";

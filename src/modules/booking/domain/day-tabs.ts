@@ -1,4 +1,4 @@
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/ui-copy";
 import { OWNER_FUTURE_DAYS } from "@/modules/booking/domain/start-day";

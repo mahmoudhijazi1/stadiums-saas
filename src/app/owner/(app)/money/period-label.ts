@@ -1,4 +1,4 @@
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { isCalendarMonth, type CivilRange, type PeriodKind } from "@/modules/ledger/domain/period";
 import { ui } from "@/lib/ui-copy";

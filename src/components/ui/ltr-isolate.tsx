@@ -2,7 +2,7 @@ import type { ComponentProps } from "react"
 import {
   splitDisplayedClock,
   type ClockRangeLabel,
-} from "@/lib/format-local-hm"
+} from "@/lib/format/time"
 
 /**
  * Isolate a Latin run (times, phones, money, yyyy-mm-dd) inside dir="rtl".

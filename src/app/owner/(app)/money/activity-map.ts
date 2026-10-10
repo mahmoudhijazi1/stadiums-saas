@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { shopActivityLabel, ui } from "@/lib/ui-copy";
 import type { BookingLabel } from "@/modules/booking/application/list-booking-labels";

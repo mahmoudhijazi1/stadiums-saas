@@ -7,7 +7,7 @@ import { ar, enGB } from "react-day-picker/locale";
 import { cn } from "cn";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import type { DayTab } from "@/modules/booking/domain/day-tabs";
 import { useDayNav } from "./day-nav";

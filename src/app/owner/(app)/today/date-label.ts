@@ -1,5 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import { ui } from "@/lib/ui-copy";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { businessDate } from "@/modules/booking/domain/business-day";

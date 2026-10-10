@@ -7,8 +7,7 @@ import { groupPendingBySlot } from "@/modules/booking/domain/home-inbox";
 import type { UiLocale } from "@/lib/locale";
 import { missedRequestsCount, requestsCount, startsInLabel, ui } from "@/lib/ui-copy";
 import { startsInMinutes } from "@/modules/booking/domain/expired-request";
-import { formatRelativeTime } from "@/lib/format-relative-time";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatRelativeTime, formatDisplayDate } from "@/lib/format/time";
 import {
   interestsForGroup,
   mergeByTime,

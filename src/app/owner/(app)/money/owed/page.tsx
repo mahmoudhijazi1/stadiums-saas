@@ -3,7 +3,7 @@ import { formatLocalClockRange, requireOwnerMembership } from "@/app/owner/share
 import { EmptyState } from "@/components/ui/empty-state";
 import { Figure } from "@/components/ui/figure";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import { formatUsdCompact } from "@/lib/format/money";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/ui-copy";

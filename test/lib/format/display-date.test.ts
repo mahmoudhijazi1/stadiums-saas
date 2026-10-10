@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 
 describe("formatDisplayDate", () => {
   const instant = new Date("2026-09-24T12:00:00.000Z");

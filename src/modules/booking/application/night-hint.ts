@@ -1,4 +1,4 @@
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { nightOfLabel } from "@/lib/ui-copy";
 import { businessDate, isNightStart } from "@/modules/booking/domain/business-day";

@@ -1,9 +1,5 @@
 import { UnexpectedError } from "@/lib/errors";
-import {
-  formatLocalHm,
-  type ClockLocale,
-  type HourCycle,
-} from "@/lib/format-local-hm";
+import { formatLocalHm, type ClockLocale, type HourCycle } from "@/lib/format/time";
 import { logger } from "@/lib/logger";
 import { formatUsd } from "@/lib/format/money";
 import { parseUsd } from "@/lib/format/parse-money";

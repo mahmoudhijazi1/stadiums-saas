@@ -31,7 +31,7 @@ import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import Decimal from "decimal.js";
-import { formatLocalHm } from "@/lib/format-local-hm";
+import { formatLocalHm } from "@/lib/format/time";
 import { formatUsd, formatUsdCompact } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { dayStartClock, ui } from "@/lib/ui-copy";

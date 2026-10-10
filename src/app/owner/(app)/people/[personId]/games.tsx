@@ -5,7 +5,7 @@ import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { personOwedOnBooking, personPaidOnBooking } from "@/modules/booking/domain/person-owed";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import { nightHint } from "@/modules/booking/application/night-hint";
 import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
 import { BookingRow, variantOf } from "@/app/owner/booking-row";

@@ -1,7 +1,6 @@
 import db from "@/lib/db";
 import { DomainError } from "@/lib/errors";
-import { formatDisplayDate } from "@/lib/format-display-date";
-import { formatLocalHm, type HourCycle } from "@/lib/format-local-hm";
+import { formatDisplayDate, formatLocalHm, type HourCycle } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SERIES_TIME_ZONE } from "@/modules/booking/application/series-weeks";
