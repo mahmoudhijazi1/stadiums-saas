@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { orderCategories, rememberCategory } from "@/modules/expense/domain/category-order";
 import type { ExpenseCategory } from "@/modules/expense/domain/categories";
-import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { submitRecordExpense } from "./actions";
 import { Button } from "@/components/ui/button";
 import {
   BottomSheet,
@@ -23,7 +21,17 @@ import { TenderBalance } from "@/modules/payment/ui/tender-balance";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "cn";
 
-function keepPeriodQuery(period: LedgerPeriodQuery) {
+/** The period the Money page is showing, kept across the save (mirrors ledger/schemas/period-query). */
+export type KeptPeriodQuery = {
+  period?: string;
+  from?: string;
+  to?: string;
+  filter: "all" | "in" | "out";
+  view?: string;
+  displayRate?: string;
+};
+
+function keepPeriodQuery(period: KeptPeriodQuery) {
   return (
     <>
       {period.period && !(period.from && period.to) ? (
@@ -79,8 +87,9 @@ export function RecordExpenseSheet({
   lbpPerUsd,
   categoryOptions,
   membershipId,
+  submitRecordExpense,
 }: {
-  periodQuery: LedgerPeriodQuery;
+  periodQuery: KeptPeriodQuery;
   today: string;
   locale: UiLocale;
   /** Current exchange rate for the live total; null when none is set. */
@@ -88,6 +97,8 @@ export function RecordExpenseSheet({
   categoryOptions: { value: ExpenseCategory; label: string }[];
   /** Keys the "most recently used" order in this browser. */
   membershipId: string;
+  /** The page passes the real Server Action; this component never imports one. */
+  submitRecordExpense: (formData: FormData) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [usd, setUsd] = useState("");

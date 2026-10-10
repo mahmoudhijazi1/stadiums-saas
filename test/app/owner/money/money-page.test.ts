@@ -1,8 +1,8 @@
 import Decimal from "decimal.js";
 import { describe, expect, it } from "@jest/globals";
-import { inSourceParts, showsComparison } from "@/app/owner/(app)/money/summary-card";
-import { sourceName } from "@/app/owner/(app)/money/activity-map";
-import { showsShopRow } from "@/app/owner/(app)/money/shop-row";
+import { inSourceParts, showsComparison } from "@/app/owner/(app)/money/_components/summary-card";
+import { sourceName } from "@/app/owner/(app)/money/_components/activity-map";
+import { showsShopRow } from "@/app/owner/(app)/money/_components/shop-row";
 import { activityHref, moneyHref, shopHref } from "@/app/owner/(app)/money/query";
 import { profitHeadline, shopRowLine, ui } from "@/lib/copy";
 

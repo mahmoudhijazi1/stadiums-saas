@@ -23,10 +23,10 @@ import {
   type ActivityRowView,
   type ExpenseDetailView,
   type SaleDetailView,
-} from "./activity-map";
+} from "@/app/owner/(app)/money/_components/activity-map";
 import { formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/format/money";
-import { loadMoreActivity } from "./actions";
-import { activityHref } from "./query";
+import { loadMoreActivity } from "@/app/owner/(app)/money/actions";
+import { activityHref } from "@/app/owner/(app)/money/query";
 
 const ICONS = { booking: Trophy, expense: Receipt, shop: Store, generic: ShoppingBag } as const;
 

@@ -3,7 +3,7 @@ import { listBookingLabels } from "@/modules/booking/application/list-booking-la
 import { listExpenseDetails } from "@/modules/expense/application/list-expense-details";
 import { listSaleDetails } from "@/modules/shop/application/list-sale-details";
 import { listLedgerActivity } from "@/modules/ledger/application/list-ledger-activity";
-import { mapActivityEntry, type ActivityRowView } from "./activity-map";
+import { mapActivityEntry, type ActivityRowView } from "@/app/owner/(app)/money/_components/activity-map";
 
 export type ActivityPageView = { rows: ActivityRowView[]; nextCursor: string | null };
 

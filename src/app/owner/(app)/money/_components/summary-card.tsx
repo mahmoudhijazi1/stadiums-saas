@@ -9,9 +9,9 @@ import { comparisonLine, profitHeadline, ui } from "@/lib/copy";
 import type { LedgerPeriodSummary } from "@/modules/ledger/application/summarize-ledger-period";
 import { isCalendarMonth, previousRange, type PeriodKind } from "@/modules/ledger/domain/period";
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
-import { sourceName } from "./activity-map";
-import { comparedWithLabel, periodChipLabel, rangeLabel } from "./period-label";
-import { activityHref } from "./query";
+import { sourceName } from "@/app/owner/(app)/money/_components/activity-map";
+import { comparedWithLabel, periodChipLabel, rangeLabel } from "@/modules/ledger/ui/period-label";
+import { activityHref } from "@/app/owner/(app)/money/query";
 
 function amountText(amountUsd: Decimal, lbpPerUsd: Decimal | null): string {
   if (lbpPerUsd) {

@@ -9,7 +9,7 @@ import { ui } from "@/lib/copy";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-category";
 import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-period";
-import { periodChipLabel } from "../period-label";
+import { periodChipLabel } from "@/modules/ledger/ui/period-label";
 import { readPeriodQuery, resolvePeriod } from "../period-url";
 import { moneyHref } from "../query";
 

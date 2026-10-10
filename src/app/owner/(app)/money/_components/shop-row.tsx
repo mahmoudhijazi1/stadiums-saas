@@ -6,8 +6,8 @@ import type { UiLocale } from "@/lib/locale";
 import { formatUsdCompact } from "@/lib/format/money";
 import { shopRowLine } from "@/lib/copy";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
-import { periodChipLabel } from "./period-label";
-import { shopHref } from "./query";
+import { periodChipLabel } from "@/modules/ledger/ui/period-label";
+import { shopHref } from "@/app/owner/(app)/money/query";
 
 /** Whether the row shows: the period has shop sales or shop-supply expenses. */
 export function showsShopRow(items: number, suppliesUsd: Decimal): boolean {

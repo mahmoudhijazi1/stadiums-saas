@@ -15,7 +15,7 @@ import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
 import { formatEarlierDayLabel } from "../../today/date-label";
-import { OwedGroups, type OwedGroupView } from "./owed-groups";
+import { OwedGroups, type OwedGroupView } from "@/app/owner/(app)/money/owed/_components/owed-groups";
 
 const TZ = "Asia/Beirut";
 

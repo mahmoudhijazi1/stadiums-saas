@@ -2,9 +2,9 @@ import Link from "next/link";
 import type { UiLocale } from "@/lib/locale";
 import { type PeriodKind } from "@/modules/ledger/domain/period";
 import { cn } from "cn";
-import { PeriodSheet } from "./period-sheet";
-import { periodChipLabel } from "./period-label";
-import { moneyHref } from "./query";
+import { PeriodSheet } from "@/app/owner/(app)/money/_components/period-sheet";
+import { periodChipLabel } from "@/modules/ledger/ui/period-label";
+import { moneyHref } from "@/app/owner/(app)/money/query";
 
 /**
  * The top of Money, unchanged from before: the period chip and, when a rate is known, the

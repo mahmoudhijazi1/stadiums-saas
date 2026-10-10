@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { comparisonLine, profitHeadline } from "@/lib/copy";
-import { comparedWithLabel, periodChipLabel, rangeLabel } from "@/app/owner/(app)/money/period-label";
+import { comparedWithLabel, periodChipLabel, rangeLabel } from "@/modules/ledger/ui/period-label";
 import { moneyHref } from "@/app/owner/(app)/money/query";
 
 describe("profit or loss headline", () => {

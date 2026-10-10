@@ -7072,3 +7072,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** lib imports no module; require-owner is app code.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
+
+## Refactor step 6c, commit 3: money
+
+**When:** 2026-10-10
+
+**What:** To modules: expense-sheet to expense/ui (submitRecordExpense is now a prop that money/panel passes; its LedgerPeriodQuery import became a local KeptPeriodQuery type with the same fields, because ui may not import another module's schemas), cash-today to payment/ui, period-label to ledger/ui. The money pages' own composition went to money/_components (summary-card, activity, activity-map, period-bar, period-sheet, shop-row, skeleton) and owed/_components (owed-groups). Not moved to ledger/ui: activity-map, activity and summary-card, because they read booking, expense and shop application types and ledger may not import those modules. Server components that load data stay in the route: panel.tsx, activity-load.ts, actions.ts, query.ts, period-url.ts, page files.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/{expense,payment,ledger}/ui/*, src/app/owner/(app)/money/_components/*, owed/_components/*
+
+**How it connects:** expense/ui imports expense/domain, payment/ui and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app (money page tests) and test/components passed). Full suites and build not run.
