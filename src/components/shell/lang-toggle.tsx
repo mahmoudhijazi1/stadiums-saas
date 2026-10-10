@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { setUiLocale } from "@/app/locale-actions";
 import { Button } from "@/components/ui/button";
 import {
   htmlDir,
@@ -19,11 +18,14 @@ export function LangToggle({
   variant = "outline",
   size = "sm",
   className,
+  onChangeLocale,
 }: {
   locale: UiLocale;
   variant?: "outline" | "ghost";
   size?: "sm" | "icon-sm";
   className?: string;
+  /** The page passes the real Server Action (setUiLocale). */
+  onChangeLocale: (value: string) => Promise<unknown>;
 }) {
   const router = useRouter();
   const next = otherUiLocale(locale);
@@ -41,7 +43,7 @@ export function LangToggle({
       onClick={async () => {
         document.documentElement.lang = htmlLang(next);
         document.documentElement.dir = htmlDir(next);
-        await setUiLocale(next);
+        await onChangeLocale(next);
         router.refresh();
       }}
     >

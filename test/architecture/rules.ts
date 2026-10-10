@@ -15,7 +15,7 @@
  *
  * Rules: 1 module edges, 2 layers inside a module, 3 modules never import
  * app/components, 4 app imports module application/domain/schemas/ui only,
- * 5 lib and components import modules only through EXCEPTIONS,
+ * 5 lib and components import modules only through EXCEPTIONS (components/shell may import a module's ui/),
  * 6 module ui/ folders get data and actions through props (see UI_LIBS below).
  */
 

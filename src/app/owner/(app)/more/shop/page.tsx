@@ -1,4 +1,4 @@
-import { OwnerBackLink } from "@/app/owner/back-link";
+import { OwnerBackLink } from "@/components/shell/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";

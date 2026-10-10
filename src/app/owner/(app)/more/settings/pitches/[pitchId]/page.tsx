@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { OwnerBackLink } from "@/app/owner/back-link";
+import { OwnerBackLink } from "@/components/shell/back-link";
 import { queryString, requireOwnerMembership } from "@/app/owner/shared";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { EmptyState } from "@/components/ui/empty-state";

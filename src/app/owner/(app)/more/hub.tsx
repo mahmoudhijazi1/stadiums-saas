@@ -11,7 +11,7 @@ import {
   submitSetTimeDisplay,
 } from "@/app/owner/(app)/more/settings/actions";
 import { CountedPhrase, RelativeWhen } from "@/modules/booking/ui/notify-list";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import {
   BottomSheet,
   BottomSheetBody,

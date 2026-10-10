@@ -7044,3 +7044,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6c, commit 1: components/shell
+
+**When:** 2026-10-10
+
+**What:** git mv tab-bar, header (OwnerHeader), back-link, business-menu, offline-pill, theme-provider, theme-toggle, owner-service-worker, lang-toggle and unavailable-notice to src/components/shell (unavailable-notice is used by the public layout, the public page and the suspended page, so it is shell, not public-private). business-menu takes onLogout (submitLogout) and lang-toggle takes onChangeLocale (setUiLocale) as props; the owner layout and the public and dev palette pages pass the real actions; OwnerHeader forwards onLogout. Guard: rule 5 now lets files under components/shell import a module's ui/ (tab-bar uses booking/ui/live-queue, business-menu uses stadium/ui/share-card) and nothing else.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/components/shell/*, owner (app)/layout, (public)/page, dev/palette/page, test/architecture/*
+
+**How it connects:** shell imports module ui only, never application or infrastructure.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { OwnerBackLink } from "@/app/owner/back-link";
+import { OwnerBackLink } from "@/components/shell/back-link";
 import { queryString, requireOwnerMembership } from "@/app/owner/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";

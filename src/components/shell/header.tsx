@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { BusinessMenu } from "@/app/owner/business-menu";
-import { OfflinePill } from "@/app/owner/offline-pill";
+import { BusinessMenu } from "@/components/shell/business-menu";
+import { OfflinePill } from "@/components/shell/offline-pill";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
@@ -18,6 +18,7 @@ export function OwnerHeader({
   locale,
   showSell,
   logoSrc,
+  onLogout,
 }: {
   tenantName: string;
   publicUrl: string;
@@ -26,6 +27,7 @@ export function OwnerHeader({
   logoSrc: string;
   /** shop.sell: the sell button beside search. */
   showSell: boolean;
+  onLogout: (formData: FormData) => Promise<void>;
 }) {
   return (
     <header
@@ -42,7 +44,7 @@ export function OwnerHeader({
           "xl:max-w-6xl",
         )}
       >
-        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} logoSrc={logoSrc} />
+        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} logoSrc={logoSrc} onLogout={onLogout} />
         <div className="flex shrink-0 items-center">
           {showSell ? (
             <Link

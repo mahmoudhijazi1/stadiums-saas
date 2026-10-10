@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { OwnerBackLink } from "@/app/owner/back-link";
+import { OwnerBackLink } from "@/components/shell/back-link";
 import { queryString, requireOwnerMembership } from "@/app/owner/shared";
 import { getPerson } from "@/modules/people/application/get-person";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";

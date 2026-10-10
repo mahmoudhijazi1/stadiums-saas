@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
-import { submitLogout } from "@/app/owner/login/actions";
 import { ShareCard } from "@/modules/stadium/ui/share-card";
 import {
   BottomSheet,
@@ -23,12 +22,15 @@ export function BusinessMenu({
   publicUrl,
   locale,
   logoSrc,
+  onLogout,
 }: {
   tenantName: string;
   publicUrl: string;
   locale: UiLocale;
   /** The stadium's generated logo (/brand/icon/192, versioned). */
   logoSrc: string;
+  /** The page passes the real Server Action (submitLogout). */
+  onLogout: (formData: FormData) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -58,7 +60,7 @@ export function BusinessMenu({
           </BottomSheetHeader>
           <BottomSheetBody className="flex flex-col items-center gap-4">
             <ShareCard locale={locale} tenantName={tenantName} publicUrl={publicUrl} />
-            <form action={submitLogout} className="w-full">
+            <form action={onLogout} className="w-full">
               <SubmitButton
                 variant="ghost"
                 className="min-h-11 w-full justify-center gap-2"

@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { OwnerBackLink } from "@/app/owner/back-link";
+import { OwnerBackLink } from "@/components/shell/back-link";
 import { requireOwnerMembership } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";

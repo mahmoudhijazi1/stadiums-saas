@@ -11,7 +11,7 @@ import {
   queryString,
   requireOwnerMembership,
 } from "@/app/owner/shared";
-import { OwnerBackLink } from "@/app/owner/back-link";
+import { OwnerBackLink } from "@/components/shell/back-link";
 import { DayChips } from "@/modules/venue/ui/day-chips";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
