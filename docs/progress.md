@@ -6736,3 +6736,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** infrastructure no longer imports application.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 7: LedgerEntryRow to ledger/domain
+
+**When:** 2026-10-10
+
+**What:** Moved the LedgerEntryRow type to ledger/domain/entry-row.ts; infrastructure/entries.ts imports and re-exports it (list-ledger-activity unchanged); money/activity-map.ts imports it from domain. Removed the rule-4 exception.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/ledger/domain/entry-row.ts, ledger/infrastructure/entries.ts, src/app/owner/(app)/money/activity-map.ts, test/architecture/rules.ts
+
+**How it connects:** app/ no longer reaches ledger infrastructure.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.

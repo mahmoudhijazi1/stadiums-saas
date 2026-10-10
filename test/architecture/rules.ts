@@ -58,9 +58,6 @@ export const MODULE_EDGE_EXCEPTIONS: Exception[] = [
 
 /** Rules 2 to 5: files that break a rule today. Do not add; fix the code. */
 export const EXCEPTIONS: Exception[] = [
-  { file: "src/app/owner/(app)/money/activity-map.ts", target: "src/modules/ledger/infrastructure/entries", rule: 4,
-    reason: "type-only (LedgerEntryRow)",
-    fate: "export the row type from ledger/application or domain" },
   { file: "src/components/day-chips.tsx", target: "src/modules/venue/domain/availability", rule: 5,
     reason: "pure availability helper used by a shared component",
     fate: "move the helper to src/lib or a module ui/ folder" },
