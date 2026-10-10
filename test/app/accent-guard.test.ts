@@ -78,8 +78,9 @@ describe("accent colour only through the tokens", () => {
       'className="text-lime-400"',
       "border-yellow-300",
       "fill: var(--ls-volt-500)",
-      'style={{ background: "#2563EB" }}',
-      "color: #a78bfa",
+      // Taken from the constant, so the sample stays valid when the presets change.
+      `style={{ background: "${PRESET_HEXES[0]}" }}`,
+      `color: ${PRESET_HEXES[PRESET_HEXES.length - 1]!.toLowerCase()}`,
     ]) {
       expect({ line, caught: RAW.some((pattern) => pattern.test(line)) }).toEqual({ line, caught: true });
     }
