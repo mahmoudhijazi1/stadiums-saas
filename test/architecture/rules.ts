@@ -26,7 +26,7 @@ export const MODULES = [
 /** Rule 1: module -> modules it may import. Anything else fails. */
 export const MODULE_EDGES: Record<string, string[]> = {
   access: [],
-  notification: [],
+  notification: ["people"], // whatsapp-link uses toLebanonNumber (people/domain/phone)
   ledger: ["access"],
   people: ["access"],
   venue: ["access"],
@@ -92,7 +92,10 @@ export const EXCEPTIONS: Exception[] = [
     reason: "sanitizePhoneInput, a pure function",
     fate: "move to src/lib or a module ui/ folder" },
   { file: "src/lib/request-fields.ts", target: "src/modules/people/domain/phone", rule: 5,
-    reason: "documented in docs/ARCHITECTURE.md §1: normalizePhone, a pure function",
+    reason: "documented in docs/ARCHITECTURE.md §1: phone helpers, pure functions",
+    fate: "move phone helpers to src/lib" },
+  { file: "src/lib/tenant-settings.ts", target: "src/modules/people/domain/phone", rule: 5,
+    reason: "toLebanonNumber for the stadium's published phones, a pure function",
     fate: "move phone helpers to src/lib" },
 ];
 

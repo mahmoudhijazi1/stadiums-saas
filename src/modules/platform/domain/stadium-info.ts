@@ -1,10 +1,9 @@
 import { z } from "zod";
 import { BRAND_PRESET_KEYS } from "@/lib/brand-presets";
 import { DomainError } from "@/lib/errors";
-import { toLebanonNumber } from "@/lib/lebanon-phone";
 import { isAllowedMapLink } from "@/lib/map-link";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
-import { isPhoneText, normalizePhone } from "@/modules/people/domain/phone";
+import { isPhoneText, normalizePhone, toLebanonNumber } from "@/modules/people/domain/phone";
 
 /**
  * The "Stadium info" form: pure checks, no database. Each rule answers with a DomainError key

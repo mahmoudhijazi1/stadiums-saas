@@ -6694,3 +6694,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (see run). Full suites and build not run.
+
+## Cleanup 4: one phone rule
+
+**When:** 2026-10-10
+
+**What:** Merged src/lib/lebanon-phone.ts (toLebanonNumber) into src/modules/people/domain/phone.ts and deleted it; the five importers (stadium-contact, tenant-settings, whatsapp-link, stadium-info) now import from there. Its tests moved into test/modules/people/domain/phone.test.ts with every case kept. Two knock-on guard changes, not widenings of behaviour: MODULE_EDGES gains notification -> people (downward, no cycle; ARCHITECTURE.md table updated), and lib/tenant-settings.ts gets a rule-5 exception beside request-fields, fate 'move phone helpers to src/lib'.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/people/domain/phone.ts, src/lib/lebanon-phone.ts (deleted), importers, test/modules/people/domain/phone.test.ts, test/architecture/rules.ts, docs/ARCHITECTURE.md, docs/DATA-MODEL.md
+
+**How it connects:** people/domain/phone stays pure (imports nothing).
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
