@@ -6918,3 +6918,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** people/ui imports nothing from application or infrastructure.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; no unit test existed for it). Full suites and build not run.
+
+## Refactor step 6a, commit 3: payment/ui
+
+**When:** 2026-10-10
+
+**What:** git mv app/owner/tender-balance.tsx (the tender checklist and change preview; uses payment/domain/tender-preview) and tonal-collect.tsx (the shared Collect button style) to modules/payment/ui. Neither calls a Server Action: they take values and callbacks as props already. per-player-collect.tsx stays in today/ (it imports a Server Action and booking data; 6b).
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/payment/ui/{tender-balance,tonal-collect}.tsx and importers (expense-sheet, upcoming-panel, sell-screen, booking-items, per-player-collect)
+
+**How it connects:** payment/ui imports payment/domain and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.

@@ -48,7 +48,7 @@ import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
-import { TenderBalance } from "@/app/owner/tender-balance";
+import { TenderBalance } from "@/modules/payment/ui/tender-balance";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import type { UpcomingStatus } from "@/modules/booking/domain/home-inbox";
 import {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ItemTiles, QTY_MAX, partsOf, type SellItem } from "@/app/owner/item-tiles";
 import { PartsBalance } from "@/app/owner/parts-balance";
-import { TonalCollectButton } from "@/app/owner/tonal-collect";
+import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
 import { Button } from "@/components/ui/button";
 import {
   BottomSheet,

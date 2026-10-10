@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
-import { TonalCollectButton } from "@/app/owner/tonal-collect";
+import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
 import {
   submitCollectAllRemaining,
   submitCollectSlot,
