@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatSlotDuration } from "@/components/slot-picker";
+import { formatSlotDuration } from "@/modules/booking/ui/slot-picker";
 
 describe("formatSlotDuration", () => {
   it("labels whole hours and 90-minute slots in Latin", () => {

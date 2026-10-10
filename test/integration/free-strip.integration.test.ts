@@ -31,7 +31,7 @@ import {
   parseScheduleConfig,
   type Weekday,
 } from "@/modules/venue/domain/schedule-config";
-import { FreeStrip as FreeStripView } from "@/app/owner/(app)/today/free-strip";
+import { FreeStrip as FreeStripView } from "@/modules/booking/ui/free-strip";
 import { createStaffSession, seedMinimalFixture, seedTwoTenants } from "./fixtures";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
 import { clearReactCache } from "./setup-mocks";
@@ -262,6 +262,8 @@ describe("Today free strip", () => {
           day: strip.day,
           mayBook,
           locale: "en",
+          previewSeriesAction: async () => ({ error: "unused" }),
+          submitCreateOwnerBooking: async () => {},
         }),
       );
     expect(render(false)).not.toContain("<button");

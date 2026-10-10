@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, posix, relative } from "node:path";
 import { describe, expect, it } from "@jest/globals";
-import { EXCEPTIONS, IMPURE_LIBS, MODULE_EDGES, MODULE_EDGE_EXCEPTIONS, MODULES, type Exception } from "./rules";
+import { EXCEPTIONS, IMPURE_LIBS, MODULE_EDGES, MODULE_EDGE_EXCEPTIONS, MODULES, UI_LIBS, UI_SERVER_ONLY_PACKAGES, type Exception } from "./rules";
 
 /** Import rules for src/ (docs/ARCHITECTURE.md §1); the data is in ./rules.ts. */
 const ROOT = process.cwd();
@@ -47,11 +47,13 @@ function place(path: string): Place {
   return { area: (a?.[1] as Place["area"]) ?? "other" };
 }
 
+const packageImports: Array<{ file: string; spec: string }> = [];
 interface Edge { file: string; target: string; from: Place; to: Place }
 const edges: Edge[] = files(join(ROOT, "src")).flatMap((file) => {
   const text = readFileSync(join(ROOT, file), "utf8");
   return specifiers(text).flatMap((spec) => {
     const target = resolve(file, spec);
+    if (!target) packageImports.push({ file, spec });
     return target ? [{ file, target, from: place(file), to: place(target) }] : [];
   });
 });
@@ -61,15 +63,42 @@ const excused = (list: Exception[], e: Edge, rule: number) =>
 const isPrisma = (t: string) => t.startsWith("src/generated/");
 const impure = (t: string) => isPrisma(t) || IMPURE_LIBS.some((l) => t === l || t.startsWith(l + "/"));
 
-function violations(): string[] {
+const inUi = (t: string, l: string) => t === l || t.startsWith(l + "/");
+
+/** Rule 6: a module ui/ file gets data and actions through props: no application, infrastructure, db, client, app or server-only code. */
+function uiViolations(e: Edge, fail: (e: Edge, rule: number, allowed: string) => void): void {
+  const { from, to } = e;
+  const allowedText = "components/ui, " + UI_LIBS.join(", ") + ", own domain/schemas/ui, other modules' domain/ui along the edge table";
+  if (to.area === "module" && (to.layer === "application" || to.layer === "infrastructure"))
+    fail(e, 6, allowedText + " (never application or infrastructure; receive data and actions as props)");
+  else if (to.area === "module" && to.module === from.module && !["domain", "schemas", "ui"].includes(to.layer!))
+    fail(e, 6, allowedText);
+  else if (to.area === "module" && to.module !== from.module && !["domain", "ui"].includes(to.layer!))
+    fail(e, 6, allowedText);
+  else if (isPrisma(e.target) || e.target.startsWith("src/app/") || e.target === "src/app")
+    fail(e, 6, allowedText + " (not @/app or the Prisma client)");
+  else if (to.area === "lib" && !UI_LIBS.some((l) => inUi(e.target, l)))
+    fail(e, 6, allowedText);
+}
+
+/** Rule 6, packages: a ui file imports nothing server-only. */
+function uiPackageViolations(list: Array<{ file: string; spec: string }>): string[] {
+  return list
+    .filter((x) => place(x.file).layer === "ui" && place(x.file).area === "module")
+    .filter((x) => UI_SERVER_ONLY_PACKAGES.some((p) => x.spec === p || x.spec.startsWith(p + "/")))
+    .map((x) => `${x.file} imports ${x.spec}: rule 6 forbids it; allowed: nothing server-only in a module ui/ folder`);
+}
+
+function violations(list: Edge[] = edges): string[] {
   const out: string[] = [];
   const fail = (e: Edge, rule: number, allowedText: string) => {
     if (excused(EXCEPTIONS, e, rule) || excused(MODULE_EDGE_EXCEPTIONS, e, rule)) return;
     out.push(`${e.file} imports ${e.target}: rule ${rule} forbids it; allowed: ${allowedText}`);
   };
-  for (const e of edges) {
+  for (const e of list) {
     const { from, to } = e;
     if (from.area === "module") {
+      if (from.layer === "ui") uiViolations(e, fail);
       const uiOk = from.layer === "ui" && e.target.startsWith("src/components/ui");
       if ((to.area === "app" && !isPrisma(e.target)) || (to.area === "components" && !uiOk))
         fail(e, 3, "no @/app or @/components (a module ui/ folder may import @/components/ui)");
@@ -122,7 +151,49 @@ describe("dependency rules", () => {
   });
 
   it("no import breaks a rule", () => {
-    expect(violations()).toEqual([]);
+    expect([...violations(), ...uiPackageViolations(packageImports)]).toEqual([]);
+  });
+
+  describe("rule 6: module ui/ folders", () => {
+    const edge = (file: string, target: string): Edge => ({ file, target, from: place(file), to: place(target) });
+    const ui = "src/modules/people/ui/person-card.tsx";
+
+    it("fails a ui file that imports application, infrastructure, @/app or the Prisma client", () => {
+      for (const target of [
+        "src/modules/people/application/find-or-create-person",
+        "src/modules/people/infrastructure/persons",
+        "src/modules/access/application/get-current-membership",
+        "src/app/owner/shared",
+        "src/generated/prisma/client",
+        "src/lib/db",
+      ]) {
+        const found = violations([edge(ui, target)]);
+        expect(found.some((message) => message.includes("rule 6 forbids it"))).toBe(true);
+      }
+    });
+
+    it("fails server-only packages in a ui file", () => {
+      for (const spec of ["server-only", "next/headers", "next/server"])
+        expect(uiPackageViolations([{ file: ui, spec }])).toHaveLength(1);
+      expect(uiPackageViolations([{ file: ui, spec: "react" }])).toEqual([]);
+      expect(uiPackageViolations([{ file: "src/modules/people/domain/x.ts", spec: "server-only" }])).toEqual([]);
+    });
+
+    it("allows components/ui, lib format and copy, own domain and ui, and other modules' domain along the edge table", () => {
+      for (const target of [
+        "src/components/ui/button",
+        "src/lib/format/money",
+        "src/lib/copy/index",
+        "src/lib/locale",
+        "src/modules/people/domain/phone",
+        "src/modules/people/ui/other",
+        "src/modules/access/domain/can",
+      ]) expect(violations([edge(ui, target)])).toEqual([]);
+    });
+
+    it("fails another module's domain when the module edge is not in the table", () => {
+      expect(violations([edge(ui, "src/modules/booking/domain/series")])).toHaveLength(1);
+    });
   });
 
   it("no exception is stale (the file exists and still has the import)", () => {

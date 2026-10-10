@@ -6890,3 +6890,157 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 4 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 1: guard rule 6 for module ui folders
+
+**When:** 2026-10-10
+
+**What:** test/architecture gets rule 6: a file in src/modules/<m>/ui may import components/ui, lib/format, lib/copy, lib/locale, lib/plural, lib/utils (UI_LIBS in rules.ts), its own domain/schemas/ui and other modules' domain/ui along the edge table; it may not import application or infrastructure (own or other), lib/db, the Prisma client, @/app, or server-only packages (server-only, next/headers, next/server). ui gets data and actions through props: a Server Action is a prop typed in the ui file and the page passes it. Tests prove a ui file importing application, infrastructure, @/app, the client, lib/db or a server-only package fails, and the allowed imports pass.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/architecture/dependency-rules.test.ts, test/architecture/rules.ts
+
+**How it connects:** No ui folder exists yet; the rule applies as soon as one does.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 2: people/ui
+
+**When:** 2026-10-10
+
+**What:** git mv app/owner/person-link.tsx to modules/people/ui/person-link.tsx (a link to a person's page; props only, no actions, no module imports besides next/link, lucide, cn). Importers: today/upcoming-panel, notify-list, pending-list.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/people/ui/person-link.tsx and its 3 importers
+
+**How it connects:** people/ui imports nothing from application or infrastructure.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; no unit test existed for it). Full suites and build not run.
+
+## Refactor step 6a, commit 3: payment/ui
+
+**When:** 2026-10-10
+
+**What:** git mv app/owner/tender-balance.tsx (the tender checklist and change preview; uses payment/domain/tender-preview) and tonal-collect.tsx (the shared Collect button style) to modules/payment/ui. Neither calls a Server Action: they take values and callbacks as props already. per-player-collect.tsx stays in today/ (it imports a Server Action and booking data; 6b).
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/payment/ui/{tender-balance,tonal-collect}.tsx and importers (expense-sheet, upcoming-panel, sell-screen, booking-items, per-player-collect)
+
+**How it connects:** payment/ui imports payment/domain and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 4: shop/ui
+
+**When:** 2026-10-10
+
+**What:** git mv app/owner/item-tiles.tsx, parts-balance.tsx and (app)/sell/sell-screen.tsx to modules/shop/ui. SellScreen no longer imports the Server Action: it takes onSell, typed in the ui file (WalkInSaleInput, WalkInSaleResult, the same shape as the action's SellResult), and sell/page.tsx passes submitWalkInSale. Behaviour is the same call with the same input. parts-balance uses shop/domain/pricing, so it belongs to shop, not payment. Not moved: more/shop/shop-catalog.tsx (imports ../settings/pitches/money-input and ../settings-list, route code that other settings screens share; moving it needs those moved first, step 6b), money/shop-row.tsx (a Money page row, 6b) and today/add-items-sheet.tsx and booking-items.tsx (put items on a game: the use cases live in booking, 6b).
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/shop/ui/{item-tiles,parts-balance,sell-screen}.tsx, (app)/sell/page.tsx and importers
+
+**How it connects:** shop/ui imports shop/domain, payment/ui (tonal-collect, along the shop -> payment edge) and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, commit 5: tenant-context stops importing stadium
+
+**When:** 2026-10-10
+
+**What:** lib/tenant-context.ts typed brandPreset with BrandPresetKey from stadium/domain/brand-presets; it now types it as TenantSettings['brandPreset'] (from lib/tenant-settings, same type) and returns the stored key as before. The code that needs colours already resolves the key through the stadium module (stadium/domain/brand-identity and accent-css). Removed the rule-5 exception.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/tenant-context.ts, test/architecture/rules.ts
+
+**How it connects:** lib/tenant-context no longer imports any module.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6a, docs
+
+**When:** 2026-10-10
+
+**What:** ARCHITECTURE.md: a 'Module ui/ folders' paragraph with rule 6 and the current ui folders. CODEMAP.md: the ui rule in one line and the ui files of people, payment and shop.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/ARCHITECTURE.md, docs/CODEMAP.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6b, commit 1: generic pieces to components/ui
+
+**When:** 2026-10-10
+
+**What:** git mv settings-list (SettingsSection, SettingsRow), money-input (MoneyInput, isValidUsd) and scrollbar-peek to src/components/ui; every importer updated (hub, pitches form/page/price-cards, shop-catalog, period-sheet, root layout); the money-input test moved to test/components/.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/components/ui/{settings-list,money-input,scrollbar-peek}.tsx, importers, test/components/*
+
+**How it connects:** Generic UI: no module imports.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; moved money-input test 23 passed (with test/components)). Full suites and build not run.
+
+## Refactor step 6b, commit 2: venue/ui
+
+**When:** 2026-10-10
+
+**What:** git mv components/day-chips.tsx, date-calendar-chip.tsx and day-chip-class.ts to modules/venue/ui (the public and Book date row; they use venue/domain/availability civil dates and no action or use case). Importers updated. today/day-strip, day-tabs and day-nav stay out: day-strip and day-tabs use booking/domain (buildDayTabs, start-day), so they go to booking/ui in commit 4. Removed the day-chips rule-5 exception.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/venue/ui/*, importers, test/architecture/rules.ts
+
+**How it connects:** venue/ui imports venue/domain and components/ui only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; stadium-preview test passed). Full suites and build not run.
+
+## Refactor step 6b, commit 3: stadium/ui
+
+**When:** 2026-10-10
+
+**What:** git mv owner/qr-sheet.tsx and share-card.tsx to modules/stadium/ui (the public-page QR sheet and the share card; props only, no action or use case). Importers updated.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/stadium/ui/{qr-sheet,share-card}.tsx, importers
+
+**How it connects:** stadium/ui imports components/ui and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
+
+## Refactor step 6b, commit 4: booking/ui
+
+**When:** 2026-10-10
+
+**What:** Moved with git mv into modules/booking/ui: booking-row, debt-row, requested-name-notice, notify-list, live-queue, the day-sheet/* files and their builder test, day-strip/day-tabs/day-nav (they use booking/domain day tabs), free-strip, fee-forms, extend-form, per-player-collect, booking-items, add-items-sheet, upcoming-panel (as is; split in step 7), the series components (series-manage, weekly-confirm, weekly-preview, series-labels), decision-notify, free-slot-list, merge-slots, reject-sheet, book-picker, and slot-picker (components -> booking/ui). Every Server Action import became a typed prop with the same name, passed down by the parents and supplied by the route files (today/lists, free-strip-section, book/slots, more/weekly list, requests pending-list). The result types the props need (ItemsResult, PayerHit, ExtendActionResult, PerPlayerResult, WeekView, PreviewResult, SeriesSaveResult, SeriesWeekView, SeriesSheetResult, CancelRestPreviewResult, CancelRestResult) moved to booking/ui/action-types.ts; the actions files re-export them. SeriesCreatedSummary and OutcomeKind/OutcomeNotify moved to booking/domain (series-created, outcome-notify), re-exported by their application files. lib/request-fields.ts moved to booking/domain/request-fields.ts (its only user is slot-picker). pending-list went to requests/_components (one route; an async server component that calls hasSeveralPitches and posts to actions). Not moved, route-level server data loaders that call use cases: today/lists, free-strip-section, requests/inbox, free-slots, book/slots. Removed allowlist entries: slot-picker -> people phone, request-fields -> people phone. The free-strip integration test passes stub action props.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/booking/ui/*, booking/domain/{series-created,outcome-notify,request-fields}.ts, route files, test/integration/free-strip.integration.test.ts, test/architecture/rules.ts
+
+**How it connects:** booking/ui passes rule 6: no application, infrastructure or @/app imports; actions arrive as props.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app, test/components, test/modules/booking and people passed. Integration tests (free-strip) typecheck but were not run.). Full suites and build not run.
+
+## Refactor step 6b, docs
+
+**When:** 2026-10-10
+
+**What:** ARCHITECTURE.md lists the ui folders (venue, stadium, booking added) and where the action types live; CODEMAP.md has venue/ui, stadium/ui, booking/ui and the components/ui additions.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/ARCHITECTURE.md, docs/CODEMAP.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.

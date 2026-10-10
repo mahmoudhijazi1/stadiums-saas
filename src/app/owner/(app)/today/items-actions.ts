@@ -5,13 +5,9 @@ import { addBookingItems } from "@/modules/booking/application/add-booking-items
 import { removeBookingItem } from "@/modules/booking/application/remove-booking-item";
 import { searchPeople } from "@/modules/people/application/search-people";
 import { collectTabPayment } from "@/modules/shop/application/collect-tab-payment";
+import type { ItemsResult, PayerHit } from "@/modules/booking/ui/action-types";
+export type { ItemsResult, PayerHit };
 
-/**
- * Thin: each use case authorizes (shop.sell, bookings.adjust_due, payments.collect), reads the
- * prices itself and writes in one transaction. The client sends ids and quantities, never a price.
- * The booking sheet refreshes the page after a success.
- */
-export type ItemsResult = { ok: true; itemCount?: number; changeLbp?: string; changeUsd?: string } | { error: string };
 
 export async function submitAddBookingItems(input: unknown): Promise<ItemsResult> {
   try {
@@ -40,7 +36,6 @@ export async function submitCollectTab(input: unknown): Promise<ItemsResult> {
   }
 }
 
-export type PayerHit = { id: string; name: string; phone: string | null };
 
 /** Person search for the payer picker: the same search as the header, five hits. */
 export async function searchPayers(query: string): Promise<{ hits: PayerHit[] } | { error: string }> {

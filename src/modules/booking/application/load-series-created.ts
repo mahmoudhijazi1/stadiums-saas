@@ -7,20 +7,9 @@ import { SERIES_TIME_ZONE } from "@/modules/booking/application/series-weeks";
 import { findSeries, listSeriesOccurrences } from "@/modules/booking/infrastructure/series";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { findPersonById } from "@/modules/people/infrastructure/persons";
+import type { SeriesCreatedSummary } from "@/modules/booking/domain/series-created";
+export type { SeriesCreatedSummary };
 
-export type SeriesCreatedSummary = {
-  seriesId: string;
-  personName: string;
-  weekdayLabel: string;
-  timeLabel: string;
-  firstDateLabel: string;
-  /** Upcoming APPROVED games of the series (what was just created, plus any earlier ones left). */
-  games: number;
-  /** Weeks that were skipped, as short date labels. */
-  skippedLabels: string[];
-  /** wa.me link with the SERIES_CONFIRMED text; null when the person has no usable phone. */
-  whatsAppHref: string | null;
-};
 
 /**
  * What the "weekly booking created" sheet shows after saving, read from the saved rows (never

@@ -3,7 +3,7 @@ import {
   interestsForGroup,
   interestsWithoutPending,
   mergeByTime,
-} from "@/app/owner/(app)/requests/merge-slots";
+} from "@/modules/booking/ui/merge-slots";
 
 const pitch = "pitch-a";
 

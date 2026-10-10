@@ -6,13 +6,13 @@ import { BRAND_PRESETS, type BrandPresetKey } from "@/modules/stadium/domain/bra
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { sanitizePhoneInput } from "@/modules/people/domain/phone";
-import { dayChipClass } from "@/components/day-chip-class";
+import { dayChipClass } from "@/modules/venue/ui/day-chip-class";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { ExpectedPill, StatusPill } from "@/app/owner/booking-row";
+import { ExpectedPill, StatusPill } from "@/modules/booking/ui/booking-row";
 import { cn } from "cn";
 
 export type StadiumFormDefaults = {

@@ -3,7 +3,7 @@ import { formatDisplayDate, clockRangeFromLocals, formatClockRange, formatClockR
 import { civilFromYyyyMmDd, parseOwnerBookOn } from "@/app/owner/(app)/book/date";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
 import { comparedWithLabel, monthName, periodChipLabel, rangeLabel } from "@/app/owner/(app)/money/period-label";
-import { seriesRowLine, weeklyWeekdayAndTime } from "@/app/owner/(app)/series/labels";
+import { seriesRowLine, weeklyWeekdayAndTime } from "@/modules/booking/ui/series-labels";
 
 /**
  * Characterization of every time formatter and the app-local label helpers: these strings are what

@@ -8,7 +8,7 @@ import { bookingRemaining, participantRemaining } from "@/modules/payment/domain
 import { formatDisplayDate } from "@/lib/format/time";
 import { nightHint } from "@/modules/booking/application/night-hint";
 import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
-import { BookingRow, variantOf } from "@/app/owner/booking-row";
+import { BookingRow, variantOf } from "@/modules/booking/ui/booking-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { CircleAlert, CircleCheck } from "lucide-react";

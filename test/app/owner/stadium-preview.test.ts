@@ -15,8 +15,8 @@ const SOURCE = readFileSync(
 describe("Stadium info preview", () => {
   it("renders the real components", () => {
     expect(SOURCE).toContain('import { Button } from "@/components/ui/button"');
-    expect(SOURCE).toContain('import { dayChipClass } from "@/components/day-chip-class"');
-    expect(SOURCE).toContain('import { ExpectedPill, StatusPill } from "@/app/owner/booking-row"');
+    expect(SOURCE).toContain('import { dayChipClass } from "@/modules/venue/ui/day-chip-class"');
+    expect(SOURCE).toContain('import { ExpectedPill, StatusPill } from "@/modules/booking/ui/booking-row"');
     expect(SOURCE).toMatch(/dayChipClass\(true\)/);
     expect(SOURCE).toMatch(/variant="link"/);
   });
@@ -41,8 +41,8 @@ describe("Stadium info preview", () => {
   });
 
   it("the day chip classes are shared with the app's day strip", () => {
-    const strip = readFileSync(join(process.cwd(), "src", "components", "day-chips.tsx"), "utf8");
-    expect(strip).toContain('import { dayChipClass } from "@/components/day-chip-class"');
+    const strip = readFileSync(join(process.cwd(), "src", "modules", "venue", "ui", "day-chips.tsx"), "utf8");
+    expect(strip).toContain('import { dayChipClass } from "@/modules/venue/ui/day-chip-class"');
     expect(strip).not.toContain("function dayChipClass");
   });
 });

@@ -14,8 +14,9 @@
  * - Never widen a rule to silence one file: list that file here with a reason.
  *
  * Rules: 1 module edges, 2 layers inside a module, 3 modules never import
- * app/components, 4 app imports module application/domain/schemas only,
- * 5 lib and components import modules only through EXCEPTIONS.
+ * app/components, 4 app imports module application/domain/schemas/ui only,
+ * 5 lib and components import modules only through EXCEPTIONS,
+ * 6 module ui/ folders get data and actions through props (see UI_LIBS below).
  */
 
 export const MODULES = [
@@ -53,15 +54,6 @@ export const MODULE_EDGE_EXCEPTIONS: Exception[] = [
 
 /** Rules 2 to 5: files that break a rule today. Do not add; fix the code. */
 export const EXCEPTIONS: Exception[] = [
-  { file: "src/components/day-chips.tsx", target: "src/modules/venue/domain/availability", rule: 5,
-    reason: "pure availability helper used by a shared component",
-    fate: "move the helper to src/lib or a module ui/ folder" },
-  { file: "src/components/slot-picker.tsx", target: "src/modules/people/domain/phone", rule: 5,
-    reason: "sanitizePhoneInput, a pure function",
-    fate: "move to src/lib or a module ui/ folder" },
-  { file: "src/lib/request-fields.ts", target: "src/modules/people/domain/phone", rule: 5,
-    reason: "documented in docs/ARCHITECTURE.md §1: phone helpers, pure functions",
-    fate: "move phone helpers to src/lib" },
   { file: "src/lib/tenant-settings.ts", target: "src/modules/people/domain/phone", rule: 5,
     reason: "toLebanonNumber for the stadium's published phones, a pure function",
     fate: "tenant-settings mixes stadium keys with booking rules and time display; split per key group in a later step" },
@@ -71,9 +63,6 @@ export const EXCEPTIONS: Exception[] = [
   { file: "src/lib/tenant-settings.ts", target: "src/modules/stadium/domain/map-link", rule: 5,
     reason: "validates the map link stored in settings",
     fate: "goes with the split of tenant-settings by key group" },
-  { file: "src/lib/tenant-context.ts", target: "src/modules/stadium/domain/brand-presets", rule: 5,
-    reason: "tenant context carries the brand preset key for the accent colour",
-    fate: "tenant context reads it from the stadium module application in a later step" },
 ];
 
 /** Rule 2: libs a domain or schemas file must not import (they stay pure). */
@@ -81,3 +70,15 @@ export const IMPURE_LIBS = [
   "src/lib/db", "src/lib/platform-db", "src/lib/logger", "src/lib/tenant-context",
   "src/lib/env", "src/lib/rate-limit",
 ];
+
+/**
+ * Rule 6: the only src/lib folders and files a module ui/ file may import. ui gets data and
+ * actions through props: it never imports application, infrastructure, db, the Prisma client,
+ * @/app or server-only code. A Server Action is a prop typed in the ui file; the page passes it.
+ */
+export const UI_LIBS = [
+  "src/lib/format", "src/lib/copy", "src/lib/locale", "src/lib/plural", "src/lib/utils",
+];
+
+/** Rule 6: packages a module ui/ file must not import. */
+export const UI_SERVER_ONLY_PACKAGES = ["server-only", "next/headers", "next/server"];

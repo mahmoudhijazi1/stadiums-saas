@@ -7,7 +7,7 @@ import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
 import { cn } from "cn";
-import { DebtRow, type DebtRowView } from "../../today/debt-row";
+import { DebtRow, type DebtRowView } from "@/modules/booking/ui/debt-row";
 
 export type OwedGroupView = {
   key: string;

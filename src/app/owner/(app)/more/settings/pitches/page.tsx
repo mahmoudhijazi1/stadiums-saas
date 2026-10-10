@@ -8,7 +8,7 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { SettingsRow, SettingsSection } from "../../settings-list";
+import { SettingsRow, SettingsSection } from "@/components/ui/settings-list";
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import { formatHoursSummary, hoursToRows } from "@/modules/venue/domain/pitch-form-model";
 

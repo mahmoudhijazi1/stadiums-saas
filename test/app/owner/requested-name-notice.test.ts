@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { RequestedNameNotice } from "@/app/owner/requested-name-notice";
+import { RequestedNameNotice } from "@/modules/booking/ui/requested-name-notice";
 
 /** Security audit S-6: the request card shows the typed name only when it differs. */
 function render(requestedName: string | null, locale: "ar" | "en") {

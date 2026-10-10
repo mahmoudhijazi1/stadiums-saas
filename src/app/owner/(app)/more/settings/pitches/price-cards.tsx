@@ -14,7 +14,7 @@ import {
 } from "@/modules/venue/domain/pitch-form-model";
 import { MAX_PRICE_RULES } from "@/modules/venue/schemas/pitch-draft";
 import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
-import { isValidUsd, MoneyInput } from "./money-input";
+import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
 
 export type PriceCard = { key: string; days: Weekday[]; priceUsd: string };
 

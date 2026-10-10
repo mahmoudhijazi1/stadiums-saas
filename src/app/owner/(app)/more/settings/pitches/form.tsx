@@ -17,7 +17,7 @@ import {
 } from "@/modules/venue/domain/pitch-form-model";
 import type { PitchPriceRule } from "@/modules/venue/schemas/pitch-draft";
 import { HoursRows } from "./hours-rows";
-import { isValidUsd, MoneyInput } from "./money-input";
+import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
 import { PreviewCard } from "./preview-card";
 import { PriceCards, type PriceCard } from "./price-cards";
 

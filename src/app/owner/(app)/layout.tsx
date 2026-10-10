@@ -10,7 +10,7 @@ import {
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { latestRequestedAtIso } from "@/modules/booking/domain/live-queue";
-import { LiveQueue } from "@/app/owner/live-queue";
+import { LiveQueue } from "@/modules/booking/ui/live-queue";
 import { OwnerHeader } from "@/app/owner/header";
 import { brandIconPath, brandIdentityOf } from "@/modules/stadium/domain/brand-identity";
 import { OwnerTabBar } from "@/app/owner/tab-bar";

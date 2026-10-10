@@ -2,11 +2,11 @@
 
 import { useState, type ReactNode } from "react";
 import { Bell, ChevronDown } from "lucide-react";
-import { BookingCard } from "@/components/day-sheet/booking-card";
-import { buildDaySheet, freeCount, type SheetRow } from "@/components/day-sheet/build-day-sheet";
-import { DaySheet, NowDivider } from "@/components/day-sheet/day-sheet";
-import { FreeRow } from "@/components/day-sheet/free-row";
-import { PitchSwitcher } from "@/components/day-sheet/pitch-switcher";
+import { BookingCard } from "@/modules/booking/ui/day-sheet/booking-card";
+import { buildDaySheet, freeCount, type SheetRow } from "@/modules/booking/ui/day-sheet/build-day-sheet";
+import { DaySheet, NowDivider } from "@/modules/booking/ui/day-sheet/day-sheet";
+import { FreeRow } from "@/modules/booking/ui/day-sheet/free-row";
+import { PitchSwitcher } from "@/modules/booking/ui/day-sheet/pitch-switcher";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { formatLocalHm, shortPeriodOf } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";

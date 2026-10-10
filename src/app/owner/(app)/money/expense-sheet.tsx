@@ -19,7 +19,7 @@ import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
-import { TenderBalance } from "@/app/owner/tender-balance";
+import { TenderBalance } from "@/modules/payment/ui/tender-balance";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "cn";
 

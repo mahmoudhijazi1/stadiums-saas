@@ -2,12 +2,14 @@ import { listApprovedOccupied } from "@/modules/booking/application/list-approve
 import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { civilFromYyyyMmDd } from "./date";
-import { OwnerSlotPicker } from "./picker";
+import { OwnerSlotPicker } from "@/modules/booking/ui/book-picker";
 import { OWNER_TIME_ZONE } from "@/app/owner/shared";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/copy";
+import { previewSeriesAction } from "@/app/owner/(app)/series/actions";
+import { submitCreateOwnerBooking } from "@/app/owner/(app)/book/actions";
 
 /**
  * Thin Book RSC. Occupied from Booking; Venue only UTC ranges.
@@ -44,6 +46,6 @@ export async function OwnerBookSlots({
   }
 
   return (
-    <OwnerSlotPicker pitches={pitches} bookOn={bookOn} locale={locale} />
+    <OwnerSlotPicker previewSeriesAction={previewSeriesAction} submitCreateOwnerBooking={submitCreateOwnerBooking} pitches={pitches} bookOn={bookOn} locale={locale} />
   );
 }

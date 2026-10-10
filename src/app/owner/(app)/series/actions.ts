@@ -17,25 +17,12 @@ import {
 import { renewSeries } from "@/modules/booking/application/renew-series";
 import { loadSeriesSheet, previewCancelRest } from "@/modules/booking/application/series-sheet";
 import { bookableCount, declineTotal, type OccurrenceState } from "@/modules/booking/domain/series";
+import type { WeekView, PreviewResult, SeriesSaveResult, SeriesWeekView, SeriesSheetResult, CancelRestPreviewResult, CancelRestResult } from "@/modules/booking/ui/action-types";
+export type { WeekView, PreviewResult, SeriesSaveResult, SeriesWeekView, SeriesSheetResult, CancelRestPreviewResult, CancelRestResult };
 
 const TIME_ZONE = "Asia/Beirut";
 
-/**
- * Weekly series actions. They return results instead of redirecting: the sheet stays open and
- * shows the preview, then what was created. The user and the permissions come from the session
- * inside each use case.
- */
-export type WeekView = {
-  index: number;
-  startIso: string;
-  dateLabel: string;
-  state: OccurrenceState;
-  pendingCount: number;
-};
 
-export type PreviewResult =
-  | { ok: true; weeks: WeekView[]; bookable: number; declines: number }
-  | { error: string };
 
 const iso = z.iso.datetime();
 const count = z.number().int();
@@ -90,9 +77,6 @@ export async function previewSeriesAction(input: unknown): Promise<PreviewResult
   }
 }
 
-export type SeriesSaveResult =
-  | { ok: true; summary: SeriesCreatedSummary | null; created: number; skippedLabels: string[] }
-  | { error: string };
 
 const saveSchema = z.discriminatedUnion("kind", [
   z.strictObject({
@@ -142,16 +126,7 @@ export async function submitSeriesSave(input: unknown): Promise<SeriesSaveResult
 
 const seriesIdSchema = z.strictObject({ seriesId: z.string().min(1).max(64) });
 
-export type SeriesWeekView = {
-  bookingId: string;
-  dateLabel: string;
-  timeLabel: string;
-  status: "upcoming" | "played" | "cancelled" | "no_show";
-};
 
-export type SeriesSheetResult =
-  | { ok: true; weeks: SeriesWeekView[]; mayRenew: boolean; mayCancelRest: boolean }
-  | { error: string };
 
 /** The weeks of one series, for the series sheet. */
 export async function loadSeriesSheetAction(input: unknown): Promise<SeriesSheetResult> {
@@ -188,9 +163,6 @@ export async function loadSeriesSheetAction(input: unknown): Promise<SeriesSheet
   }
 }
 
-export type CancelRestPreviewResult =
-  | { ok: true; willCancel: number; leftAlone: string[] }
-  | { error: string };
 
 function shortDate(start: Date, locale: Awaited<ReturnType<typeof getUiLocale>>): string {
   return formatDisplayDate(start, locale, { weekday: "short", day: "numeric", month: "short" }, TIME_ZONE);
@@ -212,9 +184,6 @@ export async function previewCancelRestAction(input: unknown): Promise<CancelRes
   }
 }
 
-export type CancelRestResult =
-  | { ok: true; cancelled: number; leftAlone: string[] }
-  | { error: string };
 
 /** "Cancel the rest": no fee; weeks with collected money stay and are listed. */
 export async function submitCancelRest(input: unknown): Promise<CancelRestResult> {

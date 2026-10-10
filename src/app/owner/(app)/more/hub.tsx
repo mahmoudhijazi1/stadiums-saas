@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { setUiLocale } from "@/app/locale-actions";
-import { ShareCard } from "@/app/owner/share-card";
+import { ShareCard } from "@/modules/stadium/ui/share-card";
 import {
   submitSetBookingRules,
   submitSetExchangeRate,
   submitSetTimeDisplay,
 } from "@/app/owner/(app)/more/settings/actions";
-import { CountedPhrase, RelativeWhen } from "@/app/owner/notify-list";
+import { CountedPhrase, RelativeWhen } from "@/modules/booking/ui/notify-list";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   BottomSheet,
@@ -33,7 +33,7 @@ import type { TimeDisplay } from "@/lib/tenant-settings";
 import { dayStartClock, ui, uiCount } from "@/lib/copy";
 import { SelectField } from "@/components/ui/select-field";
 import { Figure } from "@/components/ui/figure";
-import { SettingsRow, SettingsSection } from "./settings-list";
+import { SettingsRow, SettingsSection } from "@/components/ui/settings-list";
 import { AccountSheetContent } from "./account/account-sheet";
 import { NotificationsSheetContent } from "./notifications/notifications-sheet";
 
