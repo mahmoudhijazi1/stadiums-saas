@@ -6652,3 +6652,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Complements, does not duplicate, `test/platform-db-imports.test.ts` and `test/modules/push/imports.test.ts`. Not expressible yet: application/infrastructure importing another module's infrastructure/schemas is common today (payments, rates, pitches), so that is allowed; "pure lib" for domain is a denylist (db, platform-db, logger, tenant-context, env, rate-limit, prisma client).
 
 **How to verify:** `npx jest test/architecture` (4 passed); `npx tsc --noEmit`. Full suites and build not run.
+
+## Cleanup 1: docs/CODEMAP.md
+
+**When:** 2026-10-10
+
+**What:** Added a one-line-per-folder and per-module map with purpose, when to read and last verified commit.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** docs/CODEMAP.md, docs/progress.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
