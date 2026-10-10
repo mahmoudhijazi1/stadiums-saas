@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Person } from "@/app/generated/prisma/client";
+import type { Person } from "@/generated/prisma/client";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";

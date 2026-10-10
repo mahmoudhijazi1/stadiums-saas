@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import type { PaymentSourceType } from "@/app/generated/prisma/enums";
+import type { PaymentSourceType } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";

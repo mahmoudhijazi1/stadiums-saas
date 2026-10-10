@@ -8,7 +8,7 @@ Set or reset a login's password with `scripts/set-password.ts`. The password is 
 
 Before it changes anything, it shows the database name from `DATABASE_URL` and refuses to continue until you type that name exactly.
 
-**Requirements:** run from the app directory, where `.env` holds the production `DATABASE_URL`. The script runs with `tsx`, which is a **dev dependency**, and it also needs the generated Prisma client (`src/app/generated`, from `prisma generate`, which is also a dev dependency). If the server was installed with `npm ci --omit=dev` or `NODE_ENV=production npm ci`, run `npm ci` (with dev dependencies) first. It needs an interactive terminal (an SSH session); piped input is refused.
+**Requirements:** run from the app directory, where `.env` holds the production `DATABASE_URL`. The script runs with `tsx`, which is a **dev dependency**, and it also needs the generated Prisma client (`src/generated`, from `prisma generate`, which is also a dev dependency). If the server was installed with `npm ci --omit=dev` or `NODE_ENV=production npm ci`, run `npm ci` (with dev dependencies) first. It needs an interactive terminal (an SSH session); piped input is refused.
 
 ```bash
 cd /path/to/stadiums-saas          # the deployed app directory
@@ -193,3 +193,16 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 - 16.3.6 fixes GHSA-vcvr-r3jv-pc5j (remote code execution in `next/og` `ImageResponse`): do not use `ImageResponse` below it.
 - 16.3.8 fixes image-optimization SSRF (GHSA-cjq9-62q9-8jv4), metadata image routes leaking through `dynamicParams` (GHSA-f87g-xv8r-7p7x), SSG/ISR cache poisoning (GHSA-4jqv-mc3x-m676, GHSA-mcj8-r9mp-w47p) and `use cache` leaks (GHSA-3w37-wq28-93x7, GHSA-h694-7cp9-m8p3).
 - After any upgrade: `npm test`, `npm run test:integration`, `npm run build`, then check the installed app (service worker, manifest, push) by hand. The 16.3.4 to 16.3.8 upgrade itself was verified only with `npx tsc --noEmit`.
+
+## Build order on the server
+
+The Prisma client is not in git. It is generated into `src/generated/prisma` and must exist before `tsc`, tests or `next build`. After every `git pull`, in the app directory (dev dependencies installed, `.env` set):
+
+```bash
+npm ci
+npx prisma generate --config prisma7.config.ts
+npx prisma migrate deploy --config prisma7.config.ts
+npm run build
+```
+
+Then restart the service. CI does the same first three steps (`.github/workflows/ci.yml`, "prisma generate" before the build).

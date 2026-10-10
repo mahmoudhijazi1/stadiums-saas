@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import type { MembershipRole } from "@/app/generated/prisma/enums";
+import type { MembershipRole } from "@/generated/prisma/enums";
 import { findMembershipForUser } from "@/modules/access/infrastructure/memberships";
 import { readSessionCookie } from "@/modules/access/infrastructure/session-cookie";
 import { renewedSessionExpiry } from "@/modules/access/domain/session-lifetime";

@@ -1,4 +1,4 @@
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { platformDb } from "@/lib/platform-db";
 
 /**

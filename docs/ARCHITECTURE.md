@@ -30,7 +30,7 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 
 **Known exceptions:**
 - `src/lib/request-fields.ts` imports `@/modules/people/domain/phone` (`normalizePhone`; `lib/tenant-settings.ts` also imports `toLebanonNumber`), an upward `lib → modules` import. It is harmless (a pure function) but breaks the "lib has no module imports" idea.
-- Modules and `lib` import `@/app/generated/prisma/*` (the generated client). That is not an `app/` dependency.
+- Modules and `lib` import `@/generated/prisma/*` (the generated client, `src/generated/prisma`, gitignored, made by `prisma generate`).
 
 **`platformDb` import guard.** `platformDb` (`src/lib/platform-db.ts`) is the unscoped client: it bypasses the tenant extension. `test/platform-db-imports.test.ts` fails if any file outside its allowlist imports it:
 

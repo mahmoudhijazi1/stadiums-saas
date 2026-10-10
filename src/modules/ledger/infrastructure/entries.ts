@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import type {
   LedgerDirection,
   PaymentSourceType,
-} from "@/app/generated/prisma/enums";
+} from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/money";
 import type { LedgerEntryRow } from "@/modules/ledger/domain/entry-row";

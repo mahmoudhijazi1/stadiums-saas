@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { Prisma } from "@/app/generated/prisma/client";
-import type { BookingStatus } from "@/app/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
+import type { BookingStatus } from "@/generated/prisma/enums";
 import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
