@@ -6346,3 +6346,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `src/lib/db.ts`, `test/integration/tenant-guard-tx.integration.test.ts`.
 
 **How to verify:** NOT run. The test runs as many concurrent `updatePitch` calls as `PG_POOL_MAX` (default 10) with a 20 s hang guard, checks a row created and then updated and deleted inside one transaction, and checks another tenant's row is still refused. The existing isolation test expects the same error text. Run `npm run test:integration`. UNVERIFIED: that every `update`/`delete` call site passes a `where` that accepts the extra `tenantId` (all models in `TENANT_SCOPED_MODELS` have a `tenantId` column; the single `tsc` run is the only check).
+
+
+## Hardening 2, item 3 of 8: staff and money (N-6) (branch `security/hardening-2`)
+
+**What was already gated (reports.view inside the use case):** `summarizeLedgerPeriod`, `listLedgerActivity`, `listExpenseDetails`, `sumExpenseCategory`, `listOwed`, `listBookingLabels`, `summarizeShopPeriod`, `listSaleDetails`; the Money panel and the owed page also check it in the page. Recording an expense needs `expenses.record` only (`recordExpense`).
+**Gaps closed:** `listRecentExpenses` (expense module) only needed a membership ("staff may look"): it now needs `reports.view`; nothing in the app calls it today, so no screen changes. The person page (`people/[personId]/stats.tsx`) now hides lifetime **Total paid** from members without `reports.view`; "owes now" and "expected" stay for every member.
+**Not changed:** `getPersonBookingStats` still computes `totalPaidUsd` server-side (it is only ever rendered by that component).
+
+**Files:** `expense/application/list-recent-expenses.ts`, `app/owner/(app)/people/[personId]/stats.tsx`, `test/integration/staff-money-gating.integration.test.ts`.
+
+**How to verify:** NOT run. The test uses staff with no flags (every money read refused), staff with only `expenses.record` (records, reads nothing), staff with only `reports.view` (reads, cannot record) and the owner. The hidden "Total paid" is a component and has no automated test: check it by hand with a staff account. Run `npm run test:integration`.

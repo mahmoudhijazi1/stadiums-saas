@@ -1,3 +1,5 @@
+import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
+import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { getPersonBookingStats } from "@/modules/booking/application/get-person-booking-stats";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
@@ -16,6 +18,10 @@ export async function PersonStats({
   locale: UiLocale;
 }) {
   const stats = await getPersonBookingStats(personId);
+  // "Owes now" and "expected" are for every member (the owner collects at the pitch). Lifetime
+  // "Total paid" is a money report: reports.view only.
+  const membership = await getCurrentMembership();
+  const mayViewTotals = membership !== null && can(membership, REPORTS_VIEW);
   const owes = stats.owesNowUsd;
   const owesLabel = formatUsdCompact(owes);
   const expected = stats.expectedUsd;
@@ -37,10 +43,12 @@ export async function PersonStats({
           label={uiCount("owner.noShows", stats.noShows, locale)}
           value={null}
         />
-        <Stat
-          label={ui("owner.totalPaid", locale)}
-          value={formatUsdCompact(stats.totalPaidUsd)}
-        />
+        {mayViewTotals ? (
+          <Stat
+            label={ui("owner.totalPaid", locale)}
+            value={formatUsdCompact(stats.totalPaidUsd)}
+          />
+        ) : null}
         <Stat
           label={ui("owner.owesNow", locale)}
           value={owesLabel}
