@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { DomainError } from "@/lib/errors";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { rejectReasonText } from "@/lib/ui-copy";
-import { normalizeUsdForm, parseLbp, parseUsd } from "@/lib/money";
+import { rejectReasonText } from "@/lib/copy";
+import { normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { adjustBookingDue } from "@/modules/booking/application/adjust-booking-due";
 import { approveBooking } from "@/modules/booking/application/approve-booking";

@@ -5,7 +5,7 @@ import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
 import { personOwedOnBooking, personPaidOnBooking } from "@/modules/booking/domain/person-owed";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
-import { formatDisplayDate } from "@/lib/format-display-date";
+import { formatDisplayDate } from "@/lib/format/time";
 import { nightHint } from "@/modules/booking/application/night-hint";
 import { formatLocalClockRange, type HourCycle } from "@/app/owner/shared";
 import { BookingRow, variantOf } from "@/app/owner/booking-row";
@@ -13,10 +13,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { formatUsdCompact } from "@/lib/money";
+import { formatUsdCompact } from "@/lib/format/money";
 import Decimal from "decimal.js";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 export async function PersonGames({
   personId,

@@ -4,7 +4,7 @@ import {
   PENDING_INBOX_UPCOMING_MAX,
   hiddenInboxCount,
 } from "@/modules/booking/domain/pending-inbox";
-import { uiCount } from "@/lib/ui-copy";
+import { uiCount } from "@/lib/copy";
 
 /** Written, not run when authored. Hardening 2 item 5. */
 describe("hiddenInboxCount", () => {

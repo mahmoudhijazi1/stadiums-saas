@@ -2,12 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
-import {
-  formatClockRangeText,
-  formatLocalHm,
-  type ClockLocale,
-  type HourCycle,
-} from "@/lib/format-local-hm";
+import { formatClockRangeText, formatLocalHm, type ClockLocale, type HourCycle } from "@/lib/format/time";
 
 export const OWNER_TIME_ZONE = "Asia/Beirut";
 export type { ClockLocale, HourCycle };

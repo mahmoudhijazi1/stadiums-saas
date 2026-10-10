@@ -10,8 +10,8 @@ import { startHoursInsideWindows } from "@/modules/booking/domain/business-day";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { publicPageUrl } from "@/lib/public-page-url";
-import { formatRelativeTime } from "@/lib/format-relative-time";
-import { groupedDigits } from "@/lib/ui-copy";
+import { formatRelativeTime } from "@/lib/format/time";
+import { groupedDigits } from "@/lib/copy";
 import { getPushPublicKey } from "@/modules/push/application/push-status";
 
 /**

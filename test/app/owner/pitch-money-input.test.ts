@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { isValidUsd, padCents, sanitizeUsd } from "@/app/owner/(app)/more/settings/pitches/money-input";
-import { previewSummaryLabel, unusedTimeLabel } from "@/lib/ui-copy";
+import { previewSummaryLabel, unusedTimeLabel } from "@/lib/copy";
 
 describe("sanitizeUsd", () => {
   it.each([

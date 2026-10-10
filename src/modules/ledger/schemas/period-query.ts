@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isLbpString, parseLbp } from "@/lib/money";
+import { isLbpString, parseLbp } from "@/lib/format/parse-money";
 
 /**
  * Shape of the /owner period GET query (SPEC-08 step 3).

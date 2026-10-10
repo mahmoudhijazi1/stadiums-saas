@@ -8,9 +8,9 @@ import { DaySheet, NowDivider } from "@/components/day-sheet/day-sheet";
 import { FreeRow } from "@/components/day-sheet/free-row";
 import { PitchSwitcher } from "@/components/day-sheet/pitch-switcher";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatLocalHm, shortPeriodOf } from "@/lib/format-local-hm";
+import { formatLocalHm, shortPeriodOf } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { cn } from "cn";
 import { bookingTone, FAKE_NOW_MIN, fakeDay } from "./data";
 

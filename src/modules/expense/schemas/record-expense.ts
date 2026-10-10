@@ -1,11 +1,5 @@
 import { z } from "zod";
-import {
-  isLbpString,
-  isUsdString,
-  normalizeUsdForm,
-  parseLbp,
-  parseUsd,
-} from "@/lib/money";
+import { isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
 import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
 
 /**

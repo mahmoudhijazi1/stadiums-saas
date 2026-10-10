@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isUsdString, normalizeUsdForm } from "@/lib/money";
+import { isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
 import {
   assertUniqueHoursDays,

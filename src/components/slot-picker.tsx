@@ -20,9 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClockRangeText, ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { clockRangeFromLocals } from "@/lib/format-local-hm";
+import { clockRangeFromLocals } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
-import { hoursEmptyState, ui } from "@/lib/ui-copy";
+import { hoursEmptyState, ui } from "@/lib/copy";
 import { IsolatedDigits } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 

@@ -9,7 +9,7 @@ import {
   previewSummaryLabel,
   ui,
   unusedTimeLabel,
-} from "@/lib/ui-copy";
+} from "@/lib/copy";
 import { cn } from "cn";
 import {
   civilDateInTimeZone,

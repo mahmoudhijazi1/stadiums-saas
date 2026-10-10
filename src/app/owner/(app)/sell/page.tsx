@@ -4,7 +4,7 @@ import { requireOwnerMembership } from "@/app/owner/shared";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { SHOP_MANAGE, SHOP_SELL, can } from "@/modules/access/domain/can";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { listProducts } from "@/modules/shop/application/products";

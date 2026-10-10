@@ -4,7 +4,7 @@ import { useState } from "react";
 import { accentPreviewCss } from "@/lib/accent-css";
 import { BRAND_PRESETS, type BrandPresetKey } from "@/lib/brand-presets";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { sanitizePhoneInput } from "@/modules/people/domain/phone";
 import { dayChipClass } from "@/components/day-chip-class";
 import { Button } from "@/components/ui/button";

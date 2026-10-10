@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isUsdString, parseUsd } from "@/lib/money";
+import { isUsdString, parseUsd } from "@/lib/format/parse-money";
 
 /**
  * Zod at the Venue edge (SPEC-02 step 2 / DR-002 §2.4).

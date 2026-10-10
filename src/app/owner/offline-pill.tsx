@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * "بدون اتصال" only while the browser is offline. Absent when online,

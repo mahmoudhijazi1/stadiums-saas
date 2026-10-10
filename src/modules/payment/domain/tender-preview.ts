@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/money";
+import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 
 export type TenderPreview =
   | { kind: "empty" }

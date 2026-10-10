@@ -6806,3 +6806,45 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Modules importing the client no longer import from app/ by path; rule 3 now has no prisma special case needed beyond the new location.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (prisma generate ok, tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Refactor step 4, commit 1: one money formatting module
+
+**When:** 2026-10-10
+
+**What:** Characterization tests (test/lib/format/money.characterization.test.ts, written against the old files and passing before the move, 11 tests) pin every function's output in Arabic and English. Then lib/money.ts and lib/money-display.ts became lib/format/money.ts (formatUsd, formatUsdCompact, formatUsdMoney, formatUsdAmount, groupDigits, lbpUnit, formatLbpAmount, formatParts, formatChange, displayChange) and lib/format/parse-money.ts (isUsdString, parseUsd, normalizeUsdForm, isLbpString, parseLbp: they share no code with formatting). No function had a duplicate output, so none was dropped. All callers' imports rewritten (52 files; mixed imports split in two); test/lib/money.test.ts moved to test/lib/format/money.test.ts.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/format/{money,parse-money}.ts, every importer, test/lib/format/*, docs/domain/money.md
+
+**How it connects:** format/money.ts imports only decimal.js and the UiLocale type; parse-money.ts imports only decimal.js.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib/format: 59 passed). Full suites and build not run.
+
+## Refactor step 4, commit 2: one time formatting module
+
+**When:** 2026-10-10
+
+**What:** Characterization tests (test/lib/format/time.characterization.test.ts, 66 tests with the moved ones; generated from the old code and checked: 00:30 after midnight, 12/24-hour, Arabic and English) pin formatDisplayDate, formatLocalHm and the clock-range helpers, formatRelativeTime and the app-local helpers. format-display-date.ts, format-local-hm.ts and format-relative-time.ts became lib/format/time.ts (same exported names); importers rewritten (one merged import per file) and their tests moved to test/lib/format/. App-local helpers kept: book/date.ts (parsing, no formatting), today/date-label.ts, money/period-label.ts and series/labels.ts compose the shared formatDisplayDate/formatLocalHm with their own rules and copy (today/yesterday, month chip, series line) and produce different outputs, so none could be replaced. Domain time-zone arithmetic files untouched; of the five named files only booking/application/load-series-created.ts formats for display (via the shared formatters); padStart in ledger/domain/period.ts and venue/domain/availability.ts builds ISO keys, not display.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/format/time.ts, importers, test/lib/format/*, docs/guides/folder-structure.md
+
+**How it connects:** format/time.ts imports lib/locale and lib/ui-copy (relative time phrases) only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib/format: 66 passed). Full suites and build not run.
+
+## Refactor step 4, commit 3: copy split by area
+
+**When:** 2026-10-10
+
+**What:** src/lib/ui-copy.ts (1,616 lines) is now src/lib/copy/: one file per area (common, today, requests, money, shop, settings, public, account) each exporting its Arabic and English tables, ui.ts (merges them; ui() unchanged), counted.ts (COUNTED, countedForms, uiCount), helpers.ts (rejectReasonText and every phrase helper), types.ts and index.ts. Callers import from @/lib/copy; no other caller change. 530 keys moved verbatim (60+81+28+129+41+106+32+53), classified by key name; Arabic and English had identical key sets. error-messages.ts and success-messages.ts are copy tables, so they moved (git mv) to copy/errors.ts and copy/success.ts (import @/lib/copy/errors, @/lib/copy/success). New test/lib/copy/areas.test.ts: same keys in ar and en per area, no key in two areas, no empty strings. Existing ui-copy and success tests moved to test/lib/copy/ unchanged. docs/CODEMAP.md has a src/lib section.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/copy/*, every importer of ui-copy / error-messages / success-messages, test/lib/copy/*, docs/CODEMAP.md
+
+**How it connects:** copy/ imports lib/locale, lib/plural and lib/format/money only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture + test/lib: 30 suites, 241 passed). Full suites and build not run.

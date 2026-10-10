@@ -11,9 +11,9 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { errorMessage } from "@/lib/error-messages";
+import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { seriesGamesCount, seriesGamesLabel, ui } from "@/lib/ui-copy";
+import { seriesGamesCount, seriesGamesLabel, ui } from "@/lib/copy";
 import type { SeriesCreatedSummary } from "@/modules/booking/application/load-series-created";
 import { submitSeriesSave } from "./actions";
 import { WeeklyPreview, type PreviewSource, type PreviewState } from "./weekly-preview";

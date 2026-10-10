@@ -3,10 +3,10 @@ import { formatLocalClockRange, requireOwnerMembership } from "@/app/owner/share
 import { EmptyState } from "@/components/ui/empty-state";
 import { Figure } from "@/components/ui/figure";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { formatDisplayDate } from "@/lib/format-display-date";
-import { formatUsdCompact } from "@/lib/money";
+import { formatDisplayDate } from "@/lib/format/time";
+import { formatUsdCompact } from "@/lib/format/money";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { PAYMENTS_COLLECT, REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { listOwed } from "@/modules/booking/application/list-owed";
 import { businessDate } from "@/modules/booking/domain/business-day";

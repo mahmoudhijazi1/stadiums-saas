@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import type { UiLocale } from "@/lib/locale";
 
 /**

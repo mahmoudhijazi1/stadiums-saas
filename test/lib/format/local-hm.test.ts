@@ -1,10 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import {
-  clockRangeFromLocals,
-  formatClockRange,
-  formatClockRangeText,
-  formatLocalHm,
-} from "@/lib/format-local-hm";
+import { clockRangeFromLocals, formatClockRange, formatClockRangeText, formatLocalHm } from "@/lib/format/time";
 
 describe("formatLocalHm", () => {
   it("formats HH:mm in Asia/Beirut", () => {

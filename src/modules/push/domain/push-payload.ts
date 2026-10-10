@@ -1,5 +1,5 @@
 import { htmlDir, type UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /** What an alert is about. */
 export type PushKind = "TEST" | "NEW_REQUEST";

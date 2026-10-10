@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, MessageCircle } from "lucide-react";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/ui-copy";
+import { ui, uiCount } from "@/lib/copy";
 import { cn } from "cn";
 import { DebtRow, type DebtRowView } from "../../today/debt-row";
 

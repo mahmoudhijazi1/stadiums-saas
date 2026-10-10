@@ -15,7 +15,7 @@ import { OwnerBackLink } from "@/app/owner/back-link";
 import { DayChips } from "@/components/day-chips";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 export default async function OwnerBookPage({
   searchParams,

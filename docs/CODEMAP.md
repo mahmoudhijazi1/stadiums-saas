@@ -30,3 +30,14 @@
 | `push` | Web push to owners (new-request alert) |
 | `shop` | Products, sales, tabs, supplies, items on a booking |
 | `venue` | Pitches, hours, schedule config, availability |
+
+## `src/lib/`
+| Path | Purpose |
+|---|---|
+| `format/money.ts` | Money display: USD and LBP strings, mixed parts, change |
+| `format/parse-money.ts` | Money input: USD and LBP string checks and parsing |
+| `format/time.ts` | Time display: dates, clock times and ranges, relative time (Asia/Beirut) |
+| `copy/` | All interface text by area (`common today requests money shop settings public account`), `ui()`, counted nouns (`counted.ts`), phrase helpers (`helpers.ts`), error and success messages (`errors.ts`, `success.ts`); import from `@/lib/copy` |
+| `db.ts`, `platform-db.ts`, `prisma-base.ts`, `tenant-context.ts` | Prisma clients and the tenant context |
+| `env.ts`, `logger.ts`, `errors.ts`, `use-case-error.ts`, `rate-limit.ts` | Runtime support |
+| rest | Small pure helpers (locale, plural, map link, QR, brand presets, tenant settings, request fields) |

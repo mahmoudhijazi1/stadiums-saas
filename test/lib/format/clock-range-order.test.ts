@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { formatClockRange, formatClockRangeText } from "@/lib/format-local-hm";
+import { formatClockRange, formatClockRangeText } from "@/lib/format/time";
 import { ClockRangeText } from "@/components/ui/ltr-isolate";
 
 // 2026-10-05 13:00 UTC = 16:00 Beirut

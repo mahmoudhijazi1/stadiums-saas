@@ -153,7 +153,7 @@ describe("requests per IP", () => {
 
 describe("generic answers", () => {
   it("every limit uses the same key, which has copy in both languages", async () => {
-    const { errorMessage } = await import("@/lib/error-messages");
+    const { errorMessage } = await import("@/lib/copy/errors");
     expect(errorMessage(LIMIT, "ar")).not.toBe(errorMessage("error.generic", "ar"));
     expect(errorMessage(LIMIT, "en")).not.toBe(errorMessage("error.generic", "en"));
   });

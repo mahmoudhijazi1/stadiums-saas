@@ -2,11 +2,11 @@ import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitch
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { messageDayLabel } from "@/modules/booking/application/night-hint";
-import { formatLocalHm } from "@/lib/format-local-hm";
+import { formatLocalHm } from "@/lib/format/time";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { publicPageUrl } from "@/lib/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {

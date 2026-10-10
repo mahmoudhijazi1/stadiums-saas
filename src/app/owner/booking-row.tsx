@@ -3,7 +3,7 @@ import { CircleAlert, CircleCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import { cn } from "cn";
 

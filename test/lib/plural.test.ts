@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { plural } from "@/lib/plural";
-import { countedForms } from "@/lib/ui-copy";
+import { countedForms } from "@/lib/copy";
 
 const gamesAr = countedForms("owner.games", "ar");
 const gamesEn = countedForms("owner.games", "en");

@@ -15,7 +15,7 @@ import { Container } from "@/components/ui/container";
 import { UnavailableNotice } from "@/components/unavailable-notice";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { Suspense } from "react";
 
 /**

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/bottom-sheet";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Avatar + name opens a share card: link, WhatsApp / QR / Copy, then log out.

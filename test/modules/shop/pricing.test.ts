@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { describe, expect, it } from "@jest/globals";
-import { displayChange, formatChange, formatLbpAmount, formatParts, groupDigits } from "@/lib/money-display";
+import { displayChange, formatChange, formatLbpAmount, formatParts, groupDigits } from "@/lib/format/money";
 import {
   applyPayment,
   dueParts,

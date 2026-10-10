@@ -1,5 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { Container } from "@/components/ui/container";
 
 /**

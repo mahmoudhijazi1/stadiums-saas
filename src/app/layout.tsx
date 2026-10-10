@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { htmlDir, htmlLang } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import "./globals.css";
 
 // Self-hosted (no request to Google at build or run time): local font.md, `next/font/local`.

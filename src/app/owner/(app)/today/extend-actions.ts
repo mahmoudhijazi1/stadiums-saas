@@ -1,7 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { formatUsd, normalizeUsdForm, parseUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
+import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { extendBooking } from "@/modules/booking/application/extend-booking";
 

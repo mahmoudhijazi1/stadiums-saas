@@ -1,7 +1,7 @@
 import Decimal from "decimal.js";
 import type { PaymentSourceType } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 
 export type TenderInsert = {

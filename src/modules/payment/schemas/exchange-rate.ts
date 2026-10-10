@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isLbpString } from "@/lib/money";
+import { isLbpString } from "@/lib/format/parse-money";
 
 /**
  * Shape of the set-rate form (SPEC-06 step 4).

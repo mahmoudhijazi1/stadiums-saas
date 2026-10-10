@@ -1,8 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { formatDisplayDate } from "@/lib/format-display-date";
-import { formatLocalHm } from "@/lib/format-local-hm";
+import { formatDisplayDate, formatLocalHm } from "@/lib/format/time";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { actionErrorKey } from "@/lib/use-case-error";

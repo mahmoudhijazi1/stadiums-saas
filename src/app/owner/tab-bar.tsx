@@ -10,7 +10,7 @@ import {
   House,
   type LucideIcon,
 } from "lucide-react";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { useLiveQueue } from "@/app/owner/live-queue";
 import type { UiLocale } from "@/lib/locale";
 import { cn } from "cn";

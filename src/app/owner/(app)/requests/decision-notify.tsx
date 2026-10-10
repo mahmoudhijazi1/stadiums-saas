@@ -14,7 +14,7 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Shared notify list after approve or reject (UX-01 §4.3).

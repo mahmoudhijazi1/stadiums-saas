@@ -4,7 +4,7 @@ import { queryString, requireOwnerMembership } from "@/app/owner/shared";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { getPitchEditor } from "@/modules/venue/application/get-pitch-editor";
 import { submitUpdatePitch } from "../actions";

@@ -2,7 +2,7 @@ import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { parseLbp, parseUsd } from "@/lib/money";
+import { parseLbp, parseUsd } from "@/lib/format/parse-money";
 import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";

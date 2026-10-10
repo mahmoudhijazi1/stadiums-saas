@@ -36,7 +36,7 @@
 **By design, the tenders are not capped at the remaining.** An owner may take more than is owed; remaining goes negative and shows as overpaid. **Why:** RULE-9/10, the owner is never blocked from taking money.
 
 Input formats are checked at the edge, not in the domain:
-- USD: exactly two decimals (`lib/money.ts` `parseUsd`).
+- USD: exactly two decimals (`lib/format/parse-money.ts` `parseUsd`).
 - LBP: a whole number (`parseLbp`).
 
 They are called from the Server Actions (`app/owner/(app)/today/actions.ts` `submitCollectPayment`).
@@ -109,7 +109,7 @@ What it is not: it is a count of notes for one business day, never a value, neve
 
 | # | Invariant | Code | Database | Nowhere / notes |
 |---|---|---|---|---|
-| M1 | Money is `Decimal`, never a JS float | `decimal.js` everywhere in `collect.ts`, `slot-charge.ts`, `split-evenly.ts`; `lib/money.ts` parsers | `DECIMAL(12,2)` / `(18,2)` / `(18,0)` columns | — |
+| M1 | Money is `Decimal`, never a JS float | `decimal.js` everywhere in `collect.ts`, `slot-charge.ts`, `split-evenly.ts`; `lib/format/parse-money.ts` parsers | `DECIMAL(12,2)` / `(18,2)` / `(18,0)` columns | — |
 | M2 | Every payment writes exactly one ledger row, in the same transaction, for Σ tender `usdEquivalent` | `record-payment.ts` `recordPayment` (the only writer of both) | — | **No FK** from ledger to payment (F-2). Checkable per source only by count and sum. |
 | M3 | Ledger, payments, tenders, due changes and rates are never updated or deleted | No `update`/`delete` on them in `src/modules` | — | Convention only (F-2). The seed deletes them; dev only (`seed-guard.ts`). |
 | M4 | A payment has ≥ 1 tender, each with `amount` > 0 | `freezeTenders`, `usdEquivalent` | — | No CHECK on `PaymentTender.amount`. |

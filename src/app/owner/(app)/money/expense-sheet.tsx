@@ -5,7 +5,7 @@ import { orderCategories, rememberCategory } from "@/modules/expense/domain/cate
 import type { ExpenseCategory } from "@/modules/expense/domain/categories";
 import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { submitRecordExpense } from "./actions";
 import { Button } from "@/components/ui/button";
 import {

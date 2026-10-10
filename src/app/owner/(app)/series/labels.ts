@@ -1,7 +1,6 @@
-import { formatDisplayDate } from "@/lib/format-display-date";
-import { formatLocalHm, type HourCycle } from "@/lib/format-local-hm";
+import { formatDisplayDate, formatLocalHm, type HourCycle } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 import { localTimeToUtc } from "@/modules/venue/domain/availability";
 import type { SeriesAnchor } from "@/modules/booking/domain/series";
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { parseLbp } from "@/lib/money";
+import { parseLbp } from "@/lib/format/parse-money";
 import { parseBookingRulesForm, parseTimeDisplayForm } from "@/lib/tenant-settings";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { setBookingRules } from "@/modules/access/application/set-booking-rules";

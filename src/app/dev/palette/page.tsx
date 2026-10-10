@@ -3,7 +3,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Container } from "@/components/ui/container";
 import { assertDevOnly } from "@/lib/dev-only";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { ui } from "@/lib/ui-copy";
+import { ui } from "@/lib/copy";
 
 /**
  * Migration Phase 1 — token palette preview. Not product chrome.

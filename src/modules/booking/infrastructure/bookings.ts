@@ -4,7 +4,7 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
-import { formatUsd } from "@/lib/money";
+import { formatUsd } from "@/lib/format/money";
 import Decimal from "decimal.js";
 import {
   PENDING_INBOX_MISSED_MAX,

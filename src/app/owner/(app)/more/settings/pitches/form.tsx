@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UiLocale } from "@/lib/locale";
-import { errorMessage } from "@/lib/error-messages";
-import { ui } from "@/lib/ui-copy";
+import { errorMessage } from "@/lib/copy/errors";
+import { ui } from "@/lib/copy";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SubmitButton } from "@/components/ui/submit-button";

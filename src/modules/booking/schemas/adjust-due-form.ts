@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isUsdString, normalizeUsdForm } from "@/lib/money";
+import { isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 
 const ADJUST_REASONS = ["DISCOUNT", "PARTIAL_GAME", "WAIVER", "CORRECTION"] as const;
 
