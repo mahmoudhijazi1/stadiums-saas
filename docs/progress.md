@@ -6394,3 +6394,14 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `lib/rate-limit.ts`, `test/integration/rate-limit-sweep.integration.test.ts`.
 
 **How to verify:** NOT run. The test seeds old rows and rows one hour old: after one hit the old ones are gone and the recent ones stay; with 25 old rows one hit deletes 20 and the next finishes; the counted key is never removed. UNVERIFIED: the longest block time in use is under 24 hours (login block); check `LOGIN_BLOCK_MS` if it is ever raised above that.
+
+
+## Hardening 2, item 8 of 8: no database password in command arguments (branch `security/hardening-2`)
+
+**What:** `docs/RUNBOOK.md`: the lockout command no longer uses `psql "${DATABASE_URL%%\?*}"` (that put the password in the process arguments); it uses `psql -h localhost -U stadiums -d stadiums`. A new section "Database commands (psql, pg_dump): no password on the command line" states the rule, the reason (other accounts on the shared server can read process arguments and shell history), and the `~/.pgpass` form (`chmod 600`, same host spelling) for `psql` and `pg_dump`. This closes the security-audit-2 note. The host, user and database names in the examples are placeholders: check them against the server's `.env`.
+
+**Files:** `docs/RUNBOOK.md`.
+
+**How to verify:** docs only; nothing run. Try the two commands on the server with a `.pgpass`; `ps` shows no password while they run.
+
+**Correction to the item 7 entry:** the longest block time in use is 15 minutes (`LOGIN_BLOCK_MS`, `PWCHANGE_BLOCK_MS`), so the 24-hour retention is safe; that point is verified, not UNVERIFIED.

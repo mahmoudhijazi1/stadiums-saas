@@ -50,11 +50,30 @@ After 8 failed logins for one account within 15 minutes, that account's logins a
 To lift a block early (for example, an owner locked out by someone guessing at their account), delete the counters for that identifier:
 
 ```bash
-# psql does not accept Prisma's ?schema=public suffix, so strip the query string.
-psql "${DATABASE_URL%%\?*}" -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
+# The password comes from ~/.pgpass (see "Database commands" below), never from the command line.
+psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
 ```
 
 **`TRUSTED_CLIENT_IP_HEADER`:** set it only when nginx overwrites that header with the real client address, for example `proxy_set_header X-Real-IP $remote_addr;` together with `TRUSTED_CLIENT_IP_HEADER=x-real-ip`. When it is unset, no per-IP limit applies. Never point it at a header the client can set by itself.
+
+## Database commands (psql, pg_dump): no password on the command line
+
+**Rule:** no command in this runbook, in a script, in cron or in shell history may carry the database password in its arguments: not `psql "postgres://user:password@..."`, not `psql "$DATABASE_URL"` when that URL has the password in it, not `-W password`, not `PGPASSWORD=... psql ...` typed inline.
+
+**Why:** the server is shared. Any other account on it can read the arguments of a running process (`ps aux`, `/proc/<pid>/cmdline`), and a command typed in a shell is also written to its history file. A password in either place is readable by people who should not have it.
+
+**Instead, use `~/.pgpass`** of the user who runs the command (the password is read from the file, not from the arguments):
+
+```bash
+# one line per database: host:port:database:user:password
+echo 'localhost:5432:stadiums:stadiums:THE_PASSWORD' >> ~/.pgpass   # type it in an editor instead, so the password is not in history
+chmod 600 ~/.pgpass                                                 # psql ignores the file if group/others can read it
+
+psql -h localhost -U stadiums -d stadiums -c 'SELECT 1;'
+pg_dump -h localhost -U stadiums -d stadiums -Fc -f /var/backups/stadiums-$(date +%F).dump
+```
+
+Use the same host name in `.pgpass` as in the command (`localhost` and `127.0.0.1` do not match each other). The app itself reads `DATABASE_URL` from `.env` (mode 600, owned by the app user), which is not a command argument. Prisma's `?schema=public` suffix is not accepted by psql, which is another reason to pass host, user and database as separate options.
 
 ## Password hash cost
 
