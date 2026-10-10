@@ -6405,3 +6405,10 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **How to verify:** docs only; nothing run. Try the two commands on the server with a `.pgpass`; `ps` shows no password while they run.
 
 **Correction to the item 7 entry:** the longest block time in use is 15 minutes (`LOGIN_BLOCK_MS`, `PWCHANGE_BLOCK_MS`), so the 24-hour retention is safe; that point is verified, not UNVERIFIED.
+
+
+## Verification of `security/hardening-2` (all four checks run)
+
+**Results:** `npx tsc --noEmit` clean; unit tests 107 suites / 993 tests passed; integration tests 52 suites, 439 tests: 438 passed and 1 failed on the first run, then the failing suite re-run alone, 23/23 passed (the full integration run was not repeated); `npm run build` succeeded.
+**The one failure:** `weekly-series.integration.test.ts`, "createSeries x approve of a pending request": the test's own public request was 3 to 262 days ahead and item 4 (the 60-day public window) correctly refused it with `booking.too_far`. A wrong test expectation, not a logic bug. Fix: the 10 iterations now use six slots a day from day 3 and then day 31, so every request stays inside the window and no iteration touches another. No source changed.
+**Not verified by these runs:** the hidden "Total paid" on the person page, the `/dev` 404 on a production server, and the inbox "N more requests" line with real rows (all by hand).
