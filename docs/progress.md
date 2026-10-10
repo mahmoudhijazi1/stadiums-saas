@@ -6376,3 +6376,12 @@ Findings: 0 Critical, 1 High (S-1: the seed has no production guard), 7 Medium, 
 **Files:** `booking/domain/pending-inbox.ts`, `booking/infrastructure/bookings.ts`, `booking/application/count-hidden-requests.ts`, `app/owner/(app)/requests/inbox.tsx`, `lib/ui-copy.ts`, `test/modules/booking/domain/pending-inbox.test.ts`.
 
 **How to verify:** NOT run. Unit test: 0 at the caps, 1 for one over either cap, 80 for 250 upcoming + 80 missed; the line carries the number in both languages. Not tested with 201 real rows (too heavy for this slice); by hand, lower the constants locally to see the line.
+
+
+## Hardening 2, item 6 of 8: one guard for every /dev page (branch `security/hardening-2`)
+
+**What:** `assertDevOnly` moved from `app/dev/mockups/today/guard.ts` to `src/lib/dev-only.ts` (404 when `NODE_ENV=production`). It is called by the Today mockup page, by `/dev/palette` (which had no guard and was reachable in production), and by a new `app/dev/layout.tsx`, so a page added later is covered too.
+
+**Files:** `lib/dev-only.ts`, `app/dev/{layout.tsx,palette/page.tsx,mockups/today/page.tsx}`, `test/app/dev/{dev-guard,today-mockup}.test.ts`.
+
+**How to verify:** NOT run. The test runs the guard under `NODE_ENV=production`, runs the layout the same way, and scans every `page`/`route` file under `src/app/dev` for `assertDevOnly()`. By hand: `next start` build, open `/dev/palette` and `/dev/mockups/today`: both 404.

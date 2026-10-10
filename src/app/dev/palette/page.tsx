@@ -1,6 +1,7 @@
 import { LangToggle } from "@/components/lang-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Container } from "@/components/ui/container";
+import { assertDevOnly } from "@/lib/dev-only";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/ui-copy";
 
@@ -9,6 +10,7 @@ import { ui } from "@/lib/ui-copy";
  * Visit on a tenant host: /dev/palette
  */
 export default async function PalettePage() {
+  assertDevOnly();
   const locale = await getUiLocale();
 
   const surfaces = [
