@@ -152,7 +152,7 @@ export function RecordExpenseSheet({
                 locale={locale}
               />
               <fieldset className="flex flex-col gap-2">
-                <legend className="type-label">{ui("owner.category", locale)}</legend>
+                <legend className="mb-2 type-label">{ui("owner.category", locale)}</legend>
                 <div role="radiogroup" className="flex flex-wrap gap-2">
                   {ordered.map((option) => (
                     <label key={option.value} className="cursor-pointer">
