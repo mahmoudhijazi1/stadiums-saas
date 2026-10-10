@@ -13,7 +13,7 @@ Multi-tenant stadium booking platform (Next.js 16, Prisma 7, Postgres).
 | [`docs/requirements/brd.md`](./docs/requirements/brd.md) | Product source of truth |
 | [`docs/progress.md`](./docs/progress.md) | Append-only journey log |
 
-**Work order:** decision → spec → code. Agent rules: [`.cursor/rules/`](./.cursor/rules/). Framework warning: [`AGENTS.md`](./AGENTS.md).
+**Work order:** decision → spec → code. Agent rules: [`docs/archive/cursor-rules/`](./docs/archive/cursor-rules/) (archived; CLAUDE.md is current). Framework warning: [`AGENTS.md`](./AGENTS.md).
 
 ## Local setup
 

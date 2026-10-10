@@ -13,10 +13,10 @@ Multi-tenant back-office for football stadium owners in Lebanon. It replaces the
 |---|---|
 | Any new feature | `docs/requirements/brd.md` §7 (RULE-1…12), then `docs/decisions/` for constraints. Never invent a decision — if no DR covers it, say so and stop. |
 | Tenancy, isolation, `platformDb`, transactions | DR-001, `docs/guides/prisma-transaction-tenant-guard.md` (one-pool / ALS rule) |
-| Schema / data model | DR-002 (+ `.cursor/rules/200-database-prisma.mdc`) |
+| Schema / data model | DR-002 (+ `docs/archive/cursor-rules/200-database-prisma.mdc`) |
 | Login, sessions, permissions, `can()` | DR-003, SPEC-04 |
 | Errors, logging, `?error=` keys | DR-004, SPEC-12, `docs/guides/error-handling-logging-audit.md` |
-| Arabic / RTL / copy (`ui()`) | DR-005, SPEC-13 (+ `.cursor/rules/100-rtl-i18n.mdc`) |
+| Arabic / RTL / copy (`ui()`) | DR-005, SPEC-13 (+ `docs/archive/cursor-rules/100-rtl-i18n.mdc`) |
 | Money: collect, tenders, rate, ledger | DR-002 §2.14–2.21, SPEC-06, SPEC-08 |
 | Per-player payments (BR-41–49) | `docs/specs/SPEC-15-per-player-payments.md` |
 | Fees, waivers, due adjustments, cancellation policy | `docs/specs/SPEC-16-due-adjustments.md` |

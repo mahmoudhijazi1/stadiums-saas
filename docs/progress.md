@@ -6680,3 +6680,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** page now imports the shared component directly.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (see run). Full suites and build not run.
+
+## Cleanup 3: git hygiene, .cursor archived
+
+**When:** 2026-10-10
+
+**What:** tsconfig.tsbuildinfo (via *.tsbuildinfo) and logs/ (via /logs/* with .gitkeep) were already ignored and untracked, so .gitignore is unchanged. Moved .cursor/rules to docs/archive/cursor-rules/ with git mv; updated the pointers in CLAUDE.md, README.md, docs/README.md and folder-structure.md (the historical guides cursor-rules.md and cursor-workflow.md are left as written).
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** .cursor/rules -> docs/archive/cursor-rules, CLAUDE.md, README.md, docs/README.md, docs/guides/folder-structure.md
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (see run). Full suites and build not run.
