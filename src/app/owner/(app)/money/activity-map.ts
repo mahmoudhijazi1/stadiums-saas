@@ -145,6 +145,21 @@ function mapGeneric(_entry: LedgerEntryRow, _context: ActivityContext, locale: U
 /** One mapping keyed by ledger sourceType: label, secondary text, icon and what a tap opens. */
 const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense, SALE: mapSale };
 
+/**
+ * What a source is called in the summary's "Games $175 · Shop $22" line, keyed by ledger sourceType
+ * like MAPPERS above: a future source appears here once it has a name, and until then as the
+ * generic one, never dropped.
+ */
+const SOURCE_NAME_KEYS: Record<string, string> = {
+  BOOKING: "owner.sourceGames",
+  SALE: "owner.shop",
+  EXPENSE: "owner.activityExpense",
+};
+
+export function sourceName(sourceType: string, locale: UiLocale): string {
+  return ui(Object.hasOwn(SOURCE_NAME_KEYS, sourceType) ? SOURCE_NAME_KEYS[sourceType]! : "owner.activityGeneric", locale);
+}
+
 export function mapActivityEntry(entry: LedgerEntryRow, context: ActivityContext, locale: UiLocale): ActivityRowView {
   const mapper = Object.hasOwn(MAPPERS, entry.sourceType) ? MAPPERS[entry.sourceType]! : mapGeneric;
   return {

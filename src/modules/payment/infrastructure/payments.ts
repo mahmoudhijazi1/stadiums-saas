@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import type { PaymentSourceType } from "@/app/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/money";
+import { getCurrentTenantId } from "@/lib/tenant-context";
 
 export type TenderInsert = {
   currency: "USD" | "LBP";
@@ -161,4 +162,31 @@ export async function listTendersBySourceIds(
       usdEquivalent: new Decimal(tender.usdEquivalent.toString()),
     })),
   );
+}
+
+export type CashTenderTotal = { direction: "IN" | "OUT"; currency: "USD" | "LBP"; amount: Decimal };
+
+/**
+ * What physically changed hands in a window, per direction and currency, from the tenders as
+ * recorded (never converted): one GROUP BY. The window is the moment each payment was recorded
+ * (`Payment.createdAt`). An EXPENSE payment is money OUT; BOOKING and SALE payments are money IN
+ * (the same rule `recordPayment` writes the ledger with). Change handed back at the counter is
+ * never recorded as a tender, so it is not counted. Raw SQL: the tenant is stamped by hand.
+ */
+export async function sumTendersByDirectionAndCurrency(
+  tx: TenantTx,
+  startInclusive: Date,
+  endExclusive: Date,
+): Promise<CashTenderTotal[]> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ direction: "IN" | "OUT"; currency: "USD" | "LBP"; amount: string }[]>`
+    SELECT CASE WHEN p."sourceType" = 'EXPENSE'::"PaymentSourceType" THEN 'OUT' ELSE 'IN' END AS direction,
+           t.currency::text AS currency,
+           SUM(t.amount)::text AS amount
+    FROM "PaymentTender" t
+    JOIN "Payment" p ON p.id = t."paymentId" AND p."tenantId" = ${tenantId}
+    WHERE t."tenantId" = ${tenantId}
+      AND p."createdAt" >= ${startInclusive} AND p."createdAt" < ${endExclusive}
+    GROUP BY 1, 2`;
+  return rows.map((row) => ({ direction: row.direction, currency: row.currency, amount: new Decimal(row.amount) }));
 }

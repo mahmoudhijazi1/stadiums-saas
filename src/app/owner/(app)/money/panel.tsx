@@ -18,10 +18,25 @@ import { listOwed } from "@/modules/booking/application/list-owed";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/ui-copy";
 import { RecordExpenseSheet } from "./expense-sheet";
-import { MoneyHeadline } from "./headline";
+import { CashToday, type CashTodayView } from "./cash-today";
+import { PeriodBar } from "./period-bar";
+import { SummaryCard } from "./summary-card";
 import { ActivityList } from "./activity";
 import { ShopCard } from "./shop-card";
 import { loadActivityPage } from "./activity-load";
+import { summarizeCash } from "@/modules/payment/application/summarize-cash";
+import { cashLineCurrencies, type CashDay } from "@/modules/payment/domain/cash-day";
+import { businessDate, businessDayUtcRange } from "@/modules/booking/domain/business-day";
+import { getCurrentTenant } from "@/lib/tenant-context";
+import { formatCivilDate } from "@/modules/venue/domain/availability";
+
+function cashView(day: CashDay): CashTodayView {
+  const text = (value: CashDay["net"]) => ({
+    USD: value.USD.toFixed(2),
+    LBP: value.LBP.toFixed(0),
+  });
+  return { net: text(day.net), in: text(day.in), out: text(day.out), shown: cashLineCurrencies(day) };
+}
 
 function categoryLabel(category: ExpenseCategory, locale: UiLocale): string {
   return ui(`cat.${category}`, locale);
@@ -55,6 +70,15 @@ export async function OwnerMoney({
     ? await loadActivityPage({ ...range, filter: periodQuery.filter }, locale)
     : null;
   const owed = mayViewReports ? await listOwed() : null;
+  // Cash today: only when the period contains today (the calendar day or the current business day,
+  // which differ between midnight and the day start). One more read, reports.view only.
+  const tenant = await getCurrentTenant();
+  const businessToday = businessDate(new Date(), tenant.dayStartHour);
+  const periodHasToday = [today, formatCivilDate(businessToday)].some((day) => day >= range.from && day <= range.to);
+  const cash =
+    mayViewReports && periodHasToday
+      ? await summarizeCash(businessDayUtcRange(businessToday, tenant.dayStartHour))
+      : null;
   const [shop, supplies] = mayViewReports
     ? await Promise.all([
         summarizeShopPeriod(range),
@@ -67,14 +91,23 @@ export async function OwnerMoney({
   return (
     <div className="flex flex-col gap-8">
       {summary ? (
-        <MoneyHeadline
-          summary={summary}
-          kind={kind}
-          view={periodQuery.view}
-          lbpPerUsd={displayRate}
-          rateKnown={displayRate !== null}
-          locale={locale}
-        />
+        <div className="flex flex-col gap-4">
+          <PeriodBar
+            kind={kind}
+            from={summary.from}
+            to={summary.to}
+            view={periodQuery.view}
+            rateKnown={displayRate !== null}
+            locale={locale}
+          />
+          <SummaryCard
+            summary={summary}
+            kind={kind}
+            view={periodQuery.view}
+            lbpPerUsd={displayRate}
+            locale={locale}
+          />
+        </div>
       ) : null}
 
       {owed && owed.games > 0 ? (
@@ -91,6 +124,8 @@ export async function OwnerMoney({
           <ChevronRight aria-hidden className="size-4 shrink-0 rtl:rotate-180" />
         </Link>
       ) : null}
+
+      {cash ? <CashToday view={cashView(cash)} locale={locale} /> : null}
 
       {shop && supplies && (shop.items.length > 0 || supplies.gt(0)) ? (
         <ShopCard summary={shop} suppliesUsd={supplies} locale={locale} />
