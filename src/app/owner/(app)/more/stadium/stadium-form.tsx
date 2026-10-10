@@ -6,7 +6,7 @@ import { BRAND_PRESETS, type BrandPresetKey } from "@/modules/stadium/domain/bra
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { sanitizePhoneInput } from "@/modules/people/domain/phone";
-import { dayChipClass } from "@/components/day-chip-class";
+import { dayChipClass } from "@/modules/venue/ui/day-chip-class";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

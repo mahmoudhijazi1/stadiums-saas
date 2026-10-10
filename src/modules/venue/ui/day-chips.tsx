@@ -4,12 +4,12 @@ import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import { DateCalendarChip } from "@/components/date-calendar-chip";
+import { DateCalendarChip } from "@/modules/venue/ui/date-calendar-chip";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { dayChipClass } from "@/components/day-chip-class";
+import { dayChipClass } from "@/modules/venue/ui/day-chip-class";
 import { cn } from "cn";
 
 /** How many civil days the day-chip strip shows (public + Book). Not Home’s COMING_DAYS booking horizon. */

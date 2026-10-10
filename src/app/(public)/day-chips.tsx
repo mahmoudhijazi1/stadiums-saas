@@ -1,4 +1,4 @@
-import { DayChips } from "@/components/day-chips";
+import { DayChips } from "@/modules/venue/ui/day-chips";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import type { UiLocale } from "@/lib/locale";
 

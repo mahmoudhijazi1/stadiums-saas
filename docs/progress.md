@@ -6988,3 +6988,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Generic UI: no module imports.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; moved money-input test 23 passed (with test/components)). Full suites and build not run.
+
+## Refactor step 6b, commit 2: venue/ui
+
+**When:** 2026-10-10
+
+**What:** git mv components/day-chips.tsx, date-calendar-chip.tsx and day-chip-class.ts to modules/venue/ui (the public and Book date row; they use venue/domain/availability civil dates and no action or use case). Importers updated. today/day-strip, day-tabs and day-nav stay out: day-strip and day-tabs use booking/domain (buildDayTabs, start-day), so they go to booking/ui in commit 4. Removed the day-chips rule-5 exception.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/venue/ui/*, importers, test/architecture/rules.ts
+
+**How it connects:** venue/ui imports venue/domain and components/ui only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; stadium-preview test passed). Full suites and build not run.
