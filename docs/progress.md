@@ -6722,3 +6722,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** It imports only zod and lib/money, so it is a valid domain file; venue/schemas/pitch-draft now imports it from domain.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.
+
+## Cleanup 6: push sender port to push/domain
+
+**When:** 2026-10-10
+
+**What:** git mv push/application/push-sender.ts to push/domain/push-sender.ts and cut it down to the port types (PushTarget, PushResult, PushSender); a new thin application/push-sender.ts keeps the get/set registry (it needs the real sender from infrastructure) and re-exports the types, so existing importers and tests are unchanged. web-push-sender.ts imports the port from domain. Removed the rule-2 exception.
+
+**Why:** Architecture cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/push/domain/push-sender.ts, src/modules/push/application/push-sender.ts, infrastructure/web-push-sender.ts, test/architecture/rules.ts
+
+**How it connects:** infrastructure no longer imports application.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean, architecture 4 passed). Full suites and build not run.

@@ -58,9 +58,6 @@ export const MODULE_EDGE_EXCEPTIONS: Exception[] = [
 
 /** Rules 2 to 5: files that break a rule today. Do not add; fix the code. */
 export const EXCEPTIONS: Exception[] = [
-  { file: "src/modules/push/infrastructure/web-push-sender.ts", target: "src/modules/push/application/push-sender", rule: 2,
-    reason: "implements the PushSender port declared in application",
-    fate: "move the port to push/domain" },
   { file: "src/app/owner/(app)/money/activity-map.ts", target: "src/modules/ledger/infrastructure/entries", rule: 4,
     reason: "type-only (LedgerEntryRow)",
     fate: "export the row type from ledger/application or domain" },
