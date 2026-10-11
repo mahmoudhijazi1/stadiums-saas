@@ -329,3 +329,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `src/prisma/migrations/20261014090000_canonical_phones/migration.sql`, `docs/DATA-MODEL.md` (row 13 of section 3), `test/integration/canonical-phone-sql.integration.test.ts` (SQL equals TypeScript for 28 inputs), `test/integration/canonical-phone-migration.integration.test.ts` (merge and references, unconvertible and other-tenant rows, amounts, second run, the guard).
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the tests are written and NOT run, the migration was not applied anywhere, and the DATA-MODEL section 4 drift check (`prisma migrate diff`) is left for the verify run. Back up before running it on real data: merging people deletes rows.
+
+## Phone: stale test expectations after the wiring (branch `feat/phone-wiring`, NOT merged)
+
+**When:** 2026-10-14
+
+**What:** Tests only. The verify run on `feat/phone-wiring` (after `2f12e50`) failed 5 tests, all test data that predates the canonical phone. Four expected the stadium WhatsApp number as `"71123456"`; the canonical value is `"96171123456"` (`test/lib/tenant-settings-stadium.test.ts` INFO, which also reads back as "not set" otherwise; `test/modules/stadium/domain/stadium-info.test.ts:106`; `test/integration/stadium-info.integration.test.ts` twice). The fifth, `test/integration/person-phone-race.integration.test.ts`, sent `961377NN001` (961 plus 8 digits starting 3), which is not a Lebanese number; `requestPublicSlot` is called without the schema, so `findOrCreatePerson` threw. The test now sends `96137NN001` (961 plus 7 digits). No source file changed; the race handling in `find-or-create-person.ts` was not the cause.
+
+**Drift (read only, nothing changed):** `prisma migrate diff` after the migrations shows two foreign keys where the SQL says `ON DELETE RESTRICT` and `schema.prisma` has no `onDelete` on an optional relation (Prisma's default is `SET NULL`): `Booking_seriesId_fkey` (created by `20261013090000_booking_series`, in `ecd0063`) and `BookingParticipant_personId_fkey` (created RESTRICT by `20260909080100_person_booking`; `personId` became optional in `20260924060000_per_player_foundation`, which only dropped NOT NULL). Both are on `main`; neither comes from the phone work.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the changed tests are written and NOT run.

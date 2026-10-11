@@ -61,7 +61,7 @@ describe("saveStadiumInfo", () => {
       mapLink: "https://maps.app.goo.gl/AbCdEf123",
       phone: "9613123456",
       whatsappSame: false,
-      whatsapp: "71123456",
+      whatsapp: "96171123456",
       brandPreset: "royal",
       // The other settings are untouched.
       timeDisplay: "h23",
@@ -164,7 +164,7 @@ describe("saveStadiumInfo", () => {
       mapLink: "https://maps.app.goo.gl/AbCdEf123",
       phone: "9613123456",
       whatsappSame: false,
-      whatsapp: "71123456",
+      whatsapp: "96171123456",
       brandPreset: "royal",
     });
   });

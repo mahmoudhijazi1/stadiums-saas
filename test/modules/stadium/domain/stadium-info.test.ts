@@ -103,7 +103,7 @@ describe("parseStadiumInfo", () => {
 
     it("keeps a separate WhatsApp number when 'same number' is off, and validates it", () => {
       const separate = parseStadiumInfo({ ...GOOD, whatsappSame: false, whatsapp: "71 123 456" });
-      expect(separate).toMatchObject({ whatsappSame: false, whatsapp: "71123456" });
+      expect(separate).toMatchObject({ whatsappSame: false, whatsapp: "96171123456" });
       expect(key({ ...GOOD, whatsappSame: false, whatsapp: "71x23456" })).toBe("stadium.phone_invalid");
     });
 
