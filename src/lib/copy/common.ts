@@ -4,6 +4,7 @@ import type { CopyArea } from "./types";
 export const common: CopyArea = {
   ar: {
     "doc.title": "ملاعب",
+    "phone.countryCode": "رمز البلد",
     "dialog.close": "إغلاق",
     "owner.tabs": "الأقسام",
     "owner.home": "رئيسية",
@@ -66,6 +67,7 @@ export const common: CopyArea = {
   },
   en: {
     "doc.title": "Pitches",
+    "phone.countryCode": "Country code",
     "dialog.close": "Close",
     "owner.tabs": "Sections",
     "owner.home": "Home",

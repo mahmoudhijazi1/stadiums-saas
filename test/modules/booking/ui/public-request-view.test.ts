@@ -47,6 +47,8 @@ describe("request sheet: the form", () => {
     expect(html).toContain('name="name"');
     expect(html).toContain('maxLength="60"');
     expect(html).toContain('name="phone"');
+    expect(html).toContain('name="country"');
+    expect(html).toContain("+961");
     expect(html).toContain('name="pitchId"');
     expect(html).toContain('name="date"');
     expect(html.match(/type="submit"/g)).toHaveLength(1);

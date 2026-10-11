@@ -15,7 +15,8 @@ import {
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
 import { EmptyState } from "@/components/ui/empty-state";
-import { sanitizePhoneInput } from "@/modules/people/domain/phone";
+import { DEFAULT_COUNTRY } from "@/modules/people/domain/countries";
+import { PhoneField } from "@/modules/people/ui/phone-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClockRangeText, ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
@@ -361,6 +362,7 @@ function RequestForm({
 }) {
   const [labelOverride, setLabelOverride] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<PublicRequestFieldErrors>({});
+  const [country, setCountry] = useState<string>(DEFAULT_COUNTRY);
   const nameErrorId = `name-err-${slot.startIso}`;
   const phoneErrorId = `phone-err-${slot.startIso}`;
 
@@ -369,6 +371,7 @@ function RequestForm({
     const next = publicRequestFieldErrors(
       String(data.get("name") ?? ""),
       String(data.get("phone") ?? ""),
+      country,
     );
     if (hasPublicRequestFieldErrors(next)) {
       event.preventDefault();
@@ -417,22 +420,17 @@ function RequestForm({
         <Label htmlFor={`phone-${slot.startIso}`}>
           {ui("public.phone", locale)}
         </Label>
-        <Input
-          id={`phone-${slot.startIso}`}
-          type="tel"
-          name="phone"
-          autoComplete="tel"
-          inputMode="tel"
-          className="font-mono"
-          aria-invalid={Boolean(fieldErrors.phone)}
-          aria-describedby={fieldErrors.phone ? phoneErrorId : undefined}
-          onInput={(event) => {
-            // Digits and + - ( ) . only: letters never get into the box.
-            const input = event.currentTarget;
-            const clean = sanitizePhoneInput(input.value);
-            if (clean !== input.value) input.value = clean;
+        <PhoneField
+          locale={locale}
+          country={country}
+          onCountryChange={(code) => {
+            setCountry(code);
             setFieldErrors((current) => ({ ...current, phone: undefined }));
           }}
+          phoneId={`phone-${slot.startIso}`}
+          invalid={Boolean(fieldErrors.phone)}
+          describedBy={fieldErrors.phone ? phoneErrorId : undefined}
+          onPhoneInput={() => setFieldErrors((current) => ({ ...current, phone: undefined }))}
         />
         {fieldErrors.phone ? (
           <p
@@ -440,7 +438,7 @@ function RequestForm({
             role="alert"
             className="text-sm text-destructive"
           >
-            {ui(fieldErrors.phone, locale)}
+            {ui("owner.errPhone", locale)}
           </p>
         ) : null}
       </div>
