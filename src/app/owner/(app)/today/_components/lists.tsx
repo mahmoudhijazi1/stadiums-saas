@@ -62,7 +62,7 @@ import {
 import { upcomingStatus } from "@/modules/booking/domain/home-inbox";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import { isCancelWindowClosed, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
-import { ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockText } from "@/components/ui/ltr-isolate";
 import { LiveRequestCount } from "@/modules/booking/ui/live-queue";
 import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave } from "@/app/owner/(app)/series/actions";
 import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
@@ -176,18 +176,6 @@ export async function OwnerToday({
         <p className="text-center text-xs text-muted-foreground">
           {ui("owner.afterMidnightToday", locale).replace("{time}", dayStartClock(tenant.dayStartHour, locale))}
         </p>
-      ) : null}
-
-      {earlierDebts.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <a
-            href="#earlier-debts"
-            className="inline-flex min-h-8 items-center gap-1 rounded-full border border-owed/60 bg-owed-subtle px-3 text-xs font-semibold text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            <LtrIsolate>{`$${formatUsdCompact(earlierTotal)}${ownerDay.toCollectHasMore ? "+" : ""}`}</LtrIsolate>
-            <span>{ui("owner.owedFromEarlier", locale)}</span>
-          </a>
-        </div>
       ) : null}
 
       {ownerDay.isToday && pending.length > 0 && earliest ? (

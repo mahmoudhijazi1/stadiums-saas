@@ -347,3 +347,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The measure-and-`scrollBy` that centres the selected day moved unchanged from `booking/ui/day-tabs.tsx` into `keepSelectedTabCentred` (`booking/ui/centre-selected-tab.ts`). It runs at once (the existing effect on `selected`), again when `document.fonts.ready` resolves (font loading changes the tab widths; skipped if `document.fonts` is missing), and again from a `ResizeObserver` on the tab list (skipped if undefined). The effect's cleanup disconnects the observer and ignores a late `fonts.ready`. Behaviour stays `auto`. Tab markup, styles and the calendar picker are untouched.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. `test/modules/booking/centre-selected-tab.test.ts` (mocked boxes, `ResizeObserver` and `document.fonts`: centres at once, after fonts.ready, after a resize, stops after cleanup, works without both APIs) is written and NOT run. UNVERIFIED by eye in a browser, in Arabic and English.
+
+## Today: money owed from earlier days shown once, first (branch `feat/today-refine`)
+
+**When:** 2026-10-14
+
+**What:** Display only; no query, money write or schema change. The owed pill at the top of `lists.tsx` is gone. The `#earlier-debts` section is now the first section of `UpcomingPanel`, before games and the free strip (so Today reads New requests, To collect, Games, Available hours; `docs/ui-rules.md` rule 8 amended). Its header is the new `booking/ui/earlier-debts-header.tsx`: alert icon, "To collect", the total, "from earlier days" (copy key `owner.owedFromEarlier` reworded), in the `owed` tokens; with several rows it is the toggle with the chevron, with one it is a plain row. `id`, `collectOpen`, `collectShown` and the single-row behaviour are unchanged. `CollectCount` (now unused) was removed.
+
+**The total:** I did NOT reuse the Money Owed reader. `listOwed` (behind `/owner/money/owed`) needs `reports.view`, which Today does not require, and groups by person with per-player shares and shop tabs counted separately, while Today's rows are one per booking from `listEndedWithRemaining` (capped at 5, plus one to detect more), filtered to days before today. The definitions differ, so I kept the capped total and, when `toCollectHasMore`, it reads "at least $X" (new key `owner.owedAtLeast`, AR and EN) instead of a trailing "+". Whether the two totals happen to match was not checked.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/modules/booking/earlier-debts-header.test.ts` (header text, tokens, "at least", toggle vs plain row, and a source-order check that the section precedes games and the free strip) is written and NOT run. UNVERIFIED by eye in both languages.
