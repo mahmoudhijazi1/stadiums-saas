@@ -102,6 +102,12 @@ export function cancelPolicyLine(
     .replace("{percent}", String(percent));
 }
 
+/** "Cancel up to 24 hours before". Empty when the stadium has no cancellation window (0 hours). */
+export function cancelUpToLine(hours: number, locale: UiLocale = "ar"): string {
+  if (hours <= 0) return "";
+  return ui("public.cancelUpTo", locale).replace("{hours}", uiCount("owner.ruleHours", hours, locale));
+}
+
 /** Confirmed heading with a Western count. */
 export function confirmedCount(n: number, locale: UiLocale = "ar"): string {
   return `${ui("owner.confirmed", locale)} · ${n}`;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { UnavailableNotice } from "@/components/shell/unavailable-notice";
 import { getUiLocale } from "@/lib/get-ui-locale";
+import { setUiLocale } from "@/app/locale-actions";
 import { getCurrentTenant } from "@/lib/tenant-context";
 
 /**
@@ -15,5 +16,5 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export default async function SuspendedPage() {
   const tenant = await getCurrentTenant();
   if (!tenant.suspended) redirect("/owner/today");
-  return <UnavailableNotice kind="owner" locale={await getUiLocale()} />;
+  return <UnavailableNotice kind="owner" locale={await getUiLocale()} onChangeLocale={setUiLocale} />;
 }

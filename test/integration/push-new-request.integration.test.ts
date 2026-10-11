@@ -227,9 +227,10 @@ describe("what does not alert", () => {
     await createOwnerBooking({ ...chosen, name: "هدى", phone: "03111005" });
 
     actAs(fixture.tenantSlug);
-    await expect(submitPublicSlotRequest(formFor(chosen, "سامي", "03111002"))).rejects.toThrow(
-      /REDIRECT:.*error=booking\.slot_taken_noted/,
-    );
+    expect(await submitPublicSlotRequest(formFor(chosen, "سامي", "03111002"))).toEqual({
+      ok: false,
+      errorKey: "booking.slot_taken",
+    });
     expect(mockScheduled).toHaveLength(0);
     expect(fake.sent).toHaveLength(0);
   });
@@ -284,9 +285,7 @@ describe("the action", () => {
     const chosen = await slot(3);
     actAs(fixture.tenantSlug);
 
-    await expect(submitPublicSlotRequest(formFor(chosen, "ليلى", "03111001"))).rejects.toThrow(
-      /REDIRECT:.*ok=requested/,
-    );
+    expect(await submitPublicSlotRequest(formFor(chosen, "ليلى", "03111001"))).toEqual({ ok: true });
     expect(mockScheduled).toHaveLength(1);
     expect(fake.sent).toHaveLength(0); // nothing is sent until the mockScheduled callback runs
 
@@ -306,7 +305,7 @@ describe("failures never reach the player", () => {
     const chosen = await slot(3);
     actAs(fixture.tenantSlug);
 
-    await expect(submitPublicSlotRequest(formFor(chosen, "ليلى", "03111001"))).rejects.toThrow(/ok=requested/);
+    expect(await submitPublicSlotRequest(formFor(chosen, "ليلى", "03111001"))).toEqual({ ok: true });
     await expect(Promise.resolve(mockScheduled[0]!())).resolves.toBeUndefined();
     expect(await platformDb.pushSubscription.count()).toBe(1);
     expect(await platformDb.booking.count({ where: { status: "PENDING" } })).toBe(1);

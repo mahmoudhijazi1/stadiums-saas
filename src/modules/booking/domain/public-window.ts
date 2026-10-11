@@ -22,12 +22,16 @@ export function isWithinPublicWindow(day: CivilDate, today: CivilDate): boolean 
   return compareCivilDate(day, lastPublicDay(today)) <= 0;
 }
 
-/** The day the public page shows: `?date=` when it is inside the window, else `fallback`. */
+/**
+ * The day the public page shows: `?date=` when it is today or later and inside the window, else
+ * `fallback`. A past day is never shown (the date strip starts at today).
+ */
 export function clampPublicDay(
   requested: CivilDate | null,
   today: CivilDate,
   fallback: CivilDate,
 ): CivilDate {
   if (!requested) return fallback;
+  if (compareCivilDate(requested, today) < 0) return fallback;
   return isWithinPublicWindow(requested, today) ? requested : fallback;
 }

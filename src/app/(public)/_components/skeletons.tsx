@@ -14,28 +14,12 @@ function StartLine({ className }: { className?: string }) {
   );
 }
 
-/** One time+price chip — same min-h and padding as the live slot card. */
-function SlotChipSkeleton() {
-  return (
-    <div className="flex min-h-[96px] w-full flex-col justify-between rounded-[var(--radius-card)] bg-inverse px-[14px] py-3 dark:bg-surface">
-      <div className="flex flex-col gap-1">
-        <Skeleton className="h-6 w-16 rounded-md" />
-        <Skeleton className="h-3 w-20 rounded-md" />
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <Skeleton className="h-4 w-12 rounded-md" />
-        <Skeleton className="h-5 w-8 rounded-full" />
-      </div>
-    </div>
-  );
-}
-
 /** Wrapping 2-col grid of slot chips. */
 function SlotGridSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <div className="slot-cols grid w-full grid-cols-2 gap-2.5 md:grid-cols-3">
+    <div className="flex w-full flex-col gap-2">
       {Array.from({ length: count }, (_, index) => (
-        <SlotChipSkeleton key={index} />
+        <Skeleton key={index} className="h-14 w-full rounded-lg" />
       ))}
     </div>
   );
@@ -89,7 +73,6 @@ function PublicHoursSkeleton({
 
 export {
   StartLine,
-  SlotChipSkeleton,
   SlotGridSkeleton,
   PitchHoursSkeleton,
   DayChipsSkeleton,

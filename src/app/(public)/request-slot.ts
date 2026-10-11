@@ -1,10 +1,10 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { alertOwnersOfNewRequest } from "./alert-owners";
 import { requestPublicSlot } from "@/modules/booking/application/request-public-slot";
 import { parsePublicSlotRequest } from "@/modules/booking/schemas/public-slot-request";
+import type { PublicRequestResult } from "@/modules/booking/ui/public-request-sheet";
 import { actionErrorKey } from "@/lib/use-case-error";
 
 function field(formData: FormData, key: string): string {
@@ -13,14 +13,12 @@ function field(formData: FormData, key: string): string {
 }
 
 /**
- * Thin Server Action (Next 16 forms guide: <form action> + FormData).
- * Validate with Zod, no auth this slice, then requestPublicSlot.
- * redirect() must sit outside try/catch (Next redirect.md: redirect throws).
+ * Thin Server Action (Next 16 forms guide). Validate with Zod, no auth this slice, then
+ * requestPublicSlot. It answers with a result instead of redirecting, so the request sheet can show
+ * the confirmation or a friendly message without leaving the page.
  * after() (next/server) schedules the owner push alert once the response is sent.
  */
-export async function submitPublicSlotRequest(formData: FormData) {
-  const date = field(formData, "date");
-  let errorKey: string | undefined;
+export async function submitPublicSlotRequest(formData: FormData): Promise<PublicRequestResult> {
   try {
     const parsed = parsePublicSlotRequest({
       name: field(formData, "name"),
@@ -31,20 +29,11 @@ export async function submitPublicSlotRequest(formData: FormData) {
     });
     await requestPublicSlot(parsed);
     // Only a created request gets here (a taken hour throws booking.slot_taken above). The alert
-    // runs after the response, so it can neither delay the redirect nor change the result.
+    // runs after the response, so it can neither delay it nor change the result.
     after(alertOwnersOfNewRequest);
+    return { ok: true };
   } catch (error) {
-    errorKey = await actionErrorKey(error, "submitPublicSlotRequest");
-    // A taken hour was recorded as interest: say so, not just "taken".
-    if (errorKey === "booking.slot_taken") errorKey = "booking.slot_taken_noted";
+    // A taken hour was recorded as interest by the use case before it threw.
+    return { ok: false, errorKey: await actionErrorKey(error, "submitPublicSlotRequest") };
   }
-
-  const next = new URLSearchParams();
-  if (date) next.set("date", date);
-  if (errorKey) {
-    next.set("error", errorKey);
-    redirect(`/?${next.toString()}`);
-  }
-  next.set("ok", "requested");
-  redirect(`/?${next.toString()}`);
 }

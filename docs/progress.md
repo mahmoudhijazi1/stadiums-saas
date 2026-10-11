@@ -99,3 +99,99 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **How it connects:** `lib/theme-color.ts` imports nothing; the shell component imports it and `next-themes` only.
 
 **How to verify:** `npx jest test/lib/theme-color test/architecture test/docs`; then by hand on a phone: set the phone to dark and the app to light (and the reverse) and check the status bar colour and its clock on Android Chrome and the installed app, and on iOS Safari and the installed app.
+
+## Public page: date strip and free-time chips (branch `feat/public-page`, 1 of 3)
+
+**When:** 2026-10-14
+
+**What:** The public page now shows a day strip from today to `PUBLIC_FUTURE_DAYS` (same stacked day tabs as the owner, no past days; `clampPublicDay` now sends a past `?date=` to today) and, under it, only the free times as compact chips: start time only, at least 44px, body font. The heading is "Available times · $20 per game" with the most common price among the day's free times; a chip priced differently shows its own price. Taken and already-started times are not listed. A day with no free time says so and links "Next free: Fri 9" (`findNextFreeDay`: one extra query, the pitches, walked in memory against the occupied windows the page already loaded). `requestPublicSlot`, `getDayAvailability` and `priceForSlot` are unchanged. The tap still opens the existing request sheet (commit 2 replaces it).
+
+**Why:** A player wants to see what is free and tap it; the grid of 96px tiles with taken ones struck through hid the answer.
+
+**Files:** `booking/domain/free-times.ts`, `booking/domain/public-window.ts`, `booking/ui/time-chips.tsx`, `venue/application/find-next-free-day.ts`, `venue/ui/day-strip.tsx`, `venue/ui/weekday-label.ts`, `app/(public)/_components/{times,no-free-times,hours}.tsx` and `page.tsx`; removed `app/(public)/_components/{day-chips,slot-picker}.tsx`; copy in `lib/copy/public.ts`; tests `free-times`, `public-window`, `time-chips`, `day-strip`, `find-next-free-day`.
+
+**How it connects:** The page passes only free pitches to `TimeChips`; the sheet and the action are wired in `_components/times.tsx`. The owner's `DayChips` is untouched.
+
+**How to verify:** `npx jest test/architecture test/docs test/modules/booking/domain/free-times test/modules/booking/domain/public-window test/modules/booking/ui test/modules/venue`. Not run: the full suites, the build, a browser. The strip is not scrolled to a far selected day on first load (no client JS added for it): UNVERIFIED on a phone.
+
+## Public page: request sheet and confirmation (branch `feat/public-page`, 2 of 3)
+
+**When:** 2026-10-14
+
+**What:** Tapping a time opens a sheet with the day and time, name and phone (same fields and limits), one "Send request" button, "This is a request, not a confirmation. The owner will reply on WhatsApp." and the cancellation rule ("Cancel up to 24 hours before", plus the late-fee line when the fee is above 0). After a send it turns into "Request sent for Fri 16 8:00 PM. The owner will confirm on WhatsApp.", a plain WhatsApp chat button (only when the stadium has a number) and "Request another time". Friendly messages for a taken time (recorded as interest: "the owner knows you're interested"), too far ahead, too many requests, invalid input and anything else. `submitPublicSlotRequest` now returns `{ ok } | { ok: false, errorKey }` instead of redirecting with `?ok=`/`?error=`, so the page no longer needs `FlashToast`. `requestPublicSlot` is unchanged.
+
+**Why:** The player should stay on the page, see exactly what was sent and what happens next, and never see a raw error.
+
+**Files:** `booking/domain/public-request-errors.ts`, `booking/ui/public-request-{view,sheet}.tsx`, `app/(public)/request-slot.ts`, `_components/{times,hours,stadium-contact}.tsx`, `page.tsx`, `lib/copy/{public,helpers}.ts` (`cancelUpToLine`), `test/integration/push-new-request.integration.test.ts` (expects the result, not a redirect), `test/modules/booking/ui/public-request-view.test.ts`.
+
+**How it connects:** The sheet is a pure view (`PublicRequestView`, tested by state) inside a wrapper that owns the pending state; the action is a prop wired in `_components/times.tsx`. `SlotBookSheet` stays for the owner's Book and Today strip.
+
+**How to verify:** `npx jest test/architecture test/docs test/modules/booking/ui`. The integration file was edited, not run (`npm run test:integration` is CI's). The sheet was not opened in a browser: UNVERIFIED at runtime.
+
+## Public page: share metadata and indexing (branch `feat/public-page`, 3 of 3)
+
+**When:** 2026-10-14
+
+**What:** The public page has per-stadium metadata built by `publicPageMetadata`: title "<stadium name> · احجز ملعبك" (as written, never translated), description from the address (a short line with the name when there is none), Open Graph and Twitter cards with the generated `/brand/icon/512` logo, and the canonical URL (from `APP_BASE_DOMAIN`, absolute image and canonical; relative image and no canonical when it is unset). The page is indexable. A suspended stadium and an unknown host get noindex and no tenant data. The owner app is noindex through a new pass-through `app/owner/layout.tsx` (the suspended page already was). `lang` and `dir` stay on `<html>` from the root layout. The page's client code is only the request sheet and the language toggle (`FlashToast` was dropped in commit 2); no dependency added. Docs: `CODEMAP`, `NOW`, `ROADMAP` ("Public page: later", including public shop items with a WhatsApp order link, BR-67).
+
+**Why:** A link shared on WhatsApp should show the stadium's name and logo, and search engines should find the public page and nothing of the owner app.
+
+**Files:** `app/(public)/_components/public-metadata.ts`, `app/(public)/layout.tsx`, `app/owner/layout.tsx`, `lib/copy/public.ts`, `test/app/public/public-metadata.test.ts`, `docs/{CODEMAP,NOW,ROADMAP,progress}.md`.
+
+**How it connects:** The public layout's `generateMetadata` loads the tenant (catching the not-found of an unknown host) and calls the builder; the root layout's neutral metadata still applies to every other route.
+
+**How to verify:** `npx jest test/architecture test/docs test/app/public`. UNVERIFIED: how WhatsApp, Facebook and Google actually render the card, and the real `APP_BASE_DOMAIN` canonical in production.
+
+## Language control: two-option segmented toggle (branch `feat/public-page`)
+
+**When:** 2026-10-14
+
+**What:** `components/shell/lang-toggle.tsx` is now a segmented control: "عربي" (Arabic font) and "EN" (Latin font), both always visible, the current one on a pill in the accent colour (`bg-accent-brand` / `text-accent-ink`) that slides by transform (200ms, none under reduced motion); 36px to the eye, 44px per option; a group named "Language / اللغة" with `aria-pressed`. The control is LTR so the two options never swap sides. Used on the public page header (unchanged slot), the suspended pages (`UnavailableNotice` takes the action as an optional prop), the business menu sheet (`OwnerHeader` and `BusinessMenu` take `onChangeLocale`) and the owner login page. Login used to be Arabic only; it now follows the stored language (Arabic by default) so the control means something. More > Language is untouched. Storage and application of the locale are unchanged: `switchLocale` sets `lang`/`dir` first, calls `setUiLocale`, then `router.refresh()` (the URL, path and query, never changes).
+
+**Files:** `components/shell/{lang-toggle,business-menu,header,unavailable-notice}.tsx`, `app/owner/login/page.tsx`, `app/owner/suspended/page.tsx`, `app/owner/(app)/layout.tsx`, `app/(public)/{layout,page}.tsx`, `test/components/lang-toggle.test.ts`.
+
+**How to verify:** `npx jest test/components/lang-toggle test/architecture test/docs`. UNVERIFIED in a browser: the pill animation and the absence of a direction flash.
+
+## Public page: header band, availability dots, next-free card, time rows (branch `feat/public-page`)
+
+**When:** 2026-10-14
+
+**What:** The public page got more pull. (1) A header band with faint football-pitch lines (inline SVG `stadium/ui/pitch-lines.tsx`, the accent at 15% opacity, no image files) behind logo, name (display face) and address, the language control at the top end, and the Maps / Call / WhatsApp buttons as pills under it (only those set). (2) Under each day number in the strip: three, two or one dot, or an empty ring for a full or closed day (`availabilityLevel` of the day's free count). (3) A "Next free time" card at the top of the day: the nearest free time from now (today first, then the window), as the one big figure, "$20 · 60 min" and "Book now" that opens the same request sheet (it can be another day than the one shown); hidden when nothing is free in the 60 days. (4) The day's times are full-width rows, 56px or more: range at the start, price and a small accent "Book" at the end; a taken time stays as a faded row with "Taken" and no button; started times are gone. Every row shows its price, and the heading still states the most common one. (5) Rows are grouped Evening (17:00 up to the business-day start, so 00:30 is evening), Afternoon (12:00-16:59), Morning, evening first, empty groups hidden, with a Moon / Sun / Sunrise icon; with several pitches one section per pitch.
+
+**Queries:** the dots and the card come from one new function, `getWindowSummary` (venue): one query (the pitches), then the 61 days are generated in memory against the approved ranges the page already loads once and passes down. The page now loads the approved ranges and the summary before rendering (the strip and the card need them); the day's rows stay under Suspense. `findNextFreeDay` is removed: the empty day's "Next free" link reads the same summary (`firstFreeDayAfter`), which saves its extra query.
+
+**Files:** `venue/application/get-window-summary.ts`, `venue/domain/availability-level.ts`, `venue/ui/day-strip.tsx` (optional `levels`), `booking/domain/day-periods.ts`, `booking/ui/{time-rows,next-free-card}.tsx` (replace `time-chips.tsx`), `stadium/ui/pitch-lines.tsx`, `app/(public)/_components/{header-band,booking,hours,skeletons,stadium-contact}.tsx`, `page.tsx`, `lib/copy/public.ts`, tests for each, `docs/CODEMAP.md`.
+
+**How to verify:** `npx jest test/architecture test/docs test/modules/booking test/modules/venue test/modules/stadium`. Not run: the full suites, the build, a browser. UNVERIFIED on a device: how the pitch lines look in each accent preset and in dark mode, the 64px strip chips, and the dots' contrast.
+
+## Public page: quieter layout (branch `feat/public-page`)
+
+**When:** 2026-10-14
+
+**What:** The public page layout was reworked; booking rules, use cases and the request flow are untouched. (1) The header has no card or border: the pitch lines (accent, 20% light / 25% dark) are the background of the whole full-width top area. Start side: logo and stadium name (display face, ellipsis), then the address on one line. End side: the "عربي | EN" control and a new sun/moon button (`ThemeIconButton`, same next-themes mechanism, both icons in the markup so no flash). Under them one non-wrapping row of 44px round icon-only buttons (Maps, Call, WhatsApp; only those set; aria-labels). (2) The day strip has no box per day, only the selected day is a pill; the dots are smaller and use `ink-muted` (the old accent dots had poor contrast on the light page). (3) The "Next free time" card is gone: the first free time of the day carries a "Nearest" / "الأقرب" badge, and a day with none shows one line, "No free times this day · Nearest: Fri 6:00 PM ›", linking to that day (`getWindowSummary.nextFree`; `firstFreeDayAfter` removed). (4) The times are one list in time order in one rounded container with thin dividers (no groups, headings or icons; `day-periods` removed): "5:00 – 6:00 PM" / "5:00 – 6:00 م" (`compactRange`), a chevron at the end, the whole row opens the request sheet, 56px or taller; taken rows stay faded with "Taken" and cannot be pressed; a row shows its price only when it differs from the heading's. (5) The heading is "Available times" with "$20 per game · 60 min" under it (`compactUsd`: whole dollars without .00, cents only when present). (6) Contrast: the Taken label is full ink inside a 60% faded row (muted text there fell under 4.5:1), the badge is ink on `accent-subtle`, dividers use the `line` token.
+
+**Files:** `app/(public)/_components/{header-band,stadium-contact,no-free-times,booking,hours}.tsx`, `page.tsx`, `components/shell/theme-icon-button.tsx`, `booking/ui/time-rows.tsx`, `booking/domain/compact-range.ts`, `lib/format/money.ts` (`compactUsd`), `venue/ui/{day-strip.tsx,day-chip-class.ts}`, `venue/application/get-window-summary.ts`, `lib/copy/public.ts`; removed `booking/ui/next-free-card.tsx`, `booking/domain/day-periods.ts` and their tests; tests for each change.
+
+**How to verify:** `npx jest test/architecture test/docs test/modules/booking test/modules/venue test/app/public`. UNVERIFIED (no browser): the fit at 360px in Arabic and English (by arithmetic: the end group is about 160px of the 328px content width, the name and address ellipsize), and the contrast of the pitch lines and the divider lines in light and dark.
+
+## Public page: header redesign (branch `feat/public-page`)
+
+**When:** 2026-10-14
+
+**What:** No data or request-flow change. (1) The full pitch drawing is gone: the top area is a soft vertical gradient from a 10% tint of the stadium accent to the page background (`headerGradient`, no frame or border) with one decorative arc (a quarter of a centre circle, `PitchArc`, 30% opacity) in a box of its own at the end corner of the identity row, so it is never behind text or a button. (2) Top end: the "عربي | EN" control and the light/dark button, both a 36px disc/pill with the same surface fill and line border inside a 44px hit area, centred on one line. (3) One start-aligned column: logo 56px, the stadium name as the page title (the only display-face text), the address with a small map pin, muted, one line with ellipsis. (4) The actions are one bar of three equal parts with thin dividers (icon plus "الخريطة / Map", "اتصال / Call", "واتساب / WhatsApp"), 48px, never wrapping; unset parts are omitted and the rest share the width; same side margins as the day strip and the list (all inside `Container`). (5) The Arabic time range now has the marker once at the end ("4:00 – 5:00 م"): the Arabic formatter writes "مساءً", which the old compact range did not recognise; `compactRange` now uses the shared `splitDisplayedClock` and `shortPeriodOf`. (6) "Nearest" / "الأقرب" is a small pill: accent text (`--action-ink`) on a 6% accent tint of the surface.
+
+**Contrast (computed in OKLab like `color-mix`, worst case over the five presets, tint at the top of the gradient 10%):** light theme ink 13.59:1 and muted ink 4.60:1; dark theme ink 14.03:1 and muted 6.91:1. At 12% the light muted text fell to 4.39:1, so the tint is capped at 10%. The Nearest pill needs 6%: at 16% (the app's `--accent-subtle`) a blue preset gave 4.13:1 and at 10% one still gave 4.49:1. `test/app/public/header-contrast.test.ts` holds all of this for every preset in both themes.
+
+**Files:** `stadium/ui/pitch-arc.tsx` (replaces `pitch-lines.tsx`), `app/(public)/_components/{header-band,stadium-contact}.tsx`, `components/shell/theme-icon-button.tsx`, `booking/domain/compact-range.ts`, `booking/ui/time-rows.tsx`, `lib/copy/public.ts`, tests for each, `docs/{CODEMAP,NOW}.md`.
+
+**How to verify:** `npx jest test/architecture test/docs test/app/public test/modules/booking test/modules/stadium`. UNVERIFIED (no browser): the layout at 360px and 390px in Arabic and English. By arithmetic at 360px the three action parts get about 109px each (the longest label plus icon is about 90px) and the name column keeps about 236px next to the arc box; the arc itself and the gradient were not looked at in either theme.
+
+## Dark theme: sheet and modal backdrop darkens (branch `feat/public-page`)
+
+**When:** 2026-10-14
+
+**What:** Every bottom sheet and modal, public and owner, shares one overlay (`DialogOverlay` in `components/ui/dialog.tsx`, used by `BottomSheet` too). It was `bg-foreground/45` plus a blur: in the dark theme `foreground` is the light ink, so opening a sheet lightened the page. In the dark theme the overlay is now `bg-black/65` (the blur stays); the light theme is unchanged.
+
+**Files:** `components/ui/dialog.tsx`, `test/components/overlay-dark.test.ts`.
+
+**How to verify:** `npx jest test/components/overlay-dark`. UNVERIFIED by eye: open any sheet in dark mode and check the page behind it goes darker.

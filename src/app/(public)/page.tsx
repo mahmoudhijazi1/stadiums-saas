@@ -1,19 +1,20 @@
 import { brandIconPath, brandIdentityOf } from "@/modules/stadium/domain/brand-identity";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
-import { clampPublicDay } from "@/modules/booking/domain/public-window";
+import { clampPublicDay, lastPublicDay } from "@/modules/booking/domain/public-window";
 import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import { PublicDayChips } from "@/app/(public)/_components/day-chips";
-import { StadiumContact } from "@/app/(public)/_components/stadium-contact";
+import { DayStrip } from "@/modules/venue/ui/day-strip";
+import { HeaderBand } from "@/app/(public)/_components/header-band";
+import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
+import { getWindowSummary } from "@/modules/venue/application/get-window-summary";
+import { availabilityLevel } from "@/modules/venue/domain/availability-level";
 import { PublicHoursSkeleton } from "@/app/(public)/_components/skeletons";
 import { PublicHours } from "@/app/(public)/_components/hours";
-import { LangToggle } from "@/components/shell/lang-toggle";
 import { Container } from "@/components/ui/container";
 import { UnavailableNotice } from "@/components/shell/unavailable-notice";
-import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { Suspense } from "react";
@@ -22,8 +23,9 @@ import { setUiLocale } from "@/app/locale-actions";
 /**
  * Thin route. No Prisma and no tenantId.
  * Occupied comes from Booking; Venue only receives UTC ranges (SPEC-05).
- * Date is ?date= yyyy-mm-dd via Link chips (client transition, not a GET form).
- * Hours list is a child RSC so the chip row stays mounted while slots suspend.
+ * Date is ?date= yyyy-mm-dd via the day strip's Links (client transition, not a GET form), from
+ * today to PUBLIC_FUTURE_DAYS; a past day shows today.
+ * The times are a child RSC so the day strip stays mounted while they suspend.
  * "Today" is the business date (06:00 to 06:00 Beirut, same rule as owner Today): at
  * 00:30 it is still last night, so the rest of a window that crosses midnight stays
  * reachable. Started slots are never offered (dropEndedSlots / slot_ended).
@@ -32,7 +34,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
   const locale = await getUiLocale();
   // The (public) layout already shows the neutral page; never render tenant data here either.
-  if (tenant.suspended) return <UnavailableNotice kind="public" locale={locale} />;
+  if (tenant.suspended) return <UnavailableNotice kind="public" locale={locale} onChangeLocale={setUiLocale} />;
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const now = new Date();
@@ -41,49 +43,42 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const localDate = clampPublicDay(parseCivilDate(dateParam), today, today);
   const dateValue = formatCivilDate(localDate);
 
+  const occupied = await listApprovedOccupied();
+  const { days, nextFree } = await getWindowSummary({
+    from: today,
+    lastDay: lastPublicDay(today),
+    timeZone: "Asia/Beirut",
+    now,
+    occupied,
+    hourCycle: tenant.timeDisplay,
+    locale,
+  });
+  const levels = Object.fromEntries(days.map((day) => [day.key, availabilityLevel(day.freeCount)]));
+
   return (
     <main>
-    <Container className="flex flex-col gap-6 py-8">
-      <Suspense fallback={null}>
-        <FlashToast locale={locale} />
-      </Suspense>
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}
-          <img
-            src={brandIconPath("192", brandIdentityOf(tenant))}
-            alt=""
-            width={48}
-            height={48}
-            className="size-12 shrink-0 rounded-xl"
-          />
-          <div className="flex min-w-0 flex-col">
-            <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
-            {tenant.address ? (
-              <p className="type-secondary text-ink-muted" dir="auto">
-                {tenant.address}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <LangToggle locale={locale} onChangeLocale={setUiLocale} />
-      </header>
-
-      <StadiumContact
+      <HeaderBand
+        name={tenant.name}
+        address={tenant.address}
+        logoSrc={brandIconPath("192", brandIdentityOf(tenant))}
         mapLink={tenant.mapLink}
         phone={tenant.phone}
         whatsapp={tenant.whatsapp}
         locale={locale}
+        onChangeLocale={setUiLocale}
       />
-
-      <PublicDayChips
+    <Container className="flex flex-col gap-6 pb-8">
+      <DayStrip
         today={today}
+        lastDay={lastPublicDay(today)}
         selectedDate={dateValue}
+        pathname="/"
+        dateQueryKey="date"
+        levels={levels}
         locale={locale}
       />
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl lg:text-2xl">{ui("public.hours", locale)}</h2>
         <Suspense key={dateValue} fallback={<PublicHoursSkeleton />}>
           <PublicHours
             localDate={localDate}
@@ -91,6 +86,8 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             locale={locale}
             now={now}
             today={today}
+            occupied={occupied}
+            nextFree={nextFree}
           />
         </Suspense>
       </section>
