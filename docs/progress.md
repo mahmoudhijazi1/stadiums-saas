@@ -7128,3 +7128,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only. Links from living docs to the moved files are fixed in the next two commits.
 
 **How to verify:** `git log --follow docs/archive/folder-structure-2026-10.md`; the index links resolve (checked by the docs test in commit 5).
+
+## Docs reset 2: the start-here set
+
+**When:** 2026-10-14
+
+**What:** Rewrote the root `README.md` (product in two sentences, local run including `prisma generate`, tests, read next), `docs/NOW.md` (live at `v1.0.0`, the cleanup in progress, next three steps; the server state is marked UNVERIFIED) and `docs/CODEMAP.md` (every folder and module layer checked against the tree with `ls`, the six placement rules). Every core doc now starts with Purpose, Read when, Last verified (`f01c9bf`): README, NOW, CODEMAP, docs/README, DATA-MODEL, ROADMAP, RUNBOOK, domain/money, domain/weekly-series. The header on DATA-MODEL, ROADMAP, RUNBOOK and domain/* states the commit the paths were checked against; their bodies are fixed in the next commit where the refactor made them stale.
+
+**Why:** The old NOW and README described a tree and a workflow that changed in steps 1 to 6c.
+
+**Files:** `README.md`, `docs/NOW.md`, `docs/CODEMAP.md`, `docs/{DATA-MODEL,ROADMAP,RUNBOOK}.md`, `docs/domain/*.md`.
+
+**How it connects:** Docs only.
+
+**How to verify:** `npx tsc --noEmit`; `npx jest test/architecture`. The docs test arrives in commit 5.

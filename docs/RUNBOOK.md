@@ -1,5 +1,9 @@
 # Runbook
 
+**Purpose:** operator procedures for the production server: deploy, backup, rollback, secrets.
+**Read when:** you deploy, restore, rotate a secret or debug production.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
+
 **Living.** Operator procedures for the production server. Extend this file section by section; never overwrite it.
 
 ## Passwords

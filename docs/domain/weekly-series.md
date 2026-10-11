@@ -1,5 +1,9 @@
 # Weekly recurring bookings
 
+**Purpose:** how weekly recurring bookings work.
+**Read when:** you touch series, renewals or the weekly preview.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
+
 **Living.** Written 2026-10-13 with the feature (branch `feat/weekly-series`). Code: `src/modules/booking/domain/series.ts` (pure rules), `booking/application/{create-series,make-weekly,renew-series,cancel-rest-of-series,preview-series,series-weeks,series-sheet,list-weekly-bookings,load-series-info,load-series-created}.ts`, `booking/infrastructure/series.ts`, UI in `app/owner/(app)/series/` and `more/weekly/`.
 
 ## The idea

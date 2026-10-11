@@ -1,5 +1,9 @@
 # Roadmap: open items
 
+**Purpose:** the short ordered list of known open work that is not a product slice.
+**Read when:** you pick what to build next.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
+
 **Living.** Short, ordered list of known open work that is not a product slice. Details and proposed fixes are in [audits/logic-findings.md](./audits/logic-findings.md); product slices are in [NOW.md](./NOW.md). When an item is fixed, mark it done here with the commit, and in the findings file.
 
 | # | Item | Status | Details |
