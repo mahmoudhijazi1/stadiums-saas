@@ -60,12 +60,13 @@ function lebaneseCanonical(rest: string): string | null {
 /**
  * The one canonical form of a phone, or null when it cannot be one. Lebanese numbers become
  * "961" + the national number ("71123456", "03123456", "+961 71 123 456" and "0096171123456" are
- * each one number); a number from another country becomes its international digits. Arabic-Indic
+ * each one number); a number from another country becomes its international digits (10 to 15). Arabic-Indic
  * and Persian digits are converted; spaces, dashes, dots and parentheses are ignored; any letter,
  * an empty string or an invalid length gives null.
  *
  * - "+" or "00" in front means international. "961": the rest, minus one leading 0, must be 7
- *   digits or 8 digits starting with 7 or 8. Another country: 8 to 15 digits in all.
+ *   digits or 8 digits starting with 7 or 8. Another country: 10 to 15 digits in all, the first
+ *   one not 0.
  * - No prefix, country 961 (the default): 961 followed by 10 or 11 digits in all is read as
  *   international Lebanese; anything else loses one leading 0 and must be a valid national number.
  * - No prefix, another known country: digits that start with its code and have 8 or more after it
@@ -93,7 +94,8 @@ export function toCanonicalPhone(raw: string, country: string = DEFAULT_COUNTRY)
 
   if (international) {
     if (digits.startsWith("961")) return lebaneseCanonical(digits.slice(3));
-    return digits.length >= 8 && digits.length <= 15 ? digits : null;
+    // Another country, written with its own code: 10 to 15 digits, the first one never 0.
+    return digits.length >= 10 && digits.length <= 15 && /^[1-9]/.test(digits) ? digits : null;
   }
   if (country !== "961") return otherCountryCanonical(digits, country);
   if (digits.startsWith("961") && (digits.length === 10 || digits.length === 11)) {
@@ -113,6 +115,18 @@ function otherCountryCanonical(digits: string, country: string): string | null {
       ? digits
       : `${country}${digits.startsWith("0") ? digits.slice(1) : digits}`;
   return full.length >= 10 && full.length <= 15 ? full : null;
+}
+
+/**
+ * True when `digits` is exactly a canonical phone as toCanonicalPhone produces it: "961" plus 7
+ * digits, "961" plus 8 digits whose first is 7 or 8, or 10 to 15 digits that start with 1 to 9
+ * and not with "961". Explicit on purpose: nothing is converted or stripped, so any non-digit
+ * (including "+" or a space) is false. Stored phones are checked with this, never re-parsed.
+ */
+export function isCanonicalPhone(digits: string): boolean {
+  if (!/^\d+$/.test(digits)) return false;
+  if (digits.startsWith("961")) return /^961(?:\d{7}|[78]\d{7})$/.test(digits);
+  return /^[1-9]\d{9,14}$/.test(digits);
 }
 
 /**

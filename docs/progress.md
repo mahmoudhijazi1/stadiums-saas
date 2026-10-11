@@ -269,3 +269,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `people/domain/countries.ts`, `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the new tests (the ten agreed rows, a no-country regression, a contract test, the country list) are written and NOT run.
+
+## Phone: canonical rule closed before wiring (branch `feat/phone-canonical`)
+
+**When:** 2026-10-14
+
+**What:** Pure domain only; no caller, schema, use case, query or UI changed, and `normalizePhone`, `toLebanonNumber`, `isPhoneText` and `sanitizePhoneInput` are untouched. (1) `toCanonicalPhone` with a `+` or `00` prefix for a number that is not 961 now needs 10 to 15 digits (was 8 to 15), and the first digit may not be 0 (needed for the contract below; `+0123456789` is null). Country parameter and no-prefix rules unchanged. (2) New explicit `isCanonicalPhone(digits)`: true only for `961` + 7 digits, `961` + 8 digits starting 7 or 8, or 10 to 15 digits starting 1 to 9 and not `961`; any non-digit (including `+` or a space) is false and nothing is converted. (3) Contract: every value `toCanonicalPhone` returns is `isCanonicalPhone`-true; downstream code checks stored phones with `isCanonicalPhone` and never re-runs `toCanonicalPhone` on them.
+
+**Files:** `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new tests (the agreed `toCanonicalPhone` and `isCanonicalPhone` rows, and a contract test over every row of the canonical and country tables) are written and NOT run.

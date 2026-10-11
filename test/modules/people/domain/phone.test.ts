@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatPhoneDisplay, normalizePhone, toCanonicalPhone, toLebanonNumber, toPhoneSearchDigits } from "@/modules/people/domain/phone";
+import { formatPhoneDisplay, isCanonicalPhone, normalizePhone, toCanonicalPhone, toLebanonNumber, toPhoneSearchDigits } from "@/modules/people/domain/phone";
 import { COUNTRIES, DEFAULT_COUNTRY, isKnownCountry } from "@/modules/people/domain/countries";
 import { whatsAppChatHref } from "@/modules/notification/domain/whatsapp-link";
 
@@ -71,6 +71,9 @@ describe("formatPhoneDisplay", () => {
   });
 });
 
+/** Every input of the canonical and country tables, collected as those tables are declared. */
+const contractInputs: [string, string?][] = [];
+
 describe("toCanonicalPhone", () => {
   const rows: [string, string | null][] = [
     ["0096171123456", "96171123456"],
@@ -93,6 +96,7 @@ describe("toCanonicalPhone", () => {
     ["+1234567890123456", null], // 16 digits
   ];
   for (const [input, expected] of rows) {
+    contractInputs.push([input]);
     it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
       expect(toCanonicalPhone(input)).toBe(expected);
     });
@@ -133,6 +137,7 @@ describe("toCanonicalPhone with a country", () => {
     ["2025550123", "1", "12025550123"],
   ];
   for (const [input, country, expected] of rows) {
+    contractInputs.push([input, country]);
     it(`${JSON.stringify(input)} for ${country} -> ${JSON.stringify(expected)}`, () => {
       expect(toCanonicalPhone(input, country)).toBe(expected);
     });
@@ -162,5 +167,40 @@ describe("countries", () => {
     expect(isKnownCountry("963")).toBe(true);
     expect(isKnownCountry("999")).toBe(false);
     expect(isKnownCountry("")).toBe(false);
+  });
+});
+
+describe("toCanonicalPhone: other countries with a prefix need 10 to 15 digits", () => {
+  it("accepts a full international number and refuses the short ones", () => {
+    expect(toCanonicalPhone("+12025550123")).toBe("12025550123");
+    expect(toCanonicalPhone("+123456789")).toBeNull(); // 9 digits
+    expect(toCanonicalPhone("+71123456")).toBeNull(); // 8 digits, not 961
+    expect(toCanonicalPhone("+0123456789")).toBeNull(); // first digit 0
+  });
+});
+
+describe("isCanonicalPhone", () => {
+  it("is true for canonical numbers", () => {
+    for (const value of ["96171123456", "9613123456", "963933123456", "12025550123"]) {
+      expect(isCanonicalPhone(value)).toBe(true);
+    }
+  });
+
+  it("is false for everything else, and converts nothing", () => {
+    for (const value of ["71123456", "03123456", "0096171123456", "96112345678", "961123456", "123456789", "+96171123456", "", "96171abc456", " 96171123456"]) {
+      expect(isCanonicalPhone(value)).toBe(false);
+    }
+  });
+
+  it("contract: every value toCanonicalPhone returns, for every table row and country, is canonical", () => {
+    expect(contractInputs.length).toBeGreaterThan(20);
+    let checked = 0;
+    for (const [input, country] of contractInputs) {
+      const result = country === undefined ? toCanonicalPhone(input) : toCanonicalPhone(input, country);
+      if (result === null) continue;
+      checked += 1;
+      expect(isCanonicalPhone(result)).toBe(true);
+    }
+    expect(checked).toBeGreaterThan(10);
   });
 });
