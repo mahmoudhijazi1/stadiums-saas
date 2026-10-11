@@ -185,3 +185,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `stadium/ui/pitch-arc.tsx` (replaces `pitch-lines.tsx`), `app/(public)/_components/{header-band,stadium-contact}.tsx`, `components/shell/theme-icon-button.tsx`, `booking/domain/compact-range.ts`, `booking/ui/time-rows.tsx`, `lib/copy/public.ts`, tests for each, `docs/{CODEMAP,NOW}.md`.
 
 **How to verify:** `npx jest test/architecture test/docs test/app/public test/modules/booking test/modules/stadium`. UNVERIFIED (no browser): the layout at 360px and 390px in Arabic and English. By arithmetic at 360px the three action parts get about 109px each (the longest label plus icon is about 90px) and the name column keeps about 236px next to the arc box; the arc itself and the gradient were not looked at in either theme.
+
+## Dark theme: sheet and modal backdrop darkens (branch `feat/public-page`)
+
+**When:** 2026-10-14
+
+**What:** Every bottom sheet and modal, public and owner, shares one overlay (`DialogOverlay` in `components/ui/dialog.tsx`, used by `BottomSheet` too). It was `bg-foreground/45` plus a blur: in the dark theme `foreground` is the light ink, so opening a sheet lightened the page. In the dark theme the overlay is now `bg-black/65` (the blur stays); the light theme is unchanged.
+
+**Files:** `components/ui/dialog.tsx`, `test/components/overlay-dark.test.ts`.
+
+**How to verify:** `npx jest test/components/overlay-dark`. UNVERIFIED by eye: open any sheet in dark mode and check the page behind it goes darker.
