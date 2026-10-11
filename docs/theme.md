@@ -270,3 +270,11 @@ The existing `LtrIsolate` component is the migration hook — numbers already ro
 - **Expense category tiles** (5 ad-hoc Tailwind palette colours). They need a `--category-1…5` role set derived from the neutral and deep families, not from `--alert`. Decide before touching `money/_components/panel.tsx`.
 - **Chart tokens** `--chart-1…5` and the sidebar token block. Leave pointing at primitives until a chart contract exists.
 - **`global-error.tsx`** renders its own `<html>` and cannot read the token layer. Leave its four hex values hardcoded and note it in `MIGRATION.md`.
+
+## System bars (status bar and browser bars)
+
+The bar colour is the page background (`--bg`) of the theme the owner sees, in both themes: `#F6F5EF` (light) and `#111412` (dark), one source in `src/lib/theme-color.ts`, kept equal to the tokens by `test/lib/theme-color.test.ts`. The two colours are clearly light and clearly dark, so the OS draws dark icons and clock on the light bar and light ones on the dark bar (the test checks the luminance); a bar that matches the page cannot hide them.
+
+How it is applied: the server renders `theme-color` tags keyed to the phone's light or dark setting (`viewport` in `src/app/layout.tsx`); a small script at the start of `<body>` and `components/shell/system-bars.tsx` then point every tag at the colour of the theme in use. So a theme forced against the phone's setting, and a theme changed while the app is open, still get the right bar on Android and on browsers that read `theme-color`.
+
+Not controllable from the web page (UNVERIFIED on a real device, check on one before relying on it): the iOS installed-app status bar follows the phone's setting, not the app's toggle, and `black-translucent` is deliberately not used (white text over a light page would vanish); the Android splash screen uses the manifest's `background_color` (light) and `theme_color` (the stadium accent), which have no dark variant here; the bottom system bar is drawn by the OS, and the page already extends under it (`viewportFit: "cover"`, tab bar padded by `env(safe-area-inset-bottom)`).
