@@ -65,7 +65,7 @@ export const money: CopyArea = {
     "owner.noRefundYet": "، لا يمكن الاسترداد بعد.",
     "owner.toCollect": "للتحصيل",
     "owner.owedFromEarlier": "من أيام سابقة",
-    "owner.owedAtLeast": "على الأقل {amount}",
+    "owner.owedAtLeast": "{amount}+",
     "owner.collectedWord": "محصّل",
     "owner.owedWord": "مستحق",
     "owner.expectedWord": "متوقع",

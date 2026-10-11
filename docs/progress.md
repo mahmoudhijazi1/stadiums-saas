@@ -375,3 +375,9 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The Arabic "To collect · total · from earlier days" header is long on a narrow screen. `earlier-debts-header.tsx` now lays its three parts ("To collect", the total or "at least $X", "from earlier days") in a wrapping row, each part unbreakable, so a long line moves a whole part to a second line instead of breaking inside a phrase or being cut. The "·" separators are replaced by a gap (a wrapped line would otherwise end with a stray dot). The row keeps its minimum height and grows to two lines.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; `test/modules/booking/earlier-debts-header.test.ts` was updated (text without dots, the wrapping row) and is NOT run. UNVERIFIED by eye at 360px in Arabic.
+
+## Today: no "at least" words in Arabic (branch `feat/today-refine`)
+
+**What:** Copy only. `owner.owedAtLeast` in Arabic is now `{amount}+` (was "على الأقل {amount}"), so the capped total in Arabic reads "$120+" while English keeps "at least $120". The plus keeps the signal that more is owed than the total shows.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the header test was updated and is NOT run.
