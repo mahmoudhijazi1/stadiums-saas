@@ -1,43 +1,35 @@
 # Stadium SaaS
 
-Multi-tenant stadium booking platform (Next.js 16, Prisma 7, Postgres).
+**Purpose:** the one-page start: what this is, how to run it, how to test it.
+**Read when:** you open the repo for the first time.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
 
-**Start here for project status and where docs live:** [`docs/NOW.md`](./docs/NOW.md).
+A multi-tenant back-office for football stadium owners in Lebanon: bookings, cash collection in USD and LBP, expenses and a financial summary, replacing the paper schedule. Each stadium also gets a public page where players request slots. Arabic first (RTL); Next.js 16, Prisma 7 and Postgres as one modular monolith.
 
-## Docs
-
-| Path | What |
-|------|------|
-| [`docs/NOW.md`](./docs/NOW.md) | **Current status + next work + pointers** (read first) |
-| [`docs/README.md`](./docs/README.md) | Catalog of DRs, SPECs, guides |
-| [`docs/requirements/brd.md`](./docs/requirements/brd.md) | Product source of truth |
-| [`docs/progress.md`](./docs/progress.md) | Append-only journey log |
-
-**Work order:** decision → spec → code. Agent rules: [`docs/archive/cursor-rules/`](./docs/archive/cursor-rules/) (archived; CLAUDE.md is current). Framework warning: [`AGENTS.md`](./AGENTS.md).
-
-## Local setup
-
+## Run it locally
 ```bash
-docker compose up -d          # Postgres 16 on localhost:5433 (dev + test DBs)
-cp .env.example .env          # if needed
+docker compose up -d          # Postgres 16 on localhost:5433 (dev and test databases)
+cp .env.example .env          # then adjust if needed
+npm ci
+npx prisma generate --config prisma7.config.ts    # the client is not in git (src/generated)
 npx prisma migrate deploy --config prisma7.config.ts
 npm run db:seed
 npm run dev
 ```
+Seed logins (password `dev-owner`): `owner@ahmad`, `owner@sami`, `staff@ahmad`. Open a tenant by host: `http://ahmad.localhost:3000` (`APP_BASE_DOMAIN="localhost:3000"`). Only the bare `APP_BASE_DOMAIN` or a single-label subdomain of it is served; other hosts get 404. The seed wipes every table and refuses to run unless `DATABASE_URL` names `stadiums_dev` or `stadiums_test` (`src/prisma/seed-guard.ts`).
 
-Seed logins (password `dev-owner`): `owner@ahmad`, `owner@sami`, `staff@ahmad`. Open the tenant by host locally: `http://ahmad.localhost:3000` (`APP_BASE_DOMAIN="localhost:3000"`). Only the bare `APP_BASE_DOMAIN` or a single-label subdomain of it is served; other hosts get 404.
-
-The seed wipes every table. It refuses to run when `NODE_ENV=production` or when `DATABASE_URL` names any database other than `stadiums_dev` or `stadiums_test` (`src/prisma/seed-guard.ts`).
-
-## Scripts
-
+## Run the tests
 ```bash
-npm run dev                 # Next.js
-npm run build
+npx tsc --noEmit              # types
+npm test                      # unit tests (Jest, offline), including the architecture and docs checks
+npm run test:integration      # needs the Docker Postgres above; migrates stadiums_test first
 npm run lint
-npm test                    # unit (Jest, offline)
-npm run test:integration    # migrate stadiums_test + integration Jest
-npm run db:seed
+npm run build
 ```
 
-Details: [`docs/guides/testing-jest.md`](./docs/guides/testing-jest.md).
+## Read next
+1. [docs/NOW.md](./docs/NOW.md) — what is live and what is next.
+2. [docs/CODEMAP.md](./docs/CODEMAP.md) — where everything lives and where a new file goes.
+3. [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — modules, allowed imports, layers.
+
+The full index is [docs/README.md](./docs/README.md). Rules for coding agents are in [CLAUDE.md](./CLAUDE.md).

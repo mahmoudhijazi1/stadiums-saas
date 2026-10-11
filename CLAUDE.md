@@ -2,67 +2,48 @@
 
 # Stadiums SaaS — agent guide
 
-Multi-tenant back-office for football stadium owners in Lebanon. It replaces the paper schedule: bookings, cash collection in mixed USD/LBP, expenses and a financial summary, plus a public page per stadium where players request slots. Arabic-first (RTL); Next.js 16 + Prisma 7 + Postgres modular monolith on one droplet. Governing rule: every owner action must be faster than paper (RULE-12).
+Multi-tenant back-office for football stadium owners in Lebanon: bookings, cash in mixed USD/LBP, expenses, a financial summary, and a public page per stadium. Arabic first (RTL); Next.js 16 + Prisma 7 + Postgres, one modular monolith. Governing rule: every owner action must be faster than paper (RULE-12). This file is the single source of rules for every coding agent.
 
-## Where things stand
-- `docs/NOW.md` — status + what's next. Read it first.
-- SPEC-15 / SPEC-16 carry a status banner at the top of the file.
+## Read these first
+1. [README.md](README.md) — run and test.
+2. [docs/NOW.md](docs/NOW.md) — what is live, what is next.
+3. [docs/CODEMAP.md](docs/CODEMAP.md) — where files live and where a new one goes.
 
-## Which doc for which task
-| Task | Read first |
-|---|---|
-| Any new feature | `docs/requirements/brd.md` §7 (RULE-1…12), then `docs/decisions/` for constraints. Never invent a decision — if no DR covers it, say so and stop. |
-| Tenancy, isolation, `platformDb`, transactions | DR-001, `docs/guides/prisma-transaction-tenant-guard.md` (one-pool / ALS rule) |
-| Schema / data model | DR-002 (+ `docs/archive/cursor-rules/200-database-prisma.mdc`) |
-| Login, sessions, permissions, `can()` | DR-003, SPEC-04 |
-| Errors, logging, `?error=` keys | DR-004, SPEC-12, `docs/guides/error-handling-logging-audit.md` |
-| Arabic / RTL / copy (`ui()`) | DR-005, SPEC-13 (+ `docs/archive/cursor-rules/100-rtl-i18n.mdc`) |
-| Money: collect, tenders, rate, ledger | DR-002 §2.14–2.21, SPEC-06, SPEC-08 |
-| Per-player payments (BR-41–49) | `docs/specs/SPEC-15-per-player-payments.md` |
-| Fees, waivers, due adjustments, cancellation policy | `docs/specs/SPEC-16-due-adjustments.md` |
-| Booking flow: request / approve / owner-create / cancel / no-show / waitlist | SPEC-03, 05, 09, 10, 14, 11 |
-| Expenses | SPEC-07 |
-| Slots, pitch hours, pricing | SPEC-02, DR-002 §2.4–2.7 |
-| Owner UI structure (tabs, sheets, flows) | `docs/owner-ux.md` (UX-01 — wins on conflict), then `docs/owner-ia.md` (living route map) |
-| History: day nav, person page, transactions, timeline | `docs/ux-02-history.md` (UX-02) |
-| Visual design / tokens / components | `docs/ui-foundations.md`, `docs/ui-components.md`, `docs/theme.md`, `docs/MIGRATION.md` (source of truth for what shipped, incl. fonts) |
-| Where files go | `docs/guides/folder-structure.md`, `docs/guides/module-map-and-request-walkthroughs.md` |
-| Tests (Jest, Docker Postgres integration) | `docs/guides/testing-jest.md` |
-| Launch gaps / backlog | `docs/guides/mvp-readiness-audit.md` (dated — read the banner) |
+Then, by task: a feature -> `docs/requirements/brd.md` §7 (RULE-1…12) and `docs/decisions/` (never invent a decision: if no DR covers it, say so and stop); dependencies and layers -> [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md); schema -> `docs/DATA-MODEL.md`, DR-002; money -> `docs/domain/money.md`; owner screens -> `docs/owner-ia.md`, `docs/owner-ux.md`, `docs/ui-rules.md`; deploy -> `docs/RUNBOOK.md`; tests -> `docs/guides/testing-jest.md`. The index is `docs/README.md`.
 
-SPECs, DRs and audits are **historical**: never rewrite their bodies; at most a one-line banner. **Living** docs (`NOW.md`, `owner-ia.md`, `folder-structure.md`, `testing-jest.md`, READMEs) must match the code — update them in the same change.
+**`test/architecture/rules.ts` is the source of truth for dependencies** (module edges, layers, ui, app-thin). If a change needs a new edge, change it there in one line with a reason, and say why.
 
-## Non-negotiables (details in the DRs)
-- URL picks the tenant; the session only authorizes against it. Never pass `tenantId` by hand — the Prisma extension stamps it; raw SQL must stamp it from ALS.
-- Module imports point down only (Payment never imports Booking; Venue never imports Booking). `app/` stays thin: validate → authorize → delegate.
-- The use case that starts an action owns `$transaction` and passes `tx`. Authorize before the tx; never touch `platformDb` inside it. Notifications after commit.
-- Every payment writes its ledger row in the same transaction. Ledger is append-only, USD only. Money is `Decimal`, never float.
-- Warn, never block the owner from taking money (RULE-9/10). Logical CSS properties only; LTR-isolate numbers/phones/times; all copy via `ui()`.
-- Framework APIs come from `node_modules/next/dist/docs/` and installed Prisma docs, not memory.
+SPECs, DRs and audits are **historical**: never rewrite their bodies. **Living** docs (the ones in "Start here" and "Core" of `docs/README.md`) must match the code: update them in the same change. `test/docs/docs.test.ts` checks their headers, paths and links.
 
-Recovered from the archived Cursor rules ([docs/archive/cursor-rules/](docs/archive/cursor-rules/); DR-002, DR-005, `docs/guides/testing-jest.md` have the detail):
-- The no-double-booking exclusion constraint lives in a hand-written SQL migration. Never remove it, never model it in the schema DSL.
-- `tenantId` on every tenant-owned table, child tables included.
-- Payment, PaymentTender, LedgerEntry, BookingDueChange and ExchangeRate are append-only in code: corrections are new rows.
-- USD is `Decimal(12,2)`, LBP is `Decimal(18,0)` or `BigInt`; times are `timestamptz` in UTC.
-- Repositories use the transaction client they are given, never the global `db` inside a transaction.
-- Every query lives in `infrastructure/`; a read across more than two entities goes through a named function.
+## Non-negotiables
+- URL picks the tenant; the session only authorizes against it. Never pass `tenantId` by hand: the Prisma extension stamps it; raw SQL stamps it from `getCurrentTenantId()`. `tenantId` is on every tenant-owned table, child tables included.
+- The use case that starts an action owns `$transaction` and passes `tx`. Authorize before the tx; never touch `platformDb` inside it. Notifications after commit. Repositories use the client they are given.
+- Every payment writes its ledger row in the same transaction. Payment, PaymentTender, LedgerEntry, BookingDueChange and ExchangeRate are append-only: corrections are new rows. Money is `Decimal` (USD `Decimal(12,2)`, LBP `Decimal(18,0)` or `BigInt`), never a float. Times are `timestamptz` in UTC.
+- The no-double-booking exclusion constraint lives in a hand-written SQL migration: never remove it, never model it in the schema DSL.
+- Warn, never block the owner from taking money (RULE-9/10). Logical CSS properties only; Western digits; LTR-isolate numbers, phones and times; all copy through `ui()`; tenant-written names are never translated; no `next-intl`.
 - jsonb (`scheduleConfig`, tenant `settings`) is Zod-validated at the application edge.
-- Domain types: things with real invariants (Booking, Payment, Money) get domain types; plain data may use Prisma types.
-- Western digits in the Arabic UI; tenant-written content (pitch and product names) is never translated; no `next-intl` (DR-005).
-- Every slice ships its tests.
+- Framework APIs come from `node_modules/next/dist/docs/` and the installed Prisma docs, not memory.
 
-## docs/progress.md — append-only build log
-- **NEVER read it in full** (4,000+ lines). For recent context only, and only if needed: `tail -n 100 docs/progress.md`.
-- **NEVER rewrite, reorganize, reformat, or edit past entries.**
-- When a task is completed, **append** a new entry at the end:
-  1. First inspect the last few entries with `tail` and match their existing format (`## Title` heading, `**When:**` date, **What**, **Why** with DR/SPEC/BRD link, **Files**, **How it connects** — incl. what it must not import — and **How to verify** with test counts / results).
-  2. Append only — never insert mid-file. If an old entry is wrong, append a **Correction** entry.
+## Where code goes (placement rules)
+1. A **business word** -> `src/modules/<module>/` in the right layer (`domain` pure, no await, no db; `application` use cases; `infrastructure` all queries; `schemas` Zod; `ui` components).
+2. A **URL** -> `src/app/`, thin: validate, authorize, delegate. Only Next convention files, actions, and a `_components` folder per route.
+3. **Generic UI** -> `src/components/ui`. The **app frame** -> `src/components/shell`. **One route only** -> that route's `_components`.
+4. **Data and actions reach `ui/` through props.** A module `ui/` file never imports application, infrastructure, db, the Prisma client or `@/app`; the page passes the data and the real Server Action.
+5. Imports point down only (Payment never imports Booking; Venue never imports Booking). Types with real invariants (Booking, Payment, Money) get domain types; plain data may use Prisma types.
+6. Every query lives in `infrastructure/`; a read across more than two entities goes through a named function.
 
-## Standard workflow (one slice at a time)
-1. **Read** the SPEC/UX doc for the slice plus the DRs and living docs it depends on.
-2. **Report** gaps, conflicts with code or other docs, and open decisions — then **STOP and wait for approval**. No code before approval.
-3. **Build one slice only**, exactly as scoped. Don't scaffold ahead (no `shop/`, `academy/`, empty layers).
-4. **Verify after each slice:** `npm test`, `npm run build`, and `npm run test:integration` when the slice touches transactions, money, or isolation. Report results honestly.
-5. **Update living docs** if routes, tabs, or structure changed.
-6. **Append** to `docs/progress.md` as above.
+## Clean-code checklist
+- One job per file. A file over about 300 lines that does more than one thing gets split (move code as is, then change it).
+- A business word goes to a module, not to `lib/` or `components/`.
+- Reuse the existing rule or helper before writing a new one (money and time formatters in `lib/format`, copy in `lib/copy`).
+- No `await` and no db in `domain/`.
+- Every slice ships its tests. No scaffolding ahead of the task (no empty layers).
+
+## Workflow
+1. Branch from `main`; one slice per branch; small commits (one item each).
+2. Read the SPEC or UX doc and the DRs first. Report gaps, conflicts and open decisions, then wait for approval before code.
+3. Moves are done with `git mv` so history is kept; a move changes no behaviour.
+4. Write tests with the slice. Before every commit: `npx tsc --noEmit` and `npx jest test/architecture` (and the tests for what you touched). `npm test`, `npm run build` and `npm run test:integration` (for transactions, money, isolation) run before merging; CI must be green before merging.
+5. Update the living docs you made stale in the same change.
+6. Append a short entry to `docs/progress.md` (read only `tail -n 100 docs/progress.md`; match the format; never edit old entries).
+7. Report results honestly: say what was run and what was not.

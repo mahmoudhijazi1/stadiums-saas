@@ -1,5 +1,9 @@
 # Runbook
 
+**Purpose:** operator procedures for the production server: deploy, backup, rollback, secrets.
+**Read when:** you deploy, restore, rotate a secret or debug production.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
+
 **Living.** Operator procedures for the production server. Extend this file section by section; never overwrite it.
 
 ## Passwords
@@ -181,7 +185,7 @@ Fonts are self-hosted with `next/font/local` (`src/app/layout.tsx`); the build a
 
 The QR button in the business menu shows a QR code of the stadium's public page and offers Share, Download PNG and a printable poster (`/owner/qr/print`). The code is generated on the server by `GET /owner/qr?format=svg|png`; the library never reaches the browser.
 
-- **New runtime dependency: `qrcode`** (MIT, 1.5.4; its own dependencies `pngjs`, `yargs` and `dijkstrajs` are MIT too, and none of them has an install script). Used only in `src/lib/qr.ts`, which only server code imports. Dev only: `jsqr` (Apache-2.0, decodes the PNG in tests), `pngjs`, `@types/qrcode`, `@types/pngjs`.
+- **New runtime dependency: `qrcode`** (MIT, 1.5.4; its own dependencies `pngjs`, `yargs` and `dijkstrajs` are MIT too, and none of them has an install script). Used only in `src/modules/stadium/domain/qr.ts`, which only server code imports. Dev only: `jsqr` (Apache-2.0, decodes the PNG in tests), `pngjs`, `@types/qrcode`, `@types/pngjs`.
 - **What it encodes:** `publicPageUrl(slug)`, the same link the Copy and WhatsApp buttons use: `APP_PROTOCOL://<slug>.APP_BASE_DOMAIN/`. So **the QR points at the production site only when `APP_PROTOCOL` and `APP_BASE_DOMAIN` are set correctly in the server `.env`** (`https` and `lebstads.com` in production). With `APP_BASE_DOMAIN` empty the route answers 503 rather than encode a wrong link. Printed posters keep working only as long as the domain and the slug do not change: check them before sending anything to print.
 - The tenant is resolved from the host only; no query parameter can change the encoded text. Black on white, 4-module quiet zone, error correction Q, PNG 1024 x 1024.
 
@@ -194,15 +198,53 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 - 16.3.8 fixes image-optimization SSRF (GHSA-cjq9-62q9-8jv4), metadata image routes leaking through `dynamicParams` (GHSA-f87g-xv8r-7p7x), SSG/ISR cache poisoning (GHSA-4jqv-mc3x-m676, GHSA-mcj8-r9mp-w47p) and `use cache` leaks (GHSA-3w37-wq28-93x7, GHSA-h694-7cp9-m8p3).
 - After any upgrade: `npm test`, `npm run test:integration`, `npm run build`, then check the installed app (service worker, manifest, push) by hand. The 16.3.4 to 16.3.8 upgrade itself was verified only with `npx tsc --noEmit`.
 
-## Build order on the server
+## Deploy order
 
-The Prisma client is not in git. It is generated into `src/generated/prisma` and must exist before `tsc`, tests or `next build`. After every `git pull`, in the app directory (dev dependencies installed, `.env` set):
+One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. UNVERIFIED: the process manager name below (`pm2`, process `stadiums-saas`) is the one used on the droplet; it is not configured anywhere in this repo, so check `pm2 list` for the real name.
 
 ```bash
+# 1. backup first (custom format, restorable with pg_restore)
+pg_dump -h localhost -U stadiums -d stadiums -Fc -f /var/backups/stadiums-$(date +%F).dump
+
+# 2. note what is running now (for the rollback), then update
+git rev-parse --short HEAD
+git pull --ff-only
+
+# 3. the Prisma client moved out of src/app: remove the old folder if it is still there
+rm -rf src/app/generated
+
+# 4. install with dev dependencies (prisma, tsx and the build need them)
 npm ci
+
+# 5. the client is not in git: generate it before the build
 npx prisma generate --config prisma7.config.ts
+
+# 6. what would migrate, then migrate
+npx prisma migrate status --config prisma7.config.ts
 npx prisma migrate deploy --config prisma7.config.ts
+
+# 7. build, restart, look at the logs
 npm run build
+pm2 restart stadiums-saas
+pm2 logs stadiums-saas --lines 100
+npx next --version
 ```
 
-Then restart the service. CI does the same first three steps (`.github/workflows/ci.yml`, "prisma generate" before the build).
+Check after the restart: the logs show no `Invalid environment` or `Missing` line at startup (the server refuses to start in production with a bad `.env`), `npx next --version` prints the version in `package.json` (16.3.8 at the time of writing; never older than 16.3.6, see "Framework version"), and the public page of one stadium loads.
+
+**`.env` on the server** (mode 600): `DATABASE_URL`, `APP_BASE_DOMAIN`, `APP_PROTOCOL=https`, the three VAPID values (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`; see "Push keys") and, only when nginx overwrites the header with the real client address, `TRUSTED_CLIENT_IP_HEADER="x-real-ip"` (see "Login lockout"). Missing or malformed required values stop the server at start.
+
+### Roll back to a tag
+Releases are git tags (`v1.0.0` is the first). To go back to a tag:
+
+```bash
+git fetch --tags
+git checkout v1.0.0            # a tag, or the hash noted in step 2
+rm -rf src/app/generated       # only needed when going back past the move of the client
+npm ci
+npx prisma generate --config prisma7.config.ts
+npm run build
+pm2 restart stadiums
+```
+
+Migrations only go forward. If the tag is older than a migration that has already been applied, the old code may not run on the new schema: restore the backup from step 1 instead (`pg_restore -h localhost -U stadiums -d stadiums --clean --if-exists /var/backups/stadiums-YYYY-MM-DD.dump`), which loses everything written after the backup. UNVERIFIED: this restore was not run from this repo. To return to the latest release: `git checkout main && git pull --ff-only`, then steps 4 to 7.

@@ -1,5 +1,9 @@
 # Owner dashboard — information architecture
 
+**Purpose:** the owner app's information architecture: tabs, routes, query params and where each piece lives.
+**Read when:** you add or move a screen, or change what a tab holds.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
+
 Living reference for `/owner` structure. **Update this file when tabs or routes change.** It is not a SPEC or DR; those stay in `docs/specs/` and `docs/decisions/`.
 
 ---
@@ -85,7 +89,7 @@ New products are **list rows on More**, not a sixth destination:
 
 ## Routing decision
 
-**Real App Router routes + `src/app/owner/layout.tsx`, never a client tab switcher.**
+**Real App Router routes + `src/app/owner/(app)/layout.tsx`, never a client tab switcher.**
 
 Why:
 
@@ -134,31 +138,28 @@ GET forms: period → `action="/owner/money"`. Book day is Link chips + calendar
 
 ## Component map
 
+Routes live in `src/app/owner/(app)/<tab>/`; each route's private pieces are in its `_components` folder, Server Actions are in the route's `actions.ts` (Today also has `items-actions.ts` and `extend-actions.ts`). Module components are in `src/modules/<m>/ui/` and get data and actions through props (see [CODEMAP.md](./CODEMAP.md)).
+
 | Piece | Where |
 |---|---|
-| Auth gate + sticky header (name, lang, logout) + tab bar | `src/app/owner/layout.tsx` + `header.tsx` |
-| Tab bar | `src/app/owner/tab-bar.tsx` (`"use client"`, `usePathname`) |
-| Index redirect | `src/app/owner/page.tsx` → `/owner/today` |
-| `OwnerHome` (`today/lists.tsx` + `today/upcoming-panel.tsx`) + `today/actions.ts` | `/owner/today` |
-| Bottom sheet (shared) | `src/components/ui/bottom-sheet.tsx` — Dialog overlay, slides from the bottom |
-| Date chips + `OwnerBookSlots` (`book/slots.tsx`) + `OwnerSlotPicker` (`book/picker.tsx`) + `book/actions.ts` | `/owner/book` |
-| Shared slot grid | `src/components/slot-picker.tsx` (public + owner Book; name/phone in a Dialog; no booking/access/venue types) |
-| Shared day chips | `src/components/day-chips.tsx` (public `?date=` + owner `?bookOn=`) |
-| `OwnerWaitlist` (`waitlist/list.tsx`) | `/owner/waitlist` (no Server Action) |
-| `OwnerMoney` (`money/panel.tsx`, `reveal.tsx`, `bars.ts`) + `money/actions.ts` | `/owner/money` (Reports) |
-| More hub | `src/app/owner/more/page.tsx` |
-| `OwnerSettings` (`more/settings/panel.tsx`) + `more/settings/actions.ts` | `/owner/more/settings` |
-| Pitch create/edit | `more/settings/pitches/{new,[pitchId],form,hours-groups,price-rules,actions}` |
-| Shared membership / tenant slug / `queryString` / `formatLocalRange` | `src/app/owner/shared.tsx` |
-| Form field + POST keep-query / `redirectOwner` | `src/app/owner/form-query.ts` (today + book + money + settings) |
-| Per-tab Suspense fallbacks | `today/skeleton.tsx`, `book/skeleton.tsx`, `waitlist/skeleton.tsx`, `money/skeleton.tsx`, `more/settings/skeleton.tsx` |
-| FlashToast | layout Client child; reads URL (`useSearchParams`) |
-
-If a helper is used by exactly one tab, it lives in that tab folder (or is folded into that tab’s TSX). There is no root `actions.ts` or `skeletons.tsx`.
-
-`getCurrentMembership` is React `cache()`’d so layout + page share one lookup per request. Layouts cannot pass membership to `children`.
-
----
+| Auth gate | `src/app/owner/require-owner.ts` (`requireOwnerMembership`) |
+| Layout, sticky header, tab bar | `src/app/owner/(app)/layout.tsx`; `src/components/shell/{header,tab-bar,business-menu,offline-pill,back-link}.tsx` |
+| Index redirect | `src/app/owner/(app)/page.tsx` -> `/owner/today` |
+| Today | `today/page.tsx`, `today/_components/{lists,free-strip-section,date-label}`, `booking/ui/upcoming-panel` and the other `booking/ui` pieces, `today/{actions,items-actions,extend-actions}.ts` |
+| Book | `book/page.tsx`, `book/_components/slots.tsx`, `booking/ui/book-picker.tsx`, `book/actions.ts` |
+| Requests (inbox, waitlist, free slots) | `requests/page.tsx`, `requests/_components/{inbox,pending-list,free-slots}` |
+| Money | `money/page.tsx`, `money/_components/panel.tsx` and its pieces, `money/{activity,owed,shop}/page.tsx`, `money/actions.ts`, `money/query.ts`; `expense/ui/expense-sheet`, `payment/ui/cash-today`, `ledger/ui/period-label` |
+| More hub | `more/page.tsx`, `more/_components/hub.tsx`; sub-pages `more/{settings,settings/pitches,shop,stadium,weekly,account,notifications}` |
+| Sell (walk-in shop sale) | `sell/page.tsx`, `shop/ui/sell-screen.tsx`, `sell/actions.ts` |
+| People and search | `people/[personId]/page.tsx`, `search/page.tsx` and their `_components` |
+| Weekly series | `series/actions.ts`, `booking/ui/{series-manage,weekly-confirm,weekly-preview}` |
+| Slot grid and day chips (public and owner) | `booking/ui/slot-picker.tsx`, `venue/ui/day-chips.tsx` |
+| Bottom sheet (shared) | `src/components/ui/bottom-sheet.tsx` |
+| Settings list markup | `src/components/ui/settings-list.tsx` |
+| Form field, POST keep-query, `redirectOwner` | `src/lib/form-query.ts` |
+| `queryString`, owner time formatters | `src/lib/search-params.ts`, `src/lib/format/time.ts` |
+| Per-tab Suspense fallbacks | `skeleton.tsx` in `today`, `money/_components`, `book/_components`, `more/settings` |
+| FlashToast | `src/components/ui/flash-toast.tsx`; layout client child, reads the URL (`useSearchParams`) |
 
 ## Which tab does X belong in?
 
@@ -190,7 +191,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 
 ## TODO — Proxy vs middleware (historical note)
 
-Next.js 16 uses **Proxy** (`src/proxy.ts`) for the host check (bare `APP_BASE_DOMAIN` or a one-label subdomain, else 404); `tenant-context` resolves the tenant from the same validated Host, never from a header. Living docs (`docs/guides/folder-structure.md`, [NOW.md](./NOW.md)) already say proxy.
+Next.js 16 uses **Proxy** (`src/proxy.ts`) for the host check (bare `APP_BASE_DOMAIN` or a one-label subdomain, else 404); `tenant-context` resolves the tenant from the same validated Host, never from a header. Living docs (`docs/CODEMAP.md`, [NOW.md](./NOW.md)) already say proxy.
 
 SPEC-01 step 2 and DR-001 §2 still say **middleware** — that is **historical record**, not a bug and not a reason to recreate `middleware.ts`. Do not “fix” those SPEC/DR bodies; at most they carry a one-line superseded banner.
 

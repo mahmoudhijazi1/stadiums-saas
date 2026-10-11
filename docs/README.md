@@ -1,109 +1,45 @@
 # Stadium SaaS — docs
 
-**Current status and what’s next:** [NOW.md](./NOW.md) — read that first.
+**Purpose:** the index of everything under `docs/`, grouped by how much to trust it.
+**Read when:** you are looking for a document, or unsure whether one is still true.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
 
-Decisions, specs, and guides live here. Code does not.
+Rule of thumb: **Start here** and **Core** are living and must match the code. **Domain rules** and **Operations** are living too. **History** was true when written and is never rewritten (at most a one-line banner). `docs/archive/` holds superseded files that describe things that no longer exist.
 
-**Order of work:** decision → spec → code. Never invent a decision in chat; write or update a DR first.
+## Start here
+- [../README.md](../README.md) — what the product is, run it locally, run the tests.
+- [NOW.md](./NOW.md) — what is live, what is in progress, the next three steps.
+- [CODEMAP.md](./CODEMAP.md) — where every folder and module lives, and where a new file goes.
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — modules, allowed imports, layers, ui and app rules, request flow.
+- [KEY-FILES.md](./KEY-FILES.md) — the 15 files where a mistake breaks money, bookings, isolation or login, and the tests that guard them.
 
-## Layout
+## Core
+- [DATA-MODEL.md](./DATA-MODEL.md) — tables, columns, constraints, migrations.
+- [owner-ia.md](./owner-ia.md) — the owner app's route map (living).
+- [ui-foundations.md](./ui-foundations.md), [ui-components.md](./ui-components.md), [ui-rules.md](./ui-rules.md), [theme.md](./theme.md) — design rules, components, tokens.
+- [MIGRATION.md](./MIGRATION.md) — what shipped of the design-system migration (fonts included).
+- [guides/testing-jest.md](./guides/testing-jest.md) — Jest, Docker Postgres integration tests, the architecture and docs tests.
+- [guides/prisma-transaction-tenant-guide](./guides/prisma-transaction-tenant-guard.md) — the one-pool / AsyncLocalStorage rule for transactions and the tenant guard.
 
-```
-docs/
-  NOW.md                    ← status + next work + pointers (entry point)
-  README.md                 ← this catalog
-  progress.md               ← append-only journey log
-  RUNBOOK.md                ← operator procedures (passwords, …)
-  push-notifications.md     ← owner web push: flow, glossary, keys, debugging, manual checks
-  owner-ia.md               ← living owner tab/route map
-  owner-ux.md, ux-02-history.md  ← UX-01 / UX-02 records
-  ui-*.md, theme.md, MIGRATION.md ← design system
-  decisions/                ← why (historical DRs — do not rewrite bodies)
-  specs/                    ← what to build (historical SPECs)
-  guides/                   ← how we work + audits
-  requirements/             ← product source of truth (BRD)
-```
+## Domain rules
+- [domain/money.md](./domain/money.md) — collecting, tenders, rate, ledger.
+- [domain/weekly-series.md](./domain/weekly-series.md) — weekly recurring bookings.
+- [per-player-payments.md](./per-player-payments.md) — per-player payments as built.
+- [push-notifications.md](./push-notifications.md) — web push to the owner's devices.
+- [requirements/brd.md](./requirements/brd.md) — business requirements and RULE-1…12 (the product rules; historical in form, binding in content).
 
-Old Cursor agent rules are archived in `docs/archive/cursor-rules/`; CLAUDE.md is the live guide. See [guides/cursor-rules.md](./guides/cursor-rules.md).
+## Operations
+- [RUNBOOK.md](./RUNBOOK.md) — deploy order, backups, rollback, operator procedures.
+- [ROADMAP.md](./ROADMAP.md) — known open work that is not a product slice.
 
-## Naming conventions
+## History (true when written; do not rewrite)
+- Decisions: [decisions/DR-001](./decisions/DR-001-tenancy-and-modules.md) tenancy, [DR-002](./decisions/DR-002-core-data-model.md) data model, [DR-003](./decisions/DR-003-auth-sessions.md) auth, [DR-004](./decisions/DR-004-error-handling.md) errors, [DR-005](./decisions/DR-005-arabic-rtl.md) Arabic and RTL.
+- Specs: `specs/SPEC-01` … `SPEC-16` (tenancy, venue, booking, access, approve, collect, expense, dashboard, owner booking, cancel, waitlist, errors, RTL, no-show, per-player payments, due adjustments).
+- UX records: [owner-ux.md](./owner-ux.md) (UX-01), [ux-02-history.md](./ux-02-history.md) (UX-02).
+- Audits: `audits/` (security, security 2, architecture review, booking and payments audit, logic findings, doc-vs-code discrepancies) and `guides/` audits ([engineering](./guides/engineering-audit.md), [error handling and logging](./guides/error-handling-logging-audit.md), [MVP readiness](./guides/mvp-readiness-audit.md)), [mentor defense](./guides/mentor-defense-backend.md).
+- [progress.md](./progress.md) — the build log, appended per task; older entries are in [archive/progress-2026.md](./archive/progress-2026.md).
 
-| Folder | Pattern | Example |
-|--------|---------|---------|
-| `decisions/` | `DR-NNN-kebab-slug.md` | `DR-003-auth-sessions.md` |
-| `specs/` | `SPEC-NN-kebab-slug.md` | `SPEC-02-venue-availability.md` |
-| `guides/` | `kebab-slug.md` | `cursor-workflow.md` |
-| `requirements/` | descriptive kebab | `brd.md` |
-
-- Numbers are zero-padded and never reused. New DR = next free `NNN`; new SPEC = next free `NN`.
-- One concern per file. Prefer a new DR/SPEC over stuffing an old one.
-- Specs depend on DRs; link them at the top of each SPEC (`Depends on: DR-00N`).
-- Every SPEC includes a **Tests** subsection (see [guides/testing-jest.md](./guides/testing-jest.md)).
-- **Historical** SPECs/DRs/audits: do not rewrite bodies to match later renames; at most a one-line banner at the top.
-- **Living** docs (`NOW.md`, `owner-ia.md`, folder-structure, testing-jest, READMEs): must match current code.
-
-## Catalog
-
-### Decisions
-- [DR-001 — Tenancy & modules](./decisions/DR-001-tenancy-and-modules.md)
-- [DR-002 — Core data model](./decisions/DR-002-core-data-model.md)
-- [DR-003 — Auth, sessions, memberships](./decisions/DR-003-auth-sessions.md)
-- [DR-004 — Error handling (logs vs owner screens)](./decisions/DR-004-error-handling.md)
-- [DR-005 — Arabic-first UI (RTL + copy, no locale URL)](./decisions/DR-005-arabic-rtl.md)
-
-### Specs (SPEC-01…14 implemented; SPEC-15/16 status in each file's banner)
-- [SPEC-01 — Tenancy foundation](./specs/SPEC-01-tenancy-foundation.md)
-- [SPEC-02 — Venue availability](./specs/SPEC-02-venue-availability.md)
-- [SPEC-03 — Public booking request](./specs/SPEC-03-booking-public-request.md)
-- [SPEC-04 — Access: login, session, `can(...)`](./specs/SPEC-04-access-login.md)
-- [SPEC-05 — Owner approve (exclusion fires)](./specs/SPEC-05-owner-approve.md)
-- [SPEC-06 — Collect payment on a booking](./specs/SPEC-06-collect-payment.md)
-- [SPEC-07 — Record an expense](./specs/SPEC-07-record-expense.md)
-- [SPEC-08 — Financial dashboard (ledger period summary)](./specs/SPEC-08-financial-dashboard.md)
-- [SPEC-09 — Owner-created booking](./specs/SPEC-09-owner-create-booking.md)
-- [SPEC-10 — Cancel a confirmed booking](./specs/SPEC-10-cancel-booking.md)
-- [SPEC-11 — Waitlist on a freed slot](./specs/SPEC-11-waitlist.md)
-- [SPEC-12 — Error handling](./specs/SPEC-12-error-handling.md)
-- [SPEC-13 — Arabic-first UI](./specs/SPEC-13-arabic-rtl.md)
-- [SPEC-14 — Record a no-show](./specs/SPEC-14-no-show.md)
-- [SPEC-15 — Per-player payments](./specs/SPEC-15-per-player-payments.md)
-- [SPEC-16 — Due adjustments (fees, waivers)](./specs/SPEC-16-due-adjustments.md)
-
-### UX records
-- [UX-01 — Owner interface structure](./owner-ux.md) (supersedes `owner-ia.md` where they disagree)
-- [UX-02 — History](./ux-02-history.md)
-- [Per-player payments (living, as built)](./per-player-payments.md) — split, slot pay, cancel and no-show rules, known gaps
-
-### Design system
-- [UI foundations](./ui-foundations.md) — roles and rules
-- [UI components](./ui-components.md) — per-component contracts
-- [UI rules](./ui-rules.md) — what every owner screen says and how it ranks things (proposed), with a screen audit
-- [Theme](./theme.md) — concrete token values
-- [Design-system migration log](./MIGRATION.md) — what has been converted (source of truth for fonts)
-
-### Living guides & maps
-- [Progress & learning log](./progress.md)
-- [Owner dashboard IA](./owner-ia.md)
-- [Folder structure](./guides/folder-structure.md)
-- [Module map + request walkthroughs](./guides/module-map-and-request-walkthroughs.md)
-- [Mentor defense — backend](./guides/mentor-defense-backend.md)
-- [Cursor workflow](./guides/cursor-workflow.md)
-- [Cursor rules](./guides/cursor-rules.md)
-- [Testing with Jest](./guides/testing-jest.md)
-- [Prisma `$transaction` + tenant guard](./guides/prisma-transaction-tenant-guard.md)
-
-### Dated audits (historical snapshots — read banners)
-- [Engineering audit](./guides/engineering-audit.md)
-- [Error handling + logging audit](./guides/error-handling-logging-audit.md)
-- [MVP readiness audit](./guides/mvp-readiness-audit.md)
-- [Booking and payments production audit](./audits/booking-payments-production-audit.md) (with status addendum)
-- [Logic findings: recorded, not fixed](./audits/logic-findings.md)
-- [Security audit: full application](./audits/security-audit.md)
-- [Roadmap: open items](./ROADMAP.md)
-
-### Requirements
-- [BRD](./requirements/brd.md) — [requirements/README.md](./requirements/README.md)
-
-## Framework note
-
-This Next.js version differs from training data (`AGENTS.md`). Specs describe **what** and **why**; exact APIs come from `node_modules/next/dist/docs/` and installed Prisma docs at implementation time.
+## Archive (superseded; kept, not deleted)
+- [archive/cursor-rules/](./archive/cursor-rules/), [archive/cursor-rules.md](./archive/cursor-rules.md), [archive/cursor-workflow.md](./archive/cursor-workflow.md) — the Cursor setup; CLAUDE.md is now the single source of agent rules.
+- [archive/folder-structure-2026-10.md](./archive/folder-structure-2026-10.md) — the pre-refactor folder guide; replaced by CODEMAP.md and ARCHITECTURE.md.
+- [archive/module-map-and-request-walkthroughs.md](./archive/module-map-and-request-walkthroughs.md) — the pre-refactor file map; replaced by CODEMAP.md.

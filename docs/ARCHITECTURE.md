@@ -1,41 +1,50 @@
 # Architecture
 
-**Living.** Written 2026-10-01 from the code on `main` at `f3c3f93` (after PR #12). Every claim cites a file and function or a migration. **UNVERIFIED** marks a claim not traced to code. When code and an older doc disagree, the code wins and the gap is listed in [audits/doc-vs-code-discrepancies.md](./audits/doc-vs-code-discrepancies.md).
+**Purpose:** why the code is arranged this way and what must stay true: modules, allowed imports, layers, the ui and app rules, the request flow, tenancy, transactions and lock order.
+**Read when:** you add a module, an import between modules, a use case that locks rows, or a raw SQL statement.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
 
-This document explains **why** the pieces are arranged this way and what must stay true. For folders, see [guides/folder-structure.md](./guides/folder-structure.md). For tables, see [DATA-MODEL.md](./DATA-MODEL.md). For money, see [domain/money.md](./domain/money.md).
+`test/architecture/rules.ts` is the source of truth for the dependency rules; the tables below are copied from it and a test fails if the code breaks it. When code and an older doc disagree, the code wins and the gap is listed in [audits/doc-vs-code-discrepancies.md](./audits/doc-vs-code-discrepancies.md). **UNVERIFIED** marks a claim not traced to code.
+
+This document explains **why** the pieces are arranged this way. For folders, see [CODEMAP.md](./CODEMAP.md). For tables, see [DATA-MODEL.md](./DATA-MODEL.md). For money, see [domain/money.md](./domain/money.md).
 
 ---
 
 ## 1. Modules and allowed import directions
 
-One Next.js app. Business logic lives in `src/modules/<context>/{domain,application,infrastructure,schemas}`, and `src/app/` stays thin (CLAUDE.md, "Non-negotiables").
+One Next.js app. Business logic lives in `src/modules/<context>/{domain,application,infrastructure,schemas,ui}`, and `src/app/` stays thin.
 
-**Current import graph between modules**, computed from `from "@/modules/..."` in `src/modules/*`:
+**Module -> modules it may import** (`MODULE_EDGES` in `test/architecture/rules.ts`; anything not listed fails the build):
 
-| Module | Imports modules | Never imports |
-|---|---|---|
-| `access` | none | everything else |
-| `notification` | people (`domain/phone`, domain to domain: the Lebanese phone rule is a people domain rule used to build wa.me links) | everything else (`domain/whatsapp-link.ts` only) |
-| `push` | access | every other module. `booking` and the rest never import `push`: a future alert is composed in `app/` (the use case that commits, then a call from the action). Enforced by `test/modules/push/imports.test.ts` |
-| `people` | access | booking, payment, venue |
-| `venue` | access | booking (CLAUDE.md: "Venue never imports Booking") |
-| `ledger` | access | payment, booking |
-| `payment` | access, ledger | booking (CLAUDE.md: "Payment never imports Booking") |
-| `expense` | access, ledger (period bounds), payment | booking, shop |
-| `shop` | access, ledger (period bounds), payment, people | booking, expense (shop never imports booking: the use cases that put items on a game live in `booking`, which imports shop) |
-| `booking` | access, notification, payment, people, shop, stadium (`domain/public-page-url`, for WhatsApp links), venue | platform, expense, ledger directly |
-| `stadium` | access, people (`domain/phone`, `domain/clean-person-name`), platform (`application/tenant-profile` only) | booking and every other tenant module. The stadium's own name, info, brand (presets, accent, logo plan), links (map, public URL, QR text) and the PWA short name |
-| `platform` | access | every tenant module and `stadium` (operator only; it offers `application/tenant-profile` for the stadium module to call) |
+| Module | May import |
+|---|---|
+| `access` | none |
+| `booking` | `access`, `notification`, `payment`, `people`, `shop`, `stadium`, `venue` |
+| `expense` | `access`, `ledger`, `payment` |
+| `ledger` | `access` |
+| `notification` | `people` |
+| `payment` | `access`, `ledger` |
+| `people` | `access` |
+| `platform` | `access` |
+| `push` | `access` |
+| `shop` | `access`, `ledger`, `payment`, `people` |
+| `stadium` | `access`, `people`, `platform` |
+| `venue` | `access` |
+
+Why each edge exists: `notification -> people` (the Lebanese phone rule is a people domain rule used to build wa.me links, domain to domain); `booking -> stadium` (`domain/public-page-url`, for WhatsApp links); `stadium -> people` (phone and name rules) and `stadium -> platform` (only `application/tenant-profile`: the audited rename and the brand source). Nothing imports `push` (the new-request alert is composed in `app/`, enforced by `test/modules/push/imports.test.ts`). `platform` is operator-only; only `stadium` and `scripts/platform-cli.ts` import it. **Imports point down:** `booking` is the top business context.
+
+**Layers inside a module** (rule 2): `domain` imports only domain files and pure libs (no application, infrastructure, `lib/db`, `lib/logger`, the Prisma client); `infrastructure` never imports `application`; `schemas` import only domain, schemas and libs. Application may import its own domain, infrastructure and schemas and other modules' application, infrastructure and schemas along the edge table (the guard does not restrict that yet).
 
 **Module `ui/` folders.** A module may have `src/modules/<m>/ui/` with React components that belong to it. The rule (rule 6 in `test/architecture/`): **ui gets data and actions through props.** A ui file imports `@/components/ui`, `@/lib/format`, `@/lib/copy`, `@/lib/locale`, `@/lib/plural`, `@/lib/utils`, its own `domain`, `schemas` and `ui`, and other modules' `domain` and `ui` along the edge table above. It never imports `application`, `infrastructure`, `@/lib/db`, the Prisma client, `@/app` or server-only code (`server-only`, `next/headers`, `next/server`). A Server Action stays in `src/app`; the ui component takes it as a prop typed in the ui file (for example `SellScreen`'s `onSell`) and the page passes the real action. Today: `people/ui` (person-link), `payment/ui` (tender-balance, tonal-collect), `shop/ui` (item-tiles, parts-balance, sell-screen), `venue/ui` (day-chips, date-calendar-chip), `stadium/ui` (qr-sheet, share-card) and `booking/ui` (booking rows, day sheet and day strip, the Today panel pieces, series, request and book components, slot-picker). The Server Action types a booking component needs are in `booking/ui/action-types.ts` (the actions files re-export them). Route files that load data with use cases (`today/lists`, `free-strip-section`, `requests/inbox`, `book/slots`) stay in `src/app` and pass data and actions down.
 
 **What `src/app` may contain (rule 7).** Next.js convention files (`page`, `layout`, `route`, `loading`, `error`, `global-error`, `not-found`, `template`, `manifest`), Server Actions (`actions.ts` and `*-actions.ts`), `skeleton(s)`, the route's `query.ts`, and anything route-private inside a `_components` folder next to the route. `_components` files may call use cases and import actions directly (they are app code); module `ui/` files may not. Shared pieces live elsewhere: the app frame in `src/components/shell` (it may import a module's `ui/`), generic UI in `src/components/ui`, helpers in `src/lib`. `test/architecture/app-thin.test.ts` fails with `file:line` for any other file; today's leftovers are listed with reasons in `APP_THIN_ALLOWLIST`. `requireOwnerMembership` is `src/app/owner/require-owner.ts`.
 
-**The rule is that imports point down.** `booking` is the top business context, and `platform` is a sibling that only uses `access` (identifiers, password hashing and policy). Only `stadium` (through `platform/application/tenant-profile`) and `scripts/platform-cli.ts` import `platform`.
+**The three documented exceptions** (`EXCEPTIONS` in `rules.ts`, rule 5: `lib/` does not import modules). All are `src/lib/tenant-settings.ts`, which mixes the stadium's keys with booking rules and time display, and is to be split by key group in a later step:
+- imports `@/modules/people/domain/phone` (`toLebanonNumber`);
+- imports `@/modules/stadium/domain/brand-presets` (validates the brand preset key);
+- imports `@/modules/stadium/domain/map-link` (validates the map link).
 
-**Known exceptions:**
-- `src/lib/request-fields.ts` imports `@/modules/people/domain/phone` (`normalizePhone`; `lib/tenant-settings.ts` also imports `toLebanonNumber`, and `stadium/domain/brand-presets` and `map-link`; `lib/tenant-context.ts` imports `stadium/domain/brand-presets`), an upward `lib → modules` import. It is harmless (a pure function) but breaks the "lib has no module imports" idea.
-- Modules and `lib` import `@/generated/prisma/*` (the generated client, `src/generated/prisma`, gitignored, made by `prisma generate`).
+There are no rule-1 exceptions today (`MODULE_EDGE_EXCEPTIONS` is empty). Modules and `lib` import `@/generated/prisma/*` (the generated client, gitignored, made by `prisma generate`); that is not an `app/` dependency. `components/shell` may import a module's `ui/` (rule 5).
 
 **`platformDb` import guard.** `platformDb` (`src/lib/platform-db.ts`) is the unscoped client: it bypasses the tenant extension. `test/platform-db-imports.test.ts` fails if any file outside its allowlist imports it:
 
@@ -113,7 +122,7 @@ Prefer `updateMany({ where: { id } })` (filtered by the extension) inside transa
 - **Only the use case that starts an action calls `db.$transaction`.** Repositories take `tx: TenantTx` and never open one. Examples: `approve-booking.ts` `approveBooking`, `collect-booking-payment.ts` `collectBookingPayment`, `record-expense.ts` `recordExpense`.
 - **Authorize before the transaction.** Every use case calls `getCurrentMembership()` and `can()` first (`approveBooking`, `cancelBooking`, `collectBookingPayment` …).
 - **ALS before BEGIN.** `db.$transaction` is wrapped by `withCurrentTenant` (`db.ts`, bottom), so the tenant is loaded before the transaction opens and the extension reads it from memory. A nested `platformDb` query during an interactive transaction can deadlock on the one pool (`prisma-base.ts` comment; [guides/prisma-transaction-tenant-guard.md](./guides/prisma-transaction-tenant-guard.md)).
-- **Platform tables** use their own transactions on `platformDb` (`platform/infrastructure/platform-store.ts` `platformTransaction`). They run in the CLI process, except `saveStadiumInfo`, `loadStadiumInfo` and `loadBrandIdentity`, which serve a request and are never called inside a tenant `$transaction`.
+- **Platform tables** use their own transactions on `platformDb` (`platform/infrastructure/platform-store.ts` `platformTransaction`). They run in the CLI process, except the `platform/application/tenant-profile` calls that `stadium/application` makes (`saveStadiumInfo`, `loadStadiumInfo`, `loadBrandIdentity`), which serve a request and are never called inside a tenant `$transaction`.
 - **Rate-limit counters** (`lib/rate-limit.ts` `hitRateLimit`) are single autocommit statements, run **before** any tenant transaction (`request-public-slot.ts` `assertRequestRate`; `login.ts` `recordFailure`).
 
 ## 5. Notifications after commit

@@ -267,6 +267,6 @@ The existing `LtrIsolate` component is the migration hook — numbers already ro
 
 ## 4. Things this file deliberately does not cover
 
-- **Expense category tiles** (5 ad-hoc Tailwind palette colours). They need a `--category-1…5` role set derived from the neutral and deep families, not from `--alert`. Decide before touching `money/panel.tsx`.
+- **Expense category tiles** (5 ad-hoc Tailwind palette colours). They need a `--category-1…5` role set derived from the neutral and deep families, not from `--alert`. Decide before touching `money/_components/panel.tsx`.
 - **Chart tokens** `--chart-1…5` and the sidebar token block. Leave pointing at primitives until a chart contract exists.
 - **`global-error.tsx`** renders its own `<html>` and cannot read the token layer. Leave its four hex values hardcoded and note it in `MIGRATION.md`.

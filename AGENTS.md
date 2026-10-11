@@ -1,3 +1,5 @@
+Read CLAUDE.md first; it is the single source of rules for every coding agent.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

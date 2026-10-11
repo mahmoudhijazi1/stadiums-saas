@@ -1,5 +1,9 @@
 # Data model
 
+**Purpose:** the tables, columns, constraints and migrations as the schema defines them.
+**Read when:** you touch the schema, write a query or need to know what a table means.
+**Last verified:** `f01c9bf` (main, after refactor step 6c).
+
 **Living.** Written 2026-10-01 from `src/prisma/schema.prisma` and `src/prisma/migrations/*` on `main` at `f3c3f93`. **UNVERIFIED** marks a claim not traced to code or a migration. Money semantics are in [domain/money.md](./domain/money.md); request flow and locks are in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 **Read this before any migration.** Several guarantees live **only** in migration SQL (§3). `prisma migrate dev` against an edited schema will not recreate them, and a careless `db push` would silently drop them. Migrations in this repo are written by hand and checked with `prisma migrate diff` against `stadiums_test` (progress.md entries from 2026-09-30 on).

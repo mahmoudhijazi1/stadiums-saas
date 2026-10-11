@@ -81,3 +81,9 @@ the build.
 Deadlock regression for `approveBooking`: **A** elapsed &lt; 5s and **B**
 `platformDb.tenant.findUnique` call count stays 0 after tenant cache warm-up.
 
+
+## Architecture and docs checks
+
+Two groups of tests read the source tree instead of running code; they run with `npm test`:
+- `test/architecture/` — the import rules (`dependency-rules.test.ts`, data in `rules.ts`) and the app-thin rule (`app-thin.test.ts`). A new import that breaks a rule fails with `<file> imports <target>: rule <n> forbids it`. Change the rule data in `rules.ts` with a reason, or fix the code.
+- `test/docs/docs.test.ts` — the living docs (README, NOW, CODEMAP, ARCHITECTURE, DATA-MODEL, RUNBOOK, ROADMAP, owner-ia, `docs/domain/*`) have the Purpose / Read when / Last verified header, every path they name exists, CODEMAP lists every folder under `src/modules`, and relative links resolve. Historical docs and `docs/archive` are not checked.
