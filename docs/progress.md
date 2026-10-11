@@ -339,3 +339,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Drift (read only, nothing changed):** `prisma migrate diff` after the migrations shows two foreign keys where the SQL says `ON DELETE RESTRICT` and `schema.prisma` has no `onDelete` on an optional relation (Prisma's default is `SET NULL`): `Booking_seriesId_fkey` (created by `20261013090000_booking_series`, in `ecd0063`) and `BookingParticipant_personId_fkey` (created RESTRICT by `20260909080100_person_booking`; `personId` became optional in `20260924060000_per_player_foundation`, which only dropped NOT NULL). Both are on `main`; neither comes from the phone work.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the changed tests are written and NOT run.
+
+## Today: the selected day stays centred (branch `feat/today-refine`)
+
+**When:** 2026-10-14
+
+**What:** The measure-and-`scrollBy` that centres the selected day moved unchanged from `booking/ui/day-tabs.tsx` into `keepSelectedTabCentred` (`booking/ui/centre-selected-tab.ts`). It runs at once (the existing effect on `selected`), again when `document.fonts.ready` resolves (font loading changes the tab widths; skipped if `document.fonts` is missing), and again from a `ResizeObserver` on the tab list (skipped if undefined). The effect's cleanup disconnects the observer and ignores a late `fonts.ready`. Behaviour stays `auto`. Tab markup, styles and the calendar picker are untouched.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/modules/booking/centre-selected-tab.test.ts` (mocked boxes, `ResizeObserver` and `document.fonts`: centres at once, after fonts.ready, after a resize, stops after cleanup, works without both APIs) is written and NOT run. UNVERIFIED by eye in a browser, in Arabic and English.

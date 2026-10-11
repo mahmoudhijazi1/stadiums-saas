@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import type { DayTab } from "@/modules/booking/domain/day-tabs";
+import { keepSelectedTabCentred } from "@/modules/booking/ui/centre-selected-tab";
 import { useDayNav } from "@/modules/booking/ui/day-nav";
 
 /**
@@ -38,12 +39,7 @@ export function DayTabs({
 
   useEffect(() => {
     const list = listRef.current;
-    const tab = list?.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!list || !tab) return;
-    const listBox = list.getBoundingClientRect();
-    const tabBox = tab.getBoundingClientRect();
-    const shift = tabBox.left + tabBox.width / 2 - (listBox.left + listBox.width / 2);
-    list.scrollBy({ left: shift, behavior: "auto" });
+    return list ? keepSelectedTabCentred(list) : undefined;
   }, [selected]);
 
   function pickDate(date: Date) {
