@@ -51,7 +51,7 @@ let phoneSeq = 0;
 
 function nextPhone(): string {
   phoneSeq += 1;
-  return `03${String(700000 + phoneSeq)}`;
+  return `9613${String(700000 + phoneSeq)}`;
 }
 
 function inDays(n: number): CivilDate {

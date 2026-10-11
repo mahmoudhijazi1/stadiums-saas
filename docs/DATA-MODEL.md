@@ -34,7 +34,7 @@
 | Table | Kind | What a row is | Columns that need explaining |
 |---|---|---|---|
 | `Pitch` | T | A field. | `scheduleConfig` jsonb (hours, slot length, gaps, price rules), parsed by `venue/domain/schedule-config.ts` `parseScheduleConfig` before every use. A corrupt row is logged and throws (`update-pitch.ts`, `get-day-availability.ts`). `defaultPlayerCount` is 1–30 (CHECK). |
-| `Person` | T | Name + phone at **one** stadium (the same phone at two stadiums = two rows). | `phone` digits only (`people/domain/phone.ts` `normalizePhone`), nullable, unique per tenant when set (partial unique). `name` cleaned by `people/domain/clean-person-name.ts`. `searchName` = `normalizeName(name)`, the Arabic/Latin fold used by search. |
+| `Person` | T | Name + phone at **one** stadium (the same phone at two stadiums = two rows). | `phone` canonical: digits with country code, Lebanon 961 (`people/domain/phone.ts` `toCanonicalPhone`; checked with `isCanonicalPhone`), nullable, unique per tenant when set (partial unique). `name` cleaned by `people/domain/clean-person-name.ts`. `searchName` = `normalizeName(name)`, the Arabic/Latin fold used by search. |
 
 ### Bookings
 | Table | Kind | What a row is | Columns that need explaining |
@@ -86,6 +86,7 @@
 | 10 | **CHECK** `BookingDueChange_usd_nonneg`, plus a backfill of CANCELLED dues | `20260924080000_booking_due_change` | `write-due-change.ts` `writeDueIfChanged`. | — |
 | 11 | **CHECK** `Pitch_defaultPlayerCount_range` (1–30) | `20260929120000_pitch_default_player_count` | `venue/schemas/pitch-draft.ts` (the form), `switchToPerPlayer` default count. | — |
 | 12 | **Backfill** of `Person.searchName` (SQL `lower(...)` fold) | `20260924070000_person_search_name` | `people/infrastructure/persons.ts` `searchPersons` (`LIKE` on `searchName`). New rows use `normalizeName` in JS. **UNVERIFIED** that the SQL fold equals `normalizeName` for every input. | Old people not found by search. |
+| 13 | **SQL function** `people_canonical_phone(text)` (kept permanently) and the **canonical-phone backfill** that merged people sharing one canonical phone | `20261014090000_canonical_phones` | `people/domain/phone.ts` `toCanonicalPhone` (the same rule for stored values; `canonical-phone-sql.integration.test.ts` keeps them equal). | The SQL and the TypeScript rule drift apart; duplicate people per phone come back. |
 | 13 | **Append-only triggers** `PlatformAuditLog_append_only`, `Subscription_append_only` via `platform_append_only()` (`BEFORE UPDATE OR DELETE FOR EACH ROW`) | `20261001090000_tenant_management` | `platform/infrastructure/platform-store.ts` (inserts only). TRUNCATE is allowed, which the test helper and the seed rely on. | The audit log becomes editable. |
 | 14 | **Session wipe** (`DELETE FROM "Session"`), then `tokenHash NOT NULL UNIQUE` | `20260930120000_session_token_hash` | `access/infrastructure/sessions.ts` `findSessionByToken`. | — (one-time: everyone logged out) |
 

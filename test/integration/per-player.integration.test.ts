@@ -55,7 +55,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("splits into slots without touching the due or logging a change", async () => {
-    const bookingId = await ownerBooking("03222001", 3);
+    const bookingId = await ownerBooking("9613222001", 3);
 
     await switchToPerPlayer({ bookingId, count: 7 });
 
@@ -78,7 +78,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("one tap writes one payment, one USD tender, one ledger IN and one allocation", async () => {
-    const bookingId = await ownerBooking("03222002", 3);
+    const bookingId = await ownerBooking("9613222002", 3);
     await switchToPerPlayer({ bookingId, count: 10 });
     const [, second] = await slotsOf(bookingId);
 
@@ -104,7 +104,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("pays a slot once when the same slot is tapped twice at the same time", async () => {
-    const bookingId = await ownerBooking("03222003", 3);
+    const bookingId = await ownerBooking("9613222003", 3);
     await switchToPerPlayer({ bookingId, count: 10 });
     const [, second] = await slotsOf(bookingId);
 
@@ -131,7 +131,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("booker pays all remaining as one payment across the unpaid slots", async () => {
-    const bookingId = await ownerBooking("03222004", 3);
+    const bookingId = await ownerBooking("9613222004", 3);
     await switchToPerPlayer({ bookingId, count: 10 });
     const slots = await slotsOf(bookingId);
     await collectSlotPayment({ bookingId, participantId: slots[1]!.id });
@@ -156,7 +156,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("leaves earlier whole-game payments Unassigned and never charges a slot twice for them", async () => {
-    const bookingId = await ownerBooking("03222005", 3);
+    const bookingId = await ownerBooking("9613222005", 3);
     await collectBookingPayment({
       bookingId,
       tenders: [{ currency: "USD", amount: new Decimal("30.00") }],
@@ -184,7 +184,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("audit probe: $10 before the split and 2 slots paid, pay-all takes exactly the $14 owed", async () => {
-    const bookingId = await ownerBooking("03222021", 3);
+    const bookingId = await ownerBooking("9613222021", 3);
     await collectBookingPayment({
       bookingId,
       tenders: [{ currency: "USD", amount: new Decimal("10.00") }],
@@ -233,7 +233,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("charges a single slot only what the booking still owes (partial tap)", async () => {
-    const bookingId = await ownerBooking("03222022", 3);
+    const bookingId = await ownerBooking("9613222022", 3);
     await collectBookingPayment({
       bookingId,
       tenders: [{ currency: "USD", amount: new Decimal("28.50") }],
@@ -249,7 +249,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("refuses the whole-game collect on a per-player booking", async () => {
-    const bookingId = await ownerBooking("03222006", 3);
+    const bookingId = await ownerBooking("9613222006", 3);
     await switchToPerPlayer({ bookingId, count: 10 });
 
     await expect(
@@ -262,7 +262,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("goes back to whole only while no allocation exists", async () => {
-    const bookingId = await ownerBooking("03222007", 3);
+    const bookingId = await ownerBooking("9613222007", 3);
     await switchToPerPlayer({ bookingId, count: 10 });
 
     await switchToWhole({ bookingId });
@@ -291,7 +291,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
 
   it("refuses to split cancelled, no-show, pending, zero-due, bad-count and already split bookings", async () => {
     // CANCELLED
-    const cancelledId = await ownerBooking("03222008", 3);
+    const cancelledId = await ownerBooking("9613222008", 3);
     await platformDb.$executeRaw`
       UPDATE "Booking" SET status = 'CANCELLED'::"BookingStatus" WHERE id = ${cancelledId}
     `;
@@ -300,7 +300,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     // NO_SHOW
-    const noShowId = await ownerBooking("03222009", 4);
+    const noShowId = await ownerBooking("9613222009", 4);
     await platformDb.$executeRaw`
       UPDATE "Booking" SET status = 'NO_SHOW'::"BookingStatus" WHERE id = ${noShowId}
     `;
@@ -315,14 +315,14 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
       start: slot.start,
       end: slot.end,
       name: "سعيد",
-      phone: "03222010",
+      phone: "9613222010",
     }).then((result) => result.bookingId);
     await expect(switchToPerPlayer({ bookingId: pendingId, count: 10 })).rejects.toMatchObject({
       key: "booking.switch_not_approved",
     });
 
     // zero due
-    const freeId = await ownerBooking("03222011", 6);
+    const freeId = await ownerBooking("9613222011", 6);
     await adjustBookingDue({
       bookingId: freeId,
       toUsd: new Decimal(0),
@@ -334,7 +334,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     // bad counts and double switch
-    const okId = await ownerBooking("03222012", 7);
+    const okId = await ownerBooking("9613222012", 7);
     for (const count of [0, 31]) {
       await expect(switchToPerPlayer({ bookingId: okId, count })).rejects.toMatchObject({
         key: "booking.split_count",
@@ -351,7 +351,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("rolls the whole switch back when a slot insert fails", async () => {
-    const bookingId = await ownerBooking("03222013", 3);
+    const bookingId = await ownerBooking("9613222013", 3);
     // Occupy slot number 2 so the insert of slot 2 hits the partial unique index.
     await platformDb.bookingParticipant.create({
       data: {
@@ -377,7 +377,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   });
 
   it("scopes PaymentAllocation to the current stadium", async () => {
-    const bookingId = await ownerBooking("03222016", 3);
+    const bookingId = await ownerBooking("9613222016", 3);
     await switchToPerPlayer({ bookingId, count: 10 });
     const [, second] = await slotsOf(bookingId);
     await collectSlotPayment({ bookingId, participantId: second!.id });
@@ -419,7 +419,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
   }
 
     it("cancel collapses a per-player booking with payments to WHOLE in one transaction", async () => {
-      const bookingId = await ownerBooking("03222014", 3);
+      const bookingId = await ownerBooking("9613222014", 3);
       await collectBookingPayment({
         bookingId,
         tenders: [{ currency: "USD", amount: new Decimal("10.00") }],
@@ -452,7 +452,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     it("cancel with an edited fee applies the usual due change after collapsing", async () => {
-      const bookingId = await ownerBooking("03222017", 3);
+      const bookingId = await ownerBooking("9613222017", 3);
       await switchToPerPlayer({ bookingId, count: 10 });
       const slots = await slotsOf(bookingId);
       await collectSlotPayment({ bookingId, participantId: slots[1]!.id });
@@ -470,7 +470,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     it("cancel with nothing paid also collapses", async () => {
-      const bookingId = await ownerBooking("03222018", 3);
+      const bookingId = await ownerBooking("9613222018", 3);
       await switchToPerPlayer({ bookingId, count: 10 });
 
       await cancelBooking({ bookingId, initiator: "OWNER" });
@@ -482,7 +482,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     it("no-show at the default fee collapses to WHOLE and keeps every payment", async () => {
-      const bookingId = await pastBooking("03222015");
+      const bookingId = await pastBooking("9613222015");
       await switchToPerPlayer({ bookingId, count: 10 });
       const slots = await slotsOf(bookingId);
       await collectSlotPayment({ bookingId, participantId: slots[1]!.id });
@@ -509,7 +509,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     it("no-show with an edited fee collapses, then applies the usual due change", async () => {
-      const bookingId = await pastBooking("03222019");
+      const bookingId = await pastBooking("9613222019");
       await switchToPerPlayer({ bookingId, count: 10 });
       const slots = await slotsOf(bookingId);
       await collectSlotPayment({ bookingId, participantId: slots[1]!.id });
@@ -531,7 +531,7 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     });
 
     it("no-show waived to 0 keeps what was collected as the due (existing clamp) and collapses", async () => {
-      const bookingId = await pastBooking("03222020");
+      const bookingId = await pastBooking("9613222020");
       await switchToPerPlayer({ bookingId, count: 10 });
       const slots = await slotsOf(bookingId);
       await collectSlotPayment({ bookingId, participantId: slots[1]!.id });

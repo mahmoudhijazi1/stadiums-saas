@@ -3,6 +3,7 @@ import db from "@/lib/db";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { normalizeName } from "@/modules/people/domain/normalize-name";
+import { toPhoneSearchDigits } from "@/modules/people/domain/phone";
 import {
   searchPersons,
   type PersonSearchHit,
@@ -24,7 +25,7 @@ export async function searchPeople(raw: string): Promise<PersonSearchHit[]> {
   try {
     return await searchPersons(db, {
       nameFold: normalizeName(trimmed),
-      phoneDigits: trimmed.replace(/\D/g, ""),
+      phoneDigits: toPhoneSearchDigits(trimmed),
     });
   } catch (error) {
     return await rethrowUnexpected(error, "Search people failed", "searchPeople");

@@ -95,7 +95,7 @@ describe("tenant isolation (RULE-7)", () => {
     try {
       await requestPublicSlot({
         name: "Cross Tenant",
-        phone: "03123456",
+        phone: "9613123456",
         pitchId: b.pitchId,
         start: start.toISOString(),
         end: end.toISOString(),

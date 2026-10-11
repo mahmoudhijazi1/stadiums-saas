@@ -17,7 +17,7 @@ let phoneSeq = 0;
 
 export function nextPhone(): string {
   phoneSeq += 1;
-  return `03${String(700000 + phoneSeq)}`;
+  return `9613${String(700000 + phoneSeq)}`;
 }
 
 export async function slotOn(fixture: TestFixture, daysAhead: number, index = 0) {

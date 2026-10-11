@@ -29,13 +29,17 @@ describe("whatsAppHref", () => {
     expect(href.startsWith("https://wa.me/9613123456?text=")).toBe(true);
   });
 
-  it("prefixes 961 when there is no leading 0", () => {
-    expect(whatsAppHref("31234567", "x").startsWith("https://wa.me/96131234567?text=")).toBe(
-      true,
-    );
+  it("uses a canonical number as it is, whatever the country", () => {
+    expect(whatsAppHref("963933123456", "x").startsWith("https://wa.me/963933123456?text=")).toBe(true);
   });
 
-  it.each(["", "03 123 456", "abc", "0", "03"])(
+  it("canonicalizes a number stored before the data migration", () => {
+    expect(whatsAppHref("0096171123456", "x").startsWith("https://wa.me/96171123456?text=")).toBe(true);
+    expect(whatsAppHref("71123456", "x").startsWith("https://wa.me/96171123456?text=")).toBe(true);
+    expect(whatsAppHref("03 123 456", "x").startsWith("https://wa.me/9613123456?text=")).toBe(true);
+  });
+
+  it.each(["", "abc", "0", "03", "31234567"])(
     "refuses %s",
     (phone) => {
       expect(() => whatsAppHref(phone, "hello")).toThrow(

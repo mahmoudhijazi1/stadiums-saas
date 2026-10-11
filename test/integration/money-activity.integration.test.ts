@@ -149,7 +149,7 @@ describe("loadActivityPage: the names behind each source type", () => {
       start: slot.start.toISOString(),
       end: slot.end.toISOString(),
       name: "Ali Hassan",
-      phone: "03123456",
+      phone: "9613123456",
     });
     await collectBookingPayment({
       bookingId,

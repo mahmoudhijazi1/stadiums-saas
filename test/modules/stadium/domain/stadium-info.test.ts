@@ -23,7 +23,7 @@ function key(raw: unknown): string | null {
 
 describe("parseStadiumInfo", () => {
   it("accepts a good form and turns the phone into digits", () => {
-    expect(parseStadiumInfo(GOOD)).toMatchObject({ name: "Ahmad Stadium", phone: "03123456", whatsapp: "" });
+    expect(parseStadiumInfo(GOOD)).toMatchObject({ name: "Ahmad Stadium", phone: "9613123456", whatsapp: "" });
   });
 
   describe("name", () => {
@@ -88,11 +88,11 @@ describe("parseStadiumInfo", () => {
   describe("phones", () => {
     it("normalizes spaces, dashes, + and Arabic-Indic digits", () => {
       expect(parseStadiumInfo({ ...GOOD, phone: "+961 3-123-456" }).phone).toBe("9613123456");
-      expect(parseStadiumInfo({ ...GOOD, phone: "٠٣١٢٣٤٥٦" }).phone).toBe("03123456");
+      expect(parseStadiumInfo({ ...GOOD, phone: "٠٣١٢٣٤٥٦" }).phone).toBe("9613123456");
     });
 
     it("refuses letters and symbols, and numbers that cannot be Lebanese", () => {
-      for (const phone of ["03abc456", "03/123/456", "0312", "12"]) {
+      for (const phone of ["03abc456", "03/123/456", "0312", "12", "+963933123456"]) {
         expect({ phone, key: key({ ...GOOD, phone }) }).toEqual({ phone, key: "stadium.phone_invalid" });
       }
     });
@@ -103,7 +103,7 @@ describe("parseStadiumInfo", () => {
 
     it("keeps a separate WhatsApp number when 'same number' is off, and validates it", () => {
       const separate = parseStadiumInfo({ ...GOOD, whatsappSame: false, whatsapp: "71 123 456" });
-      expect(separate).toMatchObject({ whatsappSame: false, whatsapp: "71123456" });
+      expect(separate).toMatchObject({ whatsappSame: false, whatsapp: "96171123456" });
       expect(key({ ...GOOD, whatsappSame: false, whatsapp: "71x23456" })).toBe("stadium.phone_invalid");
     });
 

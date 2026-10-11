@@ -9,4 +9,12 @@ describe("publicRequestFieldErrors", () => {
     });
     expect(publicRequestFieldErrors("Ahmad", "03 123 456")).toEqual({});
   });
+
+  it("checks the phone with the selected country", () => {
+    expect(publicRequestFieldErrors("Ahmad", "0933123456").phone).toBe("public.errPhone");
+    expect(publicRequestFieldErrors("Ahmad", "0933123456", "963")).toEqual({});
+    expect(publicRequestFieldErrors("Ahmad", "0933123456", "999").phone).toBe("public.errPhone");
+    expect(publicRequestFieldErrors("Ahmad", "71 123 456", "961")).toEqual({});
+    expect(publicRequestFieldErrors("Ahmad", "+963 933 123 456").phone).toBeUndefined();
+  });
 });

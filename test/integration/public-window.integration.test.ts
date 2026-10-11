@@ -50,12 +50,12 @@ describe("the public booking window", () => {
   it("the last day of the window is accepted and the next day is refused", async () => {
     const last = await slotOn(PUBLIC_FUTURE_DAYS);
     await expect(
-      requestPublicSlot({ pitchId: fixture.pitchId, ...last, name: "Hassan", phone: "03555001" }),
+      requestPublicSlot({ pitchId: fixture.pitchId, ...last, name: "Hassan", phone: "9613555001" }),
     ).resolves.toMatchObject({ bookingId: expect.any(String) });
 
     const beyond = await slotOn(PUBLIC_FUTURE_DAYS + 1);
     await expect(
-      requestPublicSlot({ pitchId: fixture.pitchId, ...beyond, name: "Hassan", phone: "03555001" }),
+      requestPublicSlot({ pitchId: fixture.pitchId, ...beyond, name: "Hassan", phone: "9613555001" }),
     ).rejects.toMatchObject({ key: "booking.too_far" });
     expect(await platformDb.booking.count()).toBe(1);
   });
@@ -63,7 +63,7 @@ describe("the public booking window", () => {
   it("a request a year ahead is refused and writes nothing", async () => {
     const far = await slotOn(365);
     await expect(
-      requestPublicSlot({ pitchId: fixture.pitchId, ...far, name: "Layla", phone: "03555002" }),
+      requestPublicSlot({ pitchId: fixture.pitchId, ...far, name: "Layla", phone: "9613555002" }),
     ).rejects.toMatchObject({ key: "booking.too_far" });
     expect(await platformDb.booking.count()).toBe(0);
     expect(await platformDb.person.count()).toBe(0);

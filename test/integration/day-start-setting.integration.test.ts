@@ -40,7 +40,7 @@ async function gameAt0030(): Promise<string> {
   const start = localTimeToUtc(SATURDAY, 0, 30, TIME_ZONE);
   const end = new Date(start.getTime() + 3_600_000);
   return db.$transaction(async (tx) => {
-    const person = await findOrCreatePerson(tx, { name: "ليلي", phone: "03999001" });
+    const person = await findOrCreatePerson(tx, { name: "ليلي", phone: "9613999001" });
     const id = await insertApprovedOwnerBooking(tx, {
       pitchId: fixture.pitchId,
       start,

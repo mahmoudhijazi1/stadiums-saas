@@ -257,7 +257,7 @@ function usd(amount: string) {
 
 function nextPhone(): string {
   phoneSeq += 1;
-  return `03${String(600000 + phoneSeq)}`;
+  return `9613${String(600000 + phoneSeq)}`;
 }
 
 async function slotOn(daysAhead: number, index: number) {

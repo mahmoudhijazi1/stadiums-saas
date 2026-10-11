@@ -191,7 +191,7 @@ describe("player tabs in pounds", () => {
 
 describe("what is owed adds up in USD", () => {
   it("an LBP tab counts at its frozen USD in Owed and Today, and Today equals Money", async () => {
-    const game = await endedGame(fixture, 1, "Ali", "03111111"); // owes the $30 game
+    const game = await endedGame(fixture, 1, "Ali", "9613111111"); // owes the $30 game
     const { saleId } = await addBookingItems({ bookingId: game.bookingId, lines: [{ productId: water.id, qty: 3 }, { productId: cola.id, qty: 1 }], payer: booker });
     // 60,000 (0.67) + $1.50 = 2.17 on the tab, on top of the 30.00 game.
     let owed = await listOwed();

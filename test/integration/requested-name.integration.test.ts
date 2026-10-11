@@ -22,7 +22,7 @@ import { truncateAll } from "./truncate";
  * when the normalizeName folds differ.
  */
 const TIME_ZONE = "Asia/Beirut";
-const PHONE = "03111001";
+const PHONE = "9613111001";
 
 let fixture: TestFixture;
 let dayOffset = 2;
@@ -88,9 +88,9 @@ describe("Booking.requestedName", () => {
       expect(await requestedNameOf(await publicRequest(same, PHONE))).toBeNull();
       await platformDb.booking.updateMany({ where: { status: "PENDING" }, data: { status: "REJECTED" } });
     }
-    await publicRequest("Ahmad Ali", "03222002");
+    await publicRequest("Ahmad Ali", "9613222002");
     for (const same of ["ahmad ali", "AHMAD  ALI"]) {
-      expect(await requestedNameOf(await publicRequest(same, "03222002"))).toBeNull();
+      expect(await requestedNameOf(await publicRequest(same, "9613222002"))).toBeNull();
     }
   });
 

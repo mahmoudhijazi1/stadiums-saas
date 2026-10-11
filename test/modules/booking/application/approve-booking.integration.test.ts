@@ -202,7 +202,7 @@ describe("approveBooking (integration)", () => {
     const playedId = await insertPendingWithRequester(
       fixture,
       past,
-      "0311111001",
+      "9613111001",
       "Played",
     );
     const dismissId = await insertPendingWithRequester(
@@ -211,13 +211,13 @@ describe("approveBooking (integration)", () => {
         start: new Date("2026-09-21T14:00:00.000Z"),
         end: new Date("2026-09-21T15:00:00.000Z"),
       },
-      "0311111002",
+      "9613111002",
       "Dismiss",
     );
     const futureId = await insertPendingWithRequester(
       fixture,
       { start, end },
-      "0311111003",
+      "9613111003",
       "Future",
     );
 
@@ -249,7 +249,7 @@ describe("approveBooking (integration)", () => {
         start: new Date("2026-09-22T13:00:00.000Z"),
         end: new Date("2026-09-22T14:00:00.000Z"),
       },
-      "0311111004",
+      "9613111004",
       "Also missed",
     );
     await dismissMissedRequests();

@@ -73,10 +73,10 @@ async function endedGame(daysAgo: number, name: string, phone: string): Promise<
 }
 
 async function scenario() {
-  const a = await endedGame(2, "Ali", "03111111"); // Ali owes 30
-  const b = await endedGame(3, "Ali", "03111111"); // Ali paid 10, owes 20
+  const a = await endedGame(2, "Ali", "9613111111"); // Ali owes 30
+  const b = await endedGame(3, "Ali", "9613111111"); // Ali paid 10, owes 20
   await collectBookingPayment({ bookingId: b, tenders: [{ currency: "USD", amount: new Decimal("10.00") }] });
-  const c = await endedGame(1, "Sara", "03222222"); // split three ways, nobody paid
+  const c = await endedGame(1, "Sara", "9613222222"); // split three ways, nobody paid
   await switchToPerPlayer({ bookingId: c, count: 3 });
   return { a, b, c };
 }
@@ -121,7 +121,7 @@ describe("listOwed", () => {
   });
 
   it("counts a no-show fee as owed, and ignores games that have not ended", async () => {
-    const noShow = await endedGame(1, "Omar", "03333333");
+    const noShow = await endedGame(1, "Omar", "9613333333");
     await recordNoShow({ bookingId: noShow });
     const pitch = await platformDb.pitch.findUniqueOrThrow({ where: { id: fixture.pitchId } });
     const future = generateSlotsForDay({
@@ -131,7 +131,7 @@ describe("listOwed", () => {
       occupied: [],
     })[0]!;
     await db.$transaction(async (tx) => {
-      const person = await findOrCreatePerson(tx, { name: "Later", phone: "03444444" });
+      const person = await findOrCreatePerson(tx, { name: "Later", phone: "9613444444" });
       const id = await insertApprovedOwnerBooking(tx, { pitchId: fixture.pitchId, start: future.start, end: future.end, priceUsd: new Decimal("30.00") });
       await insertRequesterParticipant(tx, { bookingId: id, personId: person.id, amountDueUsd: new Decimal("30.00") });
     });
@@ -158,7 +158,7 @@ describe("listOwed", () => {
       occupied: [],
     })[0]!;
     await db.$transaction(async (tx) => {
-      const person = await findOrCreatePerson(tx, { name: "Other", phone: "03555555" });
+      const person = await findOrCreatePerson(tx, { name: "Other", phone: "9613555555" });
       const id = await insertApprovedOwnerBooking(tx, { pitchId: other.pitchId, start: slot.start, end: slot.end, priceUsd: new Decimal("99.00") });
       await insertRequesterParticipant(tx, { bookingId: id, personId: person.id, amountDueUsd: new Decimal("99.00") });
     });

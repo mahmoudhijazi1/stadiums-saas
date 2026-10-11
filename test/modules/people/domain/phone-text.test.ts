@@ -28,6 +28,6 @@ describe("phone text", () => {
     expect(publicRequestFieldErrors("Ali", "03 123 456").phone).toBeUndefined();
     const base = { name: "Ali", pitchId: "p", start: "2030-01-01T10:00:00Z", end: "2030-01-01T11:00:00Z" };
     expect(() => parsePublicSlotRequest({ ...base, phone: "03abc123456" })).toThrow();
-    expect(parsePublicSlotRequest({ ...base, phone: "03 123-456" }).phone).toBe("03123456");
+    expect(parsePublicSlotRequest({ ...base, phone: "03 123-456" }).phone).toBe("9613123456");
   });
 });

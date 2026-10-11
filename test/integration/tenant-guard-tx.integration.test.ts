@@ -62,7 +62,7 @@ describe("tenant guard on update and delete", () => {
   it("a row created in the same transaction is visible to the ownership check", async () => {
     const renamed = await db.$transaction(async (tx) => {
       const created = await tx.person.create({
-        data: { name: "Fresh", phone: "03999001", searchName: "fresh" } as Parameters<typeof tx.person.create>[0]["data"],
+        data: { name: "Fresh", phone: "9613999001", searchName: "fresh" } as Parameters<typeof tx.person.create>[0]["data"],
       });
       await tx.person.update({ where: { id: created.id }, data: { name: "Renamed" } });
       await tx.person.delete({ where: { id: created.id } });
@@ -74,7 +74,7 @@ describe("tenant guard on update and delete", () => {
   it("another tenant's row is still refused for update and delete", async () => {
     const other = await seedMinimalFixture({ tenantSlug: "other-guard", tenantName: "Other", ownerIdentifier: "owner@other-guard" });
     const theirs = await platformDb.person.create({
-      data: { tenantId: other.tenantId, name: "Theirs", phone: "03999002", searchName: "theirs" },
+      data: { tenantId: other.tenantId, name: "Theirs", phone: "9613999002", searchName: "theirs" },
     });
     await expect(db.person.update({ where: { id: theirs.id }, data: { name: "Hijacked" } })).rejects.toThrow(/Tenant scope violation/);
     await expect(db.person.delete({ where: { id: theirs.id } })).rejects.toThrow(/Tenant scope violation/);

@@ -5,9 +5,9 @@ import { mergeStadiumInfo, parseTenantSettings } from "@/lib/tenant-settings";
 const INFO = {
   address: "Hamra, Beirut",
   mapLink: "https://maps.app.goo.gl/AbCdEf123",
-  phone: "03123456",
+  phone: "9613123456",
   whatsappSame: false,
-  whatsapp: "71123456",
+  whatsapp: "96171123456",
   brandPreset: "royal" as const,
 };
 
@@ -40,7 +40,10 @@ describe("stadium info in tenant settings", () => {
   it("re-checks the phones on read: a stored non-number reads as none", () => {
     expect(parseTenantSettings({ phone: "call me" }).phone).toBe("");
     expect(parseTenantSettings({ whatsapp: "12" }).whatsapp).toBe("");
-    expect(parseTenantSettings({ phone: "03123456" }).phone).toBe("03123456");
+    expect(parseTenantSettings({ phone: "9613123456" }).phone).toBe("9613123456");
+    // Not canonical (not migrated yet) or not Lebanese: reads as not set.
+    expect(parseTenantSettings({ phone: "03123456" }).phone).toBe("");
+    expect(parseTenantSettings({ phone: "963933123456" }).phone).toBe("");
   });
 
   it("reads an unknown or colour-value preset as the default: only keys are accepted", () => {

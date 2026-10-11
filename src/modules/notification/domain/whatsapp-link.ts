@@ -1,5 +1,5 @@
 import { DomainError } from "@/lib/errors";
-import { toLebanonNumber } from "@/modules/people/domain/phone";
+import { isCanonicalPhone, toCanonicalPhone } from "@/modules/people/domain/phone";
 import { messageIntentFor, type MessageContext, type MessageIntent, type MessageState } from "@/modules/notification/domain/message-intent";
 
 export type MessageLocale = "ar" | "en";
@@ -201,7 +201,8 @@ function reasonClause(reason: string | null | undefined): string {
 }
 
 function toLebanonWhatsAppNumber(phoneDigits: string): string {
-  const e164 = toLebanonNumber(phoneDigits);
+  // A stored phone is canonical; the fallback reads rows stored before the data migration.
+  const e164 = isCanonicalPhone(phoneDigits) ? phoneDigits : toCanonicalPhone(phoneDigits, "961");
   if (e164 === null) {
     throw new DomainError("notification.bad_phone");
   }

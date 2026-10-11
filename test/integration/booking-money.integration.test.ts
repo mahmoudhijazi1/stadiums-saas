@@ -69,18 +69,18 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "ليلى",
-      phone: "03111001",
+      phone: "9613111001",
     }).then((result) => result.bookingId);
     await requestPublicSlot({
       pitchId: fixture.pitchId,
       start: slot.start,
       end: slot.end,
       name: "سامي",
-      phone: "03111002",
+      phone: "9613111002",
     });
 
-    const winner = await personByPhone(fixture.tenantId, "03111001");
-    const loser = await personByPhone(fixture.tenantId, "03111002");
+    const winner = await personByPhone(fixture.tenantId, "9613111001");
+    const loser = await personByPhone(fixture.tenantId, "9613111002");
     const rejected = await approveBooking(winnerId);
 
     expect(rejected.map((person) => person.personId)).toContain(loser.id);
@@ -108,8 +108,8 @@ describe("booking and money", () => {
 
     for (let i = 0; i < 10; i += 1) {
       const slot = await eveningSlot(fixture.pitchId, 3 + i);
-      const phoneA = `0314${i}001`;
-      const phoneB = `0314${i}002`;
+      const phoneA = `961314${i}001`;
+      const phoneB = `961314${i}002`;
       const idA = await requestPublicSlot({
         pitchId: fixture.pitchId,
         start: slot.start,
@@ -226,9 +226,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "هدى",
-      phone: "03111005",
+      phone: "9613111005",
     });
-    const person = await personByPhone(fixture.tenantId, "03111005");
+    const person = await personByPhone(fixture.tenantId, "9613111005");
     const booking = await platformDb.booking.findUniqueOrThrow({
       where: { id: bookingId },
     });
@@ -247,17 +247,17 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "نور",
-      phone: "03111006",
+      phone: "9613111006",
     }).then((result) => result.bookingId);
     await requestPublicSlot({
       pitchId: fixture.pitchId,
       start: slot.start,
       end: slot.end,
       name: "رامي",
-      phone: "03111007",
+      phone: "9613111007",
     });
-    const winner = await personByPhone(fixture.tenantId, "03111006");
-    const waiting = await personByPhone(fixture.tenantId, "03111007");
+    const winner = await personByPhone(fixture.tenantId, "9613111006");
+    const waiting = await personByPhone(fixture.tenantId, "9613111007");
     await approveBooking(winnerId);
 
     await cancelBooking({ bookingId: winnerId, initiator: "PLAYER" });
@@ -287,9 +287,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "مالك",
-      phone: "03111008",
+      phone: "9613111008",
     });
-    const owner = await personByPhone(fixture.tenantId, "03111008");
+    const owner = await personByPhone(fixture.tenantId, "9613111008");
     const closed = await listOpenWaitlist();
     expect(
       closed.some((group) => group.people.some((person) => person.personId === waiting.id)),
@@ -305,9 +305,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "فادي",
-      phone: "03111009",
+      phone: "9613111009",
     });
-    const person = await personByPhone(fixture.tenantId, "03111009");
+    const person = await personByPhone(fixture.tenantId, "9613111009");
     await collectBookingPayment({
       bookingId,
       tenders: [{ currency: "USD", amount: new Decimal("30.00") }],
@@ -346,8 +346,8 @@ describe("booking and money", () => {
         });
         return id;
       });
-    const paidId = await seed("03111031", 0);
-    const unpaidId = await seed("03111032", 120);
+    const paidId = await seed("9613111031", 0);
+    const unpaidId = await seed("9613111032", 120);
     await collectBookingPayment({
       bookingId: paidId,
       tenders: [{ currency: "USD", amount: new Decimal("30.00") }],
@@ -371,9 +371,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "لينا",
-      phone: "03111010",
+      phone: "9613111010",
     });
-    const person = await personByPhone(fixture.tenantId, "03111010");
+    const person = await personByPhone(fixture.tenantId, "9613111010");
     await setExchangeRate(new Decimal(90000));
     await collectBookingPayment({
       bookingId,
@@ -419,9 +419,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "تالا",
-      phone: "03111011",
+      phone: "9613111011",
     });
-    const person = await personByPhone(fixture.tenantId, "03111011");
+    const person = await personByPhone(fixture.tenantId, "9613111011");
     await cancelBooking({ bookingId, initiator: "PLAYER" });
     const before = await getPersonBookingStats(person.id);
     expect(before.owesNowUsd.equals("15.00")).toBe(true);
@@ -441,7 +441,7 @@ describe("booking and money", () => {
     const seeded = await db.$transaction(async (tx) => {
       const person = await findOrCreatePerson(tx, {
         name: "جو",
-        phone: "03111012",
+        phone: "9613111012",
       });
       const bookingId = await insertApprovedOwnerBooking(tx, {
         pitchId: fixture.pitchId,
@@ -490,9 +490,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "Maya",
-      phone: "03111013",
+      phone: "9613111013",
     });
-    const person = await personByPhone(fixture.tenantId, "03111013");
+    const person = await personByPhone(fixture.tenantId, "9613111013");
     await collectBookingPayment({
       bookingId,
       tenders: [{ currency: "USD", amount: new Decimal("10.00") }],
@@ -530,9 +530,9 @@ describe("booking and money", () => {
       start: slot.start,
       end: slot.end,
       name: "أحمد",
-      phone: "03111014",
+      phone: "9613111014",
     });
-    const personA = await personByPhone(fixture.tenantId, "03111014");
+    const personA = await personByPhone(fixture.tenantId, "9613111014");
     await collectBookingPayment({
       bookingId,
       tenders: [{ currency: "USD", amount: new Decimal("10.00") }],
@@ -568,9 +568,9 @@ describe("booking and money", () => {
       start: otherSlot.start,
       end: otherSlot.end,
       name: "سامي",
-      phone: "03111015",
+      phone: "9613111015",
     });
-    const personB = await personByPhone(other.tenantId, "03111015");
+    const personB = await personByPhone(other.tenantId, "9613111015");
     const dayB = await loadOwnerDay(formatCivilDate(otherSlot.day));
     expect(dayB.games.some((game) => game.id === bookingB)).toBe(true);
     expect(dayB.games.some((game) => game.id === bookingId)).toBe(false);
@@ -603,9 +603,9 @@ describe("booking and money", () => {
       start: slot.start.toISOString(),
       end: slot.end.toISOString(),
       name: "منى",
-      phone: "03111016",
+      phone: "9613111016",
     });
-    const person = await personByPhone(fixture.tenantId, "03111016");
+    const person = await personByPhone(fixture.tenantId, "9613111016");
 
     const startDay = await loadOwnerDay(formatCivilDate(day));
     expect(startDay.summary.games).toBe(1);

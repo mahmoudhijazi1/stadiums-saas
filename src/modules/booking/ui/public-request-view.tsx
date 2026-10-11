@@ -12,7 +12,8 @@ import {
   isFinalPublicRequestError,
   type PublicRequestErrorKind,
 } from "@/modules/booking/domain/public-request-errors";
-import { sanitizePhoneInput } from "@/modules/people/domain/phone";
+import { DEFAULT_COUNTRY } from "@/modules/people/domain/countries";
+import { PhoneField } from "@/modules/people/ui/phone-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,11 +140,12 @@ function RequestForm({
   onSubmit: (formData: FormData) => void;
 }) {
   const [fieldErrors, setFieldErrors] = useState<PublicRequestFieldErrors>({});
+  const [country, setCountry] = useState<string>(DEFAULT_COUNTRY);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const next = publicRequestFieldErrors(String(data.get("name") ?? ""), String(data.get("phone") ?? ""));
+    const next = publicRequestFieldErrors(String(data.get("name") ?? ""), String(data.get("phone") ?? ""), country);
     if (hasPublicRequestFieldErrors(next)) {
       setFieldErrors(next);
       return;
@@ -178,22 +180,17 @@ function RequestForm({
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="request-phone">{ui("public.phone", locale)}</Label>
-        <Input
-          id="request-phone"
-          type="tel"
-          name="phone"
-          autoComplete="tel"
-          inputMode="tel"
-          className="font-mono"
-          aria-invalid={Boolean(fieldErrors.phone)}
-          aria-describedby={fieldErrors.phone ? "request-phone-err" : undefined}
-          onInput={(event) => {
-            // Digits and + - ( ) . only: letters never get into the box.
-            const input = event.currentTarget;
-            const clean = sanitizePhoneInput(input.value);
-            if (clean !== input.value) input.value = clean;
+        <PhoneField
+          locale={locale}
+          country={country}
+          onCountryChange={(code) => {
+            setCountry(code);
             setFieldErrors((current) => ({ ...current, phone: undefined }));
           }}
+          phoneId="request-phone"
+          invalid={Boolean(fieldErrors.phone)}
+          describedBy={fieldErrors.phone ? "request-phone-err" : undefined}
+          onPhoneInput={() => setFieldErrors((current) => ({ ...current, phone: undefined }))}
         />
         {fieldErrors.phone ? (
           <p id="request-phone-err" role="alert" className="type-secondary text-destructive">
