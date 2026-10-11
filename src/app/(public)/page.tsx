@@ -13,7 +13,6 @@ import { PublicHours } from "@/app/(public)/_components/hours";
 import { LangToggle } from "@/components/shell/lang-toggle";
 import { Container } from "@/components/ui/container";
 import { UnavailableNotice } from "@/components/shell/unavailable-notice";
-import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { Suspense } from "react";
@@ -45,9 +44,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <main>
     <Container className="flex flex-col gap-6 py-8">
-      <Suspense fallback={null}>
-        <FlashToast locale={locale} />
-      </Suspense>
       <header className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}

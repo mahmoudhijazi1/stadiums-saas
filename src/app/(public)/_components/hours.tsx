@@ -5,11 +5,13 @@ import { getDayAvailability } from "@/modules/venue/application/get-day-availabi
 import { findNextFreeDay } from "@/modules/venue/application/find-next-free-day";
 import type { CivilDate } from "@/modules/venue/domain/availability";
 import { PublicTimes } from "@/app/(public)/_components/times";
+import { stadiumChatHref } from "@/app/(public)/_components/stadium-contact";
+import { weekdayLabel } from "@/modules/venue/ui/weekday-label";
 import { NoFreeTimes } from "@/app/(public)/_components/no-free-times";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { cancelPolicyLine, ui } from "@/lib/copy";
+import { cancelPolicyLine, cancelUpToLine, ui } from "@/lib/copy";
 
 const TIME_ZONE = "Asia/Beirut";
 
@@ -70,12 +72,11 @@ export async function PublicHours({
     <PublicTimes
       pitches={free}
       dateValue={dateValue}
+      dayLabel={`${weekdayLabel(localDate, locale)} ${localDate.day}`}
       locale={locale}
-      policyLine={cancelPolicyLine(
-        tenant.cancellationWindowHours,
-        tenant.lateCancellationFeePercent,
-        locale,
-      )}
+      cancelLine={cancelUpToLine(tenant.cancellationWindowHours, locale) || null}
+      feeLine={cancelPolicyLine(tenant.cancellationWindowHours, tenant.lateCancellationFeePercent, locale) || null}
+      whatsappHref={stadiumChatHref(tenant.whatsapp)}
     />
   );
 }

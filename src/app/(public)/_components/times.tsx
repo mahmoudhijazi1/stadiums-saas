@@ -2,29 +2,34 @@
 
 import { useState } from "react";
 import { submitPublicSlotRequest } from "@/app/(public)/request-slot";
-import { SlotBookSheet, type SlotPickerPitch, type SlotPickerSlot } from "@/modules/booking/ui/slot-picker";
+import type { SlotPickerPitch } from "@/modules/booking/ui/slot-picker";
+import { PublicRequestSheet, type PickedTime } from "@/modules/booking/ui/public-request-sheet";
 import { TimeChips } from "@/modules/booking/ui/time-chips";
 import type { UiLocale } from "@/lib/locale";
-import { ui } from "@/lib/copy";
-
-type Picked = { pitchId: string; pitchName: string | null; slot: SlotPickerSlot };
 
 /**
  * The public page's free times. Tapping a chip opens the request sheet; the Server Action and the
- * ?date= value are wired here, the pieces themselves are shared.
+ * ?date= value are wired here, the pieces themselves are shared. The only client code on the page
+ * besides the language toggle.
  */
 export function PublicTimes({
   pitches,
   dateValue,
+  dayLabel,
   locale,
-  policyLine,
+  cancelLine,
+  feeLine,
+  whatsappHref,
 }: {
   pitches: SlotPickerPitch[];
   dateValue: string;
+  dayLabel: string;
   locale: UiLocale;
-  policyLine: string;
+  cancelLine: string | null;
+  feeLine: string | null;
+  whatsappHref: string | null;
 }) {
-  const [picked, setPicked] = useState<Picked | null>(null);
+  const [picked, setPicked] = useState<PickedTime | null>(null);
   return (
     <>
       <TimeChips
@@ -38,14 +43,16 @@ export function PublicTimes({
           })
         }
       />
-      <SlotBookSheet
+      <PublicRequestSheet
         picked={picked}
         onClose={() => setPicked(null)}
         action={submitPublicSlotRequest}
-        hiddenFields={{ date: dateValue }}
-        submitLabel={ui("public.request", locale)}
+        dayLabel={dayLabel}
+        dateValue={dateValue}
         locale={locale}
-        policyLine={policyLine || null}
+        cancelLine={cancelLine}
+        feeLine={feeLine}
+        whatsappHref={whatsappHref}
       />
     </>
   );

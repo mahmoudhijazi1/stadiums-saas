@@ -5,6 +5,11 @@ import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { whatsAppChatHref } from "@/modules/notification/domain/whatsapp-link";
 
+/** The plain WhatsApp chat link with the stadium (no text), or null when no valid number is set. */
+export function stadiumChatHref(whatsapp: string): string | null {
+  return whatsapp !== "" && toLebanonNumber(whatsapp) !== null ? whatsAppChatHref(whatsapp) : null;
+}
+
 const BUTTON =
   "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 type-body font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
