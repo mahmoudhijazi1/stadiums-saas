@@ -3,6 +3,7 @@
 import { COUNTRIES } from "@/modules/people/domain/countries";
 import { sanitizePhoneInput } from "@/modules/people/domain/phone";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
@@ -12,11 +13,18 @@ function flagOf(key: string): string {
   return [...key.toUpperCase()].map((letter) => String.fromCodePoint(0x1f1e6 + letter.charCodeAt(0) - 65)).join("");
 }
 
+/** The select's options: the dialling code and what is shown for it ("🇱🇧 +961"). */
+export const PHONE_COUNTRY_OPTIONS = COUNTRIES.map((country) => ({
+  code: country.code,
+  label: `${flagOf(country.key)} +${country.code}`,
+}));
+
 /**
- * A country-code select (native, flag and "+code") beside the phone input. The select submits as
- * `country`, the input as `phone`; the whole group is LTR in both languages. The parent owns the
- * selected country (controlled) so its client check can use it, and the phone box still drops
- * anything a phone cannot contain as the user types or pastes.
+ * A country-code select (the app's Select, flag and "+code") beside the phone input. The code
+ * submits as `country` (a hidden input, like SelectField) and the phone as `phone`; the whole group
+ * is LTR in both languages. The parent owns the selected country (controlled) so its client check
+ * can use it, and the phone box still drops anything a phone cannot contain as the user types or
+ * pastes. The list is capped to about six rows and scrolls.
  */
 export function PhoneField({
   locale,
@@ -38,21 +46,22 @@ export function PhoneField({
   onPhoneInput?: () => void;
   className?: string;
 }) {
+  const selected = PHONE_COUNTRY_OPTIONS.find((option) => option.code === country);
   return (
     <div dir="ltr" className={cn("flex gap-2", className)}>
-      <select
-        name="country"
-        value={country}
-        aria-label={ui("phone.countryCode", locale)}
-        onChange={(event) => onCountryChange(event.target.value)}
-        className="type-field h-11 shrink-0 rounded-md border border-input bg-transparent px-2 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-      >
-        {COUNTRIES.map((item) => (
-          <option key={item.code} value={item.code}>
-            {`${flagOf(item.key)} +${item.code}`}
-          </option>
-        ))}
-      </select>
+      <input type="hidden" name="country" value={country} />
+      <Select dir="ltr" value={country} onValueChange={onCountryChange}>
+        <SelectTrigger aria-label={ui("phone.countryCode", locale)} className="w-auto shrink-0 gap-1 px-2.5">
+          <SelectValue>{selected?.label ?? `+${country}`}</SelectValue>
+        </SelectTrigger>
+        <SelectContent position="popper" align="start" className="max-h-56">
+          {PHONE_COUNTRY_OPTIONS.map((option) => (
+            <SelectItem key={option.code} value={option.code} className="py-1">
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input
         id={phoneId}
         type="tel"

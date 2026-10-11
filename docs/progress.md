@@ -309,3 +309,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Not wired:** when the owner action itself answers `form.invalid` (a server-side phone failure that the same client rule should have caught), the owner sees the generic flash message, not `owner.errPhone` under the field; that would need the action to return the failing field, which was out of scope.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; `test/modules/people/ui-phone-field.test.ts` (13 options, 961 selected by default, country/phone names, LTR, label) and the added `name="country"` check in `public-request-view.test.ts` are written and NOT run. The `request-fields` test for `"0933123456"` with `"963"` already existed from the wiring commit. UNVERIFIED by eye: the select width at 360px in Arabic and English.
+
+## Phone: country selector uses the app's Select (branch `feat/phone-wiring`, NOT merged)
+
+**When:** 2026-10-14
+
+**What:** `people/ui/phone-field.tsx` no longer uses a native `<select>`: it uses the app's `Select` (`components/ui/select.tsx`, like `SelectField`) with a hidden `country` input, so the control looks like the other selects. The list opens as a popover capped at `max-h-56` (about six rows, it scrolls) with compact items (`py-1`), and the trigger is narrow (`w-auto px-2.5`) and keeps the same 44px height as the phone input beside it (I read "not that tall" as the long list; if the closed control itself should be shorter, `size="sm"` makes it 32px but it would no longer match the input). The options are exported as `PHONE_COUNTRY_OPTIONS` (13, flag + `+code`).
+
+**Files:** `people/ui/phone-field.tsx`, `test/modules/people/ui-phone-field.test.ts` (rewritten: the app's Select renders its list only when open, so the options are tested as data and the trigger, hidden input, label and LTR in the markup).
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the tests are written and NOT run. UNVERIFIED by eye: the popover over the bottom sheet (it uses the same z-index as the sheet and `SelectField` already works inside sheets) and its height.
