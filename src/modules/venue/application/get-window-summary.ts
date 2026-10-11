@@ -96,8 +96,3 @@ export async function getWindowSummary(input: {
     return await rethrowUnexpected(error, "Get window summary failed", "getWindowSummary");
   }
 }
-
-/** The first day after `key` that has a free time (the "Next free" link of an empty day). */
-export function firstFreeDayAfter(days: WindowDay[], key: string): CivilDate | null {
-  return days.find((day) => day.key > key && day.freeCount > 0)?.date ?? null;
-}

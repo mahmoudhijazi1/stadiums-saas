@@ -89,3 +89,11 @@ export function formatParts(parts: { lbp: Decimal | string; usd: Decimal | strin
   if (usd.gt(0)) shown.push(formatUsdAmount(usd));
   return shown.length > 0 ? shown.join(" + ") : "0";
 }
+
+/**
+ * A USD price string for running text: whole dollars without the cents ("$20"), cents only when
+ * present ("$22.50"). Input is the two-decimal string the venue module produces ("20.00").
+ */
+export function compactUsd(amount: string): string {
+  return `$${amount.endsWith(".00") ? amount.slice(0, -3) : amount}`;
+}

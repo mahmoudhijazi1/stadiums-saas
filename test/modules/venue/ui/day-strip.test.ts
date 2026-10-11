@@ -36,6 +36,11 @@ describe("DayStrip", () => {
     expect(dotted).toContain('data-level="2"');
     expect(dotted).toContain('data-level="1"');
     expect(dotted.match(/data-level="0"/g)).toHaveLength(58); // the day with 0 and the 57 with no entry
-    expect(dotted.match(/size-1 rounded-full/g)).toHaveLength(6);
+    expect(dotted.match(/size-\[3px\] rounded-full/g)).toHaveLength(6);
+  });
+
+  it("has no box around a day: only the selected one is filled", () => {
+    expect(html).not.toContain("border-line");
+    expect(html.match(/bg-selected/g)).toHaveLength(1);
   });
 });

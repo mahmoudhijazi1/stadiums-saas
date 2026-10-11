@@ -11,7 +11,7 @@ export function stadiumChatHref(whatsapp: string): string | null {
 }
 
 const BUTTON =
-  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-surface px-3 type-body font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "grid size-11 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink outline-none hover:bg-surface-2 focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 /**
  * The stadium's own contact buttons on its public page: Open in Maps (only when a link is set),
@@ -36,23 +36,20 @@ export function StadiumContact({
   if (!maps && !callNumber && !chatNumber) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-nowrap gap-2">
       {maps ? (
-        <a href={maps} target="_blank" rel="noopener noreferrer" className={BUTTON}>
-          <MapPin aria-hidden className="size-4" />
-          {ui("public.openInMaps", locale)}
+        <a href={maps} target="_blank" rel="noopener noreferrer" className={BUTTON} aria-label={ui("public.openInMaps", locale)}>
+          <MapPin aria-hidden className="size-5" />
         </a>
       ) : null}
       {callNumber ? (
-        <a href={`tel:+${callNumber}`} className={BUTTON}>
-          <Phone aria-hidden className="size-4" />
-          {ui("public.call", locale)}
+        <a href={`tel:+${callNumber}`} className={BUTTON} aria-label={ui("public.call", locale)}>
+          <Phone aria-hidden className="size-5" />
         </a>
       ) : null}
       {chatNumber ? (
-        <a href={whatsAppChatHref(chatNumber)} target="_blank" rel="noopener noreferrer" className={BUTTON}>
-          <MessageCircle aria-hidden className="size-4" />
-          {ui("public.whatsapp", locale)}
+        <a href={whatsAppChatHref(chatNumber)} target="_blank" rel="noopener noreferrer" className={BUTTON} aria-label={ui("public.whatsapp", locale)}>
+          <MessageCircle aria-hidden className="size-5" />
         </a>
       ) : null}
     </div>

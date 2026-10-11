@@ -1,101 +1,126 @@
 "use client";
 
-import { Moon, Sun, Sunrise, type LucideIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
-import { localWallClock } from "@/modules/venue/domain/availability";
 import { commonPriceUsd } from "@/modules/booking/domain/free-times";
-import { groupByPeriod, type DayPeriod } from "@/modules/booking/domain/day-periods";
+import { compactRange } from "@/modules/booking/domain/compact-range";
 import type { SlotPickerPitch, SlotPickerSlot } from "@/modules/booking/ui/slot-picker";
+import { compactUsd } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
 
-const PERIOD_ICON: Record<DayPeriod, LucideIcon> = { evening: Moon, afternoon: Sun, morning: Sunrise };
-
 /**
- * The day's times as full-width rows grouped by period (evening first): "5:00 PM – 6:00 PM" at the
- * start, the price and a small accent "Book" button at the end, 56px or taller. A taken time stays
- * as a faded row with "Taken" and no button. The caller drops started times; this component holds
- * no state and does not know the request. With more than one pitch each gets its own section.
+ * The day's times as one list in time order inside one rounded container with thin dividers. A free
+ * row opens the request (the whole row is the button); a taken row stays, faded, with "Taken" and
+ * cannot be pressed. The first free time of the day carries a "Nearest" badge. A row shows its price
+ * only when it differs from the heading's. The caller drops started times; this holds no state.
+ * With more than one pitch each gets its own list under its name.
  */
 export function TimeRows({
   pitches,
   locale,
-  timeZone,
-  dayStartHour,
   onPick,
 }: {
   pitches: SlotPickerPitch[];
   locale: UiLocale;
-  timeZone: string;
-  dayStartHour: number;
   onPick: (pitchId: string, slot: SlotPickerSlot) => void;
 }) {
   const free = pitches.flatMap((pitch) => pitch.slots.filter((slot) => slot.available));
   const common = commonPriceUsd(free);
+  const nearest = free.reduce<SlotPickerSlot | null>((best, slot) => (!best || slot.startIso < best.startIso ? slot : best), null);
+  const minutes = free[0] ? Math.round((new Date(free[0].endIso).getTime() - new Date(free[0].startIso).getTime()) / 60_000) : 0;
+  const [beforeN = "", afterN = ""] = ui("public.minutes", locale).split("{n}");
   const showPitchNames = pitches.length > 1;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {common ? (
-        <h2 className="type-title">
-          {ui("public.availableTimes", locale)}
-          {" · "}
-          <LtrIsolate>{`$${common}`}</LtrIsolate> {ui("public.perGame", locale)}
-        </h2>
+        <div className="flex flex-col gap-0.5">
+          <h2 className="type-title">{ui("public.availableTimes", locale)}</h2>
+          <p className="type-secondary">
+            <LtrIsolate>{compactUsd(common)}</LtrIsolate> {ui("public.perGame", locale)}
+            {minutes > 0 ? (
+              <>
+                {" · "}
+                {beforeN}
+                <LtrIsolate>{String(minutes)}</LtrIsolate>
+                {afterN}
+              </>
+            ) : null}
+          </p>
+        </div>
       ) : null}
       {pitches.map((pitch) => (
-        <section key={pitch.id} className="flex flex-col gap-4">
+        <section key={pitch.id} className="flex flex-col gap-2">
           {showPitchNames ? <h3 className="type-strong">{pitch.name}</h3> : null}
-          {groupByPeriod(pitch.slots, (slot) => localWallClock(new Date(slot.startIso), timeZone).hour, dayStartHour).map(
-            ({ period, items }) => {
-              const Icon = PERIOD_ICON[period];
-              return (
-                <div key={period} className="flex flex-col gap-2">
-                  <h4 className="type-section flex items-center gap-1.5">
-                    <Icon aria-hidden className="size-4" />
-                    {ui(`public.period.${period}`, locale)}
-                  </h4>
-                  <ul className="flex flex-col gap-2">
-                    {items.map((slot) => (
-                      <TimeRow key={slot.startIso} slot={slot} locale={locale} onBook={() => onPick(pitch.id, slot)} />
-                    ))}
-                  </ul>
-                </div>
-              );
-            },
-          )}
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {pitch.slots.map((slot) => (
+              <TimeRow
+                key={slot.startIso}
+                slot={slot}
+                locale={locale}
+                isNearest={slot === nearest}
+                showPrice={slot.priceUsd !== common}
+                onPick={() => onPick(pitch.id, slot)}
+              />
+            ))}
+          </ul>
         </section>
       ))}
     </div>
   );
 }
 
-function TimeRow({ slot, locale, onBook }: { slot: SlotPickerSlot; locale: UiLocale; onBook: () => void }) {
-  return (
-    <li
-      className={cn(
-        "flex min-h-14 items-center justify-between gap-3 rounded-lg border border-line bg-surface px-4",
-        !slot.available && "opacity-60",
-      )}
-    >
+function TimeRow({
+  slot,
+  locale,
+  isNearest,
+  showPrice,
+  onPick,
+}: {
+  slot: SlotPickerSlot;
+  locale: UiLocale;
+  isNearest: boolean;
+  showPrice: boolean;
+  onPick: () => void;
+}) {
+  const range = compactRange(slot.startLocal, slot.endLocal);
+  const label = (
+    <span className="flex min-w-0 flex-1 items-center gap-2">
       <span className="type-strong tabular-nums">
-        <ClockText text={slot.startLocal} /> – <ClockText text={slot.endLocal} />
+        <ClockText text={range.start} /> – <ClockText text={range.end} />
       </span>
-      <span className="flex items-center gap-3">
-        <LtrIsolate className="type-body tabular-nums">{`$${slot.priceUsd}`}</LtrIsolate>
-        {slot.available ? (
-          <button
-            type="button"
-            onClick={onBook}
-            className="type-label inline-flex min-h-11 min-w-16 items-center justify-center rounded-full bg-accent-brand px-4 text-accent-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand"
-          >
-            {ui("public.book", locale)}
-          </button>
-        ) : (
-          <span className="type-label min-w-16 text-center text-ink-muted">{ui("public.taken", locale)}</span>
+      {isNearest ? (
+        <span className="type-caption rounded-full bg-accent-subtle px-2 py-0.5 text-ink">{ui("public.nearest", locale)}</span>
+      ) : null}
+    </span>
+  );
+  const price = showPrice ? <LtrIsolate className="type-secondary tabular-nums">{compactUsd(slot.priceUsd)}</LtrIsolate> : null;
+
+  if (!slot.available) {
+    return (
+      <li aria-disabled="true" className="flex min-h-14 items-center gap-3 px-4 opacity-60">
+        {label}
+        {price}
+        <span className="type-label text-ink">{ui("public.taken", locale)}</span>
+      </li>
+    );
+  }
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onPick}
+        className={cn(
+          "flex min-h-14 w-full items-center gap-3 px-4 text-start outline-none hover:bg-surface-2",
+          "focus-visible:bg-surface-2 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-brand",
         )}
-      </span>
+      >
+        {label}
+        {price}
+        <ChevronRight aria-hidden className="size-5 shrink-0 text-ink-muted rtl:-scale-x-100" />
+      </button>
     </li>
   );
 }

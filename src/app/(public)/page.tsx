@@ -57,7 +57,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
   return (
     <main>
-    <Container className="flex flex-col gap-6 py-8">
       <HeaderBand
         name={tenant.name}
         address={tenant.address}
@@ -68,7 +67,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         locale={locale}
         onChangeLocale={setUiLocale}
       />
-
+    <Container className="flex flex-col gap-6 pb-8">
       <DayStrip
         today={today}
         lastDay={lastPublicDay(today)}
@@ -88,7 +87,6 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             now={now}
             today={today}
             occupied={occupied}
-            days={days}
             nextFree={nextFree}
           />
         </Suspense>

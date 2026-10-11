@@ -14,3 +14,16 @@ export function dayChipClass(selected: boolean): string {
       : "border-line bg-surface text-ink hover:bg-surface-2",
   );
 }
+
+/**
+ * A day tab of the public strip: no box, only the selected day gets the pill. Same size and
+ * focus ring as dayChipClass so the two strips line up.
+ */
+export function dayTabClass(selected: boolean): string {
+  return cn(
+    "flex h-16 w-full min-w-0 flex-col items-center justify-center rounded-[var(--radius-md)] px-1 py-1.5 text-xs outline-none",
+    "transition-[background-color,color] duration-150 ease-out motion-reduce:transition-none",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-brand",
+    selected ? "bg-selected text-selected-ink" : "bg-transparent text-ink hover:bg-surface-2",
+  );
+}

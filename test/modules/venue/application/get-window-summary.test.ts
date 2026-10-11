@@ -48,12 +48,9 @@ describe("getWindowSummary", () => {
     expect(nextFree!.startIso).toBe("2026-10-16T16:00:00.000Z");
   });
 
-  it("has no nearest time when nothing is free in the window, and firstFreeDayAfter looks ahead", async () => {
-    const { getWindowSummary, firstFreeDayAfter } = await load();
+  it("has no nearest time when nothing is free in the window", async () => {
+    const { getWindowSummary } = await load();
     const none = await getWindowSummary({ ...base, lastDay: { year: 2026, month: 10, day: 15 }, occupied: [] });
     expect(none.nextFree).toBeNull();
-    const all = await getWindowSummary({ ...base, occupied: [] });
-    expect(firstFreeDayAfter(all.days, "2026-10-14")).toEqual({ year: 2026, month: 10, day: 16 });
-    expect(firstFreeDayAfter(all.days, "2026-10-16")).toEqual({ year: 2026, month: 10, day: 23 });
   });
 });
