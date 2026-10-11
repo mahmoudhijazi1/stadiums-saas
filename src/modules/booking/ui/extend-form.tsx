@@ -12,6 +12,11 @@ import { normalizeUsdForm } from "@/lib/format/parse-money";
 import { ui } from "@/lib/copy";
 import type { ExtendActionResult } from "@/modules/booking/ui/action-types";
 
+/** The extend action of the booking sheet. */
+export type ExtendActions = {
+  submitExtendBooking: (input: unknown) => Promise<ExtendActionResult>;
+};
+
 /**
  * What "Extend 30 min" would do for one game, prepared on the server (times in the stadium's clock
  * and the member's 12/24-hour setting). `null` on the row = the member has no bookings.extend, or

@@ -12,6 +12,15 @@ import { WeeklyConfirm } from "@/modules/booking/ui/weekly-confirm";
 import type { CancelRestPreviewResult, CancelRestResult } from "@/modules/booking/ui/action-types";
 import type { PreviewResult, SeriesSaveResult } from "@/modules/booking/ui/action-types";
 
+/** The series actions of the booking sheet: preview, save, load the series sheet, cancel the rest. */
+export type SeriesActions = {
+  loadSeriesSheetAction: (input: unknown) => Promise<SeriesSheetResult>;
+  previewCancelRestAction: (input: unknown) => Promise<CancelRestPreviewResult>;
+  previewSeriesAction: (input: unknown) => Promise<PreviewResult>;
+  submitCancelRest: (input: unknown) => Promise<CancelRestResult>;
+  submitSeriesSave: (input: unknown) => Promise<SeriesSaveResult>;
+};
+
 type View = "list" | "renew" | "cancel" | "cancelled";
 
 /**

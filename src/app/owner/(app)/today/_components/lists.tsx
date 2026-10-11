@@ -229,7 +229,24 @@ export async function OwnerToday({
         </Link>
       ) : null}
 
-      <UpcomingPanel loadSeriesSheetAction={loadSeriesSheetAction} previewCancelRestAction={previewCancelRestAction} previewSeriesAction={previewSeriesAction} searchPayers={searchPayers} submitAddBookingItems={submitAddBookingItems} submitAdjustBookingDue={submitAdjustBookingDue} submitCancelBooking={submitCancelBooking} submitCancelRest={submitCancelRest} submitCollectAllRemaining={submitCollectAllRemaining} submitCollectPayment={submitCollectPayment} submitCollectSlot={submitCollectSlot} submitCollectTab={submitCollectTab} submitExtendBooking={submitExtendBooking} submitRecordNoShow={submitRecordNoShow} submitRemoveBookingItem={submitRemoveBookingItem} submitSeriesSave={submitSeriesSave} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole}
+      <UpcomingPanel
+        collectActions={{
+          submitCollectPayment,
+          submitSwitchToPerPlayer,
+          submitSwitchToWhole,
+          submitCollectSlot,
+          submitCollectAllRemaining,
+        }}
+        extendActions={{ submitExtendBooking }}
+        itemsActions={{ searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem }}
+        seriesActions={{
+          loadSeriesSheetAction,
+          previewCancelRestAction,
+          previewSeriesAction,
+          submitCancelRest,
+          submitSeriesSave,
+        }}
+        feeActions={{ submitCancelBooking, submitRecordNoShow, submitAdjustBookingDue }}
         toCollect={toUpcomingViews(
           earlierDebts,
           itemsByBooking,
