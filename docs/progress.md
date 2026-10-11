@@ -249,3 +249,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `people/ui/person-link.tsx`.
 
 **How to verify:** `npx tsc --noEmit` only; no test touches `PersonLink`. UNVERIFIED by eye.
+
+## Phone: canonical rule as pure functions (branch `feat/phone-canonical`)
+
+**When:** 2026-10-14
+
+**What:** Pure additions to `people/domain/phone.ts`; no caller, schema, use case or query uses them yet, and `normalizePhone`, `toLebanonNumber`, `isPhoneText` and `sanitizePhoneInput` are unchanged. `toCanonicalPhone(raw)` gives one form per number: Lebanese numbers become `961` + the national number (7 digits, or 8 starting with 7 or 8; one leading 0 dropped), so `71123456`, `03123456`, `+961 71 123 456` and `0096171123456` collapse; other countries keep their international digits (8 to 15); anything with a letter, an empty string or a bad length is null. `toPhoneSearchDigits(query)` gives digits only (Arabic-Indic converted) minus a leading `00` or one `0`, for substring search. `formatPhoneDisplay` also puts a `+` on a canonical foreign number. Branched from `feat/requests-card-polish` because `formatPhoneDisplay` is only there.
+
+**Files:** `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new tests (one per row of the agreed table) are written and NOT run.

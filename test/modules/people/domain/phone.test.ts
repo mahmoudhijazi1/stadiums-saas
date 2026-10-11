@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { formatPhoneDisplay, normalizePhone, toLebanonNumber } from "@/modules/people/domain/phone";
+import { formatPhoneDisplay, normalizePhone, toCanonicalPhone, toLebanonNumber, toPhoneSearchDigits } from "@/modules/people/domain/phone";
 import { whatsAppChatHref } from "@/modules/notification/domain/whatsapp-link";
 
 describe("normalizePhone", () => {
@@ -67,5 +67,53 @@ describe("formatPhoneDisplay", () => {
   it("leaves the raw digits for links: the function does not change what normalizePhone stores", () => {
     expect(normalizePhone("+961 71 123 456")).toBe("96171123456");
     expect(toLebanonNumber("96171123456")).toBe("96171123456");
+  });
+});
+
+describe("toCanonicalPhone", () => {
+  const rows: [string, string | null][] = [
+    ["0096171123456", "96171123456"],
+    ["+961 71 123 456", "96171123456"],
+    ["96171123456", "96171123456"],
+    ["71123456", "96171123456"],
+    ["71 123 456", "96171123456"],
+    ["03123456", "9613123456"],
+    ["3123456", "9613123456"],
+    ["+961 03 123 456", "9613123456"],
+    ["9611234", "9619611234"],
+    ["+963933123456", "963933123456"],
+    ["00963933123456", "963933123456"],
+    ["0933123456", null],
+    ["61123456", null],
+    ["", null],
+    ["abc", null],
+    ["71123abc", null],
+    ["\u0667\u0661\u0661\u0662\u0663\u0664\u0665\u0666", "96171123456"],
+    ["+1234567890123456", null], // 16 digits
+  ];
+  for (const [input, expected] of rows) {
+    it(`${JSON.stringify(input)} -> ${JSON.stringify(expected)}`, () => {
+      expect(toCanonicalPhone(input)).toBe(expected);
+    });
+  }
+});
+
+describe("toPhoneSearchDigits", () => {
+  it("converts digits and drops a leading 00 or one leading 0", () => {
+    expect(toPhoneSearchDigits("\u0667\u0661\u0661\u0662\u0663")).toBe("71123");
+    expect(toPhoneSearchDigits("0312")).toBe("312");
+    expect(toPhoneSearchDigits("0096171")).toBe("96171");
+  });
+
+  it("never throws", () => {
+    expect(toPhoneSearchDigits("")).toBe("");
+    expect(toPhoneSearchDigits("abc")).toBe("");
+    expect(toPhoneSearchDigits("+")).toBe("");
+  });
+});
+
+describe("formatPhoneDisplay: other countries", () => {
+  it("puts a + on a canonical foreign number", () => {
+    expect(formatPhoneDisplay("963933123456")).toBe("+963933123456");
   });
 });
