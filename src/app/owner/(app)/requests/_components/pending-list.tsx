@@ -37,6 +37,7 @@ import { RequestedNameNotice } from "@/modules/booking/ui/requested-name-notice"
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { PersonLink } from "@/modules/people/ui/person-link";
+import { formatPhoneDisplay } from "@/modules/people/domain/phone";
 import { Phone } from "lucide-react";
 import { submitRejectBooking } from "@/app/owner/(app)/today/actions";
 
@@ -69,6 +70,8 @@ export async function PendingRequestList({
   const showPitch = await hasSeveralPitches();
   const mayDecide = can(membership, BOOKINGS_APPROVE);
   if (pending.length === 0 && !showEmpty) return null;
+  const relativeOf = (at: Date) =>
+    formatRelativeTime(at, now, { locale, timeZone: "Asia/Beirut", timeDisplay: hourCycle });
 
   return (
     <>
@@ -85,13 +88,16 @@ export async function PendingRequestList({
         <ul className="flex flex-col gap-3">
           {groups.map((group) => {
             const soon = startsInMinutes(group.start, now);
+            // One request in the slot: its age sits at the end of the time row. Several: each
+            // request shows its own age beside its name.
+            const single = group.requesters.length === 1 ? group.requesters[0] : null;
             return (
             <li
               key={`${group.pitchId}-${group.start.toISOString()}-${group.end.toISOString()}`}
             >
               <Card className="gap-3 py-4">
                 <CardHeader className="gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-baseline justify-between gap-2">
                     <ClockRangeText
                       text={formatLocalClockRange(
                         group.start,
@@ -99,10 +105,15 @@ export async function PendingRequestList({
                         hourCycle,
                         locale,
                       )}
-                      className="text-lg font-semibold leading-none"
+                      className="type-strong"
                     />
+                    {single ? (
+                      <span className="type-secondary ms-auto shrink-0">
+                        <RelativeWhen text={relativeOf(single.requestedAt)} />
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  <div className="type-secondary flex flex-wrap items-center gap-x-3 gap-y-1">
                     {showPitch ? <span>{group.pitchName}</span> : null}
                     <span>{formatSlotDateLabel(group.start, now, locale)}</span>
                   </div>
@@ -123,30 +134,28 @@ export async function PendingRequestList({
                         className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
                       >
                         <div className="flex flex-col gap-1">
-                          <PersonLink personId={item.request.requesterPersonId} name={item.request.requesterName} />
+                          <div className="flex flex-col">
+                            <PersonLink
+                              personId={item.request.requesterPersonId}
+                              name={item.request.requesterName}
+                              plain
+                            />
+                            {item.request.requesterPhone ? (
+                              <p className="type-secondary inline-flex items-center gap-1.5">
+                                <Phone aria-hidden className="size-4 shrink-0" />
+                                <LtrIsolate>{formatPhoneDisplay(item.request.requesterPhone)}</LtrIsolate>
+                              </p>
+                            ) : null}
+                          </div>
                           <RequestedNameNotice
                             requestedName={item.request.requestedName}
                             locale={locale}
                           />
-                          <p className="text-sm text-muted-foreground">
-                            <RelativeWhen
-                              text={formatRelativeTime(
-                                item.request.requestedAt,
-                                now,
-                                {
-                                  locale,
-                                  timeZone: "Asia/Beirut",
-                                  timeDisplay: hourCycle,
-                                },
-                              )}
-                            />
-                          </p>
-                          {item.request.requesterPhone ? (
-                            <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <Phone aria-hidden className="size-4 shrink-0" />
-                              <LtrIsolate>{item.request.requesterPhone}</LtrIsolate>
+                          {single ? null : (
+                            <p className="type-secondary">
+                              <RelativeWhen text={relativeOf(item.request.requestedAt)} />
                             </p>
-                          ) : null}
+                          )}
                           {debts[item.request.requesterPersonId] ? (
                             <DebtNoticeLine
                               notice={debts[item.request.requesterPersonId]}
@@ -167,6 +176,7 @@ export async function PendingRequestList({
                               bookingId={item.request.id}
                               name={item.request.requesterName}
                               locale={locale}
+                              className="min-w-0 flex-1"
                             />
                           </div>
                         ) : null}

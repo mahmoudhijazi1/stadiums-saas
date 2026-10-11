@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { normalizePhone, toLebanonNumber } from "@/modules/people/domain/phone";
+import { formatPhoneDisplay, normalizePhone, toLebanonNumber } from "@/modules/people/domain/phone";
 import { whatsAppChatHref } from "@/modules/notification/domain/whatsapp-link";
 
 describe("normalizePhone", () => {
@@ -36,5 +36,36 @@ describe("toLebanonNumber", () => {
   it("is the rule the WhatsApp chat link uses", () => {
     expect(whatsAppChatHref("03123456")).toBe("https://wa.me/9613123456");
     expect(() => whatsAppChatHref("0312")).toThrow();
+  });
+});
+
+describe("formatPhoneDisplay", () => {
+  it("spaces an 8-digit mobile after 961", () => {
+    expect(formatPhoneDisplay("96171123456")).toBe("+961 71 123 456");
+  });
+
+  it("spaces a 7-digit number after 961", () => {
+    expect(formatPhoneDisplay("9613123456")).toBe("+961 3 123 456");
+  });
+
+  it("returns anything else unchanged: no 961 prefix, a local 0 number, empty", () => {
+    expect(formatPhoneDisplay("03123456")).toBe("03123456");
+    expect(formatPhoneDisplay("71123456")).toBe("71123456");
+    expect(formatPhoneDisplay("")).toBe("");
+  });
+
+  it("returns an already formatted or non-digit input unchanged", () => {
+    expect(formatPhoneDisplay("+961 71 123 456")).toBe("+961 71 123 456");
+    expect(formatPhoneDisplay("961abc12345")).toBe("961abc12345");
+  });
+
+  it("returns a 961 number of any other length unchanged", () => {
+    expect(formatPhoneDisplay("961123456")).toBe("961123456"); // 6 digits after 961
+    expect(formatPhoneDisplay("961123456789")).toBe("961123456789"); // 9 digits after 961
+  });
+
+  it("leaves the raw digits for links: the function does not change what normalizePhone stores", () => {
+    expect(normalizePhone("+961 71 123 456")).toBe("96171123456");
+    expect(toLebanonNumber("96171123456")).toBe("96171123456");
   });
 });

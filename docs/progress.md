@@ -209,3 +209,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **How it connects:** Version label and status text only; no code changes.
 
 **How to verify:** `git tag -n -l v1.3.0`; `npm pkg get version` prints `"1.3.0"`. The full suites, the integration tests and the build were not run in this session (CI runs them).
+
+## Requests card: visual polish (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** Display only; no behaviour, data, action or use-case change. (1) Approve and Reject share the row equally: `RejectRequestButton` takes an optional `className` for its trigger (it already defaulted to `min-w-0 flex-1`; the page now passes it explicitly) and the Approve form is `min-w-0 flex-1`. (2) New pure `formatPhoneDisplay` in `people/domain/phone.ts`, used only for the phone line; the stored value and the tel: / WhatsApp links keep the raw digits. (3) The card reads top to bottom: time range (`type-strong`) with the request's age at the end of the same row, pitch and day (`type-secondary`), the person's name with the phone directly under it, then Approve / Reject. When several requests share one slot, the slot's time row has no age and each request shows its own age under its name. Logical properties and the existing `type-*` roles only; no copy key added. (4) `PersonLink` has an optional `plain` prop (default false) that hides the user icon and the chevron and keeps the underline and accent colour; only the pending card passes it.
+
+**Files:** `app/owner/(app)/requests/_components/pending-list.tsx`, `booking/ui/reject-sheet.tsx`, `people/ui/person-link.tsx`, `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. The new `formatPhoneDisplay` tests are written and NOT run; no component test exists for the card. UNVERIFIED by eye in Arabic and English, light and dark.

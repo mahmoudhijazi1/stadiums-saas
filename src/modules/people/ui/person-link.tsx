@@ -14,12 +14,15 @@ export function PersonLink({
   name,
   className,
   prominent = false,
+  plain = false,
 }: {
   personId: string;
   name: string;
   className?: string;
   /** The name as the heading of a sheet: strong size, ink colour, no underline (the chevron says it is a link). */
   prominent?: boolean;
+  /** No person icon and no chevron; the underline and the accent colour stay. Default false. */
+  plain?: boolean;
 }) {
   return (
     <Link
@@ -33,9 +36,9 @@ export function PersonLink({
         className,
       )}
     >
-      {prominent ? null : <User aria-hidden className="size-4 shrink-0" />}
+      {prominent || plain ? null : <User aria-hidden className="size-4 shrink-0" />}
       <bdi className="truncate">{name}</bdi>
-      <ChevronRight aria-hidden className={cn("shrink-0 rtl:rotate-180", prominent ? "size-4 text-muted-foreground" : "size-4")} />
+      {plain ? null : <ChevronRight aria-hidden className={cn("shrink-0 rtl:rotate-180", prominent ? "size-4 text-muted-foreground" : "size-4")} />}
     </Link>
   );
 }

@@ -43,3 +43,18 @@ export function toLebanonNumber(phoneDigits: string): string | null {
   }
   return /^961\d{7,}$/.test(e164) ? e164 : null;
 }
+
+/**
+ * A stored phone for the screen. International Lebanese digits get spaces: 961 plus 8 digits is
+ * "+961 XX XXX XXX", 961 plus 7 digits is "+961 X XXX XXX". Anything else (a local "03..." number,
+ * no prefix, empty, already formatted, not digits) comes back unchanged. Display only: the stored
+ * value and the tel: / WhatsApp links keep the raw digits.
+ */
+export function formatPhoneDisplay(digits: string): string {
+  const match = /^961(\d{7,8})$/.exec(digits);
+  if (!match) return digits;
+  const rest = match[1]!;
+  return rest.length === 8
+    ? `+961 ${rest.slice(0, 2)} ${rest.slice(2, 5)} ${rest.slice(5)}`
+    : `+961 ${rest.slice(0, 1)} ${rest.slice(1, 4)} ${rest.slice(4)}`;
+}
