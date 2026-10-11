@@ -63,7 +63,7 @@ describe("the same new phone on two pitches at once", () => {
     });
 
     for (let i = 0; i < 10; i += 1) {
-      const phone = `0377${String(i).padStart(2, "0")}001`;
+      const phone = `961377${String(i).padStart(2, "0")}001`;
       const a = await slot(fixture.pitchId, 2 + i, 0);
       const b = await slot(second.id, 2 + i, 0);
       const settled = await Promise.allSettled([

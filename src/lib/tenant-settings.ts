@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { BRAND_PRESET_KEYS, DEFAULT_BRAND_PRESET } from "@/modules/stadium/domain/brand-presets";
-import { toLebanonNumber } from "@/modules/people/domain/phone";
+import { isCanonicalPhone } from "@/modules/people/domain/phone";
 import { isAllowedMapLink } from "@/modules/stadium/domain/map-link";
 
 /**
@@ -38,10 +38,10 @@ const tenantSettingsSchema = z
     /** Re-checked on every read: a stored value that is not an allowed map link reads as none. */
     mapLink: z.string().refine((value) => value === "" || isAllowedMapLink(value)).catch(""),
     /** Digits as typed (03…); a value that is not a Lebanese number reads as none. */
-    phone: z.string().refine((value) => value === "" || toLebanonNumber(value) !== null).catch(""),
+    phone: z.string().refine(isStoredStadiumPhone).catch(""),
     /** True: the phone above is also the WhatsApp number. */
     whatsappSame: z.boolean().catch(true),
-    whatsapp: z.string().refine((value) => value === "" || toLebanonNumber(value) !== null).catch(""),
+    whatsapp: z.string().refine(isStoredStadiumPhone).catch(""),
     /** A key of BRAND_PRESETS, never a colour value. */
     brandPreset: z.enum(BRAND_PRESET_KEYS).catch(DEFAULT_BRAND_PRESET),
   })
@@ -129,4 +129,9 @@ export type TimeDisplayFormInput = z.infer<typeof timeDisplayFormSchema>;
 /** Throws ZodError if the select value is missing or invalid. */
 export function parseTimeDisplayForm(input: unknown): TimeDisplayFormInput {
   return timeDisplayFormSchema.parse(input);
+}
+
+/** A stored stadium phone is "" (not set) or canonical Lebanese; anything else reads as not set. */
+function isStoredStadiumPhone(value: string): boolean {
+  return value === "" || (isCanonicalPhone(value) && value.startsWith("961"));
 }

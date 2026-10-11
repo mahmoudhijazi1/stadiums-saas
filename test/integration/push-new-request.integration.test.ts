@@ -124,7 +124,7 @@ describe("who is alerted", () => {
     await subscribeAs(fixture.tenantSlug, granted, "granted-phone");
     await subscribeAs(fixture.tenantSlug, plain, "plain-phone");
 
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
 
     expect(fake.endpoints().sort()).toEqual(
@@ -141,7 +141,7 @@ describe("who is alerted", () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "mine");
     await subscribeAs(other.tenantSlug, other.sessionId, "theirs");
 
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
 
     expect(fake.endpoints()).toEqual([endpoint("mine")]);
@@ -154,7 +154,7 @@ describe("what is sent", () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "arabic", "ar");
     await subscribeAs(fixture.tenantSlug, granted, "english", "en");
 
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
 
     const [arabic] = payloadsTo("arabic");
@@ -172,7 +172,7 @@ describe("what is sent", () => {
 
     for (const entry of fake.sent) {
       expect(entry.payload).not.toContain("ليلى");
-      expect(entry.payload).not.toContain("03111001");
+      expect(entry.payload).not.toContain("9613111001");
       expect(new TextEncoder().encode(entry.payload).length).toBeLessThan(1024);
       expect(entry.options).toEqual({ ttlSeconds: 21600, urgency: "high", topic: "new-requests" });
     }
@@ -183,11 +183,11 @@ describe("the throttle", () => {
   it("a second request within 120 s sends nothing; one after the window sends the updated count", async () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone", "en");
 
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
     expect(payloadsTo("phone").map((p) => p.body)).toEqual(["New booking request"]);
 
-    await playerRequests("سامي", "03111002", 4);
+    await playerRequests("سامي", "9613111002", 4);
     await alertOwnersOfNewRequest();
     expect(fake.sent).toHaveLength(1);
 
@@ -198,11 +198,11 @@ describe("the throttle", () => {
 
   it("is per device: one throttled phone does not silence another", async () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "first");
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
 
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "second");
-    await playerRequests("سامي", "03111002", 4);
+    await playerRequests("سامي", "9613111002", 4);
     await alertOwnersOfNewRequest();
 
     expect(fake.endpoints()).toEqual([endpoint("first"), endpoint("second")]);
@@ -214,7 +214,7 @@ describe("what does not alert", () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
     const chosen = await slot(3);
     actAs(fixture.tenantSlug, fixture.sessionId);
-    await createOwnerBooking({ ...chosen, name: "هدى", phone: "03111005" });
+    await createOwnerBooking({ ...chosen, name: "هدى", phone: "9613111005" });
 
     expect(mockScheduled).toHaveLength(0);
     expect(fake.sent).toHaveLength(0);
@@ -224,10 +224,10 @@ describe("what does not alert", () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
     const chosen = await slot(3);
     actAs(fixture.tenantSlug, fixture.sessionId);
-    await createOwnerBooking({ ...chosen, name: "هدى", phone: "03111005" });
+    await createOwnerBooking({ ...chosen, name: "هدى", phone: "9613111005" });
 
     actAs(fixture.tenantSlug);
-    expect(await submitPublicSlotRequest(formFor(chosen, "سامي", "03111002"))).toEqual({
+    expect(await submitPublicSlotRequest(formFor(chosen, "سامي", "9613111002"))).toEqual({
       ok: false,
       errorKey: "booking.slot_taken",
     });
@@ -236,7 +236,7 @@ describe("what does not alert", () => {
   });
 
   it("a request with no subscriptions is a no-op", async () => {
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
     expect(fake.sent).toHaveLength(0);
     expect(await notifyNewRequest({ pendingCount: 1 })).toEqual({
@@ -257,7 +257,7 @@ describe("what does not alert", () => {
 
   it("a suspended stadium sends nothing and does not error", async () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await platformDb.tenant.update({ where: { id: fixture.tenantId }, data: { suspendedAt: new Date() } });
     actAs(fixture.tenantSlug);
 
@@ -267,7 +267,7 @@ describe("what does not alert", () => {
 
   it("no VAPID keys (development) sends nothing and does not error", async () => {
     await subscribeAs(fixture.tenantSlug, fixture.sessionId, "phone");
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     const saved = process.env.VAPID_PRIVATE_KEY;
     delete process.env.VAPID_PRIVATE_KEY;
     try {
@@ -285,7 +285,7 @@ describe("the action", () => {
     const chosen = await slot(3);
     actAs(fixture.tenantSlug);
 
-    expect(await submitPublicSlotRequest(formFor(chosen, "ليلى", "03111001"))).toEqual({ ok: true });
+    expect(await submitPublicSlotRequest(formFor(chosen, "ليلى", "9613111001"))).toEqual({ ok: true });
     expect(mockScheduled).toHaveLength(1);
     expect(fake.sent).toHaveLength(0); // nothing is sent until the mockScheduled callback runs
 
@@ -305,7 +305,7 @@ describe("failures never reach the player", () => {
     const chosen = await slot(3);
     actAs(fixture.tenantSlug);
 
-    expect(await submitPublicSlotRequest(formFor(chosen, "ليلى", "03111001"))).toEqual({ ok: true });
+    expect(await submitPublicSlotRequest(formFor(chosen, "ليلى", "9613111001"))).toEqual({ ok: true });
     await expect(Promise.resolve(mockScheduled[0]!())).resolves.toBeUndefined();
     expect(await platformDb.pushSubscription.count()).toBe(1);
     expect(await platformDb.booking.count({ where: { status: "PENDING" } })).toBe(1);
@@ -318,7 +318,7 @@ describe("failures never reach the player", () => {
       send: (target) =>
         target.endpoint === endpoint("hang") ? new Promise(() => undefined) : Promise.resolve({ outcome: "ok" }),
     });
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
 
     const started = Date.now();
     await expect(alertOwnersOfNewRequest()).resolves.toBeUndefined();
@@ -335,7 +335,7 @@ describe("failures never reach the player", () => {
         return { outcome: "ok" };
       },
     });
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     actAs(fixture.tenantSlug);
 
     expect(await notifyNewRequest({ pendingCount: 1 })).toMatchObject({ devices: 2, sent: 1, failed: 1 });
@@ -351,7 +351,7 @@ describe("dead and flaky devices", () => {
     fake.results.set(endpoint("gone-410"), { outcome: "gone", statusCode: 410 });
     fake.results.set(endpoint("flaky"), { outcome: "retry", statusCode: 500 });
 
-    await playerRequests("ليلى", "03111001", 3);
+    await playerRequests("ليلى", "9613111001", 3);
     await alertOwnersOfNewRequest();
 
     const left = await platformDb.pushSubscription.findMany({ select: { endpoint: true } });

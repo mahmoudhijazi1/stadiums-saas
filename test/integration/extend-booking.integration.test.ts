@@ -71,7 +71,7 @@ async function slotAt(daysAhead: number, index: number, pitchId = fixture.pitchI
   return { pitchId, start: slot.start.toISOString(), end: slot.end.toISOString(), endAt: slot.end };
 }
 
-async function bookGame(daysAhead: number, index: number, phone = "03111001") {
+async function bookGame(daysAhead: number, index: number, phone = "9613111001") {
   const slot = await slotAt(daysAhead, index);
   const { bookingId } = await createOwnerBooking({ ...slot, name: "هدى", phone });
   return { bookingId, slot };
@@ -220,13 +220,13 @@ describe("limits", () => {
 
   it("the next game on the pitch blocks it; a gap of 30 minutes allows it", async () => {
     const { bookingId, slot } = await bookGame(3, 0);
-    await createOwnerBooking({ ...(await slotAt(3, 1)), name: "سامي", phone: "03111002" });
+    await createOwnerBooking({ ...(await slotAt(3, 1)), name: "سامي", phone: "9613111002" });
     await expect(extend(bookingId, slot.end)).rejects.toMatchObject({ key: "booking.extend_next_game" });
     expect((await rangeOf(bookingId)).end.toISOString()).toBe(slot.endAt.toISOString());
 
     // Two hours apart there is room: game at 16:00, next at 18:00.
-    const lone = await bookGame(4, 0, "03111003");
-    await createOwnerBooking({ ...(await slotAt(4, 2)), name: "سامي", phone: "03111004" });
+    const lone = await bookGame(4, 0, "9613111003");
+    await createOwnerBooking({ ...(await slotAt(4, 2)), name: "سامي", phone: "9613111004" });
     await expect(extend(lone.bookingId, lone.slot.end)).resolves.toBeDefined();
   });
 
@@ -348,7 +348,7 @@ describe("pending requests in the added time", () => {
   it("are declined and kept as interests, and the preview counts them", async () => {
     const { bookingId, slot } = await bookGame(3, 0);
     const next = await slotAt(3, 1); // 17:00-18:00 starts where the game ends
-    const { bookingId: pendingId } = await requestPublicSlot({ ...next, name: "ليلى", phone: "03111009" });
+    const { bookingId: pendingId } = await requestPublicSlot({ ...next, name: "ليلى", phone: "9613111009" });
 
     const row = await rangeOf(bookingId);
     const offers = await loadExtensionOffers([
@@ -380,7 +380,7 @@ describe("pending requests in the added time", () => {
 describe("the exclusion constraint is the backstop", () => {
   it("moving the end into another APPROVED game fails with 23P01", async () => {
     const { bookingId, slot } = await bookGame(3, 0);
-    await createOwnerBooking({ ...(await slotAt(3, 1)), name: "سامي", phone: "03111002" });
+    await createOwnerBooking({ ...(await slotAt(3, 1)), name: "سامي", phone: "9613111002" });
 
     const failure = await db
       .$transaction((tx) =>
@@ -400,7 +400,7 @@ describe("the exclusion constraint is the backstop", () => {
 
   it("raw SQL cannot overlap either", async () => {
     const { bookingId, slot } = await bookGame(3, 0);
-    await createOwnerBooking({ ...(await slotAt(3, 1)), name: "سامي", phone: "03111002" });
+    await createOwnerBooking({ ...(await slotAt(3, 1)), name: "سامي", phone: "9613111002" });
     const failure = await platformDb
       .$executeRaw`UPDATE "Booking" SET during = tstzrange(lower(during), ${new Date(slot.endAt.getTime() + THIRTY)}, '[)') WHERE id = ${bookingId}`.then(
       () => null,
@@ -415,8 +415,8 @@ describe("races (10 iterations each)", () => {
     for (let i = 0; i < 10; i += 1) {
       const first = await slotAt(3 + i, 0);
       const second = await slotAt(3 + i, 1);
-      const { bookingId } = await createOwnerBooking({ ...first, name: "هدى", phone: `0317${i}001` });
-      const { bookingId: pendingId } = await requestPublicSlot({ ...second, name: "ليلى", phone: `0317${i}002` });
+      const { bookingId } = await createOwnerBooking({ ...first, name: "هدى", phone: `961317${i}001` });
+      const { bookingId: pendingId } = await requestPublicSlot({ ...second, name: "ليلى", phone: `961317${i}002` });
 
       const settled = await Promise.allSettled([extend(bookingId, first.end), approveBooking(pendingId)]);
       onlyDomainErrors(settled);
@@ -432,11 +432,11 @@ describe("races (10 iterations each)", () => {
     for (let i = 0; i < 10; i += 1) {
       const first = await slotAt(3 + i, 0);
       const second = await slotAt(3 + i, 1);
-      const { bookingId } = await createOwnerBooking({ ...first, name: "هدى", phone: `0318${i}001` });
+      const { bookingId } = await createOwnerBooking({ ...first, name: "هدى", phone: `961318${i}001` });
 
       const settled = await Promise.allSettled([
         extend(bookingId, first.end),
-        createOwnerBooking({ ...second, name: "سامي", phone: `0318${i}002` }),
+        createOwnerBooking({ ...second, name: "سامي", phone: `961318${i}002` }),
       ]);
       onlyDomainErrors(settled);
       expect(settled.filter((r) => r.status === "fulfilled").length).toBeGreaterThanOrEqual(1);
@@ -449,11 +449,11 @@ describe("races (10 iterations each)", () => {
     for (let i = 0; i < 10; i += 1) {
       const first = await slotAt(3 + i, 0);
       const second = await slotAt(3 + i, 1);
-      const { bookingId } = await createOwnerBooking({ ...first, name: "هدى", phone: `0319${i}001` });
+      const { bookingId } = await createOwnerBooking({ ...first, name: "هدى", phone: `961319${i}001` });
 
       const settled = await Promise.allSettled([
         extend(bookingId, first.end),
-        requestPublicSlot({ ...second, name: "ليلى", phone: `0319${i}002` }),
+        requestPublicSlot({ ...second, name: "ليلى", phone: `961319${i}002` }),
       ]);
       onlyDomainErrors(settled);
       await expectNoOverlaps(fixture.pitchId);
@@ -463,7 +463,7 @@ describe("races (10 iterations each)", () => {
 
   it("extension x cancel: either order ends consistent", async () => {
     for (let i = 0; i < 10; i += 1) {
-      const { bookingId, slot } = await bookGame(3 + i, 0, `0320${i}001`);
+      const { bookingId, slot } = await bookGame(3 + i, 0, `961320${i}001`);
       const settled = await Promise.allSettled([extend(bookingId, slot.end), cancelBooking({ bookingId, initiator: "OWNER" })]);
       onlyDomainErrors(settled);
       const row = await rangeOf(bookingId);
@@ -475,7 +475,7 @@ describe("races (10 iterations each)", () => {
 
   it("extension x collect: the due always ends at 45 and the money is not lost", async () => {
     for (let i = 0; i < 10; i += 1) {
-      const { bookingId, slot } = await bookGame(3 + i, 0, `0321${i}001`);
+      const { bookingId, slot } = await bookGame(3 + i, 0, `961321${i}001`);
       const settled = await Promise.allSettled([
         extend(bookingId, slot.end),
         collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("10.00") }] }),
@@ -489,7 +489,7 @@ describe("races (10 iterations each)", () => {
 
   it("extension x adjust due: both changes are logged in one unbroken chain", async () => {
     for (let i = 0; i < 10; i += 1) {
-      const { bookingId, slot } = await bookGame(3 + i, 0, `0322${i}001`);
+      const { bookingId, slot } = await bookGame(3 + i, 0, `961322${i}001`);
       const settled = await Promise.allSettled([
         extend(bookingId, slot.end),
         adjustBookingDue({ bookingId, toUsd: new Decimal("20.00"), reason: "DISCOUNT", note: null }),
@@ -508,8 +508,8 @@ describe("races (10 iterations each)", () => {
 
 describe("the extended mark", () => {
   it("counts 30 minutes per extension and nothing for a game never extended", async () => {
-    const extended = await bookGame(3, 0, "03111101");
-    const plain = await bookGame(4, 0, "03111102");
+    const extended = await bookGame(3, 0, "9613111101");
+    const plain = await bookGame(4, 0, "9613111102");
     expect((await listExtensionMinutes([extended.bookingId, plain.bookingId])).size).toBe(0);
 
     await extend(extended.bookingId, extended.slot.end);

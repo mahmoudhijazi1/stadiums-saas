@@ -104,7 +104,7 @@ describe("per-player split setting", () => {
 
   it("refuses the switch while disabled and leaves the booking whole", async () => {
     await setSplit(false);
-    const bookingId = await booking(3, "03333001");
+    const bookingId = await booking(3, "9613333001");
 
     await expect(switchToPerPlayer({ bookingId, count: 5 })).rejects.toMatchObject({
       key: "booking.split_disabled",
@@ -116,14 +116,14 @@ describe("per-player split setting", () => {
 
   it("works as before while enabled", async () => {
     await setSplit(true);
-    const bookingId = await booking(3, "03333002");
+    const bookingId = await booking(3, "9613333002");
     await switchToPerPlayer({ bookingId, count: 5 });
     expect(await slotsOf(bookingId)).toHaveLength(5);
   });
 
   it("a split booking stays payable and can go back to whole while disabled", async () => {
     await setSplit(true);
-    const bookingId = await booking(3, "03333003");
+    const bookingId = await booking(3, "9613333003");
     await switchToPerPlayer({ bookingId, count: 5 });
     await setSplit(false);
 
@@ -133,7 +133,7 @@ describe("per-player split setting", () => {
     const paid = await platformDb.payment.count({ where: { sourceId: bookingId } });
     expect(paid).toBe(2);
 
-    const other = await booking(4, "03333004");
+    const other = await booking(4, "9613333004");
     await setSplit(true);
     await switchToPerPlayer({ bookingId: other, count: 4 });
     await setSplit(false);
@@ -144,8 +144,8 @@ describe("per-player split setting", () => {
 
   it("cancel and no-show still collapse a split booking while disabled", async () => {
     await setSplit(true);
-    const cancelled = await booking(3, "03333005");
-    const missed = await booking(-2, "03333006");
+    const cancelled = await booking(3, "9613333005");
+    const missed = await booking(-2, "9613333006");
     await switchToPerPlayer({ bookingId: cancelled, count: 5 });
     await switchToPerPlayer({ bookingId: missed, count: 5 });
     await setSplit(false);

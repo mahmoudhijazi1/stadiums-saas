@@ -72,7 +72,7 @@ async function slotAt(daysAhead: number, index: number, pitchId = fixture.pitchI
   return { pitchId, start: slot.start, end: slot.end, startIso: slot.start.toISOString(), endIso: slot.end.toISOString() };
 }
 
-const PERSON = { name: "هدى", phone: "03111001" };
+const PERSON = { name: "هدى", phone: "9613111001" };
 
 /** The starts of `count` weeks from `start`, by the stadium's calendar (not by adding 7 x 24 hours). */
 function weekStarts(start: Date, count: number): Date[] {
@@ -232,7 +232,7 @@ describe("creating a series", () => {
   it("a taken week is shown as taken in the preview and is not booked", async () => {
     const first = await slotAt(3, 0);
     const third = await slotAt(3 + 14, 0);
-    await createOwnerBooking({ pitchId: fixture.pitchId, start: third.startIso, end: third.endIso, name: "سامي", phone: "03111002" });
+    await createOwnerBooking({ pitchId: fixture.pitchId, start: third.startIso, end: third.endIso, name: "سامي", phone: "9613111002" });
 
     const preview = await previewNewSeries({ pitchId: fixture.pitchId, anchorStart: first.start, durationMinutes: 60, count: 4 });
     expect(preview.items.map((item) => item.state)).toEqual(["free", "free", "taken", "free"]);
@@ -250,7 +250,7 @@ describe("creating a series", () => {
     expect(bookableCount(preview.items)).toBe(8);
 
     const week2 = await slotAt(3 + 14, 1);
-    await createOwnerBooking({ pitchId: fixture.pitchId, start: week2.startIso, end: week2.endIso, name: "سامي", phone: "03111002" });
+    await createOwnerBooking({ pitchId: fixture.pitchId, start: week2.startIso, end: week2.endIso, name: "سامي", phone: "9613111002" });
 
     const made = await createSeries({
       pitchId: fixture.pitchId,
@@ -275,7 +275,7 @@ describe("creating a series", () => {
       start: week1.startIso,
       end: week1.endIso,
       name: "ليلى",
-      phone: "03111009",
+      phone: "9613111009",
     });
 
     const preview = await previewNewSeries({ pitchId: fixture.pitchId, anchorStart: first.start, durationMinutes: 60, count: 4 });
@@ -354,7 +354,7 @@ describe("make weekly and renew", () => {
 
   it("makeWeekly refuses a booking that is not APPROVED", async () => {
     const slot = await slotAt(3, 3);
-    const { bookingId } = await requestPublicSlot({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, name: "ليلى", phone: "03111009" });
+    const { bookingId } = await requestPublicSlot({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, name: "ليلى", phone: "9613111009" });
     await expect(makeWeekly({ bookingId, count: 4 })).rejects.toMatchObject({ key: "booking.confirmed_only" });
   });
 
@@ -479,7 +479,7 @@ describe("who may", () => {
   it("creating, renewing and making weekly need bookings.create; cancelling the rest needs bookings.cancel", async () => {
     const { made } = await newSeries(3, 0, 4);
     const slot = await slotAt(20, 0);
-    const { bookingId } = await createOwnerBooking({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, name: "سامي", phone: "03111002" });
+    const { bookingId } = await createOwnerBooking({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, name: "سامي", phone: "9613111002" });
 
     const plain = await createStaffSession(fixture.tenantId, {});
     actAs(fixture.tenantSlug, plain);
@@ -539,13 +539,13 @@ describe("races (10 iterations each)", () => {
       const settled = await Promise.allSettled([
         createSeries({
           pitchId: fixture.pitchId,
-          person: { name: "هدى", phone: `0330${i}001` },
+          person: { name: "هدى", phone: `961330${i}001` },
           anchorStart: first.start,
           durationMinutes: 60,
           count: 4,
           acceptedStarts: weekStarts(first.start, 4),
         }),
-        createOwnerBooking({ pitchId: fixture.pitchId, start: week2.startIso, end: week2.endIso, name: "سامي", phone: `0331${i}002` }),
+        createOwnerBooking({ pitchId: fixture.pitchId, start: week2.startIso, end: week2.endIso, name: "سامي", phone: `961331${i}002` }),
       ]);
       onlyDomainErrors(settled);
       expect(settled.filter((r) => r.status === "fulfilled").length).toBeGreaterThanOrEqual(1);
@@ -568,12 +568,12 @@ describe("races (10 iterations each)", () => {
         start: week1.startIso,
         end: week1.endIso,
         name: "ليلى",
-        phone: `0332${i}001`,
+        phone: `961332${i}001`,
       });
       const settled = await Promise.allSettled([
         createSeries({
           pitchId: fixture.pitchId,
-          person: { name: "هدى", phone: `0333${i}002` },
+          person: { name: "هدى", phone: `961333${i}002` },
           anchorStart: first.start,
           durationMinutes: 60,
           count: 4,

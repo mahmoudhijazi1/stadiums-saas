@@ -201,7 +201,7 @@ function civil(instant: Date): CivilDate {
 
 function nextPhone(): string {
   phoneSeq += 1;
-  return `03${String(800000 + phoneSeq)}`;
+  return `9613${String(800000 + phoneSeq)}`;
 }
 
 /**

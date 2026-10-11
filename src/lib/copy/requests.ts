@@ -4,6 +4,7 @@ import type { CopyArea } from "./types";
 export const requests: CopyArea = {
   ar: {
     "owner.requests": "طلبات",
+    "owner.errPhone": "تأكد من الرقم. للرقم من خارج لبنان، ابدأ بـ + ورمز البلد.",
     "owner.requestsTab": "الطلبات",
     "owner.pending": "قيد الانتظار",
     "owner.requested": "طُلب",
@@ -34,6 +35,7 @@ export const requests: CopyArea = {
   },
   en: {
     "owner.requests": "Requests",
+    "owner.errPhone": "Check the number. For a number outside Lebanon, start with + and the country code.",
     "owner.requestsTab": "Requests",
     "owner.pending": "Pending",
     "owner.requested": "Requested",

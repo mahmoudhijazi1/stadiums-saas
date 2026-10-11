@@ -86,40 +86,40 @@ async function elapse(ms: number) {
 
 describe("pending requests per phone", () => {
   it("allows 3 future PENDING requests per phone per stadium, refuses the 4th with the generic key", async () => {
-    expect(await request("03111001", 2, 0)).toBe("ok");
-    expect(await request("03111001", 2, 1)).toBe("ok");
-    expect(await request("03111001", 3, 0)).toBe("ok");
-    expect(await request("03111001", 3, 1)).toBe(LIMIT);
+    expect(await request("9613111001", 2, 0)).toBe("ok");
+    expect(await request("9613111001", 2, 1)).toBe("ok");
+    expect(await request("9613111001", 3, 0)).toBe("ok");
+    expect(await request("9613111001", 3, 1)).toBe(LIMIT);
     // Another phone is not affected.
-    expect(await request("03111002", 3, 1)).toBe("ok");
+    expect(await request("9613111002", 3, 1)).toBe("ok");
     expect(await platformDb.booking.count({ where: { status: "PENDING" } })).toBe(4);
   });
 
   it("a decided request frees a place", async () => {
-    await request("03111001", 2, 0);
-    await request("03111001", 2, 1);
-    await request("03111001", 3, 0);
+    await request("9613111001", 2, 0);
+    await request("9613111001", 2, 1);
+    await request("9613111001", 3, 0);
     await rejectAllPending();
-    expect(await request("03111001", 3, 1)).toBe("ok");
+    expect(await request("9613111001", 3, 1)).toBe("ok");
   });
 });
 
 describe("requests per phone per hour", () => {
   it("5 per hour, the 6th refused with the generic key; the next hour is fine", async () => {
     for (let i = 0; i < 5; i += 1) {
-      expect(await request("03111001", 2 + i, 0)).toBe("ok");
+      expect(await request("9613111001", 2 + i, 0)).toBe("ok");
       await rejectAllPending();
     }
-    expect(await request("03111001", 8, 0)).toBe(LIMIT);
+    expect(await request("9613111001", 8, 0)).toBe(LIMIT);
     await elapse(HOUR);
-    expect(await request("03111001", 8, 0)).toBe("ok");
+    expect(await request("9613111001", 8, 0)).toBe("ok");
   });
 
   it("counts requests for a taken hour too, and records one interest per person and window", async () => {
     clearRequestStubs();
     setTenantSlug(fixture.tenantSlug);
     setSessionCookie(fixture.sessionId);
-    expect(await request("03999999", 2, 0)).toBe("ok");
+    expect(await request("9613999999", 2, 0)).toBe("ok");
     const booking = await platformDb.booking.findFirstOrThrow({ where: { status: "PENDING" } });
     clearRequestStubs();
     setTenantSlug(fixture.tenantSlug);
@@ -127,27 +127,27 @@ describe("requests per phone per hour", () => {
     await approveBooking(booking.id);
 
     for (let i = 0; i < 5; i += 1) {
-      expect(await request("03111001", 2, 0)).toBe("booking.slot_taken");
+      expect(await request("9613111001", 2, 0)).toBe("booking.slot_taken");
     }
     expect(await platformDb.slotInterest.count()).toBe(1);
-    expect(await request("03111001", 2, 0)).toBe(LIMIT);
+    expect(await request("9613111001", 2, 0)).toBe(LIMIT);
   });
 });
 
 describe("requests per IP", () => {
   it("no IP limit without TRUSTED_CLIENT_IP_HEADER", async () => {
     for (let i = 0; i < 61; i += 1) {
-      expect(await request(`0311${String(i).padStart(4, "0")}`, 2, 0, "203.0.113.9")).toBe("ok");
+      expect(await request(`961311${String(i).padStart(4, "0")}`, 2, 0, "203.0.113.9")).toBe("ok");
     }
   });
 
   it("60 per hour per IP with the setting; another IP is fine", async () => {
     process.env.TRUSTED_CLIENT_IP_HEADER = "x-real-ip";
     for (let i = 0; i < 60; i += 1) {
-      expect(await request(`0311${String(i).padStart(4, "0")}`, 2, 0, "203.0.113.9")).toBe("ok");
+      expect(await request(`961311${String(i).padStart(4, "0")}`, 2, 0, "203.0.113.9")).toBe("ok");
     }
-    expect(await request("03119999", 2, 0, "203.0.113.9")).toBe(LIMIT);
-    expect(await request("03119999", 2, 0, "198.51.100.7")).toBe("ok");
+    expect(await request("9613119999", 2, 0, "203.0.113.9")).toBe(LIMIT);
+    expect(await request("9613119999", 2, 0, "198.51.100.7")).toBe("ok");
   });
 });
 

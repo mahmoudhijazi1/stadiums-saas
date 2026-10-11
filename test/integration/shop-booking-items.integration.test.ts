@@ -328,7 +328,7 @@ describe("collecting a player tab", () => {
 
 describe("what is owed", () => {
   it("an unpaid tab on an ended game is owed under the person (with their own debt) or under the typed name; a game not yet played is not", async () => {
-    const ali = await endedGame(fixture, 2, "Ali", "03111111"); // Ali owes 30 on the game
+    const ali = await endedGame(fixture, 2, "Ali", "9613111111"); // Ali owes 30 on the game
     await addBookingItems({ bookingId: ali.bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: { kind: "person", personId: ali.personId } }); // 4.50 tab
     await addBookingItems({ bookingId: ali.bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: { kind: "name", name: "Friend" } }); // 1.50 tab
     await addBookingItems({ bookingId: ali.bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: { kind: "name", name: "friend" } }); // same tab, 3.00
@@ -348,10 +348,10 @@ describe("what is owed", () => {
   });
 
   it("Today and Money agree: a paid game with an open tab is still To collect, and the totals are equal", async () => {
-    const paid = await endedGame(fixture, 1, "Paid", "03222222");
+    const paid = await endedGame(fixture, 1, "Paid", "9613222222");
     await collectBookingPayment({ bookingId: paid.bookingId, tenders: [{ currency: "USD", amount: new Decimal("30.00") }] });
     await addBookingItems({ bookingId: paid.bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: { kind: "name", name: "Tabby" } }); // 4.50
-    const unpaid = await endedGame(fixture, 2, "Unpaid", "03333333"); // 30 owed
+    const unpaid = await endedGame(fixture, 2, "Unpaid", "9613333333"); // 30 owed
     await addBookingItems({ bookingId: unpaid.bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "person", personId: unpaid.personId } }); // 3.00 tab
 
     const owed = await listOwed();
@@ -372,7 +372,7 @@ describe("what is owed", () => {
   });
 
   it("the day line counts a tab on a game of that day", async () => {
-    const { bookingId } = await endedGame(fixture, 0, "Today", "03444444");
+    const { bookingId } = await endedGame(fixture, 0, "Today", "9613444444");
     await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("30.00") }] });
     await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "name", name: "Kid" } });
     const day = await loadOwnerDay(formatCivilDate(civilDateInTimeZone(new Date(), "Asia/Beirut")));

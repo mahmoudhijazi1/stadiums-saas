@@ -23,6 +23,8 @@ export async function submitPublicSlotRequest(formData: FormData): Promise<Publi
     const parsed = parsePublicSlotRequest({
       name: field(formData, "name"),
       phone: field(formData, "phone"),
+      // Only when the form sent one: the schema defaults to Lebanon, and an empty value is not a country.
+      ...(field(formData, "country") ? { country: field(formData, "country") } : {}),
       pitchId: field(formData, "pitchId"),
       start: field(formData, "start"),
       end: field(formData, "end"),

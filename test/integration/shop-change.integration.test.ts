@@ -153,7 +153,7 @@ describe("a booking collection is unchanged", () => {
 
 describe("totals after change", () => {
   it("Today's owed total still equals Money's, with a partly paid pounds tab", async () => {
-    const game = await endedGame(fixture, 1, "Ali", "03111111"); // owes the $30 game
+    const game = await endedGame(fixture, 1, "Ali", "9613111111"); // owes the $30 game
     const { saleId } = await addBookingItems({ bookingId: game.bookingId, lines: [{ productId: water.id, qty: 3 }, { productId: cola.id, qty: 1 }], payer: booker });
     // The 60,000 pounds are settled; the 40,000 left over cross to the dollar part at the rate (0.44).
     const change = await collectTabPayment({ saleId, lbpAmount: "100000" });

@@ -78,7 +78,7 @@ async function slotFor(fixture: TestFixture) {
 async function publicRequest(fixture: TestFixture) {
   as(fixture, false);
   return requestPublicSlot(
-    parsePublicSlotRequest({ name: "Ali", phone: "03111001", pitchId: fixture.pitchId, ...(await slotFor(fixture)) }),
+    parsePublicSlotRequest({ name: "Ali", phone: "9613111001", pitchId: fixture.pitchId, ...(await slotFor(fixture)) }),
   );
 }
 

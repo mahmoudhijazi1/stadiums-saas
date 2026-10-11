@@ -59,7 +59,7 @@ describe("saveStadiumInfo", () => {
     expect(parseTenantSettings(row.settings)).toMatchObject({
       address: "Hamra, Beirut",
       mapLink: "https://maps.app.goo.gl/AbCdEf123",
-      phone: "03123456",
+      phone: "9613123456",
       whatsappSame: false,
       whatsapp: "71123456",
       brandPreset: "royal",
@@ -162,7 +162,7 @@ describe("saveStadiumInfo", () => {
       name: "ملعب النور",
       address: "Hamra, Beirut",
       mapLink: "https://maps.app.goo.gl/AbCdEf123",
-      phone: "03123456",
+      phone: "9613123456",
       whatsappSame: false,
       whatsapp: "71123456",
       brandPreset: "royal",

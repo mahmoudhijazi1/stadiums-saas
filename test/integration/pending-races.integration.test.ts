@@ -161,7 +161,7 @@ function outcomes(results: PromiseSettledResult<unknown>[]): string[] {
 
 function nextPhone(): string {
   phoneSeq += 1;
-  return `03${String(900000 + phoneSeq)}`;
+  return `9613${String(900000 + phoneSeq)}`;
 }
 
 async function slotOn(daysAhead: number, index: number) {

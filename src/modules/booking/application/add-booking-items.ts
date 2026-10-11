@@ -8,7 +8,7 @@ import { getCurrentMembership } from "@/modules/access/application/get-current-m
 import { SHOP_SELL, can } from "@/modules/access/domain/can";
 import { findBookingForUpdate, findRequesterPersonId } from "@/modules/booking/infrastructure/bookings";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
-import { normalizePhone } from "@/modules/people/domain/phone";
+import { toCanonicalPhone } from "@/modules/people/domain/phone";
 import { findPersonById, findPersonByPhone } from "@/modules/people/infrastructure/persons";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { mergeLines } from "@/modules/shop/domain/sale";
@@ -75,7 +75,10 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
         personId = payer.personId;
       } else {
         // A phone that already belongs to a person makes it that person's tab.
-        const phone = payer.phone ? normalizePhone(payer.phone) : "";
+        // The typed phone becomes canonical here; a phone that cannot be one is a bad form.
+        const canonical = payer.phone ? toCanonicalPhone(payer.phone) : "";
+        if (canonical === null) throw new DomainError("form.invalid");
+        const phone = canonical;
         const known = phone ? await findPersonByPhone(tx, phone) : null;
         if (known) personId = known.id;
         else typed = { name: cleanPersonName(payer.name), phone };

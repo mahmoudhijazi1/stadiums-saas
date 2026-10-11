@@ -10,11 +10,27 @@ const valid = {
 };
 
 describe("parsePublicSlotRequest", () => {
-  it("accepts a valid form and stores phone as digits only", () => {
+  it("accepts a valid form and stores the phone canonical", () => {
     expect(parsePublicSlotRequest(valid)).toEqual({
       ...valid,
-      phone: "03123456",
+      phone: "9613123456",
     });
+  });
+
+  it("accepts every Lebanese format as one canonical number", () => {
+    for (const phone of ["71123456", "71 123 456", "+961 71 123 456", "0096171123456", "96171123456"]) {
+      expect({ phone, got: parsePublicSlotRequest({ ...valid, phone }).phone }).toEqual({ phone, got: "96171123456" });
+    }
+  });
+
+  it("refuses a Syrian local number without a country and accepts it with 963", () => {
+    expect(() => parsePublicSlotRequest({ ...valid, phone: "0933123456" })).toThrow();
+    expect(parsePublicSlotRequest({ ...valid, phone: "0933123456", country: "963" }).phone).toBe("963933123456");
+  });
+
+  it("refuses an unknown country and never returns the country field", () => {
+    expect(() => parsePublicSlotRequest({ ...valid, country: "999" })).toThrow();
+    expect("country" in parsePublicSlotRequest({ ...valid, country: "961" })).toBe(false);
   });
 
   it("rejects a missing name", () => {
@@ -24,6 +40,7 @@ describe("parsePublicSlotRequest", () => {
 
   it("rejects a phone that is not 8–15 digits after normalize", () => {
     expect(() => parsePublicSlotRequest({ ...valid, phone: "12" })).toThrow();
+    expect(() => parsePublicSlotRequest({ ...valid, phone: "71abc456" })).toThrow();
     expect(() => parsePublicSlotRequest({ ...valid, phone: "abc" })).toThrow();
   });
 

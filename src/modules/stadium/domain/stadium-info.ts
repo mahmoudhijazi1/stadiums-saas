@@ -3,7 +3,7 @@ import { BRAND_PRESET_KEYS } from "@/modules/stadium/domain/brand-presets";
 import { DomainError } from "@/lib/errors";
 import { isAllowedMapLink } from "@/modules/stadium/domain/map-link";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
-import { isPhoneText, normalizePhone, toLebanonNumber } from "@/modules/people/domain/phone";
+import { toCanonicalPhone } from "@/modules/people/domain/phone";
 
 /**
  * The "Stadium info" form: pure checks, no database. Each rule answers with a DomainError key
@@ -19,14 +19,19 @@ const ADDRESS_KEY = "stadium.address_invalid";
 const MAP_KEY = "stadium.map_invalid";
 const PHONE_KEY = "stadium.phone_invalid";
 
-/** "" (not set) or a Lebanese number as digits. Letters and symbols other than + - ( ) . are refused. */
+/** The canonical Lebanese form of a typed stadium phone, or null (not Lebanese, or not a number). */
+function lebaneseOrNull(raw: string): string | null {
+  const canonical = toCanonicalPhone(raw, "961");
+  return canonical !== null && canonical.startsWith("961") ? canonical : null;
+}
+
+/** "" (not set) or a canonical Lebanese number (961…). Letters, other countries and bad lengths are refused. */
 function phoneField() {
   return z
     .string()
     .trim()
-    .refine(isPhoneText, { error: PHONE_KEY })
-    .transform(normalizePhone)
-    .refine((digits) => digits === "" || toLebanonNumber(digits) !== null, { error: PHONE_KEY });
+    .refine((raw) => raw === "" || lebaneseOrNull(raw) !== null, { error: PHONE_KEY })
+    .transform((raw) => (raw === "" ? "" : lebaneseOrNull(raw)!));
 }
 
 const stadiumInfoSchema = z.strictObject({
