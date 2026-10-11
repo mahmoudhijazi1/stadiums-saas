@@ -200,7 +200,7 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 
 ## Deploy order
 
-One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. UNVERIFIED: the process manager name below (`pm2`, process `stadiums`) is the one used on the droplet; it is not configured anywhere in this repo, so check `pm2 list` for the real name.
+One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. UNVERIFIED: the process manager name below (`pm2`, process `stadiums-saas`) is the one used on the droplet; it is not configured anywhere in this repo, so check `pm2 list` for the real name.
 
 ```bash
 # 1. backup first (custom format, restorable with pg_restore)
@@ -225,8 +225,8 @@ npx prisma migrate deploy --config prisma7.config.ts
 
 # 7. build, restart, look at the logs
 npm run build
-pm2 restart stadiums
-pm2 logs stadiums --lines 100
+pm2 restart stadiums-saas
+pm2 logs stadiums-saas --lines 100
 npx next --version
 ```
 
