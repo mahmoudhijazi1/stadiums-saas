@@ -8,6 +8,13 @@ import { ui } from "@/lib/copy";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
+import {
+  loadSeriesSheetAction,
+  previewCancelRestAction,
+  previewSeriesAction,
+  submitCancelRest,
+  submitSeriesSave,
+} from "@/app/owner/(app)/series/actions";
 import { WeeklyList } from "@/app/owner/(app)/more/weekly/_components/weekly-list";
 
 /**
@@ -39,7 +46,12 @@ export default async function WeeklyBookingsPage() {
       {items.length === 0 ? (
         <EmptyState title={ui("owner.weeklyEmpty", locale)} next={ui("owner.weeklyEmptyNext", locale)} compact />
       ) : (
-        <WeeklyList items={items} mayRenew={can(membership, BOOKINGS_CREATE)} locale={locale} />
+        <WeeklyList
+          items={items}
+          mayRenew={can(membership, BOOKINGS_CREATE)}
+          locale={locale}
+          seriesActions={{ loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave }}
+        />
       )}
     </section>
   );

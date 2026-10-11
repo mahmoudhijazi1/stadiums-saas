@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -10,57 +9,40 @@ import {
   BottomSheetHeader,
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import { SeriesManage, type SeriesActions } from "@/modules/booking/ui/series-manage";
 import { WeeklyConfirm } from "@/modules/booking/ui/weekly-confirm";
-import { previewSeriesAction, submitSeriesSave } from "@/app/owner/(app)/series/actions";
+import { WeeklyCard, type WeeklyItem } from "@/app/owner/(app)/more/weekly/_components/weekly-card";
 
-export type WeeklyItem = {
-  seriesId: string;
-  personName: string;
-  /** "Every Tue 8:00 PM". */
-  when: string;
-  /** Null when the stadium has one pitch. */
-  pitchName: string | null;
-  left: number;
-};
+export type { WeeklyItem };
 
-/** Every weekly booking with games left: who, which weekday and time, weeks left, Renew. */
+/**
+ * Every weekly booking with games left: who, which weekday and time, weeks left, Renew. Tapping a
+ * card opens the series sheet (the same one the booking sheet opens, with Cancel the rest);
+ * Renew opens the renew step directly. The page passes the real Server Actions.
+ */
 export function WeeklyList({
   items,
   mayRenew,
   locale,
+  seriesActions,
 }: {
   items: WeeklyItem[];
   mayRenew: boolean;
   locale: UiLocale;
+  seriesActions: SeriesActions;
 }) {
   const router = useRouter();
   const [renewing, setRenewing] = useState<WeeklyItem | null>(null);
+  const [opened, setOpened] = useState<WeeklyItem | null>(null);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   return (
     <>
       <ul className="flex flex-col overflow-hidden rounded-xl border bg-card">
         {items.map((item) => (
-          <li key={item.seriesId} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
-            <span className="flex min-w-0 flex-col">
-              <span className="type-strong">
-                <bdi>{item.personName}</bdi>
-              </span>
-              <span className="type-secondary">
-                <LtrIsolate>{item.when}</LtrIsolate>
-                {item.pitchName ? <span> · {item.pitchName}</span> : null}
-              </span>
-              <span className="type-caption">{ui("owner.weeklyLeft", locale).replace("{n}", String(item.left))}</span>
-            </span>
-            {mayRenew ? (
-              <Button type="button" variant="outline" className="shrink-0" onClick={() => setRenewing(item)}>
-                {ui("owner.weeklyRenew", locale)}
-              </Button>
-            ) : null}
-          </li>
+          <WeeklyCard key={item.seriesId} item={item} mayRenew={mayRenew} locale={locale} onOpen={setOpened} onRenew={setRenewing} />
         ))}
       </ul>
 
@@ -73,12 +55,35 @@ export function WeeklyList({
               </BottomSheetTitle>
             </BottomSheetHeader>
             <BottomSheetBody className="pb-4">
-              <WeeklyConfirm previewSeriesAction={previewSeriesAction} submitSeriesSave={submitSeriesSave}
+              <WeeklyConfirm previewSeriesAction={seriesActions.previewSeriesAction} submitSeriesSave={seriesActions.submitSeriesSave}
                 source={{ kind: "renew", seriesId: renewing.seriesId }}
                 locale={locale}
                 confirmRef={confirmRef}
                 onBack={() => {
                   setRenewing(null);
+                  router.refresh();
+                }}
+              />
+            </BottomSheetBody>
+          </BottomSheetContent>
+        ) : null}
+      </BottomSheet>
+
+      <BottomSheet open={opened !== null} onOpenChange={(open) => !open && setOpened(null)}>
+        {opened ? (
+          <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
+            <BottomSheetHeader>
+              <BottomSheetTitle>
+                <bdi>{opened.personName}</bdi>
+              </BottomSheetTitle>
+            </BottomSheetHeader>
+            <BottomSheetBody className="pb-4">
+              <SeriesManage {...seriesActions}
+                seriesId={opened.seriesId}
+                locale={locale}
+                confirmRef={confirmRef}
+                onBack={() => {
+                  setOpened(null);
                   router.refresh();
                 }}
               />
