@@ -88,42 +88,34 @@ export async function PendingRequestList({
         <ul className="flex flex-col gap-3">
           {groups.map((group) => {
             const soon = startsInMinutes(group.start, now);
-            // One request in the slot: its age sits at the end of the time row. Several: each
-            // request shows its own age beside its name.
+            // One request in the slot: no slot header, the time, day and pitch sit under the name.
+            // Several: the slot header comes first, then each request with its own age.
             const single = group.requesters.length === 1 ? group.requesters[0] : null;
             return (
             <li
               key={`${group.pitchId}-${group.start.toISOString()}-${group.end.toISOString()}`}
             >
-              <Card className="gap-3 py-4">
-                <CardHeader className="gap-2">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <ClockRangeText
-                      text={formatLocalClockRange(
-                        group.start,
-                        group.end,
-                        hourCycle,
-                        locale,
-                      )}
-                      className="type-strong"
-                    />
-                    {single ? (
-                      <span className="type-secondary ms-auto shrink-0">
-                        <RelativeWhen text={relativeOf(single.requestedAt)} />
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="type-secondary flex flex-wrap items-center gap-x-3 gap-y-1">
-                    {showPitch ? <span>{group.pitchName}</span> : null}
-                    <span>{formatSlotDateLabel(group.start, now, locale)}</span>
-                  </div>
-                  {soon === null ? null : (
-                    <p className="text-sm font-medium">
-                      <CountedPhrase text={startsInLabel(soon, locale)} />
-                    </p>
-                  )}
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
+              <Card className="gap-2 p-3">
+                {single ? null : (
+                  <CardHeader className="gap-1 px-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <ClockRangeText
+                        text={formatLocalClockRange(group.start, group.end, hourCycle, locale)}
+                        className="type-strong"
+                      />
+                    </div>
+                    <div className="type-secondary flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {showPitch ? <span>{group.pitchName}</span> : null}
+                      <span>{formatSlotDateLabel(group.start, now, locale)}</span>
+                    </div>
+                    {soon === null ? null : (
+                      <p className="text-sm font-medium">
+                        <CountedPhrase text={startsInLabel(soon, locale)} />
+                      </p>
+                    )}
+                  </CardHeader>
+                )}
+                <CardContent className="flex flex-col gap-4 px-0">
                   {mergeByTime(
                     group.requesters,
                     interestsForGroup(group, openWaitlist),
@@ -131,31 +123,53 @@ export async function PendingRequestList({
                     item.kind === "request" ? (
                       <div
                         key={item.request.id}
-                        className="flex flex-col gap-3 border-t pt-3 first:border-t-0 first:pt-0"
+                        className="flex flex-col border-t pt-3 first:border-t-0 first:pt-0"
                       >
                         <div className="flex flex-col gap-1">
-                          <div className="flex flex-col">
+                          <div className="flex items-center justify-between gap-2">
+                            {/* text-base! font-semibold! = type-strong; PersonLink's own text-sm font-medium utilities would beat the component-layer class. */}
                             <PersonLink
                               personId={item.request.requesterPersonId}
                               name={item.request.requesterName}
                               plain
+                              className="min-w-0 text-base! font-semibold!"
                             />
-                            {item.request.requesterPhone ? (
-                              <p className="type-secondary inline-flex items-center gap-1.5">
-                                <Phone aria-hidden className="size-4 shrink-0" />
-                                <LtrIsolate>{formatPhoneDisplay(item.request.requesterPhone)}</LtrIsolate>
-                              </p>
-                            ) : null}
+                            <span className="type-caption shrink-0 whitespace-nowrap">
+                              <RelativeWhen text={relativeOf(item.request.requestedAt)} />
+                            </span>
                           </div>
+                          {single ? (
+                            <p className="type-secondary flex flex-wrap items-center gap-x-1.5">
+                              <ClockRangeText
+                                text={formatLocalClockRange(group.start, group.end, hourCycle, locale)}
+                                className="type-label text-foreground"
+                              />
+                              <span aria-hidden>·</span>
+                              <span>{formatSlotDateLabel(group.start, now, locale)}</span>
+                              {showPitch ? (
+                                <>
+                                  <span aria-hidden>·</span>
+                                  <span>{group.pitchName}</span>
+                                </>
+                              ) : null}
+                              {soon === null ? null : (
+                                <>
+                                  <span aria-hidden>·</span>
+                                  <CountedPhrase text={startsInLabel(soon, locale)} />
+                                </>
+                              )}
+                            </p>
+                          ) : null}
+                          {item.request.requesterPhone ? (
+                            <p className="type-secondary inline-flex items-center gap-1.5">
+                              <Phone aria-hidden className="size-4 shrink-0" />
+                              <LtrIsolate>{formatPhoneDisplay(item.request.requesterPhone)}</LtrIsolate>
+                            </p>
+                          ) : null}
                           <RequestedNameNotice
                             requestedName={item.request.requestedName}
                             locale={locale}
                           />
-                          {single ? null : (
-                            <p className="type-secondary">
-                              <RelativeWhen text={relativeOf(item.request.requestedAt)} />
-                            </p>
-                          )}
                           {debts[item.request.requesterPersonId] ? (
                             <DebtNoticeLine
                               notice={debts[item.request.requesterPersonId]}

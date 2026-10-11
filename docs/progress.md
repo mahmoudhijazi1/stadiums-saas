@@ -229,3 +229,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `app/owner/(app)/requests/_components/pending-list.tsx`, `booking/ui/reject-sheet.tsx`, `test/app/owner/requests-decision-row.test.ts` (source-text checks).
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the new test is written and NOT run. UNVERIFIED by eye: open Requests at 490px and 360px and compare the two widths.
+
+## Requests card: shorter layout (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** Display only; the grouping, actions, locks and use cases are untouched, and the grid Approve / Reject row is unchanged. A slot with one request has no slot header any more: row 1 is the name (`PersonLink plain`) at the start and the age at the end (`type-caption`, `shrink-0 whitespace-nowrap`; the name is `min-w-0` and truncates); row 2 is the time range in `type-label` ink, then the day, then the pitch name only when `showPitch`, then the "starts in" phrase when there is one, separated by middle dots and allowed to wrap; row 3 is the phone line. Rows are `gap-1`, the buttons `mt-3`, the card `p-3` (was `py-4` with `px-6` on the header and content). A slot with several requests keeps its header (time range, day, pitch), then each request shows name + own age, phone, buttons in the same styles. The name uses `text-base! font-semibold!` (the same size and weight as `type-strong`) because PersonLink's own `text-sm font-medium` utilities would otherwise beat the component-layer `type-strong`; PersonLink itself is untouched. The "starts in" phrase moved into row 2 of the single card so no information is lost; no copy key added.
+
+**Files:** `app/owner/(app)/requests/_components/pending-list.tsx`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/app/owner/requests-decision-row.test.ts` (source-text checks of the grid row) was not edited and not run. UNVERIFIED in a browser: the card height, the wrapping of row 2 at 360px in Arabic and English, and the name truncation.
