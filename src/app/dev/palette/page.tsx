@@ -1,9 +1,10 @@
-import { LangToggle } from "@/components/lang-toggle";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { LangToggle } from "@/components/shell/lang-toggle";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { Container } from "@/components/ui/container";
 import { assertDevOnly } from "@/lib/dev-only";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
+import { setUiLocale } from "@/app/locale-actions";
 
 /**
  * Migration Phase 1 — token palette preview. Not product chrome.
@@ -32,7 +33,7 @@ export default async function PalettePage() {
           <h1 className="font-display text-3xl font-extrabold lg:text-4xl">
             Tokens
           </h1>
-          <LangToggle locale={locale} />
+          <LangToggle locale={locale} onChangeLocale={setUiLocale} />
         </div>
         <ThemeToggle locale={locale} />
         <p className="text-sm text-ink-muted">

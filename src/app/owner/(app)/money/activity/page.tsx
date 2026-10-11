@@ -1,14 +1,14 @@
 import { Suspense } from "react";
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
-import { ActivityList } from "../activity";
-import { loadActivityPage } from "../activity-load";
-import { periodChipLabel } from "../period-label";
-import { readPeriodQuery, resolvePeriod } from "../period-url";
+import { ActivityList } from "@/app/owner/(app)/money/_components/activity";
+import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
+import { periodChipLabel } from "@/modules/ledger/ui/period-label";
+import { readPeriodQuery, resolvePeriod } from "@/app/owner/(app)/money/_components/period-url";
 import { moneyHref } from "../query";
 
 /**

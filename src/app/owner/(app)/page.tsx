@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 
 /**
  * /owner has no UI. Landing tab is /owner/today (docs/owner-ia.md).

@@ -1,12 +1,13 @@
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { queryString, requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { queryString } from "@/lib/search-params";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { submitCreatePitch } from "../actions";
-import { PitchDraftForm } from "../form";
+import { PitchDraftForm } from "@/app/owner/(app)/more/settings/pitches/_components/form";
 import {
   readHoursGroupsDraft,
   readPriceRulesDraft,

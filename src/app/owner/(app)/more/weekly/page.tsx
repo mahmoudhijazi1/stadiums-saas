@@ -1,5 +1,5 @@
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { weeklyWeekdayAndTime } from "@/modules/booking/ui/series-labels";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
@@ -8,7 +8,7 @@ import { ui } from "@/lib/copy";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { listWeeklyBookings } from "@/modules/booking/application/list-weekly-bookings";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
-import { WeeklyList } from "./weekly-list";
+import { WeeklyList } from "@/app/owner/(app)/more/weekly/_components/weekly-list";
 
 /**
  * More > Business > Weekly bookings: every series that still has games left, soonest first, with

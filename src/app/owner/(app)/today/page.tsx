@@ -1,9 +1,7 @@
 import { Suspense } from "react";
-import {
-  queryString,
-  requireOwnerMembership,
-} from "@/app/owner/shared";
-import { OwnerToday } from "./lists";
+import { queryString } from "@/lib/search-params";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
+import { OwnerToday } from "@/app/owner/(app)/today/_components/lists";
 import { TodayListsSkeleton } from "./skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import type { OutcomeKind } from "@/modules/booking/application/load-outcome-notify";

@@ -7044,3 +7044,73 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed). Full suites and build not run.
+
+## Refactor step 6c, commit 1: components/shell
+
+**When:** 2026-10-10
+
+**What:** git mv tab-bar, header (OwnerHeader), back-link, business-menu, offline-pill, theme-provider, theme-toggle, owner-service-worker, lang-toggle and unavailable-notice to src/components/shell (unavailable-notice is used by the public layout, the public page and the suspended page, so it is shell, not public-private). business-menu takes onLogout (submitLogout) and lang-toggle takes onChangeLocale (setUiLocale) as props; the owner layout and the public and dev palette pages pass the real actions; OwnerHeader forwards onLogout. Guard: rule 5 now lets files under components/shell import a module's ui/ (tab-bar uses booking/ui/live-queue, business-menu uses stadium/ui/share-card) and nothing else.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/components/shell/*, owner (app)/layout, (public)/page, dev/palette/page, test/architecture/*
+
+**How it connects:** shell imports module ui only, never application or infrastructure.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
+
+## Refactor step 6c, commit 2: shared.tsx and form-query.ts
+
+**When:** 2026-10-10
+
+**What:** shared.tsx held (a) OWNER_TIME_ZONE and three clock/range formatters bound to it, (b) queryString (searchParams to a string), (c) requireOwnerMembership (auth gate with redirect). form-query.ts held field (FormData reader), ownerQuery and redirectOwner (keep the tab's query after a POST). None knows a business word, so: the time zone constant and formatters went to lib/format/time.ts, queryString to lib/search-params.ts, form-query.ts to lib/form-query.ts (git mv), and the auth gate stays in app as owner/require-owner.ts (git mv of shared.tsx) because it needs the access module and next/navigation redirect, which lib may not import. 31 importers rewritten per name.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/lib/{format/time,search-params,form-query}.ts, src/app/owner/require-owner.ts, importers
+
+**How it connects:** lib imports no module; require-owner is app code.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed). Full suites and build not run.
+
+## Refactor step 6c, commit 3: money
+
+**When:** 2026-10-10
+
+**What:** To modules: expense-sheet to expense/ui (submitRecordExpense is now a prop that money/panel passes; its LedgerPeriodQuery import became a local KeptPeriodQuery type with the same fields, because ui may not import another module's schemas), cash-today to payment/ui, period-label to ledger/ui. The money pages' own composition went to money/_components (summary-card, activity, activity-map, period-bar, period-sheet, shop-row, skeleton) and owed/_components (owed-groups). Not moved to ledger/ui: activity-map, activity and summary-card, because they read booking, expense and shop application types and ledger may not import those modules. Server components that load data stay in the route: panel.tsx, activity-load.ts, actions.ts, query.ts, period-url.ts, page files.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/modules/{expense,payment,ledger}/ui/*, src/app/owner/(app)/money/_components/*, owed/_components/*
+
+**How it connects:** expense/ui imports expense/domain, payment/ui and lib only.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app (money page tests) and test/components passed). Full suites and build not run.
+
+## Refactor step 6c, commit 4: route-private files to _components
+
+**When:** 2026-10-10
+
+**What:** git mv into each route's _components folder: people/[personId] games and stats; search results and search-field; more hub, account-sheet, notifications-sheet, weekly-list, stadium-form; settings/pitches form, hours-rows, preview-card, price-cards, time-sheet; book skeleton and date. They import actions and use cases directly, which is allowed in app code. stadium-preview.test.ts reads stadium-form.tsx by path; updated.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** src/app/owner/(app)/**/_components/*, test/app/owner/stadium-preview.test.ts
+
+**How it connects:** _components are route-private: nothing outside the route imports them except sibling routes that already did (book skeleton, form).
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed (12 suites)). Full suites and build not run.
+
+## Refactor step 6c, commit 5: app stays thin
+
+**When:** 2026-10-10
+
+**What:** New test/architecture/app-thin.test.ts and rule 7 data in rules.ts: every .ts/.tsx under src/app must be a Next.js convention file (page, layout, route, loading, error, global-error, not-found, template, manifest, skeleton(s), query, *actions) or sit in a _components folder, or be in APP_THIN_ALLOWLIST; failures list file:1. To get there, 16 more files moved into _components (public page pieces, the route loaders inbox, free-slots, lists, free-strip-section, book slots, money panel, activity-load, period-url, shop-catalog, today date-label, qr print-button). Docs: ARCHITECTURE.md says what app may contain; CODEMAP.md has components/shell, _components and the new ui files.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/architecture/{app-thin.test.ts,rules.ts}, src/app/** moves, docs/ARCHITECTURE.md, docs/CODEMAP.md
+
+**How it connects:** app/ holds routes and route-private _components; nothing shared.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 12 passed (2 suites); test/app, test/components, test/modules/push, platform-db-imports passed). Full suites and build not run.

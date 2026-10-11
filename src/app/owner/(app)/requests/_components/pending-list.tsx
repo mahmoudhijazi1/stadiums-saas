@@ -19,11 +19,8 @@ import {
   RelativeWhen,
   type DebtNotice,
 } from "@/modules/booking/ui/notify-list";
-import {
-  formatLocalClockRange,
-  type HourCycle,
-} from "@/app/owner/shared";
-import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
+import { formatLocalClockRange, type HourCycle } from "@/lib/format/time";
+import { formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
 import {
   submitApproveBooking,
   submitDismissBooking,

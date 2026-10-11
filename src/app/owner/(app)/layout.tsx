@@ -11,12 +11,13 @@ import { listPendingRequests } from "@/modules/booking/application/list-pending-
 import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { latestRequestedAtIso } from "@/modules/booking/domain/live-queue";
 import { LiveQueue } from "@/modules/booking/ui/live-queue";
-import { OwnerHeader } from "@/app/owner/header";
+import { OwnerHeader } from "@/components/shell/header";
 import { brandIconPath, brandIdentityOf } from "@/modules/stadium/domain/brand-identity";
-import { OwnerTabBar } from "@/app/owner/tab-bar";
+import { OwnerTabBar } from "@/components/shell/tab-bar";
 import { Container } from "@/components/ui/container";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
+import { submitLogout } from "@/app/owner/login/actions";
 
 /**
  * Shell for routes inside (app). Local route-groups.md: the parenthesized
@@ -61,6 +62,7 @@ export default async function OwnerLayout({
           publicUrl={publicPageUrl(tenant.slug)}
           locale={locale}
           showSell={showSell}
+          onLogout={submitLogout}
           logoSrc={brandIconPath("192", brandIdentityOf(tenant))}
         />
         <Container className="flex flex-1 flex-col gap-8 py-6">{children}</Container>

@@ -9,8 +9,8 @@ import { EXPENSE_CATEGORIES } from "@/modules/expense/domain/categories";
 import { ui } from "@/lib/copy";
 import { parseRecordExpense } from "@/modules/expense/schemas/record-expense";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
-import { field, redirectOwner } from "@/app/owner/form-query";
-import { loadActivityPage, type ActivityPageView } from "./activity-load";
+import { field, redirectOwner } from "@/lib/form-query";
+import { loadActivityPage, type ActivityPageView } from "@/app/owner/(app)/money/_components/activity-load";
 
 const MONEY_KEEP = ["period", "filter", "from", "to", "view", "displayRate"] as const;
 

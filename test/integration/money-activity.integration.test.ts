@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
-import { loadActivityPage } from "@/app/owner/(app)/money/activity-load";
+import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
 import { platformDb } from "@/lib/platform-db";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { createOwnerBooking } from "@/modules/booking/application/create-owner-booking";

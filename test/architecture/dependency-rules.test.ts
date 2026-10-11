@@ -126,7 +126,9 @@ function violations(list: Edge[] = edges): string[] {
       if (!["application", "domain", "schemas", "ui"].includes(to.layer!))
         fail(e, 4, "module application, domain, schemas, ui");
     } else if ((from.area === "lib" || from.area === "components") && to.area === "module") {
-      fail(e, 5, "nothing (only listed exceptions)");
+      // the app frame (components/shell) composes module ui folders and nothing else
+      if (!(e.file.startsWith("src/components/shell/") && to.layer === "ui"))
+        fail(e, 5, "nothing (only listed exceptions; components/shell may import a module's ui/)");
     }
   }
   return out;

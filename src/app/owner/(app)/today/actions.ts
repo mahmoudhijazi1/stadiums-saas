@@ -33,7 +33,7 @@ import { parseAdjustDueForm } from "@/modules/booking/schemas/adjust-due-form";
 import { parseBookingDecision } from "@/modules/booking/schemas/booking-decision";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
 import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
-import { field, redirectOwner } from "@/app/owner/form-query";
+import { field, redirectOwner } from "@/lib/form-query";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 export type { PerPlayerResult };
 

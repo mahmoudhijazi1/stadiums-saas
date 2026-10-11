@@ -7,7 +7,7 @@ import { setBookingRules } from "@/modules/access/application/set-booking-rules"
 import { setTimeDisplay } from "@/modules/access/application/set-time-display";
 import { setExchangeRate } from "@/modules/payment/application/set-exchange-rate";
 import { parseExchangeRate } from "@/modules/payment/schemas/exchange-rate";
-import { field, redirectOwner } from "@/app/owner/form-query";
+import { field, redirectOwner } from "@/lib/form-query";
 
 const SETTINGS_KEEP = [] as const;
 

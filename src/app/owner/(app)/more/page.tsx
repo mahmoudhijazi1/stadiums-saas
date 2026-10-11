@@ -1,5 +1,5 @@
-import { requireOwnerMembership } from "@/app/owner/shared";
-import { MoreHub } from "./hub";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
+import { MoreHub } from "@/app/owner/(app)/more/_components/hub";
 import { SETTINGS_MANAGE, SHOP_MANAGE, can } from "@/modules/access/domain/can";
 import {
   getCurrentRate,

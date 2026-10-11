@@ -1,5 +1,6 @@
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { formatLocalClockRange, requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { formatLocalClockRange } from "@/lib/format/time";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Figure } from "@/components/ui/figure";
 import { getUiLocale } from "@/lib/get-ui-locale";
@@ -13,8 +14,8 @@ import { businessDate } from "@/modules/booking/domain/business-day";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
-import { formatEarlierDayLabel } from "../../today/date-label";
-import { OwedGroups, type OwedGroupView } from "./owed-groups";
+import { formatEarlierDayLabel } from "@/app/owner/(app)/today/_components/date-label";
+import { OwedGroups, type OwedGroupView } from "@/app/owner/(app)/money/owed/_components/owed-groups";
 
 const TZ = "Asia/Beirut";
 

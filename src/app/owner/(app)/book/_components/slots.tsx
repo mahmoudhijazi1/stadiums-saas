@@ -1,0 +1,51 @@
+import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
+import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
+import type { CivilDate } from "@/modules/venue/domain/availability";
+import { civilFromYyyyMmDd } from "@/app/owner/(app)/book/_components/date";
+import { OwnerSlotPicker } from "@/modules/booking/ui/book-picker";
+import { OWNER_TIME_ZONE } from "@/lib/format/time";
+import { EmptyState } from "@/components/ui/empty-state";
+import type { UiLocale } from "@/lib/locale";
+import { getCurrentTenant } from "@/lib/tenant-context";
+import { ui } from "@/lib/copy";
+import { previewSeriesAction } from "@/app/owner/(app)/series/actions";
+import { submitCreateOwnerBooking } from "@/app/owner/(app)/book/actions";
+
+/**
+ * Thin Book RSC. Occupied from Booking; Venue only UTC ranges.
+ * Slot tap UI lives in OwnerSlotPicker (shared SlotPicker).
+ */
+export async function OwnerBookSlots({
+  bookOn,
+  today,
+  locale = "ar",
+}: {
+  bookOn: string;
+  /** Business date (the "Today" chip). */
+  today: CivilDate;
+  locale?: UiLocale;
+}) {
+  const tenant = await getCurrentTenant();
+  const pitches = await getDayAvailability({
+    localDate: civilFromYyyyMmDd(bookOn),
+    timeZone: OWNER_TIME_ZONE,
+    now: new Date(),
+    today,
+    occupied: await listApprovedOccupied(),
+    hourCycle: tenant.timeDisplay,
+    locale,
+  });
+
+  if (pitches.length === 0) {
+    return (
+      <EmptyState
+        title={ui("empty.pitches", locale)}
+        next={ui("empty.pitchesNext", locale)}
+      />
+    );
+  }
+
+  return (
+    <OwnerSlotPicker previewSeriesAction={previewSeriesAction} submitCreateOwnerBooking={submitCreateOwnerBooking} pitches={pitches} bookOn={bookOn} locale={locale} />
+  );
+}

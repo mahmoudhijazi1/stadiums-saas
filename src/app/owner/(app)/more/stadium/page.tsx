@@ -1,12 +1,12 @@
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { loadStadiumInfo } from "@/modules/stadium/application/stadium-info";
 import { submitStadiumInfo } from "./actions";
-import { StadiumForm } from "./stadium-form";
+import { StadiumForm } from "@/app/owner/(app)/more/stadium/_components/stadium-form";
 
 /** More > Business > Stadium info. settings.manage. */
 export default async function StadiumInfoPage() {

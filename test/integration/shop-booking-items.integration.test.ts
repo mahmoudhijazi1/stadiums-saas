@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
 import { ZodError } from "zod";
-import { loadActivityPage } from "@/app/owner/(app)/money/activity-load";
+import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
 import db from "@/lib/db";
 import { platformDb } from "@/lib/platform-db";
 import { addBookingItems } from "@/modules/booking/application/add-booking-items";

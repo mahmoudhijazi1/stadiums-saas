@@ -1,0 +1,144 @@
+import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
+import { listDebtWarnings } from "@/modules/booking/application/list-debt-warnings";
+import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
+import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
+import { MissedRequestSection, PendingRequestList } from "@/app/owner/(app)/requests/_components/pending-list";
+import {
+  actionablePending,
+  missedPending,
+} from "@/modules/booking/domain/expired-request";
+import type { DebtNotice } from "@/modules/booking/ui/notify-list";
+import { formatDisplayDate } from "@/lib/format/time";
+import type { UiLocale } from "@/lib/locale";
+import { formatUsdCompact } from "@/lib/format/money";
+import { ui, uiCount } from "@/lib/copy";
+import { countHiddenRequests } from "@/modules/booking/application/count-hidden-requests";
+import { getCurrentTenant } from "@/lib/tenant-context";
+import type { HourCycle } from "@/lib/format/time";
+import type { DebtWarning } from "@/modules/booking/domain/debt-warning";
+import { DecisionNotifySheet } from "@/modules/booking/ui/decision-notify";
+import { FreeSlots } from "@/app/owner/(app)/requests/_components/free-slots";
+import { loadDecisionNotify } from "@/modules/booking/application/load-decision-notify";
+
+/**
+ * Requests tab body. One debt query for every person on the pending
+ * groups and the open-interest section.
+ */
+export async function RequestsInbox({
+  membership,
+  locale,
+  notify,
+  bookingId,
+  reason,
+  siblings,
+}: {
+  membership: CurrentMembership;
+  locale: UiLocale;
+  notify?: "approved" | "rejected" | "dismissed";
+  bookingId?: string;
+  reason?: string;
+  siblings?: string;
+}) {
+  const tenant = await getCurrentTenant();
+  const hourCycle: HourCycle = tenant.timeDisplay;
+  const [pending, openWaitlist, hidden] = await Promise.all([
+    listPendingRequests(),
+    listOpenWaitlist(),
+    countHiddenRequests(),
+  ]);
+  const now = new Date();
+  const queue = actionablePending(pending, now);
+  const missed = missedPending(pending, now);
+  const personIds = [
+    ...pending.map((row) => row.requesterPersonId),
+    ...openWaitlist.flatMap((group) => group.people.map((person) => person.personId)),
+  ];
+  const warnings = await listDebtWarnings(personIds);
+  const debts: Record<string, DebtNotice> = {};
+  for (const warning of warnings) {
+    debts[warning.personId] = toNotice(warning, locale);
+  }
+
+  const notifyRows =
+    notify && bookingId
+      ? await loadDecisionNotify({
+          bookingId,
+          kind: notify,
+          reason,
+          siblingIds: siblingPersonIds(siblings),
+        })
+      : [];
+
+  return (
+    <>
+      {notifyRows.length > 0 ? (
+        <DecisionNotifySheet
+          locale={locale}
+          people={notifyRows.map((row) => ({
+            personId: row.personId,
+            name: row.name,
+            phone: row.phone,
+            whatsAppHref: row.whatsAppHref,
+            message: row.message,
+            statusLabel: row.statusLabel,
+          }))}
+        />
+      ) : null}
+      <PendingRequestList
+        membership={membership}
+        locale={locale}
+        hourCycle={hourCycle}
+        pending={queue}
+        openWaitlist={openWaitlist}
+        debts={debts}
+        showEmpty={missed.length === 0}
+      />
+      {hidden > 0 ? (
+        <p className="type-secondary text-ink-muted" role="status">
+          {uiCount("owner.requestsHidden", hidden, locale)}
+        </p>
+      ) : null}
+      <FreeSlots
+        locale={locale}
+        hourCycle={hourCycle}
+        pending={queue}
+        openWaitlist={openWaitlist}
+        debts={debts}
+      />
+      <MissedRequestSection
+        membership={membership}
+        locale={locale}
+        hourCycle={hourCycle}
+        missed={missed}
+      />
+    </>
+  );
+}
+
+function siblingPersonIds(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const part of raw.split(",")) {
+    const id = part.trim();
+    if (!/^[a-z0-9-]{8,40}$/i.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+    if (ids.length >= 20) break;
+  }
+  return ids;
+}
+
+function toNotice(warning: DebtWarning, locale: UiLocale): DebtNotice {
+  return {
+    totalCompact: formatUsdCompact(warning.totalUsd),
+    reasonLabel: warning.reason
+      ? ui(`owner.debtReason.${warning.reason}`, locale)
+      : null,
+    dateLabel: formatDisplayDate(warning.at, locale, {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    }),
+  };
+}

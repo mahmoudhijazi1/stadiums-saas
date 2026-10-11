@@ -1,10 +1,11 @@
 import { Suspense } from "react";
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { queryString, requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { queryString } from "@/lib/search-params";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { SearchField } from "./search-field";
-import { SearchResults } from "./results";
+import { SearchField } from "@/app/owner/(app)/search/_components/search-field";
+import { SearchResults } from "@/app/owner/(app)/search/_components/results";
 
 /**
  * Header search. Local pitch page: searchParams is a Promise.

@@ -6,7 +6,7 @@ import {
   mapActivityEntry,
   signedAmount,
   type ActivityContext,
-} from "@/app/owner/(app)/money/activity-map";
+} from "@/app/owner/(app)/money/_components/activity-map";
 import {
   ACTIVITY_PAGE_SIZE,
   decodeActivityCursor,

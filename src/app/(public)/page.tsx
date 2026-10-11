@@ -6,17 +6,18 @@ import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import { PublicDayChips } from "./day-chips";
-import { StadiumContact } from "./stadium-contact";
-import { PublicHoursSkeleton } from "./skeletons";
-import { PublicHours } from "./hours";
-import { LangToggle } from "@/components/lang-toggle";
+import { PublicDayChips } from "@/app/(public)/_components/day-chips";
+import { StadiumContact } from "@/app/(public)/_components/stadium-contact";
+import { PublicHoursSkeleton } from "@/app/(public)/_components/skeletons";
+import { PublicHours } from "@/app/(public)/_components/hours";
+import { LangToggle } from "@/components/shell/lang-toggle";
 import { Container } from "@/components/ui/container";
-import { UnavailableNotice } from "@/components/unavailable-notice";
+import { UnavailableNotice } from "@/components/shell/unavailable-notice";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { Suspense } from "react";
+import { setUiLocale } from "@/app/locale-actions";
 
 /**
  * Thin route. No Prisma and no tenantId.
@@ -65,7 +66,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             ) : null}
           </div>
         </div>
-        <LangToggle locale={locale} />
+        <LangToggle locale={locale} onChangeLocale={setUiLocale} />
       </header>
 
       <StadiumContact

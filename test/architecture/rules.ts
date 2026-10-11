@@ -15,8 +15,9 @@
  *
  * Rules: 1 module edges, 2 layers inside a module, 3 modules never import
  * app/components, 4 app imports module application/domain/schemas/ui only,
- * 5 lib and components import modules only through EXCEPTIONS,
- * 6 module ui/ folders get data and actions through props (see UI_LIBS below).
+ * 5 lib and components import modules only through EXCEPTIONS (components/shell may import a module's ui/),
+ * 6 module ui/ folders get data and actions through props (see UI_LIBS below),
+ * 7 src/app stays thin (see APP_CONVENTION_NAMES and APP_THIN_ALLOWLIST below).
  */
 
 export const MODULES = [
@@ -82,3 +83,24 @@ export const UI_LIBS = [
 
 /** Rule 6: packages a module ui/ file must not import. */
 export const UI_SERVER_ONLY_PACKAGES = ["server-only", "next/headers", "next/server"];
+
+/**
+ * Rule 7: src/app holds Next.js convention files and route-private files in a _components folder,
+ * nothing else. A file name (without extension) is a convention name when it is one of these, or
+ * ends with "actions" (Server Actions), or is "skeleton"/"skeletons" (loading UI) or "query" (the
+ * route's search-param helpers).
+ */
+export const APP_CONVENTION_NAMES = [
+  "page", "layout", "route", "loading", "error", "global-error", "not-found", "template", "manifest",
+  "default", "icon", "opengraph-image", "sitemap", "robots", "skeleton", "skeletons", "query",
+];
+
+/** Rule 7: files outside the convention today. Do not add; put the file in a _components folder. */
+export const APP_THIN_ALLOWLIST: Array<{ file: string; reason: string; fate: string }> = [
+  { file: "src/app/(public)/alert-owners.ts", reason: "composes the new-request push alert after the response (docs/ARCHITECTURE.md §6); tests name its path", fate: "stays until the alert moves to a use case" },
+  { file: "src/app/(public)/request-slot.ts", reason: "the public Server Action; test/modules/push/imports.test.ts names its path", fate: "rename to actions.ts with those tests" },
+  { file: "src/app/brand/current-brand.ts", reason: "resolves the brand from the validated Host for the icon routes, which are outside the proxy matcher", fate: "moves into the brand route's _components" },
+  { file: "src/app/dev/mockups/today/data.ts", reason: "dev-only mockup data (test/app/dev/dev-guard.test.ts)", fate: "delete with the mockup" },
+  { file: "src/app/dev/mockups/today/today-mockup.tsx", reason: "dev-only mockup (test/app/dev/dev-guard.test.ts)", fate: "delete with the mockup" },
+  { file: "src/app/owner/require-owner.ts", reason: "the auth gate every owner page calls (access module + redirect; lib may not import modules)", fate: "stays; it is the owner area's one shared server helper" },
+];

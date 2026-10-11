@@ -10,7 +10,7 @@ import {
 } from "@/modules/access/infrastructure/password";
 import { createSession } from "@/modules/access/infrastructure/sessions";
 import { hashSessionToken } from "@/modules/access/infrastructure/session-token";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
 import {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { formatDisplayDate, clockRangeFromLocals, formatClockRange, formatClockRangeText, formatLocalHm, shortPeriodOf, splitDisplayedClock, formatRelativeTime } from "@/lib/format/time";
-import { civilFromYyyyMmDd, parseOwnerBookOn } from "@/app/owner/(app)/book/date";
-import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
-import { comparedWithLabel, monthName, periodChipLabel, rangeLabel } from "@/app/owner/(app)/money/period-label";
+import { civilFromYyyyMmDd, parseOwnerBookOn } from "@/app/owner/(app)/book/_components/date";
+import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
+import { comparedWithLabel, monthName, periodChipLabel, rangeLabel } from "@/modules/ledger/ui/period-label";
 import { seriesRowLine, weeklyWeekdayAndTime } from "@/modules/booking/ui/series-labels";
 
 /**

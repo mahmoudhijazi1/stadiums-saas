@@ -1,11 +1,11 @@
-import { OwnerBackLink } from "@/app/owner/back-link";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { OwnerBackLink } from "@/components/shell/back-link";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/copy";
-import { PrintButton } from "./print-button";
+import { PrintButton } from "@/app/owner/qr/print/_components/print-button";
 
 /**
  * A printable poster, outside the owner shell (no header, no tab bar). On a phone it is a

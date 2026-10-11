@@ -4,7 +4,7 @@ import { getCurrentTenant, getCurrentTenantId } from "@/lib/tenant-context";
 import { GET as liveGet } from "@/app/owner/(app)/requests/live/route";
 import SuspendedPage from "@/app/owner/suspended/page";
 import LoginPage from "@/app/owner/login/page";
-import { requireOwnerMembership } from "@/app/owner/shared";
+import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { login } from "@/modules/access/application/login";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";

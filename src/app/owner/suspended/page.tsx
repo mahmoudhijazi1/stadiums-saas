@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { UnavailableNotice } from "@/components/unavailable-notice";
+import { UnavailableNotice } from "@/components/shell/unavailable-notice";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
 
