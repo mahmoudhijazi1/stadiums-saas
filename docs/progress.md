@@ -7114,3 +7114,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** app/ holds routes and route-private _components; nothing shared.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 12 passed (2 suites); test/app, test/components, test/modules/push, platform-db-imports passed). Full suites and build not run.
+
+## Docs reset 1: inventory and index (branch `refactor/08-docs`)
+
+**When:** 2026-10-14
+
+**What:** Classified every file under `docs/`. Current: ARCHITECTURE, CODEMAP, DATA-MODEL, NOW, README, ROADMAP, RUNBOOK, domain/*, owner-ia, per-player-payments, push-notifications, ui-*, theme, MIGRATION, guides/testing-jest, guides/prisma-transaction-tenant-guard. Historical: specs/*, decisions/*, audits/*, requirements/*, owner-ux, ux-02-history, and the guides that are audits or a defense (engineering-audit, error-handling-logging-audit, mvp-readiness-audit, mentor-defense-backend). Superseded and moved with `git mv` to `docs/archive/`: guides/cursor-rules.md, guides/cursor-workflow.md (Cursor setup), guides/folder-structure.md (as `folder-structure-2026-10.md`) and guides/module-map-and-request-walkthroughs.md (pre-refactor file maps; CODEMAP.md and ARCHITECTURE.md replace them). Nothing deleted. `docs/README.md` is now the index: Start here, Core, Domain rules, Operations, History, Archive.
+
+**Why:** After refactor steps 1 to 6c the old folder guides describe a tree that no longer exists.
+
+**Files:** `docs/README.md`, four files moved to `docs/archive/`.
+
+**How it connects:** Docs only. Links from living docs to the moved files are fixed in the next two commits.
+
+**How to verify:** `git log --follow docs/archive/folder-structure-2026-10.md`; the index links resolve (checked by the docs test in commit 5).
