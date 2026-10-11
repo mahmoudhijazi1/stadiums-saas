@@ -42,7 +42,7 @@ Layers: `domain/` (pure functions, no await, no db), `application/` (use cases, 
 | Module | Purpose | Layers present |
 |---|---|---|
 | `access` | Login, sessions, permissions (`can()`), passwords, tenant settings writes | domain application infrastructure schemas |
-| `booking` | Requests, owner bookings, series, cancel, no-show, waitlist, booking items | domain application infrastructure schemas ui |
+| `booking` | Requests, owner bookings, series, cancel, no-show, waitlist, booking items. `infrastructure/bookings/` is the raw SQL split by topic (create, locks, pending, single, ranges, status, due, interests, day, person-history, debts, owed, per-player, labels) behind one `index.ts` | domain application infrastructure schemas ui |
 | `expense` | Expenses and categories | domain application infrastructure schemas ui |
 | `ledger` | Append-only USD ledger entries and period bounds | domain application infrastructure schemas ui |
 | `notification` | WhatsApp link composition | domain |

@@ -58,11 +58,11 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 - **Used by:** every insert of an APPROVED booking (`insertApprovedOwnerBooking`, the approve use case); it needs the `btree_gist` extension.
 - **Never change without:** never remove it or model it in the schema DSL; only APPROVED rows are excluded (PENDING may overlap on purpose). Tests: `modules/booking/domain/exclusion.integration.test.ts`, `modules/booking/application/approve-booking.integration.test.ts`.
 
-### 9. `src/modules/booking/infrastructure/bookings.ts`
-- **Does:** the raw SQL for bookings: inserts (the `during` time range cannot be written by the Prisma client), the pitch lock `lockPitchForUpdate`, booking row locks and the booking queries.
+### 9. `src/modules/booking/infrastructure/bookings/` (was one file, `bookings.ts`)
+- **Does:** the raw SQL for bookings, split by topic and re-exported from `index.ts` (importers still use `@/modules/booking/infrastructure/bookings`): `create.ts` (inserts; the `during` time range cannot be written by the Prisma client), `locks.ts` (`lockPitchForUpdate`, `findBookingForUpdate`, `lockPendingRowsInOrder`), `pending.ts`, `single.ts`, `status.ts`, `due.ts`, `day.ts`, `owed.ts`, `per-player.ts` and the rest.
 - **Why:** it is where overlap, locks and `tenantId` stamping happen; the Prisma extension does not stamp raw SQL.
-- **Used by:** the booking use cases; it is over 1,800 lines (UNVERIFIED: the exact number of importers).
-- **Never change without:** every statement carries `"tenantId" = ${tenantId}` from `getCurrentTenantId()`; pitch lock first, then booking rows (lock order in `docs/ARCHITECTURE.md` §6). Tests: `integration/isolation.integration.test.ts`, `integration/pending-races.integration.test.ts`, `integration/money-races.integration.test.ts`, `integration/booking-money.integration.test.ts`.
+- **Used by:** the booking use cases (UNVERIFIED: the exact number of importers). Read `locks.ts` first: its top comment points to the lock-order table in `docs/ARCHITECTURE.md` section 6.
+- **Never change without:** every statement carries `"tenantId" = ${tenantId}` from `getCurrentTenantId()`; pitch lock first, then booking rows. Tests: `integration/isolation.integration.test.ts`, `integration/pending-races.integration.test.ts`, `integration/money-races.integration.test.ts`, `integration/booking-money.integration.test.ts`.
 
 ### 10. `src/modules/booking/application/approve-booking.ts`
 - **Does:** confirms a PENDING request; overlapping PENDING requests on that pitch become REJECTED and are recorded as interests in the approved window.

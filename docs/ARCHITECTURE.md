@@ -141,7 +141,7 @@ The new-request alert is composed in `app/(public)/alert-owners.ts` and schedule
 ## 6. Lock order
 
 **Resources:**
-- **P**: the pitch row. Taken by `booking/infrastructure/bookings.ts` `lockPitchForUpdate` (`SELECT … FOR UPDATE`).
+- **P**: the pitch row. Taken by `booking/infrastructure/bookings/locks.ts` `lockPitchForUpdate` (`SELECT … FOR UPDATE`).
 - **B**: one booking row. Taken by `findBookingForUpdate` (`FOR UPDATE`), or implicitly by `UPDATE … WHERE status = 'PENDING'` (`setPendingStatus`).
 - **B\***: a set of booking rows. Taken by `lockPendingRowsInOrder` (`ORDER BY id FOR UPDATE`).
 - **R**: a `RateLimit` row. Taken by `lib/rate-limit.ts` `hitRateLimit` (`INSERT … ON CONFLICT DO UPDATE`, autocommit).
