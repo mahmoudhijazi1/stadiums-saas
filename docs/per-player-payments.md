@@ -159,7 +159,7 @@ Slot names: slot 1 shows the requester's name. Other slots show "Player N" until
 | Derived figures (remaining, unassigned, owed) | `src/modules/payment/domain/collect.ts`, `src/modules/booking/domain/person-owed.ts` |
 | Pitch player count | `Pitch.defaultPlayerCount`, migration `20260929120000_pitch_default_player_count` |
 | Sheet UI and actions | `src/app/owner/(app)/today/per-player-collect.tsx`, `actions.ts` |
-| Error copy, Arabic and English | `src/lib/error-messages.ts`, `src/lib/ui-copy.ts` |
+| Error copy, Arabic and English | `src/lib/copy/errors.ts`, `src/lib/copy/` (by area) |
 
 Module rule: Booking may import Payment. Payment never imports Booking, so `insertAllocations` only receives ids.
 

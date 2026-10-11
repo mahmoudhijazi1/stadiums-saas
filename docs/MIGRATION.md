@@ -32,7 +32,7 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 
 - Component restyles still ahead: buttons, inputs, list row, sheet chrome, modal, toast visuals. Segmented control and list row have no shared component yet.
 - Empty state: dashed `line-strong` outline, panel radius, centred display title, muted sentence. No icon tile and no action — those need new props; existing callers only pass `title` and `next`.
-- Expense category tiles (`money/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
+- Expense category tiles (`money/_components/panel.tsx` amber/sky/…) — need `--category-*` decision (`theme.md` §4).
 - Chart `--chart-1…5` and sidebar block — still primitives, no chart contract.
 - `global-error.tsx` four hardcoded hex values — owns its own `<html>`, cannot read tokens. It uses `Container` for width only.
 - Shadows remain on dialog, card, and inputs. Header and tab bar no longer use shadow or blur.
@@ -58,7 +58,7 @@ Running notes for the UI token / component migration (`docs/ui-foundations.md`, 
 | Value / pattern | Where | Why |
 |---|---|---|
 | `#f8f9fa`, `#1a1d20`, `#495057` | `src/app/global-error.tsx` | Standalone document; leave until error shell can share tokens |
-| Tailwind palette (`amber-500`, `sky-500`, …) | `src/app/owner/money/panel.tsx` | No category role set yet |
+| Tailwind palette (`amber-500`, `sky-500`, …) | `src/app/owner/(app)/money/_components/panel.tsx` | No category role set yet |
 | Stripe hex `#EEEDE6` / `#E6E5DD` (light) and carbon pair (dark) | `globals.css` `--stripe-a/b` | Intentional primitives for unavailable fill; not a named foundation role beyond the stripe pair |
 | `themeColor` hex in `layout.tsx` | viewport meta | Must be concrete colours; mirrored from `--ls-paper-100` / `--ls-carbon-900` |
 

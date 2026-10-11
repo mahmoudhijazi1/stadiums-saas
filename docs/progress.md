@@ -7142,3 +7142,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** Docs only.
 
 **How to verify:** `npx tsc --noEmit`; `npx jest test/architecture`. The docs test arrives in commit 5.
+
+## Docs reset 3: core docs brought up to date
+
+**When:** 2026-10-14
+
+**What:** `docs/ARCHITECTURE.md`: the module edge table is generated from `MODULE_EDGES` in `test/architecture/rules.ts` (the rules file is the source of truth), with the reason for each non-obvious edge, the layer rules, the ui rule, the app-thin rule, the three documented exceptions (all `lib/tenant-settings.ts`) and no rule-1 exceptions; request flow and lock-order table kept as they were (no code in them changed in the refactor). `docs/RUNBOOK.md`: one deploy order (pg_dump with `~/.pgpass`, `git pull --ff-only`, remove `src/app/generated`, `npm ci`, `prisma generate`, `migrate status`, `migrate deploy`, build, `pm2 restart`, logs, `npx next --version`), the `.env` values (VAPID, `TRUSTED_CLIENT_IP_HEADER`) and the rollback to a tag; the pm2 process name and the pg_restore path are marked UNVERIFIED. `docs/owner-ia.md`: the component map rewritten from the real tree. Path fixes only in `per-player-payments.md`, `MIGRATION.md`, `theme.md`. DATA-MODEL and `docs/domain/*` had no stale paths.
+
+**Why:** After steps 1 to 6c the old tables named files that moved.
+
+**Files:** `docs/{ARCHITECTURE,RUNBOOK,owner-ia,per-player-payments,MIGRATION,theme}.md`.
+
+**How it connects:** Docs only; the docs test (commit 5) checks that the paths exist.
+
+**How to verify:** `npx tsc --noEmit`; `npx jest test/architecture`.
