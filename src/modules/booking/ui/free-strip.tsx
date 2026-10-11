@@ -13,7 +13,7 @@ import type { PreviewResult } from "@/modules/booking/ui/action-types";
 
 // Soft filled chips from the surface token: no border, 40px tall. Lime on press, focus and pick.
 const chipClass = cn(
-  "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 type-label tabular-nums text-foreground outline-none",
+  "inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-full bg-surface-2 px-3 type-label tabular-nums text-foreground outline-none",
   "focus-visible:ring-2 focus-visible:ring-accent-brand/60",
 );
 const pressable = "cursor-pointer hover:bg-muted active:bg-accent-brand active:text-accent-ink";
@@ -32,8 +32,9 @@ function ChipTime({ text }: { text: string }) {
 }
 
 /**
- * Free slots, one row per pitch: the pitch name, then its free hours on a single line that
- * scrolls sideways (it starts from the right in Arabic). Tapping a chip opens the same booking
+ * Free slots, one block per pitch: the pitch name, then its free hours as equal-width chips that
+ * fill each line and wrap to the next (no sideways scroll to miss; it starts from the right in
+ * Arabic). Tapping a chip opens the same booking
  * sheet as Book, prefilled. Without `mayBook` the chips only show.
  */
 export function FreeStrip({
@@ -68,7 +69,7 @@ export function FreeStrip({
     : undefined;
 
   return (
-    <section aria-label={ui("owner.availableHours", locale)} className="flex flex-col gap-2">
+    <section aria-label={ui("owner.availableHours", locale)} className="mt-3 flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-muted-foreground">
         {ui("owner.availableHours", locale)} <LtrIsolate>{`(${total})`}</LtrIsolate>
       </h3>
@@ -77,7 +78,7 @@ export function FreeStrip({
         return (
           <div key={pitch.pitchId} className="flex flex-col gap-1">
             {showPitchNames ? <span className="type-section">{pitch.pitchName}</span> : null}
-            <ul className="no-scrollbar flex flex-nowrap gap-2 overflow-x-auto">
+            <ul className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2">
               {pitch.chips.map((item) => {
                 const isPicked =
                   picked?.startIso === item.startIso && picked.pitchId === pitch.pitchId;

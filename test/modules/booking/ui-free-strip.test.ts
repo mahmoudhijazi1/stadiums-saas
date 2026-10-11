@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { FreeStripPitch } from "@/modules/booking/domain/free-strip";
 import { FreeStrip } from "@/modules/booking/ui/free-strip";
 
-/** Written, not run. Every pitch is one scrolling row of soft chips; there are no filter chips. */
+/** Written, not run. Every pitch is a wrapping block of equal-width soft chips; there are no filter chips. */
 function chip(startLocal: string, pending = 0) {
   return {
     startIso: `2026-10-14T${startLocal}:00.000Z`,
@@ -54,10 +54,15 @@ describe("FreeStrip", () => {
     expect(render(PITCHES.slice(0, 1), false)).not.toContain("type-section");
   });
 
-  it("keeps each pitch's hours on one line that scrolls sideways", () => {
-    expect(html.match(/flex-nowrap/g)).toHaveLength(3);
-    expect(html.match(/overflow-x-auto/g)).toHaveLength(3);
-    expect(html).not.toContain("flex-wrap");
+  it("wraps each pitch's hours onto more lines as equal-width chips, with no sideways scroll", () => {
+    expect(html.match(/grid-cols-\[repeat\(auto-fill,minmax\(5\.5rem,1fr\)\)\]/g)).toHaveLength(3);
+    expect(html).toContain("w-full");
+    expect(html).not.toContain("overflow-x-auto");
+    expect(html).not.toContain("flex-nowrap");
+  });
+
+  it("sits a little lower than what is above it", () => {
+    expect(html).toContain("mt-3");
   });
 
   it("makes soft filled chips: surface token, no border, type-label, tabular, 40px", () => {
