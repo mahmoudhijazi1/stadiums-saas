@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type Ref } from "react";
+import { useState, type FormEvent, type Ref } from "react";
+import { useBrowserOrigin } from "@/lib/use-browser-origin";
 import { CountedPhrase } from "@/modules/booking/ui/notify-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,15 +49,14 @@ export function CancelDecisionForm({
     initiator === "PLAYER" ? row.playerFeeCompact : row.ownerFeeCompact;
   const exact = initiator === "PLAYER" ? row.playerFeeExact : row.ownerFeeExact;
   const [feeExact, setFeeExact] = useState(row.playerFeeExact);
-  const [publicUrl, setPublicUrl] = useState("");
-
-  useEffect(() => {
+  const publicUrl = useBrowserOrigin();
+  // The editable fee follows the fee of the chosen initiator: reset it during render when that
+  // changes (no effect, no extra paint).
+  const [seenExact, setSeenExact] = useState(exact);
+  if (seenExact !== exact) {
+    setSeenExact(exact);
     setFeeExact(exact);
-  }, [exact]);
-
-  useEffect(() => {
-    setPublicUrl(`${window.location.origin}/`);
-  }, []);
+  }
 
   function choose(next: FeeChoice) {
     setInitiator(next);

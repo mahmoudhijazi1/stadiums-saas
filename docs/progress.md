@@ -209,3 +209,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **How it connects:** Version label and status text only; no code changes.
 
 **How to verify:** `git tag -n -l v1.3.0`; `npm pkg get version` prints `"1.3.0"`. The full suites, the integration tests and the build were not run in this session (CI runs them).
+
+## Lint errors fixed (branch `fix/lint-errors`)
+
+**When:** 2026-10-14
+
+**What:** The 10 errors `npm run lint` reported are fixed with no behaviour change and no lint-config change or disable comment. CI (`.github/workflows/ci.yml`) runs `npm ci`, `prisma generate`, `npm test`, `npm run test:integration`, `npm run build` and `npm run test:e2e`; it does not run lint, which is why these went unnoticed. Patterns: `hub.tsx:88` and `theme-toggle.tsx:28` (mounted flag) use the new `useMounted()` (`useSyncExternalStore`, false on the server); `hub.tsx:161-162` (assigning `document.documentElement`) moved into a module-level `setDocumentLocale`; `fee-forms.tsx:54` (fee follows the initiator) resets during render when `exact` changes; `fee-forms.tsx:58` and `share-card.tsx:31` (browser origin) use the new `useBrowserOrigin()` (`useSyncExternalStore`, "" on the server), and `share-card` derives `publicUrl || origin`; `upcoming-panel.tsx:161` (open the saved outcome's sheet once) derives it during render with a `savedOpened` state in place of the ref and layout effect; `expense-sheet.tsx:117` (read the recent categories on open) moved into the `openSheet` click handler; `share-card.tsx:37` uses `next/link`. The unused `Decimal` import in `list-debt-warnings.ts` is removed. ROADMAP F-4 is marked done. Nothing left unfixed.
+
+**Files:** `lib/use-mounted.ts`, `lib/use-browser-origin.ts`, `app/owner/(app)/more/_components/hub.tsx`, `components/shell/theme-toggle.tsx`, `booking/ui/{fee-forms,upcoming-panel}.tsx`, `expense/ui/expense-sheet.tsx`, `stadium/ui/share-card.tsx`, `booking/application/list-debt-warnings.ts`, `test/lib/use-browser-hooks.test.ts`, `docs/ROADMAP.md`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. The new hook tests are written and NOT run, and lint was NOT re-run, so the errors are fixed by reading the rules, not confirmed gone. UNVERIFIED in a browser: the saved-outcome sheet on Today, the cancel fee reset when the initiator changes, the expense sheet's category order, and the share card's link.

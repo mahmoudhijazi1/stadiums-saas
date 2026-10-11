@@ -1,4 +1,3 @@
-import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { rethrowUnexpected } from "@/lib/use-case-error";

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMounted } from "@/lib/use-mounted";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { setUiLocale } from "@/app/locale-actions";
@@ -83,10 +84,7 @@ function PercentField({
 
 function AppearanceValue({ locale }: { locale: UiLocale }) {
   const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
   if (!mounted) return null;
   const choice =
     theme === "light" || theme === "dark" || theme === "system"
@@ -158,8 +156,7 @@ export function MoreHub({
       setSheet(null);
       return;
     }
-    document.documentElement.lang = htmlLang(next);
-    document.documentElement.dir = htmlDir(next);
+    setDocumentLocale(next);
     await setUiLocale(next);
     setSheet(null);
     router.refresh();
@@ -428,4 +425,10 @@ export function MoreHub({
       </BottomSheet>
     </div>
   );
+}
+
+/** Lang and dir change at once, before the cookie is stored, so there is no flash of the other direction. */
+function setDocumentLocale(locale: UiLocale): void {
+  document.documentElement.lang = htmlLang(locale);
+  document.documentElement.dir = htmlDir(locale);
 }
