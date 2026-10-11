@@ -381,3 +381,9 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Copy only. `owner.owedAtLeast` in Arabic is now `{amount}+` (was "على الأقل {amount}"), so the capped total in Arabic reads "$120+" while English keeps "at least $120". The plus keeps the signal that more is owed than the total shows.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the header test was updated and is NOT run.
+
+## Test: Arabic capped total assertion (branch `fix/earlier-debts-test`)
+
+**What:** CI failed on `earlier-debts-header.test.ts` after v1.3.2: the test's tag-stripping helper puts a space where the `LtrIsolate` element ends, so the Arabic header reads "$120 +" in the test text (the markup is `$120` followed by `+`, no space). The assertion now expects "$120 +". Test only; the header is unchanged.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the test is written and NOT run.
