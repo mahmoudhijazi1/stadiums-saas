@@ -185,7 +185,7 @@ Fonts are self-hosted with `next/font/local` (`src/app/layout.tsx`); the build a
 
 The QR button in the business menu shows a QR code of the stadium's public page and offers Share, Download PNG and a printable poster (`/owner/qr/print`). The code is generated on the server by `GET /owner/qr?format=svg|png`; the library never reaches the browser.
 
-- **New runtime dependency: `qrcode`** (MIT, 1.5.4; its own dependencies `pngjs`, `yargs` and `dijkstrajs` are MIT too, and none of them has an install script). Used only in `src/lib/qr.ts`, which only server code imports. Dev only: `jsqr` (Apache-2.0, decodes the PNG in tests), `pngjs`, `@types/qrcode`, `@types/pngjs`.
+- **New runtime dependency: `qrcode`** (MIT, 1.5.4; its own dependencies `pngjs`, `yargs` and `dijkstrajs` are MIT too, and none of them has an install script). Used only in `src/modules/stadium/domain/qr.ts`, which only server code imports. Dev only: `jsqr` (Apache-2.0, decodes the PNG in tests), `pngjs`, `@types/qrcode`, `@types/pngjs`.
 - **What it encodes:** `publicPageUrl(slug)`, the same link the Copy and WhatsApp buttons use: `APP_PROTOCOL://<slug>.APP_BASE_DOMAIN/`. So **the QR points at the production site only when `APP_PROTOCOL` and `APP_BASE_DOMAIN` are set correctly in the server `.env`** (`https` and `lebstads.com` in production). With `APP_BASE_DOMAIN` empty the route answers 503 rather than encode a wrong link. Printed posters keep working only as long as the domain and the slug do not change: check them before sending anything to print.
 - The tenant is resolved from the host only; no query parameter can change the encoded text. Black on white, 4-module quiet zone, error correction Q, PNG 1024 x 1024.
 
