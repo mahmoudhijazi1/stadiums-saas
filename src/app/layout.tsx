@@ -5,11 +5,13 @@ import { accentCss } from "@/modules/stadium/domain/accent-css";
 import { brandIconPath } from "@/modules/stadium/domain/brand-identity";
 import { OwnerServiceWorker } from "@/components/shell/owner-service-worker";
 import { ScrollbarPeek } from "@/components/ui/scrollbar-peek";
+import { SystemBars } from "@/components/shell/system-bars";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { htmlDir, htmlLang } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import { THEME_COLOR, themeColorScript } from "@/lib/theme-color";
 import "./globals.css";
 
 // Self-hosted (no request to Google at build or run time): local font.md, `next/font/local`.
@@ -78,11 +80,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Local generate-viewport.md: media-keyed themeColor; colorScheme light dark.
-// Values match --bg light (--ls-paper-100) and --bg dark (--ls-carbon-900).
+// Values match --bg light (--ls-paper-100) and --bg dark (--ls-carbon-900) (src/lib/theme-color.ts).
+// These tags follow the OS preference; the script and SystemBars below make them follow the app theme.
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F6F5EF" },
-    { media: "(prefers-color-scheme: dark)", color: "#111412" },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
   ],
   colorScheme: "light dark",
   viewportFit: "cover",
@@ -105,7 +108,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <style id="accent" dangerouslySetInnerHTML={{ __html: accentCss(identity?.preset) }} />
       </head>
       <body className="min-h-svh flex flex-col">
+        <script dangerouslySetInnerHTML={{ __html: themeColorScript() }} />
         <ThemeProvider>
+          <SystemBars />
           <OwnerServiceWorker />
           <ScrollbarPeek />
           {children}

@@ -17,7 +17,7 @@
 |---|---|
 | `app/` | Next.js routes: `(public)` (the stadium page a player sees), `owner` (the owner app: `(app)` tabs, `login`, `qr`, `suspended`), `brand` (icon route), `dev` (dev-only mockups). Convention files plus a `_components` folder per route (rule 7). |
 | `components/ui/` | Generic primitives (button, input, sheet, dialog, calendar…) plus `settings-list`, `money-input`, `scrollbar-peek` |
-| `components/shell/` | The app frame: tab-bar, header, back-link, business-menu, offline-pill, theme-provider, theme-toggle, owner-service-worker, lang-toggle, unavailable-notice |
+| `components/shell/` | The app frame: tab-bar, header, back-link, business-menu, offline-pill, theme-provider, theme-toggle, system-bars, owner-service-worker, lang-toggle, unavailable-notice |
 | `lib/` | Cross-cutting helpers with no business word (below) |
 | `modules/` | Business logic, one folder per context (below) |
 | `generated/` | The Prisma client, made by `prisma generate`; gitignored |
@@ -34,6 +34,7 @@
 | `copy/` | All interface text by area (`common today requests money shop settings public account`), `ui()`, counted nouns, phrase helpers, `errors.ts`, `success.ts`; import from `@/lib/copy` |
 | `db.ts`, `platform-db.ts`, `prisma-base.ts`, `tenant-context.ts`, `tenant-slug.ts`, `tenant-settings.ts` | Prisma clients, the tenant of the request, tenant settings parsing |
 | `env.ts`, `logger.ts`, `errors.ts`, `use-case-error.ts`, `rate-limit.ts`, `client-ip.ts`, `dev-only.ts` | Runtime support |
+| `theme-color.ts` | The system-bar (status bar) colour of each theme, the function and the pre-paint script that apply it |
 | `form-query.ts`, `search-params.ts`, `get-ui-locale.ts`, `locale.ts`, `plural.ts`, `utils.ts` | Form, query and locale helpers |
 
 ## `src/modules/<module>/`
