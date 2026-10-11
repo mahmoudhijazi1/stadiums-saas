@@ -219,3 +219,73 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `lib/use-mounted.ts`, `lib/use-browser-origin.ts`, `app/owner/(app)/more/_components/hub.tsx`, `components/shell/theme-toggle.tsx`, `booking/ui/{fee-forms,upcoming-panel}.tsx`, `expense/ui/expense-sheet.tsx`, `stadium/ui/share-card.tsx`, `booking/application/list-debt-warnings.ts`, `test/lib/use-browser-hooks.test.ts`, `docs/ROADMAP.md`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. The new hook tests are written and NOT run, and lint was NOT re-run, so the errors are fixed by reading the rules, not confirmed gone. UNVERIFIED in a browser: the saved-outcome sheet on Today, the cancel fee reset when the initiator changes, the expense sheet's category order, and the share card's link.
+
+## Requests card: visual polish (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** Display only; no behaviour, data, action or use-case change. (1) Approve and Reject share the row equally: `RejectRequestButton` takes an optional `className` for its trigger (it already defaulted to `min-w-0 flex-1`; the page now passes it explicitly) and the Approve form is `min-w-0 flex-1`. (2) New pure `formatPhoneDisplay` in `people/domain/phone.ts`, used only for the phone line; the stored value and the tel: / WhatsApp links keep the raw digits. (3) The card reads top to bottom: time range (`type-strong`) with the request's age at the end of the same row, pitch and day (`type-secondary`), the person's name with the phone directly under it, then Approve / Reject. When several requests share one slot, the slot's time row has no age and each request shows its own age under its name. Logical properties and the existing `type-*` roles only; no copy key added. (4) `PersonLink` has an optional `plain` prop (default false) that hides the user icon and the chevron and keeps the underline and accent colour; only the pending card passes it.
+
+**Files:** `app/owner/(app)/requests/_components/pending-list.tsx`, `booking/ui/reject-sheet.tsx`, `people/ui/person-link.tsx`, `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. The new `formatPhoneDisplay` tests are written and NOT run; no component test exists for the card. UNVERIFIED by eye in Arabic and English, light and dark.
+
+## Requests card: Approve and Reject exactly equal (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** Display only. The decision row on the pending card is now `mt-3 grid grid-cols-2 gap-3`. The Approve `<form>` is a direct grid child (`min-w-0`) with a `w-full` button; the Reject trigger gets `w-full` through the existing `className` prop, and `RejectRequestButton` no longer defaults to `flex-1`. Before, the row was `flex gap-2` with the form as `min-w-0 flex-1` and the Reject button as `flex-1`; the form has no padding or border while the Reject button has `px-4` and a border, and a flex item's padding and border sit outside a `flex-basis: 0` share, so Reject came out about 34px wider (screenshot at 490px: Approve about 176px, Reject about 219px). This is my reading of the CSS, not something I measured. Approve/Reject logic, actions and use cases are untouched.
+
+**Files:** `app/owner/(app)/requests/_components/pending-list.tsx`, `booking/ui/reject-sheet.tsx`, `test/app/owner/requests-decision-row.test.ts` (source-text checks).
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new test is written and NOT run. UNVERIFIED by eye: open Requests at 490px and 360px and compare the two widths.
+
+## Requests card: shorter layout (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** Display only; the grouping, actions, locks and use cases are untouched, and the grid Approve / Reject row is unchanged. A slot with one request has no slot header any more: row 1 is the name (`PersonLink plain`) at the start and the age at the end (`type-caption`, `shrink-0 whitespace-nowrap`; the name is `min-w-0` and truncates); row 2 is the time range in `type-label` ink, then the day, then the pitch name only when `showPitch`, then the "starts in" phrase when there is one, separated by middle dots and allowed to wrap; row 3 is the phone line. Rows are `gap-1`, the buttons `mt-3`, the card `p-3` (was `py-4` with `px-6` on the header and content). A slot with several requests keeps its header (time range, day, pitch), then each request shows name + own age, phone, buttons in the same styles. The name uses `text-base! font-semibold!` (the same size and weight as `type-strong`) because PersonLink's own `text-sm font-medium` utilities would otherwise beat the component-layer `type-strong`; PersonLink itself is untouched. The "starts in" phrase moved into row 2 of the single card so no information is lost; no copy key added.
+
+**Files:** `app/owner/(app)/requests/_components/pending-list.tsx`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/app/owner/requests-decision-row.test.ts` (source-text checks of the grid row) was not edited and not run. UNVERIFIED in a browser: the card height, the wrapping of row 2 at 360px in Arabic and English, and the name truncation.
+
+## Requests card: name with the person icon, no underline (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** On the pending card the name now shows the person icon and is not underlined. `PersonLink`'s `plain` prop changed meaning: it now keeps the icon and the accent colour and drops the underline and the chevron (before: it dropped the icon and the chevron and kept the underline). Only the pending card passes `plain`; the default look and `prominent` are unchanged.
+
+**Files:** `people/ui/person-link.tsx`.
+
+**How to verify:** `npx tsc --noEmit` only; no test touches `PersonLink`. UNVERIFIED by eye.
+
+## Phone: canonical rule as pure functions (branch `feat/phone-canonical`)
+
+**When:** 2026-10-14
+
+**What:** Pure additions to `people/domain/phone.ts`; no caller, schema, use case or query uses them yet, and `normalizePhone`, `toLebanonNumber`, `isPhoneText` and `sanitizePhoneInput` are unchanged. `toCanonicalPhone(raw)` gives one form per number: Lebanese numbers become `961` + the national number (7 digits, or 8 starting with 7 or 8; one leading 0 dropped), so `71123456`, `03123456`, `+961 71 123 456` and `0096171123456` collapse; other countries keep their international digits (8 to 15); anything with a letter, an empty string or a bad length is null. `toPhoneSearchDigits(query)` gives digits only (Arabic-Indic converted) minus a leading `00` or one `0`, for substring search. `formatPhoneDisplay` also puts a `+` on a canonical foreign number. Branched from `feat/requests-card-polish` because `formatPhoneDisplay` is only there.
+
+**Files:** `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new tests (one per row of the agreed table) are written and NOT run.
+
+## Phone: country parameter for the canonical rule (branch `feat/phone-canonical`)
+
+**When:** 2026-10-14
+
+**What:** Pure domain only; no caller, schema, use case, query or UI changed. New `people/domain/countries.ts` (13 dialling codes with a key each, `DEFAULT_COUNTRY = "961"`, `isKnownCountry`; names come later from copy). `toCanonicalPhone(raw, country = "961")`: an unknown country is null; a `+` or `00` prefix ignores the country (the previous rule); no prefix with 961 is the previous Lebanese rule; no prefix with another country takes digits that start with its code and have 8 or more after it as already including the code, otherwise drops one leading 0 and puts the code in front, and the result must be 10 to 15 digits. Calls without a country behave as before.
+
+**Files:** `people/domain/countries.ts`, `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new tests (the ten agreed rows, a no-country regression, a contract test, the country list) are written and NOT run.
+
+## Phone: canonical rule closed before wiring (branch `feat/phone-canonical`)
+
+**When:** 2026-10-14
+
+**What:** Pure domain only; no caller, schema, use case, query or UI changed, and `normalizePhone`, `toLebanonNumber`, `isPhoneText` and `sanitizePhoneInput` are untouched. (1) `toCanonicalPhone` with a `+` or `00` prefix for a number that is not 961 now needs 10 to 15 digits (was 8 to 15), and the first digit may not be 0 (needed for the contract below; `+0123456789` is null). Country parameter and no-prefix rules unchanged. (2) New explicit `isCanonicalPhone(digits)`: true only for `961` + 7 digits, `961` + 8 digits starting 7 or 8, or 10 to 15 digits starting 1 to 9 and not `961`; any non-digit (including `+` or a space) is false and nothing is converted. (3) Contract: every value `toCanonicalPhone` returns is `isCanonicalPhone`-true; downstream code checks stored phones with `isCanonicalPhone` and never re-runs `toCanonicalPhone` on them.
+
+**Files:** `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new tests (the agreed `toCanonicalPhone` and `isCanonicalPhone` rows, and a contract test over every row of the canonical and country tables) are written and NOT run.

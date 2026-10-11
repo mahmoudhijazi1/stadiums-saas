@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "cn";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,11 +32,14 @@ export function RejectRequestButton({
   name,
   locale,
   submitRejectBooking,
+  className,
 }: {
   bookingId: string;
   name: string;
   locale: UiLocale;
   submitRejectBooking: (formData: FormData) => Promise<void>;
+  /** For the trigger button (a grid of equal buttons sets `w-full` here). */
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<(typeof KINDS)[number]["value"] | "">("");
@@ -45,7 +49,7 @@ export function RejectRequestButton({
       <Button
         type="button"
         variant="outline"
-        className="min-w-0 flex-1"
+        className={cn("min-w-0", className)}
         onClick={() => setOpen(true)}
       >
         {ui("owner.reject", locale)}
