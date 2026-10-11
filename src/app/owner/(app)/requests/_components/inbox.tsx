@@ -17,7 +17,7 @@ import { getCurrentTenant } from "@/lib/tenant-context";
 import type { HourCycle } from "@/lib/format/time";
 import type { DebtWarning } from "@/modules/booking/domain/debt-warning";
 import { DecisionNotifySheet } from "@/modules/booking/ui/decision-notify";
-import { FreeSlots } from "./free-slots";
+import { FreeSlots } from "@/app/owner/(app)/requests/_components/free-slots";
 import { loadDecisionNotify } from "@/modules/booking/application/load-decision-notify";
 
 /**

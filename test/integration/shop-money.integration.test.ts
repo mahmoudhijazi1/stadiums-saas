@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
 import Decimal from "decimal.js";
-import { loadActivityPage } from "@/app/owner/(app)/money/activity-load";
+import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
 import { platformDb } from "@/lib/platform-db";
 import { recordExpense } from "@/modules/expense/application/record-expense";
 import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-category";

@@ -3,7 +3,7 @@ import type { WaitlistGroup } from "@/modules/booking/application/list-open-wait
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import type { UiLocale } from "@/lib/locale";
 import { uiCount } from "@/lib/copy";
-import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
+import { formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
 import { formatLocalClockRange, type HourCycle } from "@/lib/format/time";
 import type { DebtNotice } from "@/modules/booking/ui/notify-list";
 import { FreeSlotList } from "@/modules/booking/ui/free-slot-list";

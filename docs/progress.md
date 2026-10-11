@@ -7100,3 +7100,17 @@ Mono's OKLCH chroma is 0.007 (light) and 0.008 (dark), under the 0.03 limit. The
 **How it connects:** _components are route-private: nothing outside the route imports them except sibling routes that already did (book skeleton, form).
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 8 passed; test/app and test/components passed (12 suites)). Full suites and build not run.
+
+## Refactor step 6c, commit 5: app stays thin
+
+**When:** 2026-10-10
+
+**What:** New test/architecture/app-thin.test.ts and rule 7 data in rules.ts: every .ts/.tsx under src/app must be a Next.js convention file (page, layout, route, loading, error, global-error, not-found, template, manifest, skeleton(s), query, *actions) or sit in a _components folder, or be in APP_THIN_ALLOWLIST; failures list file:1. To get there, 16 more files moved into _components (public page pieces, the route loaders inbox, free-slots, lists, free-strip-section, book slots, money panel, activity-load, period-url, shop-catalog, today date-label, qr print-button). Docs: ARCHITECTURE.md says what app may contain; CODEMAP.md has components/shell, _components and the new ui files.
+
+**Why:** Follow-up to cleanup step 2 (branch `refactor/02-cleanup`); no logic change.
+
+**Files:** test/architecture/{app-thin.test.ts,rules.ts}, src/app/** moves, docs/ARCHITECTURE.md, docs/CODEMAP.md
+
+**How it connects:** app/ holds routes and route-private _components; nothing shared.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/architecture` (tsc clean; architecture 12 passed (2 suites); test/app, test/components, test/modules/push, platform-db-imports passed). Full suites and build not run.

@@ -6,10 +6,10 @@ import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import { PublicDayChips } from "./day-chips";
-import { StadiumContact } from "./stadium-contact";
-import { PublicHoursSkeleton } from "./skeletons";
-import { PublicHours } from "./hours";
+import { PublicDayChips } from "@/app/(public)/_components/day-chips";
+import { StadiumContact } from "@/app/(public)/_components/stadium-contact";
+import { PublicHoursSkeleton } from "@/app/(public)/_components/skeletons";
+import { PublicHours } from "@/app/(public)/_components/hours";
 import { LangToggle } from "@/components/shell/lang-toggle";
 import { Container } from "@/components/ui/container";
 import { UnavailableNotice } from "@/components/shell/unavailable-notice";

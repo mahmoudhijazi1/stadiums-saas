@@ -7,8 +7,8 @@
 | Folder | Purpose |
 |---|---|
 | `generated/` | Prisma client, output of `prisma generate` (gitignored; run it after install and before build) |
-| `app/` | Next.js routes, Server Actions, layouts; thin (validate, authorize, delegate) |
-| `components/` | Shared React components (`ui/` primitives, pickers, chips, theme) |
+| `app/` | Next.js routes, Server Actions, layouts; thin (validate, authorize, delegate). Route-private pieces live in a `_components` folder beside the route (rule 7) |
+| `components/` | Shared React components: `ui/` primitives (plus settings-list, money-input, scrollbar-peek) and `shell/` (the app frame: tab-bar, header, back-link, business-menu, offline-pill, theme, service worker, lang-toggle, unavailable-notice; takes actions as props, may import a module's `ui/`) |
 | `lib/` | Cross-cutting helpers: db clients, env, logger, locale and copy, money display, errors |
 | `modules/` | Business logic per context, each with `domain/ application/ infrastructure/ schemas/` |
 | `fonts/` | Font files (`brand/` TTFs for generated icons) |
@@ -23,10 +23,10 @@ Each module has `domain/ application/ infrastructure/ schemas/` and, where it ow
 |---|---|
 | `access` | Login, sessions, permissions (`can()`), passwords, tenant settings |
 | `booking` | Requests, owner bookings, series, cancel, no-show, waitlist, booking items. `ui/`: booking-row, day-sheet/, day-strip/tabs/nav, free-strip, fee-forms, extend-form, per-player-collect, booking-items, add-items-sheet, upcoming-panel (to be split), series components, request and book components, slot-picker; `action-types.ts` types the action props |
-| `expense` | Expenses and categories |
-| `ledger` | Append-only USD ledger entries and period bounds |
+| `expense` | Expenses and categories. `ui/`: expense-sheet |
+| `ledger` | Append-only USD ledger entries and period bounds. `ui/`: period-label |
 | `notification` | WhatsApp link composition |
-| `payment` | Collect, tenders, rates, per-player payments, due adjustments. `ui/`: tender-balance, tonal-collect |
+| `payment` | Collect, tenders, rates, per-player payments, due adjustments. `ui/`: tender-balance, tonal-collect, cash-today |
 | `people` | Persons, phones, names. `ui/`: person-link |
 | `platform` | Operator-only tenant management; `application/tenant-profile` serves the stadium module |
 | `push` | Web push to owners (new-request alert) |
@@ -39,6 +39,7 @@ Each module has `domain/ application/ infrastructure/ schemas/` and, where it ow
 ## `src/lib/`
 | Path | Purpose |
 |---|---|
+| `form-query.ts`, `search-params.ts` | FormData and searchParams helpers (redirect keeping the tab's query) |
 | `format/money.ts` | Money display: USD and LBP strings, mixed parts, change |
 | `format/parse-money.ts` | Money input: USD and LBP string checks and parsing |
 | `format/time.ts` | Time display: dates, clock times and ranges, relative time (Asia/Beirut) |

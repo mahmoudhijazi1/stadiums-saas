@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Bell, ChevronRight, Repeat } from "lucide-react";
 import { Suspense } from "react";
-import { FreeStripSection } from "./free-strip-section";
+import { FreeStripSection } from "@/app/owner/(app)/today/_components/free-strip-section";
 import type { CurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_ADJUST_DUE, BOOKINGS_CANCEL, BOOKINGS_CREATE, BOOKINGS_NO_SHOW, PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import { loadSeriesCreated } from "@/modules/booking/application/load-series-created";
@@ -35,7 +35,7 @@ import { formatLocalHm } from "@/lib/format/time";
 import { formatUsd, formatUsdCompact } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { dayStartClock, ui } from "@/lib/copy";
-import { formatEarlierDayLabel, formatSlotDateLabel } from "./date-label";
+import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";
 import { OwnerDayStrip } from "@/modules/booking/ui/day-strip";

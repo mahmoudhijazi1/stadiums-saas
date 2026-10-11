@@ -6,9 +6,9 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { ActivityList } from "@/app/owner/(app)/money/_components/activity";
-import { loadActivityPage } from "../activity-load";
+import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
 import { periodChipLabel } from "@/modules/ledger/ui/period-label";
-import { readPeriodQuery, resolvePeriod } from "../period-url";
+import { readPeriodQuery, resolvePeriod } from "@/app/owner/(app)/money/_components/period-url";
 import { moneyHref } from "../query";
 
 /**

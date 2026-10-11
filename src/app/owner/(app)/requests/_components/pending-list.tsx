@@ -20,7 +20,7 @@ import {
   type DebtNotice,
 } from "@/modules/booking/ui/notify-list";
 import { formatLocalClockRange, type HourCycle } from "@/lib/format/time";
-import { formatSlotDateLabel } from "@/app/owner/(app)/today/date-label";
+import { formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
 import {
   submitApproveBooking,
   submitDismissBooking,

@@ -3,7 +3,7 @@ import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
-import { OwnerBookSlots } from "./slots";
+import { OwnerBookSlots } from "@/app/owner/(app)/book/_components/slots";
 import { parseOwnerBookOn } from "@/app/owner/(app)/book/_components/date";
 import { BookSlotsSkeleton } from "@/app/owner/(app)/book/_components/skeleton";
 import { OWNER_TIME_ZONE } from "@/lib/format/time";

@@ -5,7 +5,7 @@ import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { SHOP_MANAGE, can } from "@/modules/access/domain/can";
 import { listProducts } from "@/modules/shop/application/products";
-import { ShopCatalog } from "./shop-catalog";
+import { ShopCatalog } from "@/app/owner/(app)/more/shop/_components/shop-catalog";
 
 /** More > Business > Shop: the catalog. shop.manage (owner only), checked in the use case too. */
 export default async function ShopCatalogPage() {

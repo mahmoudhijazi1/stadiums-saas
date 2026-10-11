@@ -22,7 +22,7 @@ import { ui } from "@/lib/copy";
 import { cn } from "cn";
 import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
 import { SettingsRow, SettingsSection } from "@/components/ui/settings-list";
-import { submitArchiveProduct, submitCreateProduct, submitUpdateProduct } from "./actions";
+import { submitArchiveProduct, submitCreateProduct, submitUpdateProduct } from "@/app/owner/(app)/more/shop/actions";
 
 /** The price is a USD amount ("1.50") or whole pounds ("20000"), in the item's own currency. */
 export type CatalogItem = { id: string; name: string; currency: "USD" | "LBP"; price: string };

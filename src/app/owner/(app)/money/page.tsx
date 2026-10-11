@@ -3,8 +3,8 @@ import {
   civilDateInTimeZone,
   formatCivilDate,
 } from "@/modules/venue/domain/availability";
-import { OwnerMoney } from "./panel";
-import { readPeriodQuery, resolvePeriod } from "./period-url";
+import { OwnerMoney } from "@/app/owner/(app)/money/_components/panel";
+import { readPeriodQuery, resolvePeriod } from "@/app/owner/(app)/money/_components/period-url";
 import { MoneySkeleton } from "@/app/owner/(app)/money/_components/skeleton";
 import { OWNER_TIME_ZONE } from "@/lib/format/time";
 import { queryString } from "@/lib/search-params";

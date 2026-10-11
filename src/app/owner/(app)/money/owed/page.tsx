@@ -14,7 +14,7 @@ import { businessDate } from "@/modules/booking/domain/business-day";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
-import { formatEarlierDayLabel } from "../../today/date-label";
+import { formatEarlierDayLabel } from "@/app/owner/(app)/today/_components/date-label";
 import { OwedGroups, type OwedGroupView } from "@/app/owner/(app)/money/owed/_components/owed-groups";
 
 const TZ = "Asia/Beirut";

@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { afterAll, beforeEach, describe, expect, it } from "@jest/globals";
-import { loadActivityPage } from "@/app/owner/(app)/money/activity-load";
+import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
 import { platformDb } from "@/lib/platform-db";
 import { businessDayUtcRange } from "@/modules/booking/domain/business-day";
 import { recordExpense } from "@/modules/expense/application/record-expense";
