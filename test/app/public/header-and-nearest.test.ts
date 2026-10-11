@@ -7,27 +7,27 @@ import { ThemeIconButton } from "@/components/shell/theme-icon-button";
 
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
-describe("StadiumContact: round icon buttons", () => {
-  const render = (over: Partial<Parameters<typeof StadiumContact>[0]> = {}) =>
+describe("StadiumContact: the action bar", () => {
+  const render = (over: Partial<Parameters<typeof StadiumContact>[0]> = {}, locale: "ar" | "en" = "en") =>
     renderToStaticMarkup(
-      createElement(StadiumContact, { mapLink: "https://maps.app.goo.gl/abc", phone: "03111222", whatsapp: "03111222", locale: "en", ...over }),
+      createElement(StadiumContact, { mapLink: "https://maps.app.goo.gl/abc", phone: "03111222", whatsapp: "03111222", locale, ...over }),
     );
 
-  it("is one row that never wraps, three 44px round buttons with aria-labels and no visible text", () => {
+  it("is one bar of three equal parts with thin dividers, 48px, never wrapping, with a short label each", () => {
     const html = render();
     expect(html).toContain("flex-nowrap");
-    expect(html.match(/size-11/g)).toHaveLength(3);
-    expect(html.match(/rounded-full/g)).toHaveLength(3);
+    expect(html).toContain("divide-x divide-line");
+    expect(html.match(/h-12 min-w-0 flex-1/g)).toHaveLength(3);
+    expect(html).toContain("whitespace-nowrap");
+    expect(text(html)).toBe("MapCallWhatsApp");
     expect(html).toContain('aria-label="Open in Maps"');
-    expect(html).toContain('aria-label="Call"');
-    expect(html).toContain('aria-label="WhatsApp"');
-    expect(text(html)).toBe("");
+    expect(text(render({}, "ar"))).toBe("الخريطةاتصالواتساب");
   });
 
-  it("shows only the buttons that are set", () => {
+  it("omits the parts that are not set and the rest share the width", () => {
     const html = render({ mapLink: "", whatsapp: "" });
-    expect(html.match(/size-11/g)).toHaveLength(1);
-    expect(html).toContain('aria-label="Call"');
+    expect(html.match(/h-12 min-w-0 flex-1/g)).toHaveLength(1);
+    expect(text(html)).toBe("Call");
     expect(render({ mapLink: "", phone: "", whatsapp: "" })).toBe("");
   });
 });
@@ -54,11 +54,17 @@ describe("NoFreeTimes", () => {
 });
 
 describe("ThemeIconButton", () => {
-  it("is a labelled 44px button with both icons in the markup, CSS shows the right one", () => {
+  it("is a 36px disc in a 44px hit area, styled like the language control, with a label", () => {
+    const html = renderToStaticMarkup(createElement(ThemeIconButton, { locale: "en" }));
+    expect(html).toContain("size-11");
+    expect(html).toContain("size-9");
+    expect(html).toContain("border-line bg-surface");
+  });
+
+  it("is a labelled button with both icons in the markup, CSS shows the right one", () => {
     const html = renderToStaticMarkup(createElement(ThemeIconButton, { locale: "en" }));
     expect(html).toContain('aria-label="Theme"');
-    expect(html).toContain("size-11");
     expect(html).toContain("dark:hidden"); // moon in light
-    expect(html).toContain("hidden size-5 dark:block"); // sun in dark
+    expect(html).toContain("hidden size-4 dark:block"); // sun in dark
   });
 });

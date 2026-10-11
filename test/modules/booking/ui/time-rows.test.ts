@@ -5,7 +5,7 @@ import { TimeRows } from "@/modules/booking/ui/time-rows";
 import type { SlotPickerPitch } from "@/modules/booking/ui/slot-picker";
 
 // Beirut is UTC+3 in October 2026; the hour is the UTC hour of the start.
-const slot = (utcHour: number, priceUsd = "20.00", available = true, marker: "PM" | "م" = "PM") => ({
+const slot = (utcHour: number, priceUsd = "20.00", available = true, marker: "PM" | "م" | "مساءً" = "PM") => ({
   startIso: `2026-10-16T${String(utcHour).padStart(2, "0")}:00:00.000Z`,
   endIso: `2026-10-16T${String(utcHour + 1).padStart(2, "0")}:00:00.000Z`,
   startLocal: `${utcHour - 9}:00 ${marker}`,
@@ -37,6 +37,12 @@ describe("TimeRows", () => {
     expect(text(render([pitch("a", [slot(14, "20.00", true, "م")])], "ar"))).toContain("5:00 – 6:00 م");
   });
 
+  it("writes the Arabic range with the marker once, at the end, from the real formatter output", () => {
+    const ar = text(render([pitch("a", [slot(13, "20.00", true, "مساءً")])], "ar"));
+    expect(ar).toContain("4:00 – 5:00 م");
+    expect(ar).not.toContain("مساءً");
+  });
+
   it("makes each free row one pressable button of 56px or more, with a chevron and no price", () => {
     expect(html.match(/<button/g)).toHaveLength(3);
     expect(html.match(/min-h-14/g)).toHaveLength(4);
@@ -49,6 +55,10 @@ describe("TimeRows", () => {
     expect(html.match(/opacity-60/g)).toHaveLength(1);
     expect(html).toContain('aria-disabled="true"');
     expect(html).toContain(">Taken<");
+  });
+
+  it("draws Nearest as a pill with a tinted accent background and accent text", () => {
+    expect(html).toMatch(/<span[^>]*rounded-full[^>]*text-action-ink[^>]*style="background-color:color-mix\(in oklab, ?var\(--brand\) \d+%, ?var\(--surface\)\)"[^>]*>Nearest</);
   });
 
   it("marks only the first free time of the day as Nearest", () => {

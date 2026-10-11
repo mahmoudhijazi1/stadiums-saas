@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
+import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { splitDisplayedClock } from "@/lib/format/time";
 import { commonPriceUsd } from "@/modules/booking/domain/free-times";
 import { compactRange } from "@/modules/booking/domain/compact-range";
 import type { SlotPickerPitch, SlotPickerSlot } from "@/modules/booking/ui/slot-picker";
@@ -9,6 +10,13 @@ import { compactUsd } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
+
+/**
+ * How much of the accent tints the "Nearest" pill. The accent text (--action-ink) must reach 4.5:1
+ * on it for every preset in both themes: 16% (the app's --accent-subtle) fails for the blue ones,
+ * 6% passes (10% still misses by 0.01 for one preset) (test/app/public/header-contrast.test.ts).
+ */
+export const NEAREST_PILL_TINT_PERCENT = 6;
 
 /**
  * The day's times as one list in time order inside one rounded container with thin dividers. A free
@@ -86,13 +94,18 @@ function TimeRow({
   onPick: () => void;
 }) {
   const range = compactRange(slot.startLocal, slot.endLocal);
+  const end = splitDisplayedClock(range.end);
   const label = (
     <span className="flex min-w-0 flex-1 items-center gap-2">
       <span className="type-strong tabular-nums">
-        <ClockText text={range.start} /> – <ClockText text={range.end} />
+        <LtrIsolate>{`${range.start} – ${end.digits}`}</LtrIsolate>
+        {end.period ? ` ${end.period}` : ""}
       </span>
       {isNearest ? (
-        <span className="type-caption rounded-full bg-accent-subtle px-2 py-0.5 text-ink">{ui("public.nearest", locale)}</span>
+        <span
+          className="type-caption shrink-0 rounded-full px-2 py-0.5 font-semibold text-action-ink"
+          style={{ backgroundColor: `color-mix(in oklab, var(--brand) ${NEAREST_PILL_TINT_PERCENT}%, var(--surface))` }}
+        >{ui("public.nearest", locale)}</span>
       ) : null}
     </span>
   );
