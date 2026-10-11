@@ -16,6 +16,9 @@ Tag `v1.1.0` is the release after the architecture cleanup (steps 1 to 7b and th
 ## Done in `v1.1.0`: the architecture cleanup (no behaviour change)
 Merged on `main`: the dependency-rules guard (step 1), easy cleanup (2), the Prisma client at `src/generated` (3), one money formatter, one time formatter and copy by area (4), the stadium module (5), module `ui/` folders, the shell, `_components` and the app-thin guard (6a to 6c), the documentation reset (8), `bookings.ts` split by topic (7a) and the upcoming panel split with grouped action props (7b). The import rules live in `test/architecture/rules.ts`; the docs are checked by `test/docs/docs.test.ts`.
 
+## Public page refinement (branch `feat/public-page`, not released)
+The stadium's public page now has a day strip from today to 60 days ahead, compact chips for the free times only (with the most common price in the heading), a request sheet that confirms in place and explains errors, and per-stadium share metadata (title, description, Open Graph, Twitter, canonical; indexable). The booking rules and use cases did not change. Details in [progress.md](./progress.md); open follow-ups in [ROADMAP.md](./ROADMAP.md) "Public page: later".
+
 ## Next three steps
 1. **Step 7, the remaining file splits:** the other files over about 300 lines that do more than one job, moving code as is (`bookings.ts` and `upcoming-panel.tsx` are done).
 2. **Server safety:** run the deploy order and the backup and rollback steps in [RUNBOOK.md](./RUNBOOK.md) on the production droplet. UNVERIFIED: the current state of the server (backups, pm2, `.env`) was not checked from this repo.

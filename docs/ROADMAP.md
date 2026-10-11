@@ -43,6 +43,14 @@ Not started, each its own spec; the Money refactor left room for them.
 | CSV export | Activity for a period as a file. Needs a decision on columns and on LBP tenders. |
 | Owed vs Unassigned (F-1) | The Owed page adds up per-slot amounts; on a per-player booking with money paid before the split they can exceed the booking remaining that Today shows. Closes with F-1. |
 
+## Public page: later (recorded 2026-10-14)
+
+| Item | Note |
+|---|---|
+| Public shop items with a WhatsApp order link (BR-67) | A price list on the public page where each item opens a WhatsApp chat with the order text. Needs a spec: which items are public, price display in USD and LBP, no stock. Not started. |
+| Day strip scrolls to a far selected day | The strip lists 61 days and is server-rendered; a `?date=` far from today opens with the strip at today. Fixing it needs a little client code (or a smaller strip plus a date picker). |
+| A real 503 for a suspended stadium | Still deferred (decision 7). |
+
 ## Shop: next specs (recorded 2026-10-09)
 
 Slice 1 (catalog, walk-in sale, shop supplies, the Money card) is built. Not started, each its own spec:
