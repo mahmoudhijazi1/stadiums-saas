@@ -165,8 +165,8 @@ export async function PendingRequestList({
                           ) : null}
                         </div>
                         {mayDecide ? (
-                          <div className="flex gap-2">
-                            <form action={submitApproveBooking} className="min-w-0 flex-1">
+                          <div className="mt-3 grid grid-cols-2 gap-3">
+                            <form action={submitApproveBooking} className="min-w-0">
                               <input type="hidden" name="bookingId" value={item.request.id} />
                               <SubmitButton className="w-full">
                                 {ui("owner.approve", locale)}
@@ -176,7 +176,7 @@ export async function PendingRequestList({
                               bookingId={item.request.id}
                               name={item.request.requesterName}
                               locale={locale}
-                              className="min-w-0 flex-1"
+                              className="w-full"
                             />
                           </div>
                         ) : null}

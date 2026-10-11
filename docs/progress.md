@@ -219,3 +219,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `app/owner/(app)/requests/_components/pending-list.tsx`, `booking/ui/reject-sheet.tsx`, `people/ui/person-link.tsx`, `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. The new `formatPhoneDisplay` tests are written and NOT run; no component test exists for the card. UNVERIFIED by eye in Arabic and English, light and dark.
+
+## Requests card: Approve and Reject exactly equal (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** Display only. The decision row on the pending card is now `mt-3 grid grid-cols-2 gap-3`. The Approve `<form>` is a direct grid child (`min-w-0`) with a `w-full` button; the Reject trigger gets `w-full` through the existing `className` prop, and `RejectRequestButton` no longer defaults to `flex-1`. Before, the row was `flex gap-2` with the form as `min-w-0 flex-1` and the Reject button as `flex-1`; the form has no padding or border while the Reject button has `px-4` and a border, and a flex item's padding and border sit outside a `flex-basis: 0` share, so Reject came out about 34px wider (screenshot at 490px: Approve about 176px, Reject about 219px). This is my reading of the CSS, not something I measured. Approve/Reject logic, actions and use cases are untouched.
+
+**Files:** `app/owner/(app)/requests/_components/pending-list.tsx`, `booking/ui/reject-sheet.tsx`, `test/app/owner/requests-decision-row.test.ts` (source-text checks).
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new test is written and NOT run. UNVERIFIED by eye: open Requests at 490px and 360px and compare the two widths.

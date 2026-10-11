@@ -38,7 +38,7 @@ export function RejectRequestButton({
   name: string;
   locale: UiLocale;
   submitRejectBooking: (formData: FormData) => Promise<void>;
-  /** For the trigger button (a row of equal buttons sets its width here). */
+  /** For the trigger button (a grid of equal buttons sets `w-full` here). */
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -49,7 +49,7 @@ export function RejectRequestButton({
       <Button
         type="button"
         variant="outline"
-        className={cn("min-w-0 flex-1", className)}
+        className={cn("min-w-0", className)}
         onClick={() => setOpen(true)}
       >
         {ui("owner.reject", locale)}
