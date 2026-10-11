@@ -1,12 +1,12 @@
 import { brandIconPath, brandIdentityOf } from "@/modules/stadium/domain/brand-identity";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { businessDate } from "@/modules/booking/domain/business-day";
-import { clampPublicDay } from "@/modules/booking/domain/public-window";
+import { clampPublicDay, lastPublicDay } from "@/modules/booking/domain/public-window";
 import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
-import { PublicDayChips } from "@/app/(public)/_components/day-chips";
+import { DayStrip } from "@/modules/venue/ui/day-strip";
 import { StadiumContact } from "@/app/(public)/_components/stadium-contact";
 import { PublicHoursSkeleton } from "@/app/(public)/_components/skeletons";
 import { PublicHours } from "@/app/(public)/_components/hours";
@@ -22,8 +22,9 @@ import { setUiLocale } from "@/app/locale-actions";
 /**
  * Thin route. No Prisma and no tenantId.
  * Occupied comes from Booking; Venue only receives UTC ranges (SPEC-05).
- * Date is ?date= yyyy-mm-dd via Link chips (client transition, not a GET form).
- * Hours list is a child RSC so the chip row stays mounted while slots suspend.
+ * Date is ?date= yyyy-mm-dd via the day strip's Links (client transition, not a GET form), from
+ * today to PUBLIC_FUTURE_DAYS; a past day shows today.
+ * The times are a child RSC so the day strip stays mounted while they suspend.
  * "Today" is the business date (06:00 to 06:00 Beirut, same rule as owner Today): at
  * 00:30 it is still last night, so the rest of a window that crosses midnight stays
  * reachable. Started slots are never offered (dropEndedSlots / slot_ended).
@@ -76,14 +77,16 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         locale={locale}
       />
 
-      <PublicDayChips
+      <DayStrip
         today={today}
+        lastDay={lastPublicDay(today)}
         selectedDate={dateValue}
+        pathname="/"
+        dateQueryKey="date"
         locale={locale}
       />
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-heading text-xl lg:text-2xl">{ui("public.hours", locale)}</h2>
         <Suspense key={dateValue} fallback={<PublicHoursSkeleton />}>
           <PublicHours
             localDate={localDate}

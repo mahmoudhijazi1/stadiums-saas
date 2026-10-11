@@ -34,5 +34,7 @@ describe("public booking window", () => {
     expect(clampPublicDay(null, today, fallback)).toBe(fallback);
     expect(clampPublicDay(good, today, fallback)).toBe(good);
     expect(clampPublicDay({ year: 2030, month: 1, day: 1 }, today, fallback)).toBe(fallback);
+    expect(clampPublicDay({ year: 2026, month: 10, day: 13 }, today, fallback)).toBe(fallback);
+    expect(clampPublicDay(today, today, { year: 2000, month: 1, day: 1 })).toBe(today);
   });
 });
