@@ -13,7 +13,14 @@ import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
 import { ui, uiCount } from "@/lib/copy";
 import { previewMessage } from "@/modules/notification/domain/whatsapp-link";
 import Decimal from "decimal.js";
-import type { UpcomingRowView } from "@/modules/booking/ui/upcoming-panel";
+import type { UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
+
+/** The fee actions of the booking sheet: cancel, no-show and adjust due. */
+export type FeeActions = {
+  submitCancelBooking: (formData: FormData) => Promise<void>;
+  submitRecordNoShow: (formData: FormData) => Promise<void>;
+  submitAdjustBookingDue: (formData: FormData) => Promise<void>;
+};
 
 type FeeChoice = "PLAYER" | "OWNER";
 type FeeMode = "shown" | "edit" | "waive";

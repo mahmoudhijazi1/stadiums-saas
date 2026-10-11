@@ -22,6 +22,14 @@ import { AddItemsSheet } from "@/modules/booking/ui/add-items-sheet";
 import type { ItemsResult } from "@/modules/booking/ui/action-types";
 import type { PayerHit } from "@/modules/booking/ui/action-types";
 
+/** The shop-tab actions of the booking sheet: search payers, add items, collect a tab, remove an item. */
+export type ItemsActions = {
+  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
+  submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
+  submitCollectTab: (input: unknown) => Promise<ItemsResult>;
+  submitRemoveBookingItem: (input: unknown) => Promise<ItemsResult>;
+};
+
 /** A line in the currency of its item: `unit` and `total` are USD amounts ("1.50") or whole pounds ("20000"). */
 export type ItemLineView = { id: string; name: string; qty: number; currency: "USD" | "LBP"; unit: string; total: string };
 
