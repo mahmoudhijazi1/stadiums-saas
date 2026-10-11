@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
+import { useBrowserOrigin } from "@/lib/use-browser-origin";
 import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
@@ -23,25 +25,23 @@ export function ShareCard({
   publicUrl: string;
   showLink?: boolean;
 }) {
-  const [url, setUrl] = useState(publicUrl);
+  // The configured link; the browser origin only when it is not configured.
+  const origin = useBrowserOrigin();
+  const url = publicUrl || origin;
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
-
-  useEffect(() => {
-    if (!publicUrl) setUrl(`${window.location.origin}/`);
-  }, [publicUrl]);
 
   return (
     <div className="flex w-full flex-col gap-3">
       {showLink ? (
-        <a
+        <Link
           href="/"
           className="min-h-11 rounded-[var(--radius-control)] px-2 py-2 text-center text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <LtrIsolate className="text-base font-medium">
             {url || "/"}
           </LtrIsolate>
-        </a>
+        </Link>
       ) : null}
       <div className="grid grid-cols-3 gap-2">
         <Button

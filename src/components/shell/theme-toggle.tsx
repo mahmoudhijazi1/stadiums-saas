@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { cn } from "cn";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import { useMounted } from "@/lib/use-mounted";
 
 type ThemeChoice = "light" | "dark" | "system";
 
@@ -22,11 +22,7 @@ export function ThemeToggle({
   className?: string;
 }) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useMounted();
 
   const current: ThemeChoice =
     theme === "light" || theme === "dark" || theme === "system"

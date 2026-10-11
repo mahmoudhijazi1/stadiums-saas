@@ -99,7 +99,7 @@ export function UpcomingPanel({
   const confirmSubmitRef = useRef<HTMLButtonElement>(null);
   const cancelBookingRef = useRef<HTMLButtonElement>(null);
   const pendingFocusRef = useRef<"confirm" | "cancel" | null>(null);
-  const savedOpenedRef = useRef(false);
+  const [savedOpened, setSavedOpened] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -151,18 +151,16 @@ export function UpcomingPanel({
     setOpenId(id);
   }
 
-  useLayoutEffect(() => {
-    if (!saved || savedOpenedRef.current) return;
-    const row =
-      [...toCollect, ...games].find((item) => item.id === saved.bookingId) ??
-      null;
-    if (!row) return;
-    savedOpenedRef.current = true;
+  // A saved outcome opens its booking's sheet once, as soon as the row is in the lists (derived
+  // during render, not in an effect).
+  const savedRow = saved ? ([...toCollect, ...games].find((item) => item.id === saved.bookingId) ?? null) : null;
+  if (saved && savedRow && !savedOpened) {
+    setSavedOpened(true);
     setSheetStep("details");
     setInterestOpen(true);
-    setHeldRow(row);
+    setHeldRow(savedRow);
     setOpenId(saved.bookingId);
-  }, [saved, toCollect, games]);
+  }
 
   return (
     <div className="flex flex-col gap-3">

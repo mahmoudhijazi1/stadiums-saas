@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { orderCategories, rememberCategory } from "@/modules/expense/domain/category-order";
 import type { ExpenseCategory } from "@/modules/expense/domain/categories";
 import type { UiLocale } from "@/lib/locale";
@@ -106,9 +106,9 @@ export function RecordExpenseSheet({
   const [ordered, setOrdered] = useState(categoryOptions);
   const [category, setCategory] = useState<ExpenseCategory>(categoryOptions[0]!.value);
 
-  // Read the member's order when the sheet opens (browser storage is not available on the server).
-  useEffect(() => {
-    if (!open) return;
+  // Read the member's order when the sheet opens (browser storage is not available on the server),
+  // in the handler that opens it.
+  function openSheet() {
     const values = orderCategories(
       categoryOptions.map((option) => option.value),
       readRecent(membershipId),
@@ -116,11 +116,12 @@ export function RecordExpenseSheet({
     const next = values.map((value) => categoryOptions.find((option) => option.value === value)!);
     setOrdered(next);
     setCategory(next[0]!.value);
-  }, [open, membershipId, categoryOptions]);
+    setOpen(true);
+  }
 
   return (
     <>
-      <Button type="button" className="min-h-11 flex-1" onClick={() => setOpen(true)}>
+      <Button type="button" className="min-h-11 flex-1" onClick={openSheet}>
         {ui("owner.expensePlus", locale)}
       </Button>
 
