@@ -195,3 +195,17 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `components/ui/dialog.tsx`, `test/components/overlay-dark.test.ts`.
 
 **How to verify:** `npx jest test/components/overlay-dark`. UNVERIFIED by eye: open any sheet in dark mode and check the page behind it goes darker.
+
+## Release v1.3.0
+
+**When:** 2026-10-14
+
+**What:** The app is marked version 1.3.0: `package.json` and `package-lock.json` say `1.3.0` (were `1.1.0`), `docs/NOW.md` names `v1.3.0`, and the merge of `feat/public-page` is tagged `v1.3.0` (annotated, with a description). The jump over 1.2.0 is on purpose. Release notes: public page UI refinement: a pitch-gradient header with logo, name, address and a Map / Call / WhatsApp action bar; a day strip to 60 days ahead with availability dots; the day as one list of times with a "Nearest" badge, taken times faded; a request sheet that confirms in place and explains errors; per-stadium share metadata (indexable public page, noindex owner app). Also in it: the two-option language toggle, system bars that follow the app theme, and a darker (not lighter) sheet and modal backdrop in the dark theme.
+
+**Why:** A named release point for the public page work, so the server can deploy a tag and roll back to `v1.1.0` (RUNBOOK, "Roll back to a tag").
+
+**Files:** `package.json`, `package-lock.json`, `docs/NOW.md`, `docs/progress.md`.
+
+**How it connects:** Version label and status text only; no code changes.
+
+**How to verify:** `git tag -n -l v1.3.0`; `npm pkg get version` prints `"1.3.0"`. The full suites, the integration tests and the build were not run in this session (CI runs them).
