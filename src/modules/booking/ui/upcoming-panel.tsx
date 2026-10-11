@@ -2,10 +2,9 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode, Fragment } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
-import { ui, uiCount } from "@/lib/copy";
+import { ui } from "@/lib/copy";
 import type { OutcomeNotify } from "@/modules/booking/domain/outcome-notify";
 import type { FeeActions } from "@/modules/booking/ui/fee-forms";
 import type { ItemsActions } from "@/modules/booking/ui/booking-items";
@@ -15,12 +14,12 @@ import type { SellItem } from "@/modules/shop/ui/item-tiles";
 import { DebtRow } from "@/modules/booking/ui/debt-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { cn } from "cn";
 import { BookingSheet } from "@/modules/booking/ui/booking-sheet/booking-sheet";
 import type { CollectActions } from "@/modules/booking/ui/booking-sheet/money-block";
 import { owesCash, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
 import type { SheetStep } from "@/modules/booking/ui/booking-sheet/sheet-header";
-import { CollectCount, UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
+import { EarlierDebtsHeader } from "@/modules/booking/ui/earlier-debts-header";
+import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
 
 export type { UpcomingRowView };
 
@@ -164,58 +163,20 @@ export function UpcomingPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      {games.length > 0 ? (
-        <section aria-labelledby="today-games-heading" className="flex flex-col gap-2">
-          <h2 id="today-games-heading" className="text-sm font-semibold text-muted-foreground">
-            {ui("owner.gamesHeading", locale)} (<LtrIsolate>{games.length}</LtrIsolate>)
-          </h2>
-          <UpcomingRows
-            rows={games}
-            openId={openId}
-            onOpen={openRowSheet}
-            onOpenInterests={openInterestSheet}
-            locale={locale}
-            highlight={highlight}
-            rowKeyPrefix="day"
-          />
-        </section>
-      ) : (
-        <EmptyState title={ui("empty.games", locale)} next={ui("empty.gamesNext", locale)} compact />
-      )}
-
-      {free ? <Fragment key="free-strip">{free}</Fragment> : null}
-
       {toCollect.length > 0 ? (
         <section
           id="earlier-debts"
           aria-labelledby="earlier-debts-heading"
           className="flex scroll-mt-4 flex-col gap-2"
         >
-          <h2 id="earlier-debts-heading" className="text-sm font-semibold text-muted-foreground">
-            {ui("owner.earlierDebtsHeading", locale)}
-          </h2>
-          {toCollect.length > 1 ? (
-            <button
-              type="button"
-              aria-expanded={collectShown}
-              aria-controls="to-collect-list"
-              onClick={() => setCollectOpen((open) => !open)}
-              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg border border-owed/60 bg-owed-subtle px-3 py-2 text-start text-sm font-semibold text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <span className="min-w-0 flex-1">
-                <CollectCount
-                  text={uiCount("owner.games", toCollect.length, locale)}
-                  plus={toCollectHasMore}
-                />
-                <span aria-hidden> · </span>
-                <LtrIsolate>{`$${toCollectTotal}${toCollectHasMore ? "+" : ""}`}</LtrIsolate>
-              </span>
-              <ChevronDown
-                aria-hidden
-                className={cn("size-5 shrink-0 transition-transform", collectShown && "rotate-180")}
-              />
-            </button>
-          ) : null}
+          <EarlierDebtsHeader
+            total={toCollectTotal}
+            hasMore={toCollectHasMore}
+            locale={locale}
+            expandable={toCollect.length > 1}
+            expanded={collectShown}
+            onToggle={() => setCollectOpen((open) => !open)}
+          />
           {toCollect.length === 1 || collectShown ? (
             <div id="to-collect-list" className="flex flex-col gap-2">
               {toCollect.map((row) => (
@@ -249,6 +210,27 @@ export function UpcomingPanel({
           ) : null}
         </section>
       ) : null}
+
+      {games.length > 0 ? (
+        <section aria-labelledby="today-games-heading" className="flex flex-col gap-2">
+          <h2 id="today-games-heading" className="text-sm font-semibold text-muted-foreground">
+            {ui("owner.gamesHeading", locale)} (<LtrIsolate>{games.length}</LtrIsolate>)
+          </h2>
+          <UpcomingRows
+            rows={games}
+            openId={openId}
+            onOpen={openRowSheet}
+            onOpenInterests={openInterestSheet}
+            locale={locale}
+            highlight={highlight}
+            rowKeyPrefix="day"
+          />
+        </section>
+      ) : (
+        <EmptyState title={ui("empty.games", locale)} next={ui("empty.gamesNext", locale)} compact />
+      )}
+
+      {free ? <Fragment key="free-strip">{free}</Fragment> : null}
 
       <BookingSheet
         sheetRow={sheetRow}

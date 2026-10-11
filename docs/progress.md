@@ -339,3 +339,45 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Drift (read only, nothing changed):** `prisma migrate diff` after the migrations shows two foreign keys where the SQL says `ON DELETE RESTRICT` and `schema.prisma` has no `onDelete` on an optional relation (Prisma's default is `SET NULL`): `Booking_seriesId_fkey` (created by `20261013090000_booking_series`, in `ecd0063`) and `BookingParticipant_personId_fkey` (created RESTRICT by `20260909080100_person_booking`; `personId` became optional in `20260924060000_per_player_foundation`, which only dropped NOT NULL). Both are on `main`; neither comes from the phone work.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the changed tests are written and NOT run.
+
+## Today: the selected day stays centred (branch `feat/today-refine`)
+
+**When:** 2026-10-14
+
+**What:** The measure-and-`scrollBy` that centres the selected day moved unchanged from `booking/ui/day-tabs.tsx` into `keepSelectedTabCentred` (`booking/ui/centre-selected-tab.ts`). It runs at once (the existing effect on `selected`), again when `document.fonts.ready` resolves (font loading changes the tab widths; skipped if `document.fonts` is missing), and again from a `ResizeObserver` on the tab list (skipped if undefined). The effect's cleanup disconnects the observer and ignores a late `fonts.ready`. Behaviour stays `auto`. Tab markup, styles and the calendar picker are untouched.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/modules/booking/centre-selected-tab.test.ts` (mocked boxes, `ResizeObserver` and `document.fonts`: centres at once, after fonts.ready, after a resize, stops after cleanup, works without both APIs) is written and NOT run. UNVERIFIED by eye in a browser, in Arabic and English.
+
+## Today: money owed from earlier days shown once, first (branch `feat/today-refine`)
+
+**When:** 2026-10-14
+
+**What:** Display only; no query, money write or schema change. The owed pill at the top of `lists.tsx` is gone. The `#earlier-debts` section is now the first section of `UpcomingPanel`, before games and the free strip (so Today reads New requests, To collect, Games, Available hours; `docs/ui-rules.md` rule 8 amended). Its header is the new `booking/ui/earlier-debts-header.tsx`: alert icon, "To collect", the total, "from earlier days" (copy key `owner.owedFromEarlier` reworded), in the `owed` tokens; with several rows it is the toggle with the chevron, with one it is a plain row. `id`, `collectOpen`, `collectShown` and the single-row behaviour are unchanged. `CollectCount` (now unused) was removed.
+
+**The total:** I did NOT reuse the Money Owed reader. `listOwed` (behind `/owner/money/owed`) needs `reports.view`, which Today does not require, and groups by person with per-player shares and shop tabs counted separately, while Today's rows are one per booking from `listEndedWithRemaining` (capped at 5, plus one to detect more), filtered to days before today. The definitions differ, so I kept the capped total and, when `toCollectHasMore`, it reads "at least $X" (new key `owner.owedAtLeast`, AR and EN) instead of a trailing "+". Whether the two totals happen to match was not checked.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/modules/booking/earlier-debts-header.test.ts` (header text, tokens, "at least", toggle vs plain row, and a source-order check that the section precedes games and the free strip) is written and NOT run. UNVERIFIED by eye in both languages.
+
+## Today: compact free hours (branch `feat/today-refine`)
+
+**What:** UI only, in `booking/ui/free-strip.tsx` (used only by Today through `FreeStripSection`). The pitch filter chips are gone: every pitch is shown, one row each, with its name (`type-section`, when names are shown) above its free hours on a single line (`flex-nowrap overflow-x-auto no-scrollbar`; the row starts from the right in Arabic because flex follows the direction). The "+N more" chip and its state went too, since the line scrolls. Chips are soft filled (`bg-surface-2`), no border, `type-label` with `tabular-nums`, `min-h-10`; the pressed and picked states (lime) and the pending-requests badge are unchanged. `components/ui/scrollbar-peek` was NOT used: it is a vertical overlay for the page scroll and does not fit a horizontal row, so the native bar is hidden with the existing `no-scrollbar`. The component no longer reads `?pitch=`; `book/actions.ts` still keeps a `pitch` query value on redirect (`TODAY_KEEP`), which is harmless and was left alone. The copy key `owner.allPitches` is now unused and was left. Possible: the focus ring of a chip may be clipped by the row's overflow.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. The existing `test/modules/free-strip.test.ts` covers only the domain `buildFreeStrip` and needed no change; the new `test/modules/booking/ui-free-strip.test.ts` (rows, no filter chips, one scrolling line, chip classes, badge, states) is written and NOT run. UNVERIFIED by eye.
+
+## Today: free hours wrap instead of scrolling (branch `feat/today-refine`)
+
+**What:** Follows the compact free hours entry: the sideways-scrolling line was easy to miss, so each pitch's hours are now a grid of equal-width chips (`grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]`, chips `w-full`, centred) that fill the line and wrap to the next, with no scrollbar. The whole section has `mt-3` more space above it. Chip look, states and badge are unchanged. A chip with a price and a badge may be tight at 5.5rem (88px); not checked on a 360px screen.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/modules/booking/ui-free-strip.test.ts` was updated for the grid and the top space and is NOT run. UNVERIFIED by eye.
+
+## Today: the To collect header wraps by parts (branch `feat/today-refine`)
+
+**What:** The Arabic "To collect · total · from earlier days" header is long on a narrow screen. `earlier-debts-header.tsx` now lays its three parts ("To collect", the total or "at least $X", "from earlier days") in a wrapping row, each part unbreakable, so a long line moves a whole part to a second line instead of breaking inside a phrase or being cut. The "·" separators are replaced by a gap (a wrapped line would otherwise end with a stray dot). The row keeps its minimum height and grows to two lines.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/modules/booking/earlier-debts-header.test.ts` was updated (text without dots, the wrapping row) and is NOT run. UNVERIFIED by eye at 360px in Arabic.
+
+## Today: no "at least" words in Arabic (branch `feat/today-refine`)
+
+**What:** Copy only. `owner.owedAtLeast` in Arabic is now `{amount}+` (was "على الأقل {amount}"), so the capped total in Arabic reads "$120+" while English keeps "at least $120". The plus keeps the signal that more is owed than the total shows.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the header test was updated and is NOT run.

@@ -1,22 +1,10 @@
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
-import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
+import { ClockRangeText } from "@/components/ui/ltr-isolate";
 import { CountedPhrase } from "@/modules/booking/ui/notify-list";
 import { BookingRow, StatusPill, variantOf } from "@/modules/booking/ui/booking-row";
 import { ExtendedMark } from "@/modules/booking/ui/extend-form";
 import type { UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
-
-export function CollectCount({ text, plus }: { text: string; plus: boolean }) {
-  const match = /^(\D*)(\d+)(.*)$/.exec(text);
-  if (!match) return <>{text}</>;
-  return (
-    <>
-      {match[1]}
-      <LtrIsolate>{`${match[2]}${plus ? "+" : ""}`}</LtrIsolate>
-      {match[3]}
-    </>
-  );
-}
 
 export function UpcomingRows({
   rows,
