@@ -44,7 +44,7 @@ describe("EarlierDebtsHeader", () => {
 
   it("shows 'at least $X' when more rows are behind the capped total", () => {
     expect(text(render({ hasMore: true }))).toBe("To collect at least $120 from earlier days");
-    expect(text(render({ hasMore: true }, "ar"))).toContain("$120+");
+    expect(text(render({ hasMore: true }, "ar"))).toContain("$120 +");
     expect(text(render({ hasMore: true }, "ar"))).not.toContain("على الأقل");
     expect(text(render({ hasMore: true }))).not.toContain("+");
   });
