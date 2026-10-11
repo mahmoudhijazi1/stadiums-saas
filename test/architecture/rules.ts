@@ -79,6 +79,8 @@ export const IMPURE_LIBS = [
  */
 export const UI_LIBS = [
   "src/lib/format", "src/lib/copy", "src/lib/locale", "src/lib/plural", "src/lib/utils",
+  // Browser-only reads through useSyncExternalStore (the page origin), replacing setState in an effect; no server code, no data.
+  "src/lib/use-browser-origin",
 ];
 
 /** Rule 6: packages a module ui/ file must not import. */
