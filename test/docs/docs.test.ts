@@ -19,6 +19,7 @@ const CORE = [
   "docs/README.md",
   "docs/NOW.md",
   "docs/CODEMAP.md",
+  "docs/KEY-FILES.md",
   "docs/ARCHITECTURE.md",
   "docs/DATA-MODEL.md",
   "docs/RUNBOOK.md",

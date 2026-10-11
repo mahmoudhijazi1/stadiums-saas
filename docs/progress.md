@@ -29,3 +29,17 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **How it connects:** The test reads files only; it imports nothing from `src/`.
 
 **How to verify:** `npx jest test/docs` (6 passed); `npx tsc --noEmit`; `npx jest test/architecture` (12 passed).
+
+## Key files: docs/KEY-FILES.md
+
+**When:** 2026-10-14
+
+**What:** New `docs/KEY-FILES.md`: the 15 files where a mistake would break money, bookings, tenant isolation or login (proxy, tenant-context, db, platform-db, can, login and session, rate-limit, the exclusion migration, bookings.ts, approve, request-public-slot, create-owner-booking, availability, record-payment, shop pricing). Each has Does, Why, Used by, Never change without (the invariant and the test files, all checked to exist). From your list `booking/domain/series.ts` was left out (feature-level, not isolation or money core; noted in the file) and "the payment collection use case" became `payment/application/record-payment.ts`, which writes payment, tenders and ledger for every collection path. Linked under Start here in `docs/README.md` and added to the core docs checked by `test/docs/docs.test.ts`. Branched from `refactor/08-docs` because `main` does not yet have the docs index or the docs test.
+
+**Why:** A new developer should know which files to treat with care and what proves them safe.
+
+**Files:** `docs/KEY-FILES.md`, `docs/README.md`, `test/docs/docs.test.ts`.
+
+**How it connects:** Docs only; no code under `src/` changed.
+
+**How to verify:** `npx jest test/docs` (6 passed). Claims marked UNVERIFIED in the file were not traced to code.

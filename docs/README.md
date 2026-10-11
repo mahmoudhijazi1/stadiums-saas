@@ -11,6 +11,7 @@ Rule of thumb: **Start here** and **Core** are living and must match the code. *
 - [NOW.md](./NOW.md) — what is live, what is in progress, the next three steps.
 - [CODEMAP.md](./CODEMAP.md) — where every folder and module lives, and where a new file goes.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — modules, allowed imports, layers, ui and app rules, request flow.
+- [KEY-FILES.md](./KEY-FILES.md) — the 15 files where a mistake breaks money, bookings, isolation or login, and the tests that guard them.
 
 ## Core
 - [DATA-MODEL.md](./DATA-MODEL.md) — tables, columns, constraints, migrations.
