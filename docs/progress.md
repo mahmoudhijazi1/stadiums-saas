@@ -259,3 +259,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the new tests (one per row of the agreed table) are written and NOT run.
+
+## Phone: country parameter for the canonical rule (branch `feat/phone-canonical`)
+
+**When:** 2026-10-14
+
+**What:** Pure domain only; no caller, schema, use case, query or UI changed. New `people/domain/countries.ts` (13 dialling codes with a key each, `DEFAULT_COUNTRY = "961"`, `isKnownCountry`; names come later from copy). `toCanonicalPhone(raw, country = "961")`: an unknown country is null; a `+` or `00` prefix ignores the country (the previous rule); no prefix with 961 is the previous Lebanese rule; no prefix with another country takes digits that start with its code and have 8 or more after it as already including the code, otherwise drops one leading 0 and puts the code in front, and the result must be 10 to 15 digits. Calls without a country behave as before.
+
+**Files:** `people/domain/countries.ts`, `people/domain/phone.ts`, `test/modules/people/domain/phone.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the new tests (the ten agreed rows, a no-country regression, a contract test, the country list) are written and NOT run.

@@ -1,3 +1,5 @@
+import { DEFAULT_COUNTRY, isKnownCountry } from "@/modules/people/domain/countries";
+
 /** Arabic-Indic (٠-٩) and Persian (۰-۹) digits to Latin, so a phone typed on an Arabic keyboard is the same number. */
 function latinDigits(raw: string): string {
   return raw
@@ -64,12 +66,16 @@ function lebaneseCanonical(rest: string): string | null {
  *
  * - "+" or "00" in front means international. "961": the rest, minus one leading 0, must be 7
  *   digits or 8 digits starting with 7 or 8. Another country: 8 to 15 digits in all.
- * - No prefix: 961 followed by 10 or 11 digits in all is read as international Lebanese;
- *   anything else loses one leading 0 and must be a valid national number.
+ * - No prefix, country 961 (the default): 961 followed by 10 or 11 digits in all is read as
+ *   international Lebanese; anything else loses one leading 0 and must be a valid national number.
+ * - No prefix, another known country: digits that start with its code and have 8 or more after it
+ *   already include the code; otherwise one leading 0 is dropped and the code put in front. The
+ *   result must be 10 to 15 digits. A "+" or "00" prefix ignores `country`. An unknown country is null.
  *
  * Pure: not used by any caller yet (normalizePhone is still what is stored).
  */
-export function toCanonicalPhone(raw: string): string | null {
+export function toCanonicalPhone(raw: string, country: string = DEFAULT_COUNTRY): string | null {
+  if (!isKnownCountry(country)) return null;
   const text = latinDigits(raw).trim();
   if (text === "" || !/^[0-9+\-().\s]+$/.test(text)) return null;
   const compact = text.replace(/[\s\-().]/g, "");
@@ -89,10 +95,24 @@ export function toCanonicalPhone(raw: string): string | null {
     if (digits.startsWith("961")) return lebaneseCanonical(digits.slice(3));
     return digits.length >= 8 && digits.length <= 15 ? digits : null;
   }
+  if (country !== "961") return otherCountryCanonical(digits, country);
   if (digits.startsWith("961") && (digits.length === 10 || digits.length === 11)) {
     return lebaneseCanonical(digits.slice(3));
   }
   return lebaneseCanonical(digits);
+}
+
+/**
+ * A number typed with no prefix for a country other than Lebanon. Digits that start with the
+ * country code and have at least 8 more are taken as already including the code; otherwise one
+ * leading 0 is dropped and the code is put in front. The whole must be 10 to 15 digits.
+ */
+function otherCountryCanonical(digits: string, country: string): string | null {
+  const full =
+    digits.startsWith(country) && digits.length - country.length >= 8
+      ? digits
+      : `${country}${digits.startsWith("0") ? digits.slice(1) : digits}`;
+  return full.length >= 10 && full.length <= 15 ? full : null;
 }
 
 /**

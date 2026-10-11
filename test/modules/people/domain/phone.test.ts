@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { formatPhoneDisplay, normalizePhone, toCanonicalPhone, toLebanonNumber, toPhoneSearchDigits } from "@/modules/people/domain/phone";
+import { COUNTRIES, DEFAULT_COUNTRY, isKnownCountry } from "@/modules/people/domain/countries";
 import { whatsAppChatHref } from "@/modules/notification/domain/whatsapp-link";
 
 describe("normalizePhone", () => {
@@ -115,5 +116,51 @@ describe("toPhoneSearchDigits", () => {
 describe("formatPhoneDisplay: other countries", () => {
   it("puts a + on a canonical foreign number", () => {
     expect(formatPhoneDisplay("963933123456")).toBe("+963933123456");
+  });
+});
+
+describe("toCanonicalPhone with a country", () => {
+  const rows: [string, string, string | null][] = [
+    ["0933 123 456", "963", "963933123456"],
+    ["933123456", "963", "963933123456"],
+    ["963933123456", "963", "963933123456"],
+    ["+961 71 123 456", "963", "96171123456"],
+    ["0096171123456", "963", "96171123456"],
+    ["71 123 456", "961", "96171123456"],
+    ["933", "963", null],
+    ["71123456", "999", null],
+    ["06 12 34 56 78", "33", "33612345678"],
+    ["2025550123", "1", "12025550123"],
+  ];
+  for (const [input, country, expected] of rows) {
+    it(`${JSON.stringify(input)} for ${country} -> ${JSON.stringify(expected)}`, () => {
+      expect(toCanonicalPhone(input, country)).toBe(expected);
+    });
+  }
+
+  it("keeps every call without a country exactly as before (Lebanon)", () => {
+    expect(toCanonicalPhone("71123456")).toBe("96171123456");
+    expect(toCanonicalPhone("03123456")).toBe("9613123456");
+    expect(toCanonicalPhone("0933123456")).toBeNull();
+  });
+
+  it("contract: every non-null result is 10 to 15 digits only and is stable when read back as international", () => {
+    for (const [input, country] of rows) {
+      const result = toCanonicalPhone(input, country);
+      if (result === null) continue;
+      expect(result).toMatch(/^\d{10,15}$/);
+      expect(toCanonicalPhone(`+${result}`)).toBe(result);
+    }
+  });
+});
+
+describe("countries", () => {
+  it("starts with Lebanon as the default and knows only listed codes", () => {
+    expect(COUNTRIES[0]).toEqual({ code: "961", key: "lb" });
+    expect(DEFAULT_COUNTRY).toBe("961");
+    expect(COUNTRIES.map((country) => country.code)).toEqual(["961", "963", "970", "962", "964", "20", "966", "971", "974", "965", "33", "49", "1"]);
+    expect(isKnownCountry("963")).toBe(true);
+    expect(isKnownCountry("999")).toBe(false);
+    expect(isKnownCountry("")).toBe(false);
   });
 });
