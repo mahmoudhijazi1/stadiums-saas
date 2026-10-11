@@ -1,13 +1,11 @@
-import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
 import { freePitches } from "@/modules/booking/domain/free-times";
-import { lastPublicDay } from "@/modules/booking/domain/public-window";
-import { getDayAvailability } from "@/modules/venue/application/get-day-availability";
-import { findNextFreeDay } from "@/modules/venue/application/find-next-free-day";
+import { getDayAvailability, type OccupiedWindow } from "@/modules/venue/application/get-day-availability";
+import { firstFreeDayAfter, type NextFreeTime, type WindowDay } from "@/modules/venue/application/get-window-summary";
 import type { CivilDate } from "@/modules/venue/domain/availability";
-import { PublicTimes } from "@/app/(public)/_components/times";
-import { stadiumChatHref } from "@/app/(public)/_components/stadium-contact";
 import { weekdayLabel } from "@/modules/venue/ui/weekday-label";
+import { PublicBooking, type NextFreeView } from "@/app/(public)/_components/booking";
 import { NoFreeTimes } from "@/app/(public)/_components/no-free-times";
+import { stadiumChatHref } from "@/app/(public)/_components/stadium-contact";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { UiLocale } from "@/lib/locale";
 import { getCurrentTenant } from "@/lib/tenant-context";
@@ -15,11 +13,21 @@ import { cancelPolicyLine, cancelUpToLine, ui } from "@/lib/copy";
 
 const TIME_ZONE = "Asia/Beirut";
 
+/** "Today", "Tomorrow", else "Fri 16". */
+function dayLabelOf(day: CivilDate, today: CivilDate, locale: UiLocale): string {
+  const offset = Math.round(
+    (Date.UTC(day.year, day.month - 1, day.day) - Date.UTC(today.year, today.month - 1, today.day)) / 86_400_000,
+  );
+  if (offset === 0) return ui("public.today", locale);
+  if (offset === 1) return ui("public.tomorrow", locale);
+  return `${weekdayLabel(day, locale)} ${day.day}`;
+}
+
 /**
- * Thin times RSC. Occupied from Booking; Venue only UTC ranges (SPEC-05).
- * Only free times reach the chips (taken and already-started ones are dropped). When the day has
- * none, the next day with a free time is looked up (one extra query, the pitches) for the link.
- * Clocks follow Tenant.settings.timeDisplay, same formatter as WhatsApp.
+ * Thin day RSC. Occupied ranges and the window summary come from the page (loaded once); the day's
+ * rows come from getDayAvailability. Taken times stay in the list (faded), started ones are gone.
+ * When nothing is free the day says so and links to the next free day. Clocks follow
+ * Tenant.settings.timeDisplay, same formatter as WhatsApp.
  */
 export async function PublicHours({
   localDate,
@@ -27,6 +35,9 @@ export async function PublicHours({
   locale,
   now,
   today,
+  occupied,
+  days,
+  nextFree,
 }: {
   localDate: CivilDate;
   dateValue: string;
@@ -34,9 +45,11 @@ export async function PublicHours({
   now: Date;
   /** Business date (page's "Today" chip). */
   today: CivilDate;
+  occupied: OccupiedWindow[];
+  days: WindowDay[];
+  nextFree: NextFreeTime | null;
 }) {
   const tenant = await getCurrentTenant();
-  const occupied = await listApprovedOccupied();
   const pitches = await getDayAvailability({
     localDate,
     timeZone: TIME_ZONE,
@@ -56,27 +69,41 @@ export async function PublicHours({
     );
   }
 
-  const free = freePitches(pitches);
-  if (free.length === 0) {
-    const nextFree = await findNextFreeDay({
-      after: localDate,
-      lastDay: lastPublicDay(today),
-      timeZone: TIME_ZONE,
-      now,
-      occupied,
-    });
-    return <NoFreeTimes nextFree={nextFree} locale={locale} />;
-  }
+  const rows = pitches.filter((pitch) => pitch.slots.length > 0);
+  const hasFree = freePitches(pitches).length > 0;
+  const nextView: NextFreeView | null = nextFree
+    ? {
+        pitchId: nextFree.pitchId,
+        pitchName: nextFree.pitchName,
+        slot: {
+          startIso: nextFree.startIso,
+          endIso: nextFree.endIso,
+          startLocal: nextFree.startLocal,
+          endLocal: nextFree.endLocal,
+          priceUsd: nextFree.priceUsd,
+          available: true,
+        },
+        dateValue: nextFree.dateKey,
+        dayLabel: dayLabelOf(nextFree.date, today, locale),
+        durationMinutes: nextFree.durationMinutes,
+      }
+    : null;
+  const nextFreeDay = hasFree ? null : firstFreeDayAfter(days, dateValue);
 
   return (
-    <PublicTimes
-      pitches={free}
+    <PublicBooking
+      nextFree={nextView}
+      pitches={rows}
       dateValue={dateValue}
       dayLabel={`${weekdayLabel(localDate, locale)} ${localDate.day}`}
       locale={locale}
+      timeZone={TIME_ZONE}
+      dayStartHour={tenant.dayStartHour}
       cancelLine={cancelUpToLine(tenant.cancellationWindowHours, locale) || null}
       feeLine={cancelPolicyLine(tenant.cancellationWindowHours, tenant.lateCancellationFeePercent, locale) || null}
       whatsappHref={stadiumChatHref(tenant.whatsapp)}
+      emptyDay={hasFree ? null : <NoFreeTimes nextFree={nextFreeDay} locale={locale} />}
     />
   );
 }
+

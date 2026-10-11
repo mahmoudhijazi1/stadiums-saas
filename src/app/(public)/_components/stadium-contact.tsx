@@ -11,7 +11,7 @@ export function stadiumChatHref(whatsapp: string): string | null {
 }
 
 const BUTTON =
-  "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 type-body font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-surface px-3 type-body font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 /**
  * The stadium's own contact buttons on its public page: Open in Maps (only when a link is set),

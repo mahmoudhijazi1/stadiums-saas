@@ -5,6 +5,7 @@ import {
   formatCivilDate,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
+import type { AvailabilityLevel } from "@/modules/venue/domain/availability-level";
 import { dayChipClass } from "@/modules/venue/ui/day-chip-class";
 import { weekdayLabel } from "@/modules/venue/ui/weekday-label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
@@ -24,6 +25,7 @@ export function DayStrip({
   selectedDate,
   pathname,
   dateQueryKey,
+  levels,
   locale = "ar",
 }: {
   today: CivilDate;
@@ -31,6 +33,8 @@ export function DayStrip({
   selectedDate: string;
   pathname: string;
   dateQueryKey: string;
+  /** How full each day is, by yyyy-mm-dd: dots under the number. Omitted: no dots. */
+  levels?: Record<string, AvailabilityLevel>;
   locale?: UiLocale;
 }) {
   const days: CivilDate[] = [];
@@ -50,7 +54,7 @@ export function DayStrip({
                 href={{ pathname, query: { [dateQueryKey]: date } }}
                 scroll={false}
                 aria-current={selected ? "date" : undefined}
-                className={dayChipClass(selected)}
+                className={cn(dayChipClass(selected), levels && "h-16")}
               >
                 <span className="flex w-full min-w-0 flex-col items-center gap-0.5">
                   <span className={cn("w-full truncate text-center", selected ? "text-selected-ink" : "text-ink-muted")}>
@@ -61,6 +65,7 @@ export function DayStrip({
                   >
                     {String(day.day)}
                   </LtrIsolate>
+                  {levels ? <AvailabilityDots level={levels[date] ?? 0} selected={selected} /> : null}
                 </span>
               </Link>
             </li>
@@ -68,5 +73,19 @@ export function DayStrip({
         })}
       </ul>
     </nav>
+  );
+}
+
+/** Three dots, two, one, or an empty ring for a full or closed day.. */
+function AvailabilityDots({ level, selected }: { level: AvailabilityLevel; selected: boolean }) {
+  const tone = selected ? "bg-selected-ink" : "bg-accent-brand";
+  return (
+    <span aria-hidden className="flex h-1.5 items-center gap-0.5" data-level={level}>
+      {level === 0 ? (
+        <span className={cn("size-1.5 rounded-full border", selected ? "border-selected-ink" : "border-ink-muted")} />
+      ) : (
+        Array.from({ length: level }, (_, index) => <span key={index} className={cn("size-1 rounded-full", tone)} />)
+      )}
+    </span>
   );
 }

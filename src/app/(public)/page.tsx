@@ -7,10 +7,12 @@ import {
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 import { DayStrip } from "@/modules/venue/ui/day-strip";
-import { StadiumContact } from "@/app/(public)/_components/stadium-contact";
+import { HeaderBand } from "@/app/(public)/_components/header-band";
+import { listApprovedOccupied } from "@/modules/booking/application/list-approved-occupied";
+import { getWindowSummary } from "@/modules/venue/application/get-window-summary";
+import { availabilityLevel } from "@/modules/venue/domain/availability-level";
 import { PublicHoursSkeleton } from "@/app/(public)/_components/skeletons";
 import { PublicHours } from "@/app/(public)/_components/hours";
-import { LangToggle } from "@/components/shell/lang-toggle";
 import { Container } from "@/components/ui/container";
 import { UnavailableNotice } from "@/components/shell/unavailable-notice";
 import { getUiLocale } from "@/lib/get-ui-locale";
@@ -41,36 +43,30 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const localDate = clampPublicDay(parseCivilDate(dateParam), today, today);
   const dateValue = formatCivilDate(localDate);
 
+  const occupied = await listApprovedOccupied();
+  const { days, nextFree } = await getWindowSummary({
+    from: today,
+    lastDay: lastPublicDay(today),
+    timeZone: "Asia/Beirut",
+    now,
+    occupied,
+    hourCycle: tenant.timeDisplay,
+    locale,
+  });
+  const levels = Object.fromEntries(days.map((day) => [day.key, availabilityLevel(day.freeCount)]));
+
   return (
     <main>
     <Container className="flex flex-col gap-6 py-8">
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- a small generated PNG from our own route */}
-          <img
-            src={brandIconPath("192", brandIdentityOf(tenant))}
-            alt=""
-            width={48}
-            height={48}
-            className="size-12 shrink-0 rounded-xl"
-          />
-          <div className="flex min-w-0 flex-col">
-            <h1 className="min-w-0 font-heading text-3xl lg:text-4xl">{tenant.name}</h1>
-            {tenant.address ? (
-              <p className="type-secondary text-ink-muted" dir="auto">
-                {tenant.address}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <LangToggle locale={locale} onChangeLocale={setUiLocale} />
-      </header>
-
-      <StadiumContact
+      <HeaderBand
+        name={tenant.name}
+        address={tenant.address}
+        logoSrc={brandIconPath("192", brandIdentityOf(tenant))}
         mapLink={tenant.mapLink}
         phone={tenant.phone}
         whatsapp={tenant.whatsapp}
         locale={locale}
+        onChangeLocale={setUiLocale}
       />
 
       <DayStrip
@@ -79,6 +75,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         selectedDate={dateValue}
         pathname="/"
         dateQueryKey="date"
+        levels={levels}
         locale={locale}
       />
 
@@ -90,6 +87,9 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
             locale={locale}
             now={now}
             today={today}
+            occupied={occupied}
+            days={days}
+            nextFree={nextFree}
           />
         </Suspense>
       </section>
