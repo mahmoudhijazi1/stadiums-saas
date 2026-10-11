@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { errorMessage } from "@/lib/copy/errors";
 import { ui } from "@/lib/copy";
+import { getUiLocale } from "@/lib/get-ui-locale";
+import { htmlDir, htmlLang } from "@/lib/locale";
+import { LangToggle } from "@/components/shell/lang-toggle";
+import { setUiLocale } from "@/app/locale-actions";
 import { submitLogin } from "@/app/owner/login/actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import {
@@ -19,7 +23,7 @@ import { Container } from "@/components/ui/container";
 /**
  * Thin login route. No Prisma and no tenantId.
  * Tenant comes from the host subdomain.
- * Always Arabic RTL — no locale toggle on this screen (cookie EN must not flip it).
+ * Follows the stored language (Arabic by default) and has the language control at the top end.
  * Lives under /owner so the installed app stays inside the manifest scope.
  */
 export default async function LoginPage({
@@ -27,34 +31,38 @@ export default async function LoginPage({
 }: PageProps<"/owner/login">) {
   const tenant = await getCurrentTenant();
   if (tenant.suspended) redirect("/owner/suspended");
+  const locale = await getUiLocale();
   const params = await searchParams;
   const errorKey = typeof params.error === "string" ? params.error : undefined;
 
   return (
     <main
-      dir="rtl"
-      lang="ar"
+      dir={htmlDir(locale)}
+      lang={htmlLang(locale)}
       className="flex min-h-svh flex-col justify-center py-10"
     >
       <Container className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <LangToggle locale={locale} onChangeLocale={setUiLocale} />
+      </div>
       <Card className="w-full">
         <CardHeader className="gap-2">
           <CardTitle className="font-heading text-3xl leading-tight lg:text-4xl">
             {tenant.name}
           </CardTitle>
           <CardDescription className="text-base">
-            {ui("login.title", "ar")}
+            {ui("login.title", locale)}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {errorKey ? (
             <p className="mb-6 text-sm text-destructive" role="alert">
-              {errorMessage(errorKey, "ar")}
+              {errorMessage(errorKey, locale)}
             </p>
           ) : null}
           <form action={submitLogin} className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="identifier">{ui("login.identifier", "ar")}</Label>
+              <Label htmlFor="identifier">{ui("login.identifier", locale)}</Label>
               <Input
                 id="identifier"
                 type="text"
@@ -67,7 +75,7 @@ export default async function LoginPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{ui("login.password", "ar")}</Label>
+              <Label htmlFor="password">{ui("login.password", locale)}</Label>
               <Input
                 id="password"
                 type="password"
@@ -79,7 +87,7 @@ export default async function LoginPage({
               />
             </div>
             <SubmitButton className="w-full">
-              {ui("login.submit", "ar")}
+              {ui("login.submit", locale)}
             </SubmitButton>
           </form>
         </CardContent>

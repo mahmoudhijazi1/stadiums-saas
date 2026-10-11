@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { UnavailableNotice } from "@/components/shell/unavailable-notice";
 import { getUiLocale } from "@/lib/get-ui-locale";
+import { setUiLocale } from "@/app/locale-actions";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { publicPageMetadata } from "@/app/(public)/_components/public-metadata";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
@@ -31,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const tenant = await getCurrentTenant();
   if (tenant.suspended) {
-    return <UnavailableNotice kind="public" locale={await getUiLocale()} />;
+    return <UnavailableNotice kind="public" locale={await getUiLocale()} onChangeLocale={setUiLocale} />;
   }
   return children;
 }

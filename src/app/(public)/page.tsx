@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   const tenant = await getCurrentTenant();
   const locale = await getUiLocale();
   // The (public) layout already shows the neutral page; never render tenant data here either.
-  if (tenant.suspended) return <UnavailableNotice kind="public" locale={locale} />;
+  if (tenant.suspended) return <UnavailableNotice kind="public" locale={locale} onChangeLocale={setUiLocale} />;
   const params = await searchParams;
   const dateParam = typeof params.date === "string" ? params.date : undefined;
   const now = new Date();

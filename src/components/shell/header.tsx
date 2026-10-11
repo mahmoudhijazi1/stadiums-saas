@@ -19,6 +19,7 @@ export function OwnerHeader({
   showSell,
   logoSrc,
   onLogout,
+  onChangeLocale,
 }: {
   tenantName: string;
   publicUrl: string;
@@ -28,6 +29,8 @@ export function OwnerHeader({
   /** shop.sell: the sell button beside search. */
   showSell: boolean;
   onLogout: (formData: FormData) => Promise<void>;
+  /** The real Server Action (setUiLocale), for the language control in the business menu. */
+  onChangeLocale: (value: string) => Promise<unknown>;
 }) {
   return (
     <header
@@ -44,7 +47,7 @@ export function OwnerHeader({
           "xl:max-w-6xl",
         )}
       >
-        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} logoSrc={logoSrc} onLogout={onLogout} />
+        <BusinessMenu tenantName={tenantName} publicUrl={publicUrl} locale={locale} logoSrc={logoSrc} onLogout={onLogout} onChangeLocale={onChangeLocale} />
         <div className="flex shrink-0 items-center">
           {showSell ? (
             <Link

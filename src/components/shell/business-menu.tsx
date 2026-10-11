@@ -10,6 +10,7 @@ import {
   BottomSheetHeader,
   BottomSheetTitle,
 } from "@/components/ui/bottom-sheet";
+import { LangToggle } from "@/components/shell/lang-toggle";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
@@ -23,6 +24,7 @@ export function BusinessMenu({
   locale,
   logoSrc,
   onLogout,
+  onChangeLocale,
 }: {
   tenantName: string;
   publicUrl: string;
@@ -31,6 +33,8 @@ export function BusinessMenu({
   logoSrc: string;
   /** The page passes the real Server Action (submitLogout). */
   onLogout: (formData: FormData) => Promise<void>;
+  /** The page passes the real Server Action (setUiLocale). */
+  onChangeLocale: (value: string) => Promise<unknown>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -60,6 +64,7 @@ export function BusinessMenu({
           </BottomSheetHeader>
           <BottomSheetBody className="flex flex-col items-center gap-4">
             <ShareCard locale={locale} tenantName={tenantName} publicUrl={publicUrl} />
+            <LangToggle locale={locale} onChangeLocale={onChangeLocale} />
             <form action={onLogout} className="w-full">
               <SubmitButton
                 variant="ghost"

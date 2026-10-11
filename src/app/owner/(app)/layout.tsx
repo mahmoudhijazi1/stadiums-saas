@@ -18,6 +18,7 @@ import { Container } from "@/components/ui/container";
 import { FlashToast } from "@/components/ui/flash-toast";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { submitLogout } from "@/app/owner/login/actions";
+import { setUiLocale } from "@/app/locale-actions";
 
 /**
  * Shell for routes inside (app). Local route-groups.md: the parenthesized
@@ -63,6 +64,7 @@ export default async function OwnerLayout({
           locale={locale}
           showSell={showSell}
           onLogout={submitLogout}
+          onChangeLocale={setUiLocale}
           logoSrc={brandIconPath("192", brandIdentityOf(tenant))}
         />
         <Container className="flex flex-1 flex-col gap-8 py-6">{children}</Container>
