@@ -71,3 +71,17 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **How it connects:** booking/ui still imports no application, infrastructure or `@/app` code (architecture test passes).
 
 **How to verify:** `npx tsc --noEmit` (clean, checked with `.next` excluded: a half-written `.next/dev/types/validator.ts` from a running dev server breaks the plain command); `npx jest test/architecture test/docs test/modules/booking test/app test/components` (46 suites, 360 tests). The sheet was not rendered in a browser and there is no component test for it: UNVERIFIED at runtime.
+
+## Release v1.1.0
+
+**When:** 2026-10-14
+
+**What:** The app is marked version 1.1.0: `package.json` and `package-lock.json` say `1.1.0` (were `1.0.0`), `docs/NOW.md` names `v1.1.0`, and the commit is tagged `v1.1.0` in git. It includes the whole architecture cleanup (steps 1 to 7b and the docs reset).
+
+**Why:** A named release point after the refactor, so the server can deploy a tag and roll back to `v1.0.0` (RUNBOOK, "Roll back to a tag").
+
+**Files:** `package.json`, `package-lock.json`, `docs/NOW.md`, `docs/progress.md`.
+
+**How it connects:** Version label and status text only; no code or behaviour changes.
+
+**How to verify:** `git tag -l v1.1.0`; `npm pkg get version` prints `"1.1.0"`. Nothing was run for the release itself; the full suites, the integration tests and the build were not run in this session (CI runs them).
