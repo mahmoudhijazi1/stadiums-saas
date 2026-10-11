@@ -239,3 +239,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Files:** `app/owner/(app)/requests/_components/pending-list.tsx`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. `test/app/owner/requests-decision-row.test.ts` (source-text checks of the grid row) was not edited and not run. UNVERIFIED in a browser: the card height, the wrapping of row 2 at 360px in Arabic and English, and the name truncation.
+
+## Requests card: name with the person icon, no underline (branch `feat/requests-card-polish`)
+
+**When:** 2026-10-14
+
+**What:** On the pending card the name now shows the person icon and is not underlined. `PersonLink`'s `plain` prop changed meaning: it now keeps the icon and the accent colour and drops the underline and the chevron (before: it dropped the icon and the chevron and kept the underline). Only the pending card passes `plain`; the default look and `prominent` are unchanged.
+
+**Files:** `people/ui/person-link.tsx`.
+
+**How to verify:** `npx tsc --noEmit` only; no test touches `PersonLink`. UNVERIFIED by eye.
