@@ -369,3 +369,9 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Follows the compact free hours entry: the sideways-scrolling line was easy to miss, so each pitch's hours are now a grid of equal-width chips (`grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))]`, chips `w-full`, centred) that fill the line and wrap to the next, with no scrollbar. The whole section has `mt-3` more space above it. Chip look, states and badge are unchanged. A chip with a price and a badge may be tight at 5.5rem (88px); not checked on a 360px screen.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; `test/modules/booking/ui-free-strip.test.ts` was updated for the grid and the top space and is NOT run. UNVERIFIED by eye.
+
+## Today: the To collect header wraps by parts (branch `feat/today-refine`)
+
+**What:** The Arabic "To collect · total · from earlier days" header is long on a narrow screen. `earlier-debts-header.tsx` now lays its three parts ("To collect", the total or "at least $X", "from earlier days") in a wrapping row, each part unbreakable, so a long line moves a whole part to a second line instead of breaking inside a phrase or being cut. The "·" separators are replaced by a gap (a wrapped line would otherwise end with a stray dot). The row keeps its minimum height and grows to two lines.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/modules/booking/earlier-debts-header.test.ts` was updated (text without dots, the wrapping row) and is NOT run. UNVERIFIED by eye at 360px in Arabic.

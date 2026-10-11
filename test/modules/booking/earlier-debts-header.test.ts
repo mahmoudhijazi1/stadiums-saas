@@ -20,16 +20,22 @@ function render(props: Partial<Parameters<typeof EarlierDebtsHeader>[0]> = {}, l
   );
 }
 
-const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 describe("EarlierDebtsHeader", () => {
   it("reads: To collect, the total, from earlier days, with the alert icon and the owed tokens", () => {
     const html = render();
-    expect(text(html)).toBe("To collect · $120 · from earlier days");
+    expect(text(html)).toBe("To collect $120 from earlier days");
     expect(html).toContain("text-owed");
     expect(html).toContain("bg-owed-subtle");
     expect(html).not.toContain("amber");
     expect(html).toContain('id="earlier-debts-heading"');
+  });
+
+  it("wraps by parts: three nowrap parts in a wrapping row", () => {
+    const html = render({}, "ar");
+    expect(html).toContain("flex-wrap");
+    expect(html.match(/whitespace-nowrap/g)).toHaveLength(3);
   });
 
   it("shows the exact total, without a +", () => {
@@ -37,7 +43,7 @@ describe("EarlierDebtsHeader", () => {
   });
 
   it("shows 'at least $X' when more rows are behind the capped total", () => {
-    expect(text(render({ hasMore: true }))).toBe("To collect · at least $120 · from earlier days");
+    expect(text(render({ hasMore: true }))).toBe("To collect at least $120 from earlier days");
     expect(text(render({ hasMore: true }, "ar"))).toContain("على الأقل $120");
     expect(text(render({ hasMore: true }))).not.toContain("+");
   });

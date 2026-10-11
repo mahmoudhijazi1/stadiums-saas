@@ -10,7 +10,8 @@ const rowClass =
 /**
  * The one place Today shows money owed from earlier days: alert icon, "To collect", the total, "from
  * earlier days". The total is the capped list's sum, so with more rows behind it the amount reads
- * "at least $X" rather than a bare "+". With several rows the header is the toggle (chevron); with
+ * "at least $X" rather than a bare "+". The three parts wrap as units, so a long Arabic line
+ * takes a second line instead of breaking inside a phrase. With several rows the header is the toggle (chevron); with
  * one the row is shown and the header is plain.
  */
 export function EarlierDebtsHeader({
@@ -32,20 +33,22 @@ export function EarlierDebtsHeader({
   const content = (
     <>
       <CircleAlert aria-hidden className="size-5 shrink-0" />
-      <span className="min-w-0 flex-1">
-        <span id="earlier-debts-heading">{ui("owner.toCollect", locale)}</span>
-        <span aria-hidden> · </span>
-        {hasMore ? (
-          <>
-            {ui("owner.owedAtLeast", locale).split("{amount}")[0]}
-            {amount}
-            {ui("owner.owedAtLeast", locale).split("{amount}")[1]}
-          </>
-        ) : (
-          amount
-        )}
-        <span aria-hidden> · </span>
-        {ui("owner.owedFromEarlier", locale)}
+      <span className="flex min-w-0 flex-1 flex-wrap gap-x-2 leading-snug">
+        <span id="earlier-debts-heading" className="whitespace-nowrap">
+          {ui("owner.toCollect", locale)}
+        </span>
+        <span className="whitespace-nowrap">
+          {hasMore ? (
+            <>
+              {ui("owner.owedAtLeast", locale).split("{amount}")[0]}
+              {amount}
+              {ui("owner.owedAtLeast", locale).split("{amount}")[1]}
+            </>
+          ) : (
+            amount
+          )}
+        </span>
+        <span className="whitespace-nowrap">{ui("owner.owedFromEarlier", locale)}</span>
       </span>
     </>
   );
