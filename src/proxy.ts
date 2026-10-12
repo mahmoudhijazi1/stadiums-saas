@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isBareHostFromHeaders, resolveTenantFromHeaders } from "@/lib/tenant-slug";
+import { isPlatformPath, platformServed, resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -47,20 +47,6 @@ export function proxy(request: NextRequest) {
   }
   renewSessionCookie(request, response);
   return response;
-}
-
-/** `/platform` and anything under it. */
-function isPlatformPath(pathname: string): boolean {
-  return pathname === "/platform" || pathname.startsWith("/platform/");
-}
-
-/**
- * The platform admin is served only on exactly the bare host, and in production only when
- * APP_PROTOCOL is https. Reads the request headers and two env values: no session, no database.
- */
-function platformServed(headers: Headers): boolean {
-  const insecureProduction = process.env.NODE_ENV === "production" && process.env.APP_PROTOCOL !== "https";
-  return isBareHostFromHeaders(headers) && !insecureProduction;
 }
 
 /**

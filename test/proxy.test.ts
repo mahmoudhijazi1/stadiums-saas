@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "@jest/globals";
 import { NextRequest } from "next/server";
@@ -153,9 +153,46 @@ describe("proxy /platform", () => {
     expect(response.headers.get("cache-control")).toBeNull();
   });
 
-  it("the placeholder page imports nothing that resolves a tenant", () => {
-    const source = readFileSync(join(process.cwd(), "src", "app", "(platform)", "platform", "page.tsx"), "utf8");
-    expect(source).not.toMatch(/tenant-context|platform-db|@\/lib\/db|getCurrentTenant/);
-    expect(source).toContain("index: false");
+  it("answers 404 on a tenant host for an encoded spelling of /platform (Next decodes the path when it matches a route)", () => {
+    for (const path of ["/%70latform", "/%70latform/login", "/platform%2F", "/platform%2Flogin"]) {
+      expect(at("ahmad.lebstads.test", path).status).toBe(404);
+      expect(at("www.lebstads.test", path).status).toBe(404);
+    }
+    // On the bare host the same spellings are treated as /platform (served, with the headers).
+    const bare = at("lebstads.test", "/%70latform");
+    expect(bare.status).toBe(200);
+    expect(bare.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("no file of the platform route group imports tenant resolution or the database client", () => {
+    const root = join(process.cwd(), "src", "app", "(platform)");
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) walk(path);
+        else if (/\.(ts|tsx)$/.test(entry.name)) files.push(path);
+      }
+    };
+    walk(root);
+    expect(files.length).toBeGreaterThanOrEqual(4); // layout, page, login/page, actions
+    for (const file of files) {
+      // Only the import statements count: a comment may name what the file does not use.
+      const imports = readFileSync(file, "utf8").split(/\r?\n/).filter((line) => /^\s*import\b/.test(line)).join(" ");
+      expect([file, /tenant-context|platform-db|@\/lib\/db"/.test(imports)]).toEqual([file, false]);
+    }
+    const layout = readFileSync(join(root, "platform", "layout.tsx"), "utf8");
+    expect(layout).toContain("index: false");
+    expect(layout).toContain("requirePlatformHost");
+  });
+
+  it("every Server Action of the platform admin runs the host guard first", () => {
+    const source = readFileSync(join(process.cwd(), "src", "app", "(platform)", "platform", "actions.ts"), "utf8");
+    const actions = source.split(/export async function /).slice(1);
+    expect(actions.length).toBeGreaterThanOrEqual(2);
+    for (const action of actions) {
+      const body = action.slice(action.indexOf("{") + 1);
+      expect(body.trimStart().startsWith("await requirePlatformHost();")).toBe(true);
+    }
   });
 });

@@ -121,3 +121,31 @@ export function resolveTenantFromHeaders(list: {
 export function isBareHostFromHeaders(list: { get(name: string): string | null }): boolean {
   return isBareHost({ host: list.get("host"), forwardedHost: list.get("x-forwarded-host") });
 }
+
+/**
+ * The one rule for serving the platform admin (DR-006): exactly the bare host, and in production
+ * only when APP_PROTOCOL is https. The proxy and the server-side guard (`requirePlatformHost`) both
+ * call it, so they can never disagree. Reads headers and two env values only.
+ */
+export function platformServed(
+  list: { get(name: string): string | null },
+  env: { NODE_ENV?: string; APP_PROTOCOL?: string } = process.env,
+): boolean {
+  const insecureProduction = env.NODE_ENV === "production" && env.APP_PROTOCOL !== "https";
+  return isBareHostFromHeaders(list) && !insecureProduction;
+}
+
+/**
+ * Is this request path the platform admin? The path is percent-decoded first, because Next decodes
+ * it when it matches a route: "/%70latform" and "/platform%2F" reach /platform. A malformed
+ * escape counts as platform when it spells the word, so it fails closed.
+ */
+export function isPlatformPath(pathname: string): boolean {
+  let path = pathname;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    return /platform/i.test(pathname);
+  }
+  return path === "/platform" || path.startsWith("/platform/");
+}
