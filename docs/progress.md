@@ -387,3 +387,9 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** CI failed on `earlier-debts-header.test.ts` after v1.3.2: the test's tag-stripping helper puts a space where the `LtrIsolate` element ends, so the Arabic header reads "$120 +" in the test text (the markup is `$120` followed by `+`, no space). The assertion now expects "$120 +". Test only; the header is unchanged.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the test is written and NOT run.
+
+## More > Weekly bookings: the card opens the series sheet (branch `feat/series-card`)
+
+**What:** UI only; no new use case or server action. The list is `src/app/owner/(app)/more/weekly/_components/weekly-list.tsx`; each card is now `weekly-card.tsx` (new), whose whole area is a button (a stretched `after:absolute after:inset-0` button, `aria-haspopup="dialog"`) that opens the same `SeriesManage` sheet the booking sheet's series row opens: the weeks, Renew more weeks, and Cancel the rest when the sheet's own `mayCancelRest` allows it. Renew stays its own button above the card (`relative z-10`, a sibling, not a child), so tapping it opens only the renew step as before. The page passes the five real series actions as one `seriesActions` prop (`loadSeriesSheetAction`, `previewCancelRestAction`, `previewSeriesAction`, `submitCancelRest`, `submitSeriesSave`); closing the sheet refreshes the list.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. `test/app/owner/weekly-card.test.ts` (calls the card component and taps its handlers: the card opens with the item, Renew does only Renew and is not inside the card button, no Renew without permission) is written and NOT run. UNVERIFIED by eye: the focus ring and tap targets, and the sheet over the list.
