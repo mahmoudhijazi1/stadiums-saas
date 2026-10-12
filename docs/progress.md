@@ -577,3 +577,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** `defaultPaidUntil` in `modules/platform/domain/paid-until.ts` is now one month after the LATER of the current paid-until and today (the calendar date in the owner time zone); with no paid-until, one month after today. Before, a lapsed paid-until plus one month could itself be in the past (the quirk noted in the previous entry). The page, the action and the use case did not change. Tests in `test/modules/platform/domain/paid-until.test.ts` replaced for this function: lapsed two months ago, next week, today and none, a month-end case (31 Jan to 28 Feb), and the owner time zone against UTC. **Written and NOT run.** The branch is pushed; not merged.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`.
+
+## Merge: feat/admin-subscriptions into main (record a subscription payment)
+
+**When:** 2026-10-12
+
+**What:** Merged `feat/admin-subscriptions` into `main` with `--no-ff` (merge commit `e6f89ca`), no conflicts. `docs/NOW.md` gets a section "In the next release" with one line: the admin can record a subscription payment. No tag was created, moved or pushed.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run; the new integration and unit tests have never been run.

@@ -19,6 +19,9 @@ Merged on `main`: the dependency-rules guard (step 1), easy cleanup (2), the Pri
 ## Done in `v1.3.0`: public page UI refinement
 The stadium's public page now has a day strip from today to 60 days ahead, the day as one list of rows with a "Nearest" badge (taken ones faded), availability dots on the days, a gradient header with an action bar (Map, Call, WhatsApp), a request sheet that confirms in place and explains errors, and per-stadium share metadata (title, description, Open Graph, Twitter, canonical; indexable). It also carries the two-option language toggle (public page, login, suspended page, business menu), system bars that follow the app theme, and a backdrop that darkens (not lightens) behind sheets and modals in the dark theme. The booking rules and use cases did not change. Details in [progress.md](./progress.md); open follow-ups in [ROADMAP.md](./ROADMAP.md) "Public page: later".
 
+## In the next release (merged on `main`, not tagged)
+- **Record a subscription payment:** the platform admin can record a subscription payment on a stadium (plan, paid until, optional amount and note); the new row is first in the history and OVERDUE follows it.
+
 ## Next three steps
 1. **Step 7, the remaining file splits:** the other files over about 300 lines that do more than one job, moving code as is (`bookings.ts` and `upcoming-panel.tsx` are done).
 2. **Server safety:** run the deploy order and the backup and rollback steps in [RUNBOOK.md](./RUNBOOK.md) on the production droplet. UNVERIFIED: the current state of the server (backups, pm2, `.env`) was not checked from this repo.
