@@ -239,6 +239,66 @@ curl -sI https://<APP_BASE_DOMAIN>/platform/login
 
 It must show `HTTP/2 200`, a `Cache-Control` containing `no-store`, and `X-Robots-Tag: noindex, nofollow`. Also `curl -sI https://www.<APP_BASE_DOMAIN>/platform/login` and the same on a stadium subdomain must answer `404`. If `Cache-Control` has no `no-store`, Next replaced the proxy's header: stop and fix before announcing it.
 
+## Server: nginx, backups, pm2, certificate
+
+Recorded 2026-10-12 from the production server (HestiaCP, user `mahmoud`). The server is **shared with other sites**.
+
+### nginx: the `nextjs` proxy template
+
+`lebstads.com` uses a custom HestiaCP proxy template named `nextjs` (`/usr/local/hestia/data/templates/web/nginx/nextjs.tpl` and `nextjs.stpl`), applied on 2026-10-12 with:
+
+```bash
+v-change-web-domain-proxy-tpl mahmoud lebstads.com nextjs
+```
+
+- **What it does:** every request goes to `127.0.0.1:3000` with `Host`, `X-Real-IP` and `X-Forwarded-For` set from `$remote_addr`. No static file is served from the app folder, and Apache is not in the path.
+- **Roll back** to Hestia's template with the same command and `default` instead of `nextjs`.
+- **Always run `sudo nginx -t` first, and never restart or reload nginx with a failing config:** other sites share this nginx.
+- **`chmod 700 ~/web/lebstads.com/public_html/.next`** (Deploy order, step 7) is no longer needed with this template. It is harmless; keep it.
+- **`TRUSTED_CLIENT_IP_HEADER=x-real-ip`** is set in `.env` and is safe, because the template overwrites `X-Real-IP` with the real client address (see "Login lockout"). This is also what makes the per-IP login limits of the platform admin work.
+
+### Backups
+
+- **Script:** `~/bin/stadiums-backup.sh` runs `pg_dump -Fc` with `umask 077`, checks that the dump is not empty and that `pg_restore -l` can read it, and keeps 14 days in `~/backups`.
+- **Schedule:** `mahmoud`'s crontab runs it at 03:15. The log is `~/backups/backup.log`: look at it after any change to the script, the crontab or the database password.
+- **Limit:** backups stay on the same server. There is no off-server copy yet (ROADMAP, "Server and schema").
+
+### Restore test (done on 2026-10-12)
+
+Restore into a temporary database, never over the live one. `stadiums_user` has no `CREATEDB`, so the database is created as the postgres superuser, owned by `stadiums_user`:
+
+```bash
+# 1. create an empty temporary database (superuser; the owner is the app's database user)
+sudo -u postgres createdb -O stadiums_user stadiums_restore_test
+
+# 2. restore the newest dump into it (password from ~/.pgpass, never on the command line)
+pg_restore -h 127.0.0.1 -U stadiums_user -d stadiums_restore_test --no-owner ~/backups/<newest>.dump
+
+# 3. compare counts with the live database: Tenant, Person, Booking, Payment, LedgerEntry
+for db in stadiums_saas stadiums_restore_test; do
+  psql -h 127.0.0.1 -U stadiums_user -d "$db" -At -c 'SELECT (SELECT count(*) FROM "Tenant"), (SELECT count(*) FROM "Person"), (SELECT count(*) FROM "Booking"), (SELECT count(*) FROM "Payment"), (SELECT count(*) FROM "LedgerEntry");'
+done
+# and the ledger sum
+for db in stadiums_saas stadiums_restore_test; do
+  psql -h 127.0.0.1 -U stadiums_user -d "$db" -At -c 'SELECT direction, sum("amountUsd") FROM "LedgerEntry" GROUP BY direction ORDER BY direction;'
+done
+
+# 4. drop the temporary database
+sudo -u postgres dropdb stadiums_restore_test
+```
+
+On 2026-10-12 the counts of `Tenant`, `Person`, `Booking`, `Payment`, `LedgerEntry` and the ledger sum matched the live database. If a count differs (the live database keeps changing after the dump, so a small difference in a young table can be real traffic; look at the newest rows before judging), do not trust the backup until you know why. UNVERIFIED: the steps above are written from the description of what was done; the exact `pg_restore` flags and the name of the temporary database used on the server were not recorded, and the ledger query sums `LedgerEntry.amountUsd` by `direction`.
+
+### pm2
+
+pm2 runs the app as the process `stadiums-saas`; the systemd unit `pm2-mahmoud` is enabled, so the process list comes back after a reboot. Run `pm2 save` only when the process list changes (a new or removed process), not after each deploy.
+
+### Certificate (manual, does NOT renew by itself)
+
+- The `*.lebstads.com` certificate is installed **manually** (`LETSENCRYPT='no'` on the domain). DNS is at Hostinger (`dns-parking.com`).
+- **It expires on 2026-12-24 and does not renew by itself.** Reissue it well before then (ROADMAP: automatic renewal).
+- **Never run `v-list-web-domain-ssl` in a shared terminal or paste its output:** it prints the private key.
+
 ## Fonts
 
 Fonts are self-hosted with `next/font/local` (`src/app/layout.tsx`); the build and the app make no request to Google. The woff2 files and their SIL Open Font License texts are in `src/fonts/<family>/`: IBM Plex Sans Arabic (arabic + latin, 400 and 600), Manrope (latin, 400 and 600), Big Shoulders (latin, 800), IBM Plex Mono (latin, 400 and 600). They came from the `@fontsource/*` packages, which repackage the official Google Fonts OFL releases; each family folder has its `OFL.txt`. To add a weight or a family, copy the woff2 and licence into `src/fonts/`, add it to the loader in `layout.tsx`, and keep to weights 400 and 600 unless a design needs more.
@@ -292,7 +352,8 @@ npx prisma migrate deploy --config prisma7.config.ts
 npm run build
 # Why: the server is a HestiaCP domain whose nginx serves static extensions (json, js, txt and more)
 # straight from the app folder; this is a stopgap until a custom proxy template sends every request
-# to 127.0.0.1:3000 (ROADMAP, "Server").
+# to 127.0.0.1:3000. The nginx template of 2026-10-12 does that, so this line is no longer needed
+# (see "Server: nginx"); it is harmless.
 chmod 700 ~/web/lebstads.com/public_html/.next
 pm2 restart stadiums-saas
 pm2 logs stadiums-saas --lines 100
