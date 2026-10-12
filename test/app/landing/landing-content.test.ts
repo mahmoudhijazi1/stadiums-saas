@@ -102,7 +102,7 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
 
   it("builds every WhatsApp link with the number and the prefilled text in the page's language", () => {
     const hrefs = [...markup.matchAll(/href="(https:\/\/wa\.me\/[^"]+)"/g)].map((match) => match[1]!);
-    expect(hrefs).toHaveLength(4); // header, hero, closing band, footer link
+    expect(hrefs).toHaveLength(3); // header, closing band, footer link
     for (const href of hrefs) {
       expect(href.startsWith(`https://wa.me/${LEBSTADS_WHATSAPP}?text=`)).toBe(true);
       expect(decodeURIComponent(href.split("?text=")[1]!)).toBe(ui("landing.whatsappMessage", locale));
@@ -111,8 +111,8 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
     expect(LEBSTADS_WHATSAPP).toBe("96178862587");
   });
 
-  it("has one primary button in each of hero, pricing and the closing band, and secondary ones in the header and the footer", () => {
-    expect(markup.match(/hover:opacity-90/g)).toHaveLength(2);
+  it("has one primary WhatsApp button (the closing band), a small one in the header, none in the hero or the footer", () => {
+    expect(markup.match(/hover:opacity-90/g)).toHaveLength(1); // the closing band
     expect(markup.match(/hover:bg-muted/g)).toHaveLength(1); // the header's small button
     expect(footer).not.toContain("hover:opacity-90");
     expect(footer).not.toContain("hover:bg-muted");

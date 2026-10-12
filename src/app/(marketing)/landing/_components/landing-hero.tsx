@@ -3,7 +3,6 @@ import type { UiLocale } from "@/lib/locale";
 import { HeroPhone } from "@/app/(marketing)/landing/_components/hero-phone";
 import { PageColumn } from "@/app/(marketing)/landing/_components/page-column";
 import { PitchLines } from "@/app/(marketing)/landing/_components/pitch-lines";
-import { WhatsAppButton } from "@/app/(marketing)/landing/_components/whatsapp-button";
 
 /**
  * The hero, full width: a soft gradient from a tint of the accent to the page background (as on a
@@ -22,9 +21,8 @@ export function Hero({ locale }: { locale: UiLocale }) {
           </span>
           <h1 className="text-[1.6rem] leading-[1.2] font-semibold tracking-tight sm:text-4xl lg:text-5xl">{ui("landing.heroTitle", locale)}</h1>
           <p className="max-w-[60ch] text-[0.95rem] text-muted-foreground sm:text-lg">{ui("landing.heroSub", locale)}</p>
-          <div className="mt-1 flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-            <WhatsAppButton locale={locale} />
-            <a href="#how" className="hidden min-h-11 sm:inline-flex items-center justify-center px-4 text-sm font-semibold underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50">
+          <div className="mt-1 flex">
+            <a href="#how" className="-ms-4 inline-flex min-h-11 items-center justify-center px-4 text-sm font-semibold underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50">
               {ui("landing.heroSecondary", locale)}
             </a>
           </div>

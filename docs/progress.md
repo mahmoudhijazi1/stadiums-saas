@@ -733,3 +733,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The hero sub-line and the third step no longer name dollars and pounds (the features still do), and the hero pill no longer lists sports ("For venue owners in Lebanon" / "لأصحاب الملاعب في لبنان"). The WhatsApp button says one word with an icon ("WhatsApp" / "واتساب") and appears less: the header, the hero and the closing band (not in pricing any more). The footer has no big button: small links to Instagram (`@lebstads`, `https://www.instagram.com/lebstads/`), WhatsApp (the same number and message) and the other language. "LebStads × Stravon Solutions" is plain text, no link and no logo code. Copy keys added: `footerInstagram`, `footerWhatsapp`; changed: `whatsappCta`, `heroEyebrow`, `heroSub`, `step3Text`.
 
 **How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.
+
+## Landing page: no WhatsApp button in the hero (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero has no WhatsApp button; its only action is the "See how it works" link (now shown on phones too). WhatsApp stays in the header (small), the closing band and the footer links.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed.
