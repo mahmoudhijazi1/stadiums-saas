@@ -50,9 +50,9 @@ describe("landing metadata", () => {
     expect(Boolean((metadata.openGraph as { images?: unknown }).images)).toBe(hasOg());
   });
 
-  it("stays noindex and links no manifest until the robots and sitemap slice", () => {
+  it("is indexable (no robots meta; robots.ts and sitemap.ts list it) and links no manifest", () => {
     for (const locale of ["ar", "en"] as const) {
-      expect(landingMetadata(locale).robots).toEqual({ index: false, follow: false });
+      expect(landingMetadata(locale).robots).toBeUndefined();
       expect(landingMetadata(locale).manifest).toBeNull();
     }
   });

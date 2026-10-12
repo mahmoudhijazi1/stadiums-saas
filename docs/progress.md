@@ -619,3 +619,15 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tests (written, NOT run):** `test/app/landing/landing-stravon.test.ts` (the exact link in both languages, same tab and no parameters, the logo only when the file exists, no other mention in the page text, no JSON-LD or metadata entry).
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then look at the footer of `/` and `/en`, in both themes.
+
+## Landing page, slice 3: robots.txt, sitemap.xml, indexing (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** `src/app/robots.ts` and `src/app/sitemap.ts` read the host themselves (`hostAudience` in `lib/tenant-slug.ts`: bare, tenant or other; strict, `www` is never a stadium). robots: bare host allows `/` and names `https://<base>/sitemap.xml`, with no `/platform` in any line (a Disallow would advertise it; it keeps its `noindex, nofollow`, `no-store` and the layout's robots meta); a stadium's host allows `/`, disallows `/owner/`, no Sitemap; www or anything else disallows all. sitemap: bare host lists `/` and `/en` with `ar` and `en` alternates; any other host an empty sitemap. No database query. The two landing pages no longer say noindex (canonical and hreflang kept; `x-default` stays in the page metadata, the sitemap carries `ar` and `en` as asked). `bareUrl` moved to `lib/bare-url.ts` (`landingUrl` is the same function). `robots` and `sitemap` were already in `APP_CONVENTION_NAMES` (`rules.ts`), checked, no change. Through the proxy, `www` gets a 308 to the bare domain before it reaches robots.txt, so the "disallow all" answer is for a request the proxy did not see.
+
+**Unsure:** a stadium's host now serves a robots.txt (before: a 404); the public page there stays as it was.
+
+**Tests (written, NOT run):** `test/app/robots-sitemap.test.ts` (robots and sitemap by host, no database imports, convention names, landing metadata has no robots, `/platform` still noindex); `landing-metadata.test.ts` updated from noindex to indexable.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then open `/robots.txt` and `/sitemap.xml` on the bare host and on a stadium's host.

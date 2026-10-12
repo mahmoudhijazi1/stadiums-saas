@@ -189,3 +189,14 @@ export function landingRouteFor(pathname: string): { rewriteTo: "/landing" | "/l
   if (path === "/en" || path === "/en/") return { rewriteTo: "/landing/en", locale: "en" };
   return null;
 }
+
+/**
+ * Who a crawler-facing route (robots.txt, sitemap.xml) is answering: exactly the bare host, a
+ * stadium's own host, or anything else (www, an invalid host). Strict, like `isBareHost`: Origin and
+ * Referer never change the answer. `www` is never a stadium.
+ */
+export function hostAudience(list: { get(name: string): string | null }): "bare" | "tenant" | "other" {
+  if (isBareHostFromHeaders(list)) return "bare";
+  const resolved = resolveTenantFromHeaders(list);
+  return resolved.kind === "tenant" && resolved.slug !== "www" ? "tenant" : "other";
+}
