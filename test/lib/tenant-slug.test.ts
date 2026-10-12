@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { classifyHost, resolveTenantHost } from "@/lib/tenant-slug";
+import { classifyHost, isBareHost, resolveTenantHost } from "@/lib/tenant-slug";
 
 /**
  * Hosts (security audit S-9, S-10, S-11): only the bare APP_BASE_DOMAIN or a
@@ -113,5 +113,30 @@ describe("resolveTenantHost", () => {
         { ...dev, devFallback: false },
       ),
     ).toEqual(APEX);
+  });
+});
+
+describe("isBareHost", () => {
+  const options = { baseDomain: BASE, trustProxyHeaders: false, devFallback: true };
+
+  it("is true only for exactly the bare domain, port ignored, case ignored", () => {
+    expect(isBareHost({ host: "lebstads.com" }, options)).toBe(true);
+    expect(isBareHost({ host: "LebStads.com:3000" }, options)).toBe(true);
+  });
+
+  it("is false for www, a tenant subdomain, a deeper name, a lookalike and no host", () => {
+    for (const host of ["www.lebstads.com", "ahmad.lebstads.com", "a.b.lebstads.com", "evil-lebstads.com", "lebstads.com.evil.example", ""]) {
+      expect(isBareHost({ host }, options)).toBe(false);
+    }
+    expect(isBareHost({}, options)).toBe(false);
+  });
+
+  it("ignores Origin and Referer even in development (no fallback)", () => {
+    expect(isBareHost({ host: "ahmad.lebstads.com", origin: "https://lebstads.com", referer: "https://lebstads.com/" }, options)).toBe(false);
+  });
+
+  it("reads X-Forwarded-Host only when the proxy headers are trusted", () => {
+    expect(isBareHost({ host: "ahmad.lebstads.com", forwardedHost: "lebstads.com" }, options)).toBe(false);
+    expect(isBareHost({ host: "ahmad.lebstads.com", forwardedHost: "lebstads.com" }, { ...options, trustProxyHeaders: true })).toBe(true);
   });
 });

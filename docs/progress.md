@@ -447,3 +447,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Noticed, not changed:** section 3 now has two rows numbered 13 (the canonical-phones row from `feat/phone-wiring` and the append-only triggers row); renumbering was out of scope.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the test is written and NOT run.
+
+## Web platform admin, slice 3: /platform on the bare host only (branch `feat/platform-admin`)
+
+**When:** 2026-10-12
+
+**What:** DR-006 slice 3. No login, no session, no database access. `src/proxy.ts`: after the existing host check (still first, so a bad host is 404 before anything else), `/platform` and `/platform/...` are served only when `isBareHostFromHeaders` is true (new strict `isBareHost` in `lib/tenant-slug.ts`: exactly the bare `APP_BASE_DOMAIN`, X-Forwarded-Host only when trusted, never Origin or Referer, so the development fallback cannot make a tenant host look bare) and not in production with `APP_PROTOCOL` other than https; otherwise the same empty 404. Served responses get `X-Robots-Tag: noindex, nofollow` and `Cache-Control: no-store` and skip the owner cookie renewal; `x-tenant-slug` is still deleted. New placeholder `src/app/(platform)/platform/page.tsx` ("Platform", robots noindex, `force-dynamic`, imports nothing from tenant-context or the database). `test/architecture/rules.ts`: a comment-only line describing the route group (no rule or exception was needed: the placeholder imports no module, so nothing is excused). `docs/KEY-FILES.md` entry 1 gains the /platform sentence. `/platform` is not in robots.txt.
+
+**Unverified / to look at in slice 4:** the root layout still runs on /platform (brand lookup returns the neutral icon for the bare host without a query, but it also mounts the owner service worker and the theme code); whether Next lets the proxy's `Cache-Control: no-store` stand on a dynamic page; whether `/platform` needs its own layout instead of the root's.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. Written and NOT run: the new `proxy /platform` cases in `test/proxy.test.ts` (no existing case was changed; the `afterEach` and two node imports were added to the import lines) and the `isBareHost` cases in `test/lib/tenant-slug.test.ts`. The bare host's tenant pages stay 404 through `loadTenant`, which `integration/host-tenant.integration.test.ts` covers; the proxy test only shows the proxy does not touch other paths there.

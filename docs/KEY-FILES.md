@@ -12,7 +12,7 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 - **Does:** runs before every page; rejects a bad host with 404, deletes any client-sent `x-tenant-slug`, and renews the session cookie (GET only, at most once a day).
 - **Why:** stops a request for a made-up host from reaching the database, and stops a client choosing its own tenant with a header.
 - **Used by:** Next.js itself (the file is `proxy.ts` per the Next 16 rename); it uses `lib/tenant-slug.ts` and the session cookie helpers.
-- **Never change without:** only the bare `APP_BASE_DOMAIN` or a one-label subdomain is served; nothing reads `x-tenant-slug`. Tests: `proxy.test.ts`, `lib/tenant-slug.test.ts`, `integration/host-tenant.integration.test.ts`, `integration/rolling-session.integration.test.ts`.
+- **Never change without:** only the bare `APP_BASE_DOMAIN` or a one-label subdomain is served; nothing reads `x-tenant-slug`; `/platform` (the platform admin, DR-006) is served only on exactly the bare host and, in production, only over https (404 anywhere else), with `noindex` and `no-store`, and never renews the owner cookie. Tests: `proxy.test.ts`, `lib/tenant-slug.test.ts`, `integration/host-tenant.integration.test.ts`, `integration/rolling-session.integration.test.ts`.
 
 ### 2. `src/lib/tenant-context.ts`
 - **Does:** finds the current stadium from the validated Host, caches it for the request (`getCurrentTenant`), hands out its id (`getCurrentTenantId`) and runs code with the tenant stored for Prisma (`withCurrentTenant`).
