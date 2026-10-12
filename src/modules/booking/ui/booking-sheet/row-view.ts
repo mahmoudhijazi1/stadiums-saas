@@ -31,6 +31,8 @@ export type UpcomingRowView = {
   bookingOwes: boolean;
   /** Confirmed, so items can be put on it. */
   approved: boolean;
+  /** Items may be added now: confirmed and from 60 minutes before the start (computed on the server). */
+  mayAddItems: boolean;
   items: BookingItemsPanelView;
   priceUsd: string;
   interested: NotifyPerson[];

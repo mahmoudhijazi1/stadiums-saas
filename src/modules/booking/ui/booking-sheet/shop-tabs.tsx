@@ -24,7 +24,7 @@ export function ShopTabs({
   return (
       <BookingItems {...itemsActions}
         bookingId={row.id}
-        canAdd={shop.maySell && row.approved}
+        canAdd={shop.maySell && row.mayAddItems}
         mayRemove={mayAdjust}
         mayCollect={mayCollect}
         products={shop.products}

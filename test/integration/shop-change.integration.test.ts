@@ -12,7 +12,7 @@ import { createProduct } from "@/modules/shop/application/products";
 import { recordWalkInSale } from "@/modules/shop/application/record-walk-in-sale";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
-import { endedGame, futureBooking } from "./shop-helpers";
+import { endedGame, soonBooking } from "./shop-helpers";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
@@ -86,7 +86,7 @@ describe("a walk-in sale gives change", () => {
 
 describe("a tab collection gives change", () => {
   it("$10 on a $4.50 tab records $4.50 with $5.50 change, and the tab then owes nothing", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: booker });
     const change = await collectTabPayment({ saleId, usdAmount: "10.00" });
     expect([change.changeUsd.toFixed(2), change.changeLbp.toFixed(0)]).toEqual(["5.50", "0"]);
@@ -97,7 +97,7 @@ describe("a tab collection gives change", () => {
   });
 
   it("100,000 on a 20,000 tab records 20,000 and gives 80,000 ل.ل back; a part leaves the rest in pounds", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: water.id, qty: 2 }], payer: booker }); // 40,000
     await collectTabPayment({ saleId, lbpAmount: "10000" });
     const change = await collectTabPayment({ saleId, lbpAmount: "100000" }); // owes 30,000
@@ -108,7 +108,7 @@ describe("a tab collection gives change", () => {
   });
 
   it("the booker's tab is collected on its own and the booking due is untouched", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: booker });
     await collectTabPayment({ saleId, usdAmount: "2.00" });
     expect((await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).amountDueUsd.toFixed(2)).toBe("30.00");
@@ -119,8 +119,8 @@ describe("a tab collection gives change", () => {
 
 describe("each tender settles its own currency first", () => {
   it("[100,000 ل.ل, $1.50] on a 60,000 ل.ل + $1.50 tab records both parts and gives 40,000 ل.ل back, in either order", async () => {
-    const bookingId = await futureBooking(fixture, 30);
-    const other = await futureBooking(fixture, 31);
+    const bookingId = await soonBooking(fixture);
+    const other = await soonBooking(fixture);
     const lines = [{ productId: cola.id, qty: 1 }, { productId: water.id, qty: 3 }];
     const a = await addBookingItems({ bookingId, lines, payer: booker });
     const b = await addBookingItems({ bookingId: other, lines, payer: booker });
@@ -144,7 +144,7 @@ describe("each tender settles its own currency first", () => {
 
 describe("a booking collection is unchanged", () => {
   it("an overpay is still recorded in full", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("35.00") }] });
     const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceType: "BOOKING", sourceId: bookingId } });
     expect(ledger.map((entry) => entry.amountUsd.toFixed(2))).toEqual(["35.00"]);

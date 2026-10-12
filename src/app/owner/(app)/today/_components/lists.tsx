@@ -38,6 +38,7 @@ import { dayStartClock, ui } from "@/lib/copy";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
 import { businessDate } from "@/modules/booking/domain/business-day";
 import { compareCivilDate } from "@/modules/venue/domain/availability";
+import { mayAddItemsToBooking } from "@/modules/booking/domain/shop-window";
 import { OwnerDayStrip } from "@/modules/booking/ui/day-strip";
 import { DayContent, DayNavProvider } from "@/modules/booking/ui/day-nav";
 import { formatCivilDate } from "@/modules/venue/domain/availability";
@@ -422,6 +423,7 @@ function toUpcomingViews(
       remainingUsd: formatUsd(row.remaining),
       bookingOwes: row.remaining.gt(0),
       approved: row.status === "APPROVED",
+      mayAddItems: mayAddItemsToBooking({ status: row.status, start: row.start, now }),
       items: itemsView(row, itemsByBooking.get(row.id), now),
       priceUsd: formatUsd(row.amountDueUsd),
       interested:

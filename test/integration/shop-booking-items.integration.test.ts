@@ -21,7 +21,7 @@ import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-p
 import { civilDateInTimeZone, formatCivilDate } from "@/modules/venue/domain/availability";
 import type { TestFixture } from "./fixtures";
 import { createStaffSession, seedMinimalFixture } from "./fixtures";
-import { endedGame, futureBooking, nextPhone, requesterPersonId } from "./shop-helpers";
+import { endedGame, soonBooking, nextPhone, requesterPersonId } from "./shop-helpers";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
@@ -67,7 +67,7 @@ async function netTotalOf(saleId: string): Promise<string> {
 
 describe("putting items on a game", () => {
   it("on the game (booker) is the booker's tab: the due is untouched, nothing is logged, it is collected on its own", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const added = await addBookingItems({
       bookingId,
       lines: [{ productId: cola.id, qty: 2 }, { productId: chips.id, qty: 1 }],
@@ -100,7 +100,7 @@ describe("putting items on a game", () => {
   });
 
   it("the database refuses a sale on a booking that names no payer, and the old payment guard is gone", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const membership = await platformDb.membership.findFirstOrThrow({ where: { tenantId: fixture.tenantId, role: "OWNER" } });
     await expect(
       platformDb.sale.create({ data: { tenantId: fixture.tenantId, createdByMembershipId: membership.id, bookingId } }),
@@ -109,7 +109,7 @@ describe("putting items on a game", () => {
   });
 
   it("per-player: the booker's tab and a named player's tab both work, and no due or slot due moves", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     await switchToPerPlayer({ bookingId, count: 3 });
     const slotsBefore = (await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd.toFixed(2));
 
@@ -123,7 +123,7 @@ describe("putting items on a game", () => {
   });
 
   it("a tab never touches the due; a second add appends; payers get their own tab; names match without case; a known phone becomes that person", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const owner = await requesterPersonId(bookingId);
     const first = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: { kind: "person", personId: owner } });
     const second = await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 1 }], payer: { kind: "person", personId: owner } });
@@ -151,7 +151,7 @@ describe("putting items on a game", () => {
   });
 
   it("refuses an unconfirmed game, an archived or unknown item, another stadium's player, and a price from the client", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     await expect(addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1, unitPriceUsd: "0.01" }], payer: game })).rejects.toBeInstanceOf(ZodError);
     await expect(addBookingItems({ bookingId, lines: [{ productId: "nope", qty: 1 }], payer: game })).rejects.toMatchObject({ key: "shop.product_unavailable" });
     await archiveProduct(chips.id);
@@ -174,7 +174,7 @@ describe("putting items on a game", () => {
   });
 
   it("adding needs shop.sell only; removing needs bookings.adjust_due; collecting a tab needs payments.collect", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const line = [{ productId: cola.id, qty: 1 }];
 
     actAs(await createStaffSession(fixture.tenantId, { "payments.collect": true }));
@@ -200,7 +200,7 @@ describe("putting items on a game", () => {
 
 describe("removing items", () => {
   it("a removal is a compensating negative line; the booking due never moves", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 3 }], payer: game }); // 4.50
     const item = await platformDb.saleItem.findFirstOrThrow({ where: { saleId } });
 
@@ -220,7 +220,7 @@ describe("removing items", () => {
   });
 
   it("a tab: removable until it has a payment, then not", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }, { productId: chips.id, qty: 1 }], payer: { kind: "name", name: "Rami" } });
     const items = await platformDb.saleItem.findMany({ where: { saleId }, orderBy: { id: "asc" } });
     await removeBookingItem({ itemId: items[0]!.id, qty: 2 });
@@ -233,7 +233,7 @@ describe("removing items", () => {
   });
 
   it("the database refuses a negative line that reverses nothing, or the wrong thing, or too much", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const a = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: game });
     const b = await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 1 }], payer: { kind: "name", name: "Lina" } });
     const colaLine = await platformDb.saleItem.findFirstOrThrow({ where: { saleId: a.saleId } });
@@ -260,7 +260,7 @@ describe("removing items", () => {
 
 describe("cancel, no-show and split with a tab on the game", () => {
   it("a tab does not block a cancel and stays owed after it", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
     await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: { kind: "name", name: "Maya" } });
 
@@ -281,7 +281,7 @@ describe("cancel, no-show and split with a tab on the game", () => {
   });
 
   it("a tab does not block the per-player split, and the slots are split from the game amount alone", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 4 }], payer: game });
     await switchToPerPlayer({ bookingId, count: 3 });
     const slots = await platformDb.bookingParticipant.findMany({ where: { bookingId, slotNumber: { not: null } } });
@@ -291,7 +291,7 @@ describe("cancel, no-show and split with a tab on the game", () => {
 
 describe("collecting a player tab", () => {
   it("takes part payments, then the rest, then refuses; the excess is change; the ledger is IN for SALE", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 4 }], payer: { kind: "name", name: "Karim" } }); // 9.00
     await setExchangeRate(new Decimal("90000"));
 
@@ -315,7 +315,7 @@ describe("collecting a player tab", () => {
   });
 
   it("shows in Activity as a SALE row named after the player", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "name", name: "Dina" } });
     await collectTabPayment({ saleId, usdAmount: "3.00" });
     const today = formatCivilDate(civilDateInTimeZone(new Date(), "Asia/Beirut"));
@@ -332,7 +332,7 @@ describe("what is owed", () => {
     await addBookingItems({ bookingId: ali.bookingId, lines: [{ productId: chips.id, qty: 2 }], payer: { kind: "person", personId: ali.personId } }); // 4.50 tab
     await addBookingItems({ bookingId: ali.bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: { kind: "name", name: "Friend" } }); // 1.50 tab
     await addBookingItems({ bookingId: ali.bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: { kind: "name", name: "friend" } }); // same tab, 3.00
-    const later = await futureBooking(fixture, 30, "Later");
+    const later = await soonBooking(fixture, "Later");
     await addBookingItems({ bookingId: later, lines: [{ productId: cola.id, qty: 5 }], payer: { kind: "name", name: "Early" } });
 
     const owed = await listOwed();
@@ -384,7 +384,7 @@ describe("what is owed", () => {
 
 describe("the Shop card with items on games", () => {
   it("counts items by the day they were added, and a removal takes them off", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 3 }], payer: game });
     await addBookingItems({ bookingId, lines: [{ productId: chips.id, qty: 1 }], payer: { kind: "name", name: "Zoe" } });
     const today = formatCivilDate(civilDateInTimeZone(new Date(), "Asia/Beirut"));

@@ -12,7 +12,7 @@ import { createProduct, listProducts, updateProduct } from "@/modules/shop/appli
 import { recordWalkInSale } from "@/modules/shop/application/record-walk-in-sale";
 import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
-import { endedGame, futureBooking } from "./shop-helpers";
+import { endedGame, soonBooking } from "./shop-helpers";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
@@ -113,7 +113,7 @@ describe("walk-in sales", () => {
     await expect(recordWalkInSale({ lines: [{ productId: lbp.id, qty: 1 }], lbpAmount: "20000" })).rejects.toMatchObject({ key: "shop.rate_required" });
     expect(await platformDb.sale.count()).toBe(0);
     await recordWalkInSale({ lines: [{ productId: usd.id, qty: 1 }], usdAmount: "1.50" });
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     await expect(addBookingItems({ bookingId, lines: [{ productId: lbp.id, qty: 1 }], payer: booker })).rejects.toMatchObject({ key: "shop.rate_required" });
     expect(await platformDb.sale.count({ where: { bookingId } })).toBe(0);
   });
@@ -121,7 +121,7 @@ describe("walk-in sales", () => {
 
 describe("player tabs in pounds", () => {
   it("20,000 and 30,000 added separately to one tab, paid with 50,000: nothing owed", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const first = await addBookingItems({ bookingId, lines: [{ productId: water.id, qty: 1 }], payer: booker });
     const second = await addBookingItems({ bookingId, lines: [{ productId: juice.id, qty: 1 }], payer: booker });
     expect(second.saleId).toBe(first.saleId);
@@ -135,7 +135,7 @@ describe("player tabs in pounds", () => {
   });
 
   it("a tab of $1.50 + 40,000 shows both parts, and paying exactly those parts settles it", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }, { productId: water.id, qty: 2 }], payer: booker });
     let tab = await tabOf(bookingId);
     expect([tab.remainingLbp.toFixed(0), tab.remainingUsd.toFixed(2)]).toEqual(["40000", "1.50"]);
@@ -146,7 +146,7 @@ describe("player tabs in pounds", () => {
   });
 
   it("paying 10,000 of a 20,000 tab leaves 10,000 pounds, and the rest ends on exactly the frozen USD", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: water.id, qty: 1 }], payer: booker });
     await collectTabPayment({ saleId, lbpAmount: "10000" });
     let tab = await tabOf(bookingId);
@@ -160,7 +160,7 @@ describe("player tabs in pounds", () => {
   });
 
   it("a rate change between adding and collecting still asks 20,000 and records the frozen USD", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: water.id, qty: 1 }], payer: booker }); // frozen at 90,000
     await setExchangeRate(new Decimal("100000"));
     const tab = await tabOf(bookingId);
@@ -174,7 +174,7 @@ describe("player tabs in pounds", () => {
   });
 
   it("removing part of an LBP line keeps the lines adding up to the conversion of the pounds left", async () => {
-    const bookingId = await futureBooking(fixture, 30);
+    const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: water.id, qty: 3 }], payer: booker }); // 60,000 = 0.67
     const item = await platformDb.saleItem.findFirstOrThrow({ where: { saleId } });
     await removeBookingItem({ itemId: item.id, qty: 1 });
