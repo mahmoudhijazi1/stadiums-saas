@@ -47,3 +47,4 @@ SPECs, DRs and audits are **historical**: never rewrite their bodies. **Living**
 5. Update the living docs you made stale in the same change.
 6. Append a short entry to `docs/progress.md` (read only `tail -n 100 docs/progress.md`; match the format; never edit old entries).
 7. Report results honestly: say what was run and what was not.
+8. **Never move, delete or force-push a tag that has been pushed.** A mistake in a release is fixed by a new release with a new number. `v1.3.2` was moved twice by force push on 2026-10-12 and must never be deployed.

@@ -23,6 +23,12 @@
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 | 13 | People: no screen to rename a person or change a phone | Done on `feat/person-edit`: owner-only `people.edit`, `people/application/update-person.ts`, an Edit sheet on the person page | [progress.md](./progress.md) |
 
+## Phones: open (recorded 2026-10-12)
+
+| Item | Note |
+|---|---|
+| 11 stored phones on production | They could not be made canonical by the `canonical_phones` migration and were left as they were. Person editing (`people.edit`) can fix them one by one; it ships in `v1.4.0`. |
+
 ## Money page v2: next (recorded 2026-10-15)
 
 | Item | Note |
