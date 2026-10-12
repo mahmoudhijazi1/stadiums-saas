@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { ui } from "@/lib/copy";
 import type { UiLocale } from "@/lib/locale";
 import { FEATURE_MOCKUPS } from "@/app/(marketing)/landing/_components/phone-mockups";
+import { PublicPagePreview } from "@/app/(marketing)/landing/_components/public-page-preview";
 import { WhatsAppButton } from "@/app/(marketing)/landing/_components/whatsapp-button";
 
 /** One section: a centred title and its body. 64px of space on phones, 96px from 1024px. */
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-16 flex-col gap-10 py-16 lg:py-24">
-      <h2 id={`${id}-title`} className="text-center text-2xl font-semibold md:text-3xl">
+    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-16 flex-col gap-6 py-12 lg:gap-10 lg:py-24">
+      <h2 id={`${id}-title`} className="text-center text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
         {title}
       </h2>
       {children}
@@ -20,17 +21,29 @@ function Section({ id, title, children }: { id: string; title: string; children:
 export function HowItWorks({ locale }: { locale: UiLocale }) {
   return (
     <Section id="how" title={ui("landing.stepsTitle", locale)}>
-      <ol className="grid gap-4 lg:grid-cols-3">
+      <ol className="grid gap-3 lg:grid-cols-3 lg:gap-4">
         {[1, 2, 3].map((n) => (
-          <li key={n} className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-5">
-            <span aria-hidden="true" dir="ltr" className="flex size-10 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground">
+          <li key={n} className="flex min-w-0 items-start gap-3 rounded-2xl border bg-card p-4 shadow-sm lg:flex-col lg:p-5">
+            <span aria-hidden="true" dir="ltr" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground lg:size-10 lg:text-base">
               {n}
             </span>
-            <h3 className="font-semibold">{ui(`landing.step${n}Title`, locale)}</h3>
-            <p className="max-w-[60ch] text-muted-foreground">{ui(`landing.step${n}Text`, locale)}</p>
+            <div className="flex min-w-0 flex-col gap-1">
+              <h3 className="font-semibold">{ui(`landing.step${n}Title`, locale)}</h3>
+              <p className="max-w-[60ch] text-sm text-muted-foreground sm:text-base">{ui(`landing.step${n}Text`, locale)}</p>
+            </div>
           </li>
         ))}
       </ol>
+    </Section>
+  );
+}
+
+/** A snapshot of a stadium's public page: the title, one line, the drawn page. */
+export function PublicPage({ locale }: { locale: UiLocale }) {
+  return (
+    <Section id="page" title={ui("landing.pageTitle", locale)}>
+      <p className="-mt-2 mx-auto max-w-[60ch] text-center text-sm text-muted-foreground sm:text-base lg:-mt-6">{ui("landing.pageText", locale)}</p>
+      <PublicPagePreview locale={locale} />
     </Section>
   );
 }
@@ -41,10 +54,10 @@ export function Features({ locale }: { locale: UiLocale }) {
     <Section id="features" title={ui("landing.featuresTitle", locale)}>
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURE_MOCKUPS.map((mockup, index) => (
-          <li key={index} className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4">
+          <li key={index} className="flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-4 shadow-sm">
             {mockup}
             <h3 className="font-semibold">{ui(`landing.feature${index + 1}Title`, locale)}</h3>
-            <p className="text-muted-foreground">{ui(`landing.feature${index + 1}Text`, locale)}</p>
+            <p className="text-sm text-muted-foreground sm:text-base">{ui(`landing.feature${index + 1}Text`, locale)}</p>
           </li>
         ))}
       </ul>
@@ -58,7 +71,6 @@ export function Pricing({ locale }: { locale: UiLocale }) {
     <Section id="pricing" title={ui("landing.priceTitle", locale)}>
       <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-6 rounded-2xl border bg-card p-6 text-center sm:p-8">
         <p className="max-w-[60ch] text-lg">{ui("landing.priceText", locale)}</p>
-        <WhatsAppButton locale={locale} />
       </div>
     </Section>
   );
@@ -83,8 +95,8 @@ export function Faq({ locale }: { locale: UiLocale }) {
 /** The closing band before the footer, centred. */
 export function ClosingBand({ locale }: { locale: UiLocale }) {
   return (
-    <section aria-labelledby="closing-title" className="mb-16 flex flex-col items-center gap-6 rounded-3xl bg-muted px-5 py-12 text-center lg:mb-24 lg:py-16">
-      <h2 id="closing-title" className="text-2xl font-semibold md:text-3xl">
+    <section aria-labelledby="closing-title" className="relative mb-12 flex flex-col items-center gap-5 overflow-hidden rounded-3xl bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--brand)_20%,var(--bg)),var(--muted))] px-5 py-10 text-center lg:mb-24 lg:py-16">
+      <h2 id="closing-title" className="text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">
         {ui("landing.closingTitle", locale)}
       </h2>
       <WhatsAppButton locale={locale} />

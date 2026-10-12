@@ -701,3 +701,65 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tests (written, NOT run):** `test/proxy.test.ts` (the bare host's `/` and `/en` pass through with the header, behind nginx too; no `NextResponse.rewrite` in `src/proxy.ts`; the old "stays internal" tests are replaced); `test/next-config-rewrites.test.ts` (exactly two entries, the escaped host, port dropped, bare host only, none without `APP_BASE_DOMAIN`).
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. After deploying: the two `curl` checks in the RUNBOOK.
+
+## Landing page: hero band, pitch lines, shorter top copy, compact on phones (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero is now a full-width band with the public page's soft gradient (a tint of the accent to the page background, as a Tailwind arbitrary value from tokens, no inline style) and half a football pitch drawn in thin lines behind it at the end side (`_components/pitch-lines.tsx`, `currentColor` at 7% opacity, so it works in both themes and mirrors in RTL). A small eyebrow pill ("For football stadiums in Lebanon", key `landing.heroEyebrow`). Shorter copy: the headline, the sub-line and the three steps (titles and texts). Smaller on phones: headline 28px (36px from 640px, 48px from 1024px), sections 48px of space (96px from 1024px), headings 20px, the hero phone 240px wide, the feature mock-ups 144px tall, the steps as one compact row each (number beside the text) below 1024px. Cards get rounded-2xl and a soft shadow; the closing band takes the same gradient. Nothing else changed (routes, metadata, rewrites, WhatsApp links).
+
+**Tests:** `landing-content.test.ts` updated (new headline, 48px sections, hero band). Ran `npx jest test/app test/architecture test/lib/copy test/proxy.test.ts`: 28 suites, 220 tests, passed. `npx tsc --noEmit` clean. Build and lint not run. Not looked at in a browser.
+
+## Landing page: not only football (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero pill now names football, padel and basketball (`landing.heroEyebrow`): the app books any sport with hourly slots, not only football. The rest of the copy already said "stadium" and "pitch" without naming a sport. The background shape is still half a football pitch.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/app/landing test/lib/copy` passed.
+
+## Landing page: the hero fits a phone screen (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** Below 640px the hero's example is a full-width card instead of a narrow phone frame (the frame, its notch and the confirmed game come back from 640px), so the words are no longer squeezed; it shows the new request and the "To collect" row. Less height: tighter padding and gaps, a 26px headline, a smaller sub-line, and the "See how it works" link hidden on phones (the header and the page below still lead there). From 640px nothing changed.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at on a phone.
+
+## Landing page: shorter WhatsApp button, footer links, plain Stravon line (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero sub-line and the third step no longer name dollars and pounds (the features still do), and the hero pill no longer lists sports ("For venue owners in Lebanon" / "لأصحاب الملاعب في لبنان"). The WhatsApp button says one word with an icon ("WhatsApp" / "واتساب") and appears less: the header, the hero and the closing band (not in pricing any more). The footer has no big button: small links to Instagram (`@lebstads`, `https://www.instagram.com/lebstads/`), WhatsApp (the same number and message) and the other language. "LebStads × Stravon Solutions" is plain text, no link and no logo code. Copy keys added: `footerInstagram`, `footerWhatsapp`; changed: `whatsappCta`, `heroEyebrow`, `heroSub`, `step3Text`.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.
+
+## Landing page: no WhatsApp button in the hero (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero has no WhatsApp button; its only action is the "See how it works" link (now shown on phones too). WhatsApp stays in the header (small), the closing band and the footer links.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed.
+
+## Landing page: a snapshot of a stadium's public page (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** New section after "How a day runs" (`id="page"`): the title "Your stadium's booking page" with one line, and a drawn snapshot of the public page (`_components/public-page-preview.tsx`, HTML and CSS with tokens, aria-hidden, no screenshot): the header band with the accent gradient, a letter logo, a sample name and address, the Map / Call / WhatsApp bar, three day pills with availability dots, and five hours (one "Nearest", two taken and faded, "Request" on the free ones). Sample data only. Copy keys `landing.pageTitle`, `pageText` and the `landing.preview*` keys.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.
+
+## Landing page: the snapshot uses placeholder names (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The public page snapshot shows "Your Arena" / "ملعبك" with "Your address" / "عنوان ملعبك" and the letter Y / م, instead of a made-up stadium name and a real neighbourhood.
+
+## Landing page: the public page snapshot uses the public page's own pieces (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The snapshot is rebuilt from the public page's own classes and copy: the header band's gradient and pitch arc (`PitchArc`), the display-face name, the address with a map pin, the action bar (Map, Call, WhatsApp with their icons and dividers), the day tabs (`dayTabClass`, weekday, date and the availability dots), "Available times", and the time rows in one bordered list with the "Nearest" pill and the faded "Taken" rows (chevrons, no buttons). Copy reuses the `public.*` keys; the landing keeps only the placeholder name, address, logo letter and four weekday names (`previewDay2` to `previewDay5`; the Map, Call, WhatsApp, Nearest, Taken, Request and Day1/Day3 preview keys are removed).
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.

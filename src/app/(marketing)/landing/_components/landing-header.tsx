@@ -4,6 +4,7 @@ import { landingWhatsAppHref } from "@/app/(marketing)/landing/_components/landi
 import { LanguageLink } from "@/app/(marketing)/landing/_components/language-link";
 import { LogoMark } from "@/app/(marketing)/landing/_components/logo-mark";
 import { PageColumn } from "@/app/(marketing)/landing/_components/page-column";
+import { ChatIcon } from "@/app/(marketing)/landing/_components/whatsapp-button";
 
 const NAV = [
   ["features", "landing.navFeatures"],
@@ -11,15 +12,6 @@ const NAV = [
   ["pricing", "landing.navPricing"],
   ["faq", "landing.navFaq"],
 ] as const;
-
-/** A plain speech bubble (not a brand mark): the button's text and aria-label say WhatsApp. */
-function ChatIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className="size-5 shrink-0" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.3L3 20.5l1.8-5.4A8.4 8.4 0 1 1 21 11.5Z" className="stroke-current" />
-    </svg>
-  );
-}
 
 /**
  * The sticky header: slim, a translucent surface with a hairline below. Start: the mark and the name.
