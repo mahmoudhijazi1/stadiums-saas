@@ -19,8 +19,9 @@ Merged on `main`: the dependency-rules guard (step 1), easy cleanup (2), the Pri
 ## Done in `v1.3.0`: public page UI refinement
 The stadium's public page now has a day strip from today to 60 days ahead, the day as one list of rows with a "Nearest" badge (taken ones faded), availability dots on the days, a gradient header with an action bar (Map, Call, WhatsApp), a request sheet that confirms in place and explains errors, and per-stadium share metadata (title, description, Open Graph, Twitter, canonical; indexable). It also carries the two-option language toggle (public page, login, suspended page, business menu), system bars that follow the app theme, and a backdrop that darkens (not lightens) behind sheets and modals in the dark theme. The booking rules and use cases did not change. Details in [progress.md](./progress.md); open follow-ups in [ROADMAP.md](./ROADMAP.md) "Public page: later".
 
-## In the next release (merged on `main`, not tagged)
-- **Record a subscription payment:** the platform admin can record a subscription payment on a stadium (plan, paid until, optional amount and note); the new row is first in the history and OVERDUE follows it.
+## Tagged after `v1.5.0` (whether each is deployed is not recorded here)
+- **`v1.6.0`, record a subscription payment:** the platform admin can record a subscription payment on a stadium (plan, paid until, optional amount and note); the new row is first in the history and OVERDUE follows it.
+- **`v1.7.0`, the landing page:** the bare domain now serves a public landing page, Arabic at `/` and English at `/en` (no tenant, no database), with its own LebStads icons, `robots.txt` and `sitemap.xml`, indexable; `www.` redirects to the bare domain. `/platform` is unchanged and stays noindex. Details in [progress.md](./progress.md).
 
 ## Next three steps
 1. **Step 7, the remaining file splits:** the other files over about 300 lines that do more than one job, moving code as is (`bookings.ts` and `upcoming-panel.tsx` are done).

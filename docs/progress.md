@@ -645,3 +645,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tests (written, NOT run):** `test/app/landing/landing-content.test.ts` (headings and ids in both languages, no Paper text or keys, header, footer, WhatsApp links, responsive classes, tokens only, JSON-LD). `landing-stravon.test.ts`, the metadata, robots and sitemap tests are unchanged.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then look at `/` and `/en` at 360, 390, 768 and 1280px, in both themes.
+
+## Merge: feat/landing into main for v1.7.0 (the landing page)
+
+**When:** 2026-10-12
+
+**What:** Merged `feat/landing` into `main` with `--no-ff`, no conflicts: the landing page slices 1 to 3, the Stravon footer link and the redesign. `docs/NOW.md`: the "next release" section becomes "Tagged after `v1.5.0`" with `v1.6.0` (subscription payment, tagged by the owner) and `v1.7.0` (landing page). The tag `v1.7.0` is created only after CI is green on the pushed head; no existing tag was touched.
+
+**How to verify:** `npx tsc --noEmit` was the only check run locally. No test suite, build or lint was run here: the landing tests were written and never run, so the first run is CI on `main`.
