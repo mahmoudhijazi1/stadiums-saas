@@ -3,6 +3,7 @@ import { ui } from "@/lib/copy";
 import type { UiLocale } from "@/lib/locale";
 import { FEATURE_MOCKUPS } from "@/app/(marketing)/landing/_components/phone-mockups";
 import { LogoMark } from "@/app/(marketing)/landing/_components/logo-mark";
+import { StravonCredit } from "@/app/(marketing)/landing/_components/stravon-credit";
 import { WhatsAppButton } from "@/app/(marketing)/landing/_components/whatsapp-button";
 
 /** One section: a title and its body, in the page's one centred column. */
@@ -144,6 +145,7 @@ export function LandingFooter({ locale }: { locale: UiLocale }) {
           {ui("landing.languageEn", locale)}
         </a>
       </nav>
+      <StravonCredit locale={locale} />
     </footer>
   );
 }

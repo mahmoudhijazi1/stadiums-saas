@@ -609,3 +609,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tests (written, NOT run):** `test/app/landing/landing-content.test.ts` (headings in both languages, WhatsApp href, switch, no number or claims, tokens only, JSON-LD), `test/app/landing/landing-metadata.test.ts` (canonical, alternates, Open Graph, Twitter, noindex), `test/app/root-layout.test.ts` (icons, PNG sizes), `test/app/favicon-route.test.ts`. The slice 1 guard test is unchanged.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then open `/` and `/en` on the bare host, in both themes and on a phone, and check the tab icon.
+
+## Landing page: a Stravon Solutions footer link (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** The landing footer (both languages) has one more line, "LebStads × Stravon Solutions", where "Stravon Solutions" links to `https://stravonsolutions.com` (same tab, `rel="noopener"`, no parameters). New `_components/stravon-credit.tsx`: the line is one `LtrIsolate`, so it reads correctly in the Arabic page; muted text, the name in the foreground colour with an underline; the name is copy key `landing.stravonName` (Latin letters in both languages). Their logo is shown (about 20px high, `alt="Stravon Solutions"`, before the name) only if `public/brand/stravon/logo.svg` or `logo.png` exists; it does not exist, so the line is text only, and nothing was drawn. No "by", "powered by", partnership or support wording anywhere, and nothing about them in the JSON-LD or the metadata.
+
+**Tests (written, NOT run):** `test/app/landing/landing-stravon.test.ts` (the exact link in both languages, same tab and no parameters, the logo only when the file exists, no other mention in the page text, no JSON-LD or metadata entry).
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then look at the footer of `/` and `/en`, in both themes.

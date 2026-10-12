@@ -64,6 +64,7 @@ export const landing: CopyArea = {
     "landing.footerLanguage": "اللغة",
     "landing.languageAr": "العربية",
     "landing.languageEn": "English",
+    "landing.stravonName": "Stravon Solutions",
   },
   en: {
     "landing.name": "LebStads",
@@ -124,5 +125,6 @@ export const landing: CopyArea = {
     "landing.footerLanguage": "Language",
     "landing.languageAr": "العربية",
     "landing.languageEn": "English",
+    "landing.stravonName": "Stravon Solutions",
   },
 };
