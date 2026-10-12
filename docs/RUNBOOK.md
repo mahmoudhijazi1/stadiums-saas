@@ -102,7 +102,7 @@ The app serves only the bare `APP_BASE_DOMAIN` (for example `lebstads.com`) and 
 The server checks its environment once at start (`src/lib/env.ts`, from `src/instrumentation.ts`). In production it **exits** when a required variable is missing or malformed, and the log line names the variable, never its value.
 
 - **Required:** `DATABASE_URL` (a `postgres://` URL), `APP_BASE_DOMAIN` (a host name, optionally with `:port`, no scheme), `APP_PROTOCOL` (`http` or `https`).
-- **Required in production only:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address or an https URL). Optional in development: without them the Notifications row is hidden. See "Push keys" below.
+- **Required in production only:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address or an https URL), and `PLATFORM_TOTP_KEY` (32 random bytes in base64; see "Platform admin" below). Optional in development: without them the Notifications row is hidden. See "Push keys" below.
 - **Optional:** `PASSWORD_HASH_COST` (14–20), `TRUSTED_CLIENT_IP_HEADER`, `TRUST_PROXY_HEADERS` (`true` or `false`), `PG_POOL_MAX`.
 - There is no session secret: session tokens are random and stored hashed.
 
@@ -135,7 +135,7 @@ Owner notifications are signed with a VAPID key pair ([push-notifications.md](./
 
 ## Tenant management
 
-A platform operator manages stadiums (tenants) from the server with `scripts/platform.ts`. There is no web admin: access is SSH plus `DATABASE_URL`. Like `set-password`, it runs with `tsx` (a dev dependency) from the app directory.
+A platform operator manages stadiums (tenants) from the server with `scripts/platform.ts`. Access is SSH plus `DATABASE_URL`; the web admin ("Platform admin" below) covers the common cases. Like `set-password`, it runs with `tsx` (a dev dependency) from the app directory.
 
 ```bash
 npx tsx scripts/platform.ts tenants list
@@ -176,6 +176,68 @@ npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 
 - **Format:** 3–30 characters, lowercase letters, digits and single inner hyphens. No leading or trailing hyphen, no `--`, no `xn--`, so that `owner@<slug>` is always a valid login.
 - **Reserved** (their explicit DNS records override the wildcard, or they are kept for the platform): www, mail, webmail, ftp, smtp, imap, pop, ns1, ns2, admin, api, app, static, assets, cdn, status, support, help, dashboard, login, panel, cpanel, test.
 - **Slugs are immutable.** There is no rename command: printed QR codes, installed PWAs and shared links use the slug.
+
+## Platform admin
+
+The web admin ([DR-006](./decisions/DR-006-platform-admin.md)) lives at `https://<APP_BASE_DOMAIN>/platform`, on the bare domain only: any other host, and any host in production unless `APP_PROTOCOL=https`, gets a 404. It lists the stadiums, shows one, creates a stadium with its owner, and suspends or resumes it. Its accounts exist only through the CLI below. Review: [audits/platform-admin-review.md](./audits/platform-admin-review.md).
+
+### The TOTP key
+
+Generate it once per environment and put it in the server `.env` (mode 600):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# PLATFORM_TOTP_KEY=<that value>
+```
+
+Production **refuses to start** without it (`src/lib/env.ts`). It encrypts each admin's TOTP secret (AES-256-GCM). **Losing or changing it makes every enrolled secret unreadable:** nobody can sign in, so run `admins reset-totp` and `admins enroll-totp` again for each admin. Never commit it, never print it.
+
+### Admin accounts (CLI, over SSH)
+
+Like the other platform commands these need an interactive terminal; each mutating one shows the database name from `DATABASE_URL`, refuses until you type it, and writes an audit row (actor `cli:<os user>@<host>`, never a password or secret).
+
+```bash
+npx tsx scripts/platform.ts admins list
+npx tsx scripts/platform.ts admins create <identifier>
+npx tsx scripts/platform.ts admins enroll-totp <identifier>
+npx tsx scripts/platform.ts admins reset-totp <identifier>
+npx tsx scripts/platform.ts admins set-password <identifier>
+```
+
+- **`create`** asks the password twice, hidden: **at least 16 characters** and the shared policy. The admin is created **not enrolled**: login is refused until `enroll-totp`.
+- **`enroll-totp`** needs `PLATFORM_TOTP_KEY`. It draws a QR and the `otpauth://` URI in the terminal (shown once), then asks for the current 6-digit code; only a valid code saves the encrypted secret. It refuses an admin who is already enrolled.
+- **`reset-totp`** (lost phone) asks you to type the identifier back, forgets the secret and **deletes that admin's sessions**. Then run `enroll-totp`.
+- **`set-password`** asks the new password twice and **deletes that admin's sessions**.
+- **`list`** shows identifier, enrolled yes or no, created. Never a hash or a secret.
+- **Pick an identifier that appears nowhere else** (not `admin`, `root`, a person's name, the domain, a stadium slug): a long unrelated string. The per-account lockout is keyed by it, so a guessable identifier lets anyone lock you out.
+
+### Unlock a blocked admin
+
+After 5 failed logins for one identifier within 15 minutes, that identifier is refused for 15 minutes ("Too many attempts"), unknown identifiers included. To lift it early, delete the counters (the exact keys are `platform:fail:acct:<identifier>` and `platform:block:acct:<identifier>`, with the identifier lowercase):
+
+```bash
+# The password comes from ~/.pgpass (see "Database commands" below), never from the command line.
+psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE key IN ('platform:fail:acct:<identifier>', 'platform:block:acct:<identifier>');"
+```
+
+The per-IP keys are `platform:fail:ip:<ip>` and `platform:block:ip:<ip>`; they exist only when `TRUSTED_CLIENT_IP_HEADER` is set. (The database and user names above are this runbook's; use the ones in your `~/.pgpass`.)
+
+### Deploy checklist (before the first deploy of `/platform`)
+
+- [ ] The server safety work is done: the custom HestiaCP nginx proxy template, a rotated database password, a tested restore (see "Deploy order" and "Database commands").
+- [ ] nginx overwrites `X-Real-IP` with the client address, and `TRUSTED_CLIENT_IP_HEADER=x-real-ip` is in `.env` (otherwise there is no per-IP limit).
+- [ ] `PLATFORM_TOTP_KEY` is in the server `.env`, and `APP_PROTOCOL=https`.
+- [ ] `timedatectl` shows `System clock synchronized: yes` (TOTP codes and session expiries depend on the clock).
+- [ ] At least one admin exists and is enrolled (`admins list` shows `yes`).
+- [ ] `npm run test:integration` was run green on the branch being deployed.
+
+After the deploy:
+
+```bash
+curl -sI https://<APP_BASE_DOMAIN>/platform/login
+```
+
+It must show `HTTP/2 200`, a `Cache-Control` containing `no-store`, and `X-Robots-Tag: noindex, nofollow`. Also `curl -sI https://www.<APP_BASE_DOMAIN>/platform/login` and the same on a stadium subdomain must answer `404`. If `Cache-Control` has no `no-store`, Next replaced the proxy's header: stop and fix before announcing it.
 
 ## Fonts
 
