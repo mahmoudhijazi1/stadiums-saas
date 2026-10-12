@@ -33,8 +33,9 @@ import {
  *      noindex and no-store, and it never touches the owner session cookie.
  *   4. The landing page of the bare host (no tenant, no database): always delete a client-sent
  *      x-lebstads-landing; `www.` gets a 308 to the bare domain (except /platform, a 404 as in 3);
- *      /landing is a 404 on every host; on the bare host `/` is rewritten to /landing and `/en` to
- *      /landing/en with x-lebstads-landing: ar | en. Tenant hosts are untouched.
+ *      /landing is a 404 on every host; on the bare host `/` and `/en` pass through with
+ *      x-lebstads-landing: ar | en, and next.config.ts (beforeFiles) rewrites them to /landing and
+ *      /landing/en. The proxy never rewrites. Tenant hosts are untouched.
  *   5. Renew the session cookie (rolling 30 days), at most once a day
  */
 export function proxy(request: NextRequest) {
@@ -60,15 +61,10 @@ export function proxy(request: NextRequest) {
   }
   const landing = isBareHostFromHeaders(request.headers) ? landingRouteFor(pathname) : null;
   if (landing) {
-    // The target is the request's own URL with another path (same origin, same search), never a URL built
-    // from request.url, a host header or APP_PROTOCOL: Next treats any other origin as an EXTERNAL rewrite
-    // (behind nginx: https://localhost:3000, EPROTO). NextURL keeps the trailing slash of the request path
-    // (/en/), so the href is re-parsed from its own origin to make the target exactly the route.
-    const url = request.nextUrl.clone();
-    url.pathname = landing.rewriteTo;
-    url.href = `${url.origin}${url.pathname}${url.search}`;
+    // Only the language here. The path is rewritten by next.config.ts (beforeFiles, bare host only),
+    // which runs after the proxy: a proxy rewrite is treated as external behind nginx (EPROTO).
     requestHeaders.set(LANDING_HEADER, landing.locale);
-    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const response = NextResponse.next({

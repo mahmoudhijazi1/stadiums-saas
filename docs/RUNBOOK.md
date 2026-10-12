@@ -373,6 +373,15 @@ The first verified backup (a real `pg_dump` with the values above) was taken on 
 
 Check after the restart: the logs show no `Invalid environment` or `Missing` line at startup (the server refuses to start in production with a bad `.env`), `npx next --version` prints the version in `package.json` (16.3.8 at the time of writing; never older than 16.3.6, see "Framework version"), and the public page of one stadium loads.
 
+Then the landing page, which must answer 200 on both paths:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://<APP_BASE_DOMAIN>/
+curl -s -o /dev/null -w '%{http_code}\n' https://<APP_BASE_DOMAIN>/en
+```
+
+The landing rewrite (`next.config.ts`, `beforeFiles`) is built from `APP_BASE_DOMAIN` at build time: after changing `APP_BASE_DOMAIN`, run `npm run build` again before the restart.
+
 **`.env` on the server** (mode 600): `DATABASE_URL`, `APP_BASE_DOMAIN`, `APP_PROTOCOL=https`, the three VAPID values (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`; see "Push keys") and, only when nginx overwrites the header with the real client address, `TRUSTED_CLIENT_IP_HEADER="x-real-ip"` (see "Login lockout"). Missing or malformed required values stop the server at start.
 
 ### Roll back to a tag

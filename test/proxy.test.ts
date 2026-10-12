@@ -199,10 +199,10 @@ describe("proxy /platform", () => {
 
 
 /**
- * The landing page of the bare host (slice 1). Written, not run when authored. The bare host's "/" and
- * "/en" are rewritten to the internal /landing routes with the language in x-lebstads-landing; the
- * header is deleted from every incoming request; "www." redirects to the bare domain; /landing is
- * never a public URL; tenant hosts, /platform and the host check are unchanged.
+ * The landing page of the bare host. The bare host's "/" and "/en" pass through the proxy with the
+ * language in x-lebstads-landing (next.config.ts rewrites the path to /landing); the header is deleted
+ * from every incoming request; "www." redirects to the bare domain; /landing is never a public URL;
+ * tenant hosts, /platform and the host check are unchanged.
  */
 describe("proxy landing routes", () => {
   const env = process.env as Record<string, string | undefined>;
@@ -221,20 +221,22 @@ describe("proxy landing routes", () => {
   const forwarded = (response: Response) => response.headers.get("x-middleware-request-x-lebstads-landing");
   const overridden = (response: Response) => (response.headers.get("x-middleware-override-headers") ?? "").split(",");
 
-  it("rewrites the bare host's / to /landing with the header ar", () => {
+  it("passes the bare host's / through, not rewritten, with the header ar (next.config.ts rewrites the path)", () => {
     const response = at("lebstads.test", "/");
     expect(response.status).toBe(200);
-    expect(target(response)?.pathname).toBe("/landing");
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(target(response)).toBeNull();
     expect(forwarded(response)).toBe("ar");
   });
 
-  it("rewrites the bare host's /en and /en/ to /landing/en with the header en, keeping the query", () => {
-    for (const path of ["/en", "/en/"]) {
+  it("passes the bare host's /en and /en/ through with the header en, with or without a query", () => {
+    for (const path of ["/en", "/en/", "/en?utm=1"]) {
       const response = at("lebstads.test", path);
-      expect(target(response)?.pathname).toBe("/landing/en");
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+      expect(target(response)).toBeNull();
       expect(forwarded(response)).toBe("en");
     }
-    expect(target(at("lebstads.test", "/?utm=1"))?.search).toBe("?utm=1");
+    expect(forwarded(at("lebstads.test", "/?utm=1"))).toBe("ar");
   });
 
   it("rewrites nothing else on the bare host", () => {
@@ -279,7 +281,7 @@ describe("proxy landing routes", () => {
     expect(target(response)).toBeNull();
   });
 
-  it("does not renew the owner session cookie on a landing rewrite", () => {
+  it("does not renew the owner session cookie on a landing page", () => {
     expect(at("lebstads.test", "/", { cookie: "stadium_session=tok_123" }).headers.getSetCookie()).toEqual([]);
   });
 
@@ -321,52 +323,44 @@ describe("proxy landing routes", () => {
 });
 
 /**
- * The landing rewrite must stay internal (same origin as the request's own URL). Behind nginx the app
- * listens on plain http while X-Forwarded-Proto says https; a target built from request.url, a host
- * header or APP_PROTOCOL becomes an external rewrite and fails with EPROTO. Written, not run when authored.
+ * The proxy never rewrites: behind nginx a proxy rewrite was treated as external (to
+ * https://localhost:3000/landing) and failed with EPROTO. next.config.ts (beforeFiles) rewrites the bare
+ * host's "/" and "/en"; the proxy only sets the language header. Written, not run when authored.
  */
-describe("proxy landing rewrite stays internal", () => {
+describe("proxy landing behind nginx", () => {
   function behindNginx(path: string) {
-    const request = new NextRequest(`http://127.0.0.1:3000${path}`, {
-      headers: { host: "lebstads.test", "x-forwarded-proto": "https", "x-forwarded-host": "lebstads.test" },
-    });
-    const response = proxy(request);
-    const header = response.headers.get("x-middleware-rewrite");
-    return { request, target: header ? new URL(header) : null };
+    return proxy(
+      new NextRequest(`https://localhost:3000${path}`, {
+        headers: { host: "lebstads.test", "x-forwarded-proto": "https" },
+      }),
+    );
   }
 
-  it("has the same origin as request.nextUrl and the path /landing for /", () => {
-    const { request, target } = behindNginx("/");
-    expect(target?.origin).toBe(request.nextUrl.origin);
-    expect(target?.origin).not.toMatch(/^https:/); // the forwarded protocol is never used for the target
-    expect(target?.pathname).toBe("/landing");
-  });
-
-  it("has the same origin and the path /landing/en for /en and /en/", () => {
-    for (const path of ["/en", "/en/"]) {
-      const { request, target } = behindNginx(path);
-      expect(target?.origin).toBe(request.nextUrl.origin);
-      expect(target?.pathname).toBe("/landing/en");
+  it("passes / and /en through with the header ar and en, and no rewrite", () => {
+    for (const [path, locale] of [["/", "ar"], ["/en", "en"], ["/en/", "en"]] as const) {
+      const response = behindNginx(path);
+      expect([path, response.status, response.headers.get("x-middleware-next")]).toEqual([path, 200, "1"]);
+      expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+      expect(response.headers.get("x-middleware-request-x-lebstads-landing")).toBe(locale);
     }
   });
 
-  it("keeps the query string", () => {
-    for (const [path, expected] of [["/?utm=1&x=2", "/landing"], ["/en?utm=1&x=2", "/landing/en"], ["/en/?utm=1&x=2", "/landing/en"]] as const) {
-      const { target } = behindNginx(path);
-      expect([path, target?.pathname, target?.search]).toEqual([path, expected, "?utm=1&x=2"]);
-    }
+  it("still answers 404 for a direct /landing, and does not set the header on a tenant host", () => {
+    expect(behindNginx("/landing").status).toBe(404);
+    const tenant = proxy(new NextRequest("https://localhost:3000/", { headers: { host: "ahmad.lebstads.test", "x-forwarded-proto": "https" } }));
+    expect(tenant.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(tenant.headers.get("x-middleware-request-x-lebstads-landing")).toBeNull();
   });
 
-  it("builds no rewrite target from request.url, a URL constructor or APP_PROTOCOL", () => {
+  it("src/proxy.ts contains no NextResponse.rewrite", () => {
     const source = readFileSync(join(process.cwd(), "src", "proxy.ts"), "utf8");
-    // Code only: the comments explain what is not done and name those words.
-    const body = source
-      .slice(source.indexOf("export function proxy"), source.indexOf("function redirectToBareDomain"))
-      .replace(/\/\*[\s\S]*?\*\//g, "") // block comments (the redirect's doc comment follows the function)
+    // Code only: a comment may say that the proxy never rewrites.
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, "")
       .split(/\r?\n/)
       .map((line) => line.replace(/\/\/.*$/, ""))
       .join("\n");
-    expect(body).toContain("request.nextUrl.clone()");
-    expect(body).not.toMatch(/request\.url|new URL\(|APP_PROTOCOL|APP_BASE_DOMAIN/);
+    expect(code).not.toMatch(/NextResponse\.rewrite|\.rewrite\(/);
+    expect(code).toContain("NextResponse.next({ request: { headers: requestHeaders } })");
   });
 });

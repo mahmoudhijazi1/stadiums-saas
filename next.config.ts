@@ -32,6 +32,23 @@ const securityHeaders = [
   { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
 ];
 
+/**
+ * The landing page of the bare host: `/` to `/landing` (Arabic) and `/en` to `/landing/en`. A config
+ * rewrite, not a proxy one: behind nginx a proxy rewrite is treated as external (proxy.md "Execution
+ * order": the proxy runs first, then these `beforeFiles` rewrites). Matched on the request's Host, which
+ * Next reads without its port and lower-cased, as a regex Next anchors itself (`^value$`), so the dots
+ * are escaped. Built at build time: no APP_BASE_DOMAIN, no entry; changing it needs a rebuild.
+ */
+export function landingRewrites(baseDomain: string | undefined) {
+  const host = (baseDomain ?? "").trim().toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
+  if (!host) return [];
+  const has = [{ type: "host" as const, value: host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") }];
+  return [
+    { source: "/", destination: "/landing", has },
+    { source: "/en", destination: "/landing/en", has },
+  ];
+}
+
 const nextConfig: NextConfig = {
   // Security audit S-13: no X-Powered-By (local poweredByHeader.md).
   poweredByHeader: false,
@@ -48,6 +65,9 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
     ];
+  },
+  async rewrites() {
+    return { beforeFiles: landingRewrites(process.env.APP_BASE_DOMAIN), afterFiles: [], fallback: [] };
   },
   async headers() {
     return [
