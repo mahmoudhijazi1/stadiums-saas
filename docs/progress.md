@@ -763,3 +763,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The snapshot is rebuilt from the public page's own classes and copy: the header band's gradient and pitch arc (`PitchArc`), the display-face name, the address with a map pin, the action bar (Map, Call, WhatsApp with their icons and dividers), the day tabs (`dayTabClass`, weekday, date and the availability dots), "Available times", and the time rows in one bordered list with the "Nearest" pill and the faded "Taken" rows (chevrons, no buttons). Copy reuses the `public.*` keys; the landing keeps only the placeholder name, address, logo letter and four weekday names (`previewDay2` to `previewDay5`; the Map, Call, WhatsApp, Nearest, Taken, Request and Day1/Day3 preview keys are removed).
 
 **How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.
+
+## Merge: feat/landing-polish into main for v1.7.4
+
+**When:** 2026-10-13
+
+**What:** Merged `feat/landing-polish` into `main` with `--no-ff`, no conflicts. `docs/NOW.md` lists `v1.7.4`. The tag `v1.7.4` is created on the pushed head.
+
+**How to verify:** `npx tsc --noEmit` and the whole unit suite (`npx jest`) were run before tagging. Build, lint and integration tests not run.
