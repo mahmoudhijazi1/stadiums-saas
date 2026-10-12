@@ -569,3 +569,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Not done:** no page or component test for the form (the form is not rendered by any test); no change to the RUNBOOK or KEY-FILES.
 
 **How to verify:** `npx tsc --noEmit` was the only check run (clean). No test suite, build or lint was run. Run `npm test` and `npm run test:integration`, then record a payment on a stadium in the browser.
+
+## Web platform admin: the paid-until prefill starts from today when it lapsed (branch `feat/admin-subscriptions`)
+
+**When:** 2026-10-12
+
+**What:** `defaultPaidUntil` in `modules/platform/domain/paid-until.ts` is now one month after the LATER of the current paid-until and today (the calendar date in the owner time zone); with no paid-until, one month after today. Before, a lapsed paid-until plus one month could itself be in the past (the quirk noted in the previous entry). The page, the action and the use case did not change. Tests in `test/modules/platform/domain/paid-until.test.ts` replaced for this function: lapsed two months ago, next week, today and none, a month-end case (31 Jan to 28 Feb), and the owner time zone against UTC. **Written and NOT run.** The branch is pushed; not merged.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`.

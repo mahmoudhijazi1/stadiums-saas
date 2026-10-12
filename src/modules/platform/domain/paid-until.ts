@@ -15,7 +15,13 @@ export function calendarDateIn(timeZone: string, now: Date): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
 }
 
-/** The current paid-until plus one month, or today (in the time zone) plus one month when there is none. */
+/**
+ * One month after the later of the current paid-until and today (the calendar date in the time zone).
+ * A lapsed paid-until therefore starts from today; with none, from today. YYYY-MM-DD strings compare
+ * in date order.
+ */
 export function defaultPaidUntil(current: Date | null, now: Date, timeZone: string): string {
-  return addOneMonth(current ? current.toISOString().slice(0, 10) : calendarDateIn(timeZone, now));
+  const today = calendarDateIn(timeZone, now);
+  const paidUntil = current ? current.toISOString().slice(0, 10) : today;
+  return addOneMonth(paidUntil > today ? paidUntil : today);
 }
