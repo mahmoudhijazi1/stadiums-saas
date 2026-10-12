@@ -19,9 +19,10 @@ export const landing: CopyArea = {
     "landing.navPricing": "الاشتراك",
     "landing.navFaq": "أسئلة",
 
-    "landing.heroTitle": "كل حجوزات ملعبك ومدفوعاته، في مكان واحد",
-    "landing.heroSub": "صفحة حجز خاصة بملعبك، موافقة بضغطة، وتحصيل بالدولار والليرة، مع حساب يومي واضح. مصمَّم لملاعب لبنان.",
+    "landing.heroTitle": "حجوزات ملعبك ومدفوعاته، في مكان واحد",
+    "landing.heroSub": "رابط حجز خاص، موافقة بضغطة، وتحصيل بالدولار والليرة.",
     "landing.heroSecondary": "كيف يعمل",
+    "landing.heroEyebrow": "لملاعب كرة القدم في لبنان",
 
     "landing.mockToday": "اليوم",
     "landing.mockNew": "طلب جديد",
@@ -39,12 +40,12 @@ export const landing: CopyArea = {
     "landing.mockAmount": "$35",
 
     "landing.stepsTitle": "كيف يجري يومك",
-    "landing.step1Title": "يطلب اللاعب موعده",
-    "landing.step1Text": "من رابط ملعبك أو رمز QR، يختار اللاعب ساعة متاحة ويرسل طلبه، ويصلك تنبيه فوراً.",
+    "landing.step1Title": "يطلب اللاعب",
+    "landing.step1Text": "من رابطك أو رمز QR، ويصلك تنبيه فوراً.",
     "landing.step2Title": "توافق بضغطة",
-    "landing.step2Text": "تراجع الطلب وتؤكّده. الساعة المؤكَّدة لا تُحجز مرتين على الملعب نفسه.",
+    "landing.step2Text": "الساعة المؤكَّدة لا تُحجز مرتين.",
     "landing.step3Title": "تحصّل وتعرف حسابك",
-    "landing.step3Text": "تسجّل الدفع بالدولار أو الليرة أو الاثنين، كاملاً أو لكل لاعب، وترى ما دُفع وما بقي.",
+    "landing.step3Text": "بالدولار أو الليرة، كاملاً أو لكل لاعب.",
 
     "landing.featuresTitle": "المزايا",
     "landing.feature1Title": "صفحة حجز ورمز QR",
@@ -94,9 +95,10 @@ export const landing: CopyArea = {
     "landing.navPricing": "Pricing",
     "landing.navFaq": "FAQ",
 
-    "landing.heroTitle": "Every booking and every payment at your stadium, in one place",
-    "landing.heroSub": "Your own booking page, one-tap approvals, collection in dollars and pounds, and a clear count every day. Built for stadiums in Lebanon.",
+    "landing.heroTitle": "Your stadium's bookings and payments, in one place",
+    "landing.heroSub": "Your own booking link, one-tap approvals, collection in dollars and pounds.",
     "landing.heroSecondary": "See how it works",
+    "landing.heroEyebrow": "For football stadiums in Lebanon",
 
     "landing.mockToday": "Today",
     "landing.mockNew": "New request",
@@ -114,12 +116,12 @@ export const landing: CopyArea = {
     "landing.mockAmount": "$35",
 
     "landing.stepsTitle": "How a day runs",
-    "landing.step1Title": "A player requests a slot",
-    "landing.step1Text": "From your stadium's link or QR code, a player picks a free hour and sends a request. You get an alert right away.",
+    "landing.step1Title": "A player requests",
+    "landing.step1Text": "From your link or QR code. You get an alert right away.",
     "landing.step2Title": "You confirm in one tap",
-    "landing.step2Text": "Review the request and approve it. A confirmed hour can never be booked twice on the same pitch.",
-    "landing.step3Title": "You collect and know where you stand",
-    "landing.step3Text": "Record payment in dollars, pounds or both, in full or per player, and see what is paid and what is left.",
+    "landing.step2Text": "A confirmed hour is never booked twice.",
+    "landing.step3Title": "You collect, and you know where you stand",
+    "landing.step3Text": "In dollars or pounds, in full or per player.",
 
     "landing.featuresTitle": "Features",
     "landing.feature1Title": "Your booking page and QR",

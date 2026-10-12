@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
  */
 function Phone({ children }: { children: ReactNode }) {
   return (
-    <svg viewBox="0 0 120 200" aria-hidden="true" focusable="false" className="mx-auto h-48 w-auto">
+    <svg viewBox="0 0 120 200" aria-hidden="true" focusable="false" className="mx-auto h-36 w-auto sm:h-48">
       <rect x="2" y="2" width="116" height="196" rx="16" className="fill-card stroke-border" strokeWidth="2" />
       <rect x="44" y="8" width="32" height="5" rx="2.5" className="fill-muted" />
       {children}

@@ -701,3 +701,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tests (written, NOT run):** `test/proxy.test.ts` (the bare host's `/` and `/en` pass through with the header, behind nginx too; no `NextResponse.rewrite` in `src/proxy.ts`; the old "stays internal" tests are replaced); `test/next-config-rewrites.test.ts` (exactly two entries, the escaped host, port dropped, bare host only, none without `APP_BASE_DOMAIN`).
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. After deploying: the two `curl` checks in the RUNBOOK.
+
+## Landing page: hero band, pitch lines, shorter top copy, compact on phones (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero is now a full-width band with the public page's soft gradient (a tint of the accent to the page background, as a Tailwind arbitrary value from tokens, no inline style) and half a football pitch drawn in thin lines behind it at the end side (`_components/pitch-lines.tsx`, `currentColor` at 7% opacity, so it works in both themes and mirrors in RTL). A small eyebrow pill ("For football stadiums in Lebanon", key `landing.heroEyebrow`). Shorter copy: the headline, the sub-line and the three steps (titles and texts). Smaller on phones: headline 28px (36px from 640px, 48px from 1024px), sections 48px of space (96px from 1024px), headings 20px, the hero phone 240px wide, the feature mock-ups 144px tall, the steps as one compact row each (number beside the text) below 1024px. Cards get rounded-2xl and a soft shadow; the closing band takes the same gradient. Nothing else changed (routes, metadata, rewrites, WhatsApp links).
+
+**Tests:** `landing-content.test.ts` updated (new headline, 48px sections, hero band). Ran `npx jest test/app test/architecture test/lib/copy test/proxy.test.ts`: 28 suites, 220 tests, passed. `npx tsc --noEmit` clean. Build and lint not run. Not looked at in a browser.

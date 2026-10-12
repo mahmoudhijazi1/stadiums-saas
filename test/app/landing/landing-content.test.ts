@@ -112,8 +112,14 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
     expect(footer).not.toContain("hover:opacity-90");
   });
 
+  it("has a hero band with the accent gradient, the pitch lines and the eyebrow", () => {
+    expect(markup).toContain("bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--brand)_20%,var(--bg)),var(--bg))]");
+    expect(markup).toContain('<svg viewBox="0 0 400 520" aria-hidden="true"');
+    expect(markup).toContain(escaped(ui("landing.heroEyebrow", locale)));
+  });
+
   it("has a hero phone mock-up in HTML and CSS, hidden from assistive technology, with sample data", () => {
-    const start = markup.indexOf('<div aria-hidden="true" class="mx-auto w-full max-w-[280px]');
+    const start = markup.indexOf('<div aria-hidden="true" class="mx-auto w-full max-w-[240px]');
     expect(start).toBeGreaterThan(-1);
     const phone = markup.slice(start, markup.indexOf('id="how"'));
     for (const key of ["landing.mockToday", "landing.mockNew", "landing.mockApprove", "landing.mockReject", "landing.mockConfirmed", "landing.mockToCollect"]) {
@@ -137,10 +143,10 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
     expect(markup.indexOf("</main>")).toBeLessThan(markup.indexOf("<footer"));
   });
 
-  it("uses the responsive measures: a 1120px column with 20px padding, 64px then 96px sections, 1, 2 and 3 feature columns", () => {
+  it("uses the responsive measures: a 1120px column with 20px padding, 48px then 96px sections, 1, 2 and 3 feature columns", () => {
     expect(markup).toContain("max-w-[1120px]");
     expect(markup).toContain("px-5");
-    expect(markup).toContain("py-16 lg:py-24");
+    expect(markup).toMatch(/class="[^"]*\bpy-12\b[^"]*\blg:py-24\b/);
     expect(markup).toContain("sm:grid-cols-2 lg:grid-cols-3");
     expect(markup).toContain("max-w-[560px]"); // the pricing card
     expect(markup).toContain("max-w-[720px]"); // the FAQ column
@@ -181,8 +187,8 @@ describe("the two languages", () => {
   });
 
   it("have the exact headline and button label of the brief", () => {
-    expect(ui("landing.heroTitle", "ar")).toBe("كل حجوزات ملعبك ومدفوعاته، في مكان واحد");
-    expect(ui("landing.heroTitle", "en")).toBe("Every booking and every payment at your stadium, in one place");
+    expect(ui("landing.heroTitle", "ar")).toBe("حجوزات ملعبك ومدفوعاته، في مكان واحد");
+    expect(ui("landing.heroTitle", "en")).toBe("Your stadium's bookings and payments, in one place");
     expect(ui("landing.whatsappCta", "ar")).toBe("تحدّث معنا على واتساب");
     expect(ui("landing.whatsappCta", "en")).toBe("Talk to us on WhatsApp");
   });

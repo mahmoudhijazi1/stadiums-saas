@@ -16,16 +16,16 @@ export function LandingContent({ locale }: { locale: UiLocale }) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: landingJsonLd() }} />
       <LandingHeader locale={locale} />
-      <PageColumn>
-        <main>
-          <Hero locale={locale} />
+      <main>
+        <Hero locale={locale} />
+        <PageColumn>
           <HowItWorks locale={locale} />
           <Features locale={locale} />
           <Pricing locale={locale} />
           <Faq locale={locale} />
           <ClosingBand locale={locale} />
-        </main>
-      </PageColumn>
+        </PageColumn>
+      </main>
       <LandingFooter locale={locale} />
     </>
   );

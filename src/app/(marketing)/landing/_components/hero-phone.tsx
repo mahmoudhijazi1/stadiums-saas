@@ -11,7 +11,7 @@ import type { UiLocale } from "@/lib/locale";
 export function HeroPhone({ locale }: { locale: UiLocale }) {
   const t = (key: string) => ui(key, locale);
   return (
-    <div aria-hidden="true" className="mx-auto w-full max-w-[280px] rounded-[2.25rem] border-[6px] border-border bg-card p-3 shadow-lg select-none">
+    <div aria-hidden="true" className="mx-auto w-full max-w-[240px] rounded-[2rem] border-[5px] border-border bg-card p-3 shadow-xl select-none sm:max-w-[280px]">
       <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
       <p className="mb-3 px-1 text-lg font-semibold">{t("landing.mockToday")}</p>
       <div className="flex flex-col gap-3">
