@@ -15,6 +15,9 @@ const vapid = {
   VAPID_SUBJECT: "mailto:ops@lebstads.com",
 };
 
+// A throwaway key (32 bytes of 7) for tests; used nowhere else.
+const totpKey = Buffer.alloc(32, 7).toString("base64");
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -72,7 +75,7 @@ describe("checkEnvAtStartup", () => {
   });
 
   it("passes in production when valid", () => {
-    expect(() => checkEnvAtStartup({ ...valid, ...vapid, NODE_ENV: "production" })).not.toThrow();
+    expect(() => checkEnvAtStartup({ ...valid, ...vapid, PLATFORM_TOTP_KEY: totpKey, NODE_ENV: "production" })).not.toThrow();
   });
 
   it("only warns outside production", () => {
@@ -105,5 +108,29 @@ describe("VAPID variables (web push)", () => {
 
   it("accepts an https URL as the subject", () => {
     expect(validateEnv({ ...valid, ...vapid, VAPID_SUBJECT: "https://lebstads.com/contact" })).toEqual([]);
+  });
+});
+
+describe("PLATFORM_TOTP_KEY (platform admin, DR-006)", () => {
+  it("is optional outside production and accepted when it is 32 bytes of base64", () => {
+    expect(validateEnv({ ...valid, NODE_ENV: "development" })).toEqual([]);
+    expect(validateEnv({ ...valid, NODE_ENV: "development", PLATFORM_TOTP_KEY: totpKey })).toEqual([]);
+  });
+
+  it("is required in production, named", () => {
+    expect(validateEnv({ ...valid, ...vapid, NODE_ENV: "production" })).toContain("PLATFORM_TOTP_KEY is required in production");
+    expect(validateEnv({ ...valid, ...vapid, PLATFORM_TOTP_KEY: totpKey, NODE_ENV: "production" })).toEqual([]);
+  });
+
+  it("fails when it is not exactly 32 bytes, in production and outside, without echoing the value", () => {
+    const short = Buffer.alloc(16, 7).toString("base64");
+    const long = Buffer.alloc(33, 7).toString("base64");
+    for (const bad of [short, long, "not base64!", "secret-value-123"]) {
+      for (const NODE_ENV of ["production", "development"]) {
+        const errors = validateEnv({ ...valid, ...vapid, NODE_ENV, PLATFORM_TOTP_KEY: bad });
+        expect(errors.join(" | ")).toMatch(/PLATFORM_TOTP_KEY must be 32 random bytes/);
+        expect(errors.join(" | ")).not.toContain(bad);
+      }
+    }
   });
 });

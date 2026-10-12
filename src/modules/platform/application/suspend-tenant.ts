@@ -9,13 +9,14 @@ import {
 
 /**
  * Manual suspension (decisions 2 and 7). Sessions and data are not touched;
- * enforcement is at the tenant choke point. The reason is operator-only.
+ * enforcement is at the tenant choke point. The reason is operator-only. `reasonMax` is the CLI's
+ * 200 unless the caller (the web admin) passes its own.
  */
-export async function suspendTenant(input: { slug: string; reason: string; actor: string }): Promise<void> {
+export async function suspendTenant(input: { slug: string; reason: string; actor: string; reasonMax?: number }): Promise<void> {
   const actor = requireActor(input.actor);
   const tenant = await findTenantBySlug(input.slug);
   if (!tenant) throw new DomainError("platform.tenant_not_found");
-  assertCanSuspend(tenant, input.reason);
+  assertCanSuspend(tenant, input.reason, input.reasonMax);
   const reason = input.reason.trim();
 
   await platformTransaction(async (tx) => {

@@ -55,7 +55,7 @@ To lift a block early (for example, an owner locked out by someone guessing at t
 
 ```bash
 # The password comes from ~/.pgpass (see "Database commands" below), never from the command line.
-psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
+psql -h 127.0.0.1 -U stadiums_user -d stadiums_saas -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
 ```
 
 **`TRUSTED_CLIENT_IP_HEADER`:** set it only when nginx overwrites that header with the real client address, for example `proxy_set_header X-Real-IP $remote_addr;` together with `TRUSTED_CLIENT_IP_HEADER=x-real-ip`. When it is unset, no per-IP limit applies. Never point it at a header the client can set by itself.
@@ -70,11 +70,11 @@ psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE ke
 
 ```bash
 # one line per database: host:port:database:user:password
-echo 'localhost:5432:stadiums:stadiums:THE_PASSWORD' >> ~/.pgpass   # type it in an editor instead, so the password is not in history
-chmod 600 ~/.pgpass                                                 # psql ignores the file if group/others can read it
+echo '127.0.0.1:5432:stadiums_saas:stadiums_user:THE_PASSWORD' >> ~/.pgpass   # type it in an editor instead, so the password is not in history
+chmod 600 ~/.pgpass                                                            # psql ignores the file if group/others can read it
 
-psql -h localhost -U stadiums -d stadiums -c 'SELECT 1;'
-pg_dump -h localhost -U stadiums -d stadiums -Fc -f /var/backups/stadiums-$(date +%F).dump
+psql -h 127.0.0.1 -U stadiums_user -d stadiums_saas -c 'SELECT 1;'
+pg_dump -h 127.0.0.1 -U stadiums_user -d stadiums_saas -Fc -f /var/backups/stadiums-$(date +%F).dump
 ```
 
 Use the same host name in `.pgpass` as in the command (`localhost` and `127.0.0.1` do not match each other). The app itself reads `DATABASE_URL` from `.env` (mode 600, owned by the app user), which is not a command argument. Prisma's `?schema=public` suffix is not accepted by psql, which is another reason to pass host, user and database as separate options.
@@ -102,7 +102,7 @@ The app serves only the bare `APP_BASE_DOMAIN` (for example `lebstads.com`) and 
 The server checks its environment once at start (`src/lib/env.ts`, from `src/instrumentation.ts`). In production it **exits** when a required variable is missing or malformed, and the log line names the variable, never its value.
 
 - **Required:** `DATABASE_URL` (a `postgres://` URL), `APP_BASE_DOMAIN` (a host name, optionally with `:port`, no scheme), `APP_PROTOCOL` (`http` or `https`).
-- **Required in production only:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address or an https URL). Optional in development: without them the Notifications row is hidden. See "Push keys" below.
+- **Required in production only:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:` address or an https URL), and `PLATFORM_TOTP_KEY` (32 random bytes in base64; see "Platform admin" below). Optional in development: without them the Notifications row is hidden. See "Push keys" below.
 - **Optional:** `PASSWORD_HASH_COST` (14–20), `TRUSTED_CLIENT_IP_HEADER`, `TRUST_PROXY_HEADERS` (`true` or `false`), `PG_POOL_MAX`.
 - There is no session secret: session tokens are random and stored hashed.
 
@@ -135,7 +135,7 @@ Owner notifications are signed with a VAPID key pair ([push-notifications.md](./
 
 ## Tenant management
 
-A platform operator manages stadiums (tenants) from the server with `scripts/platform.ts`. There is no web admin: access is SSH plus `DATABASE_URL`. Like `set-password`, it runs with `tsx` (a dev dependency) from the app directory.
+A platform operator manages stadiums (tenants) from the server with `scripts/platform.ts`. Access is SSH plus `DATABASE_URL`; the web admin ("Platform admin" below) covers the common cases. Like `set-password`, it runs with `tsx` (a dev dependency) from the app directory.
 
 ```bash
 npx tsx scripts/platform.ts tenants list
@@ -177,6 +177,135 @@ npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 
 - **Reserved** (their explicit DNS records override the wildcard, or they are kept for the platform): www, mail, webmail, ftp, smtp, imap, pop, ns1, ns2, admin, api, app, static, assets, cdn, status, support, help, dashboard, login, panel, cpanel, test.
 - **Slugs are immutable.** There is no rename command: printed QR codes, installed PWAs and shared links use the slug.
 
+## Platform admin
+
+The web admin ([DR-006](./decisions/DR-006-platform-admin.md)) lives at `https://<APP_BASE_DOMAIN>/platform`, on the bare domain only: any other host, and any host in production unless `APP_PROTOCOL=https`, gets a 404. It lists the stadiums, shows one, creates a stadium with its owner, and suspends or resumes it. Its accounts exist only through the CLI below. Review: [audits/platform-admin-review.md](./audits/platform-admin-review.md).
+
+### The TOTP key
+
+Generate it once per environment and put it in the server `.env` (mode 600):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# PLATFORM_TOTP_KEY=<that value>
+```
+
+Production **refuses to start** without it (`src/lib/env.ts`). It encrypts each admin's TOTP secret (AES-256-GCM). **Losing or changing it makes every enrolled secret unreadable:** nobody can sign in, so run `admins reset-totp` and `admins enroll-totp` again for each admin. Never commit it, never print it.
+
+### Admin accounts (CLI, over SSH)
+
+Like the other platform commands these need an interactive terminal; each mutating one shows the database name from `DATABASE_URL`, refuses until you type it, and writes an audit row (actor `cli:<os user>@<host>`, never a password or secret).
+
+```bash
+npx tsx scripts/platform.ts admins list
+npx tsx scripts/platform.ts admins create <identifier>
+npx tsx scripts/platform.ts admins enroll-totp <identifier>
+npx tsx scripts/platform.ts admins reset-totp <identifier>
+npx tsx scripts/platform.ts admins set-password <identifier>
+```
+
+- **`create`** asks the password twice, hidden: **at least 16 characters** and the shared policy. The admin is created **not enrolled**: login is refused until `enroll-totp`.
+- **`enroll-totp`** needs `PLATFORM_TOTP_KEY`. It draws a QR and the `otpauth://` URI in the terminal (shown once), then asks for the current 6-digit code; only a valid code saves the encrypted secret. It refuses an admin who is already enrolled.
+- **`reset-totp`** (lost phone) asks you to type the identifier back, forgets the secret and **deletes that admin's sessions**. Then run `enroll-totp`.
+- **`set-password`** asks the new password twice and **deletes that admin's sessions**.
+- **`list`** shows identifier, enrolled yes or no, created. Never a hash or a secret.
+- **Pick an identifier that appears nowhere else** (not `admin`, `root`, a person's name, the domain, a stadium slug): a long unrelated string. The per-account lockout is keyed by it, so a guessable identifier lets anyone lock you out.
+
+### Unlock a blocked admin
+
+After 5 failed logins for one identifier within 15 minutes, that identifier is refused for 15 minutes ("Too many attempts"), unknown identifiers included. To lift it early, delete the counters (the exact keys are `platform:fail:acct:<identifier>` and `platform:block:acct:<identifier>`, with the identifier lowercase):
+
+```bash
+# The password comes from ~/.pgpass (see "Database commands" below), never from the command line.
+psql -h 127.0.0.1 -U stadiums_user -d stadiums_saas -c "DELETE FROM \"RateLimit\" WHERE key IN ('platform:fail:acct:<identifier>', 'platform:block:acct:<identifier>');"
+```
+
+The per-IP keys are `platform:fail:ip:<ip>` and `platform:block:ip:<ip>`; they exist only when `TRUSTED_CLIENT_IP_HEADER` is set.
+
+### Deploy checklist (before the first deploy of `/platform`)
+
+- [ ] The server safety work is done: the custom HestiaCP nginx proxy template, a rotated database password, a tested restore (see "Deploy order" and "Database commands").
+- [ ] nginx overwrites `X-Real-IP` with the client address, and `TRUSTED_CLIENT_IP_HEADER=x-real-ip` is in `.env` (otherwise there is no per-IP limit).
+- [ ] `PLATFORM_TOTP_KEY` is in the server `.env`, and `APP_PROTOCOL=https`.
+- [ ] `timedatectl` shows `System clock synchronized: yes` (TOTP codes and session expiries depend on the clock).
+- [ ] At least one admin exists and is enrolled (`admins list` shows `yes`).
+- [ ] `npm run test:integration` was run green on the branch being deployed.
+
+After the deploy:
+
+```bash
+curl -sI https://<APP_BASE_DOMAIN>/platform/login
+```
+
+It must show `HTTP/2 200`, a `Cache-Control` containing `no-store`, and `X-Robots-Tag: noindex, nofollow`. Also `curl -sI https://www.<APP_BASE_DOMAIN>/platform/login` and the same on a stadium subdomain must answer `404`. If `Cache-Control` has no `no-store`, Next replaced the proxy's header: stop and fix before announcing it.
+
+## Server: nginx, backups, pm2, certificate
+
+Recorded 2026-10-12 from the production server (HestiaCP, user `mahmoud`). The server is **shared with other sites**.
+
+### nginx: the `nextjs` proxy template
+
+`lebstads.com` uses a custom HestiaCP proxy template named `nextjs` (`/usr/local/hestia/data/templates/web/nginx/nextjs.tpl` and `nextjs.stpl`), applied on 2026-10-12 with:
+
+```bash
+v-change-web-domain-proxy-tpl mahmoud lebstads.com nextjs
+```
+
+- **What it does:** every request goes to `127.0.0.1:3000` with `Host`, `X-Real-IP` and `X-Forwarded-For` set from `$remote_addr`. No static file is served from the app folder, and Apache is not in the path.
+- **Roll back** to Hestia's template with the same command and `default` instead of `nextjs`.
+- **Always run `sudo nginx -t` first, and never restart or reload nginx with a failing config:** other sites share this nginx.
+- **`chmod 700 ~/web/lebstads.com/public_html/.next`** (Deploy order, step 7) is no longer needed with this template. It is harmless; keep it.
+- **`TRUSTED_CLIENT_IP_HEADER=x-real-ip`** is set in `.env` and is safe, because the template overwrites `X-Real-IP` with the real client address (see "Login lockout"). This is also what makes the per-IP login limits of the platform admin work.
+
+### Backups
+
+- **Script:** `~/bin/stadiums-backup.sh` runs `pg_dump -Fc` with `umask 077`, checks that the dump is not empty and that `pg_restore -l` can read it, and keeps 14 days in `~/backups`.
+- **Schedule:** `mahmoud`'s crontab runs it at 03:15. The log is `~/backups/backup.log`: look at it after any change to the script, the crontab or the database password.
+- **Limit:** backups stay on the same server. There is no off-server copy yet (ROADMAP, "Server and schema").
+
+### Restore test (done on 2026-10-12)
+
+Restore into a temporary database, never over the live one. `stadiums_user` has no `CREATEDB`, so the database is created as the postgres superuser, owned by `stadiums_user`:
+
+```bash
+# 1. create an empty temporary database (superuser; the owner is the app's database user)
+sudo -u postgres createdb -O stadiums_user stadiums_restore_test
+
+# 2. restore the newest dump into it (password from ~/.pgpass, never on the command line)
+pg_restore -h 127.0.0.1 -U stadiums_user -d stadiums_restore_test --no-owner ~/backups/<newest>.dump
+
+# 3. compare counts with the live database: Tenant, Person, Booking, Payment, LedgerEntry
+for db in stadiums_saas stadiums_restore_test; do
+  psql -h 127.0.0.1 -U stadiums_user -d "$db" -At -c 'SELECT (SELECT count(*) FROM "Tenant"), (SELECT count(*) FROM "Person"), (SELECT count(*) FROM "Booking"), (SELECT count(*) FROM "Payment"), (SELECT count(*) FROM "LedgerEntry");'
+done
+# and the ledger sum
+for db in stadiums_saas stadiums_restore_test; do
+  psql -h 127.0.0.1 -U stadiums_user -d "$db" -At -c 'SELECT direction, sum("amountUsd") FROM "LedgerEntry" GROUP BY direction ORDER BY direction;'
+done
+
+# 4. drop the temporary database
+sudo -u postgres dropdb stadiums_restore_test
+```
+
+On 2026-10-12 the counts of `Tenant`, `Person`, `Booking`, `Payment`, `LedgerEntry` and the ledger sum matched the live database. If a count differs (the live database keeps changing after the dump, so a small difference in a young table can be real traffic; look at the newest rows before judging), do not trust the backup until you know why. UNVERIFIED: the steps above are written from the description of what was done; the exact `pg_restore` flags and the name of the temporary database used on the server were not recorded, and the ledger query sums `LedgerEntry.amountUsd` by `direction`.
+
+### pm2
+
+pm2 runs the app as the process `stadiums-saas`; the systemd unit `pm2-mahmoud` is enabled, so the process list comes back after a reboot. Run `pm2 save` only when the process list changes (a new or removed process), not after each deploy.
+
+### Certificate (certbot, renews by itself)
+
+- The `lebstads.com` and `*.lebstads.com` certificate is issued by **certbot** (`/opt/certbot`, authenticator `dns-hostinger`, which uses the Hostinger DNS API; its credentials are in `/root/.secrets/certbot/hostinger.ini`, mode 600, owned by root). **Root's crontab** runs `certbot renew -q --deploy-hook /usr/local/bin/lebstads-cert-deploy.sh` daily at 03:00; the hook installs the new files into Hestia with `v-change-web-domain-sslcert`.
+- **Hestia shows `LETSENCRYPT='no'` on purpose.** Never tick "Use Let's Encrypt" in the Hestia panel for this domain: Hestia would try to issue its own certificate and fight certbot.
+- **Check renewal** (a dry run, nothing is replaced):
+
+```bash
+sudo /opt/certbot/bin/certbot renew --dry-run --cert-name lebstads.com
+```
+
+- **On 2026-10-12 the private key was exposed in a chat.** A new certificate with a new key was issued (`cert2`) and the old one (`cert1`) was revoked with the reason `keyCompromise`.
+- **Never run `v-list-web-domain-ssl` or open the Hestia SSL page where others can see it:** both show the private key.
+
 ## Fonts
 
 Fonts are self-hosted with `next/font/local` (`src/app/layout.tsx`); the build and the app make no request to Google. The woff2 files and their SIL Open Font License texts are in `src/fonts/<family>/`: IBM Plex Sans Arabic (arabic + latin, 400 and 600), Manrope (latin, 400 and 600), Big Shoulders (latin, 800), IBM Plex Mono (latin, 400 and 600). They came from the `@fontsource/*` packages, which repackage the official Google Fonts OFL releases; each family folder has its `OFL.txt`. To add a weight or a family, copy the woff2 and licence into `src/fonts/`, add it to the loader in `layout.tsx`, and keep to weights 400 and 600 unless a design needs more.
@@ -202,11 +331,14 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 
 Deploy only a tag whose CI run on `main` was green. If `git fetch --tags` reports "would clobber existing tag", stop and ask; never fetch tags with `--force` on the server.
 
-One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. UNVERIFIED: the process manager name below (`pm2`, process `stadiums-saas`) is the one used on the droplet; it is not configured anywhere in this repo, so check `pm2 list` for the real name.
+One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. The process manager is `pm2`, process `stadiums-saas` (verified on the server; it is not configured in this repo).
 
 ```bash
-# 1. backup first (custom format, restorable with pg_restore)
-pg_dump -h localhost -U stadiums -d stadiums -Fc -f /var/backups/stadiums-$(date +%F).dump
+# 1. backup first (custom format, restorable with pg_restore), readable by the app user only
+BACKUP=/var/backups/stadiums-$(date +%F).dump
+pg_dump -h 127.0.0.1 -U stadiums_user -d stadiums_saas -Fc -f "$BACKUP"
+chmod 600 "$BACKUP"
+test -s "$BACKUP" && ls -lh "$BACKUP"    # the size must not be zero; stop here if it is
 
 # 2. note what is running now (for the rollback), then update
 git rev-parse --short HEAD
@@ -225,12 +357,19 @@ npx prisma generate --config prisma7.config.ts
 npx prisma migrate status --config prisma7.config.ts
 npx prisma migrate deploy --config prisma7.config.ts
 
-# 7. build, restart, look at the logs
+# 7. build, lock the build folder, restart, look at the logs
 npm run build
+# Why: the server is a HestiaCP domain whose nginx serves static extensions (json, js, txt and more)
+# straight from the app folder; this is a stopgap until a custom proxy template sends every request
+# to 127.0.0.1:3000. The nginx template of 2026-10-12 does that, so this line is no longer needed
+# (see "Server: nginx"); it is harmless.
+chmod 700 ~/web/lebstads.com/public_html/.next
 pm2 restart stadiums-saas
 pm2 logs stadiums-saas --lines 100
 npx next --version
 ```
+
+The first verified backup (a real `pg_dump` with the values above) was taken on 2026-10-12.
 
 Check after the restart: the logs show no `Invalid environment` or `Missing` line at startup (the server refuses to start in production with a bad `.env`), `npx next --version` prints the version in `package.json` (16.3.8 at the time of writing; never older than 16.3.6, see "Framework version"), and the public page of one stadium loads.
 
@@ -248,7 +387,8 @@ rm -rf src/app/generated       # only needed when going back past the move of th
 npm ci
 npx prisma generate --config prisma7.config.ts
 npm run build
-pm2 restart stadiums
+chmod 700 ~/web/lebstads.com/public_html/.next   # see step 7 of the deploy order for why
+pm2 restart stadiums-saas
 ```
 
-Migrations only go forward. If the tag is older than a migration that has already been applied, the old code may not run on the new schema: restore the backup from step 1 instead (`pg_restore -h localhost -U stadiums -d stadiums --clean --if-exists /var/backups/stadiums-YYYY-MM-DD.dump`), which loses everything written after the backup. UNVERIFIED: this restore was not run from this repo. To return to the latest release: `git checkout main && git pull --ff-only`, then steps 4 to 7.
+Migrations only go forward. If the tag is older than a migration that has already been applied, the old code may not run on the new schema: restore the backup from step 1 instead (`pg_restore -h 127.0.0.1 -U stadiums_user -d stadiums_saas --clean --if-exists /var/backups/stadiums-YYYY-MM-DD.dump`), which loses everything written after the backup. UNVERIFIED: this restore was not run from this repo. To return to the latest release: `git checkout main && git pull --ff-only`, then steps 4 to 7.

@@ -579,6 +579,37 @@ model PlatformAuditLog {
   @@index([tenantId, createdAt])
 }
 
+/// A platform operator who may use the web admin (DR-006). Global, no tenantId, and unreachable from
+/// the tenant-scoped client (PLATFORM_ONLY_MODELS). Created only by the CLI (`admins create`).
+/// CHECK ("identifier" = lower("identifier")) is SQL-only (PlatformAdmin_identifier_lowercase).
+model PlatformAdmin {
+  id             String            @id @default(cuid())
+  /// Stored lowercase.
+  identifier     String            @unique
+  /// Same scrypt format as User.passwordHash.
+  passwordHash   String
+  /// AES-256-GCM of the base32 TOTP secret under PLATFORM_TOTP_KEY. Null = not enrolled: login refused.
+  totpSecretEnc  String?
+  /// The last accepted 30-second step; a code at or before it is refused (no replay).
+  lastTotpStep   BigInt?
+  createdAt      DateTime          @default(now())
+  sessions       PlatformSession[]
+}
+
+/// A logged-in admin browser (DR-006). Never shared with Session. Deleted with its admin.
+model PlatformSession {
+  id         String        @id @default(cuid())
+  /// SHA-256 (hex) of the cookie token; the raw token is never stored.
+  tokenHash  String        @unique
+  adminId    String
+  createdAt  DateTime      @default(now())
+  lastSeenAt DateTime      @default(now())
+  expiresAt  DateTime
+  admin      PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}
+
 /// One browser on one device that may receive owner alerts (web push). tenantId required (DR-001).
 /// Tied to the login session that created it: deleting the session (logout, log out other devices,
 /// password change, expiry cleanup) deletes the subscription (ON DELETE CASCADE). endpoint is

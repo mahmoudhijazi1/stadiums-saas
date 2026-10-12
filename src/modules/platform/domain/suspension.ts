@@ -13,11 +13,12 @@ export function tenantStatus(tenant: Suspendable): TenantStatus {
   return tenant.suspendedAt ? "SUSPENDED" : "ACTIVE";
 }
 
-export function assertCanSuspend(tenant: Suspendable, reason: string): void {
+/** `reasonMax` defaults to the CLI limit (200); the web admin passes its own. */
+export function assertCanSuspend(tenant: Suspendable, reason: string, reasonMax: number = SUSPEND_REASON_MAX): void {
   if (tenant.suspendedAt) throw new DomainError("platform.already_suspended");
   const trimmed = reason.trim();
   if (!trimmed) throw new DomainError("platform.reason_required");
-  if (trimmed.length > SUSPEND_REASON_MAX) throw new DomainError("platform.reason_too_long");
+  if (trimmed.length > reasonMax) throw new DomainError("platform.reason_too_long");
 }
 
 export function assertCanResume(tenant: Suspendable): void {

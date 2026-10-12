@@ -1,5 +1,7 @@
 /** @jest-environment node */
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "@jest/globals";
 import { NextRequest } from "next/server";
 import { proxy } from "@/proxy";
 
@@ -75,5 +77,122 @@ describe("proxy host check (security audit S-9, S-10, S-11)", () => {
     const overridden = response.headers.get("x-middleware-override-headers") ?? "";
     // Either the header is dropped from the forwarded set or it was never there.
     expect(overridden.split(",")).not.toContain("x-tenant-slug");
+  });
+});
+
+/**
+ * /platform (the platform admin, DR-006 slice 3). Written, not run when authored. Served only on
+ * exactly the bare host, and in production only over https; noindex, no-store; the owner session
+ * cookie is not renewed there; the existing invariants hold.
+ */
+describe("proxy /platform", () => {
+  const env = process.env as Record<string, string | undefined>;
+  const saved = { NODE_ENV: env.NODE_ENV, APP_PROTOCOL: env.APP_PROTOCOL };
+  afterEach(() => {
+    env.NODE_ENV = saved.NODE_ENV;
+    env.APP_PROTOCOL = saved.APP_PROTOCOL;
+  });
+
+  function at(host: string, path: string, headers: Record<string, string> = {}) {
+    return proxy(new NextRequest(`http://${host}${path}`, { headers: { host, ...headers } }));
+  }
+
+  it("serves the bare host with noindex, nofollow and no-store", () => {
+    for (const path of ["/platform", "/platform/stadiums"]) {
+      const response = at("lebstads.test", path);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+      expect(response.headers.get("cache-control")).toBe("no-store");
+    }
+  });
+
+  it("answers 404 on a tenant host, on www and on an unknown host", () => {
+    for (const host of ["ahmad.lebstads.test", "www.lebstads.test", "ahmad.attacker.example", "a.b.lebstads.test"]) {
+      expect(at(host, "/platform").status).toBe(404);
+      expect(at(host, "/platform/anything").status).toBe(404);
+    }
+  });
+
+  it("does not treat a lookalike path as /platform", () => {
+    const response = at("lebstads.test", "/platformer");
+    expect(response.headers.get("x-robots-tag")).toBeNull();
+    expect(at("ahmad.lebstads.test", "/platformer").status).toBe(200);
+  });
+
+  it("answers 404 on every host in production when APP_PROTOCOL is not https, and serves it over https", () => {
+    env.NODE_ENV = "production";
+    env.APP_PROTOCOL = "http";
+    for (const host of ["lebstads.test", "ahmad.lebstads.test"]) expect(at(host, "/platform").status).toBe(404);
+    env.APP_PROTOCOL = "https";
+    expect(at("lebstads.test", "/platform").status).toBe(200);
+    expect(at("ahmad.lebstads.test", "/platform").status).toBe(404);
+  });
+
+  it("is not reachable on a tenant host through X-Forwarded-Host unless that header is trusted", () => {
+    expect(at("ahmad.lebstads.test", "/platform", { "x-forwarded-host": "lebstads.test" }).status).toBe(404);
+  });
+
+  it("still deletes a client-sent x-tenant-slug on /platform", () => {
+    const response = at("lebstads.test", "/platform", { "x-tenant-slug": "sami" });
+    expect(response.headers.get("x-middleware-request-x-tenant-slug")).toBeNull();
+    expect((response.headers.get("x-middleware-override-headers") ?? "").split(",")).not.toContain("x-tenant-slug");
+  });
+
+  it("does not renew the owner session cookie on /platform", () => {
+    const response = at("lebstads.test", "/platform", { cookie: "stadium_session=tok_123" });
+    expect(response.headers.getSetCookie()).toEqual([]);
+    // The same cookie on an ordinary path still renews (the rule is unchanged).
+    const owner = at("ahmad.lebstads.test", "/owner/today", { cookie: "stadium_session=tok_123" });
+    expect(owner.headers.getSetCookie().some((line) => line.startsWith("stadium_session="))).toBe(true);
+  });
+
+  it("changes nothing for the bare host's other paths: no platform headers, and the tenant pages still 404 later (host-tenant integration test)", () => {
+    const response = at("lebstads.test", "/owner/login");
+    expect(response.status).toBe(200); // the proxy lets it pass; loadTenant answers 404 for a non-tenant host
+    expect(response.headers.get("x-robots-tag")).toBeNull();
+    expect(response.headers.get("cache-control")).toBeNull();
+  });
+
+  it("answers 404 on a tenant host for an encoded spelling of /platform (Next decodes the path when it matches a route)", () => {
+    for (const path of ["/%70latform", "/%70latform/login", "/platform%2F", "/platform%2Flogin"]) {
+      expect(at("ahmad.lebstads.test", path).status).toBe(404);
+      expect(at("www.lebstads.test", path).status).toBe(404);
+    }
+    // On the bare host the same spellings are treated as /platform (served, with the headers).
+    const bare = at("lebstads.test", "/%70latform");
+    expect(bare.status).toBe(200);
+    expect(bare.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+
+  it("no file of the platform route group imports tenant resolution or the database client", () => {
+    const root = join(process.cwd(), "src", "app", "(platform)");
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) walk(path);
+        else if (/\.(ts|tsx)$/.test(entry.name)) files.push(path);
+      }
+    };
+    walk(root);
+    expect(files.length).toBeGreaterThanOrEqual(4); // layout, page, login/page, actions
+    for (const file of files) {
+      // Only the import statements count: a comment may name what the file does not use.
+      const imports = readFileSync(file, "utf8").split(/\r?\n/).filter((line) => /^\s*import\b/.test(line)).join(" ");
+      expect([file, /tenant-context|platform-db|@\/lib\/db"/.test(imports)]).toEqual([file, false]);
+    }
+    const layout = readFileSync(join(root, "platform", "layout.tsx"), "utf8");
+    expect(layout).toContain("index: false");
+    expect(layout).toContain("requirePlatformHost");
+  });
+
+  it("every Server Action of the platform admin runs the host guard first", () => {
+    const source = readFileSync(join(process.cwd(), "src", "app", "(platform)", "platform", "actions.ts"), "utf8");
+    const actions = source.split(/export async function /).slice(1);
+    expect(actions.length).toBeGreaterThanOrEqual(2);
+    for (const action of actions) {
+      const body = action.slice(action.indexOf("{") + 1);
+      expect(body.trimStart().startsWith("await requirePlatformHost();")).toBe(true);
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
+import { isPlatformPath, platformServed, resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -19,10 +19,18 @@ import {
  *      X-Forwarded-Host only with TRUST_PROXY_HEADERS=true.
  *   2. Drop any client-sent x-tenant-slug. Nothing reads it: the tenant is
  *      resolved from the same host check in tenant-context.
- *   3. Renew the session cookie (rolling 30 days), at most once a day
+ *   3. /platform (the platform admin, DR-006) is served only on the bare APP_BASE_DOMAIN host, and
+ *      in production only over https; anywhere else it is the same 404. Its responses are
+ *      noindex and no-store, and it never touches the owner session cookie.
+ *   4. Renew the session cookie (rolling 30 days), at most once a day
  */
 export function proxy(request: NextRequest) {
   if (resolveTenantFromHeaders(request.headers).kind === "invalid") {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const platform = isPlatformPath(request.nextUrl.pathname);
+  if (platform && !platformServed(request.headers)) {
     return new NextResponse(null, { status: 404 });
   }
 
@@ -32,6 +40,11 @@ export function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
+  if (platform) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
   renewSessionCookie(request, response);
   return response;
 }

@@ -26,3 +26,5 @@ process.env.TRUST_PROXY_HEADERS = "";
 process.env.VAPID_PUBLIC_KEY = "BHeDxk40V_VmEoDksncIvL-EPPgu9kRGpuh8hZFmBlSzMdAZF_7KRC3qJqTPalJi-Xj7H25lTNxJQFbcsuue5b4";
 process.env.VAPID_PRIVATE_KEY = "xGdrZRlYJ01Wo07Jn2A6R-5lz1AlV2OxgHf9kxe3F3A";
 process.env.VAPID_SUBJECT = "mailto:ops@lebstads.test";
+// Platform admin (DR-006): a throwaway TOTP key (32 bytes of 7), used nowhere else.
+process.env.PLATFORM_TOTP_KEY = Buffer.alloc(32, 7).toString("base64");

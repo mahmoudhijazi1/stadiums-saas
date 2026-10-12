@@ -23,11 +23,15 @@
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 | 13 | People: no screen to rename a person or change a phone | Done on `feat/person-edit`: owner-only `people.edit`, `people/application/update-person.ts`, an Edit sheet on the person page | [progress.md](./progress.md) |
 
-## Phones: open (recorded 2026-10-12)
+## Server and schema: open (recorded 2026-10-12)
 
 | Item | Note |
 |---|---|
-| 11 stored phones on production | They could not be made canonical by the `canonical_phones` migration and were left as they were. Person editing (`people.edit`) can fix them one by one; it ships in `v1.4.0`. |
+| Server: done on 2026-10-12 | **Done:** the HestiaCP custom nginx proxy template `nextjs` (every request to `127.0.0.1:3000`, no static files from the app folder); the database password was rotated; a restore from a dump was tested (RUNBOOK, "Server: nginx, backups, pm2, certificate"). **Still open:** move the app out of `public_html`; add lint to CI (`.github/workflows/ci.yml` runs tests and build, not `npm run lint`). Deploy of the web platform admin waits for the DR-006 preconditions. |
+| Certificate: done on 2026-10-12 | Automatic renewal is in place (certbot with the Hostinger DNS plugin, daily cron at 03:00, a deploy hook that installs the files into Hestia) and was verified with `certbot renew --dry-run`. The private key was replaced after it was exposed in a chat (new certificate `cert2`), and the old certificate (`cert1`) was revoked with the reason `keyCompromise`. See RUNBOOK, "Server: nginx, backups, pm2, certificate". |
+| Backups: an automatic off-server copy | Backups (`~/bin/stadiums-backup.sh`, 03:15, 14 days in `~/backups`) stay on the same server. Add an automatic copy elsewhere **before the first real owner**. |
+| Schema: two foreign keys disagree with `schema.prisma` | `Booking_seriesId_fkey` and `BookingParticipant_personId_fkey` are `ON DELETE RESTRICT` in the database but default to `SET NULL` in `schema.prisma` (from `ecd0063` and `24eeb00`). `prisma migrate diff` shows them as drift. Fix: write `onDelete: Restrict` in the schema; no migration and no behaviour change. |
+| Phones: 11 stored phones on production | They could not be made canonical by the `canonical_phones` migration and were left as they were. Nothing breaks (they read as before); Person editing (`people.edit`) can fix them one by one; it ships in `v1.4.0`. |
 
 ## Money page v2: next (recorded 2026-10-15)
 
@@ -127,7 +131,7 @@ Recorded 2026-10-01 with the tenant-management CLI. These are deliberate decisio
 
 | Item | Why deferred |
 |---|---|
-| Web platform admin | It needs its own identity and cookie (separate from owner sessions), 2FA, rate limits, audit and its own security review. Its backend already exists: the `src/modules/platform` use cases take an explicit actor (`admin:<id>` later) and never touch a terminal. |
+| Web platform admin | **In progress, see [DR-006](./decisions/DR-006-platform-admin.md)** (decided 2026-10-12; build may start, deploy waits for the server safety work). |
 | Date-based suspension (auto-suspend when `paidUntil` passes) | Suspension stays manual (decision 2). `paidUntil` is informational: `tenants list` flags OVERDUE. No cron. |
 | Plan limits and pricing | A plan is a text label only (decision 5). BR-103 is PARTIAL by decision: no limits, no pricing, no enforcement. |
 | Forced password change at first login | **Next job (2026-10-08).** Owners can now change their own password in the app (More → Account), but nothing forces it: the operator-set first password stays until they do. Forcing it needs a `mustChangePassword` flag on `User` (a migration), set by `tenants create` / `set-password`, and a redirect until it is cleared. |

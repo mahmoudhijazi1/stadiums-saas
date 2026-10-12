@@ -28,6 +28,11 @@ export function setSessionCookie(sessionId: string) {
   stores().__cookieStore.set("stadium_session", sessionId);
 }
 
+/** Any cookie the code under test reads through next/headers (for example the platform admin's). */
+export function setCookie(name: string, value: string) {
+  stores().__cookieStore.set(name, value);
+}
+
 /** Cookies the code under test wrote or deleted since the last clear. */
 export function writtenCookies() {
   return [...stores().__setCookies];

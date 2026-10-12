@@ -1,6 +1,6 @@
 # Key files
 
-**Purpose:** the 15 files where a mistake would break money, bookings, tenant isolation or login, each explained in plain language with the invariant it protects and the tests that prove it.
+**Purpose:** the 16 files where a mistake would break money, bookings, tenant isolation or login, each explained in plain language with the invariant it protects and the tests that prove it.
 **Read when:** you are about to change one of these files, or want to know what must never break.
 **Last verified:** `f01c9bf` (code on main; this file adds no code).
 
@@ -12,7 +12,7 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 - **Does:** runs before every page; rejects a bad host with 404, deletes any client-sent `x-tenant-slug`, and renews the session cookie (GET only, at most once a day).
 - **Why:** stops a request for a made-up host from reaching the database, and stops a client choosing its own tenant with a header.
 - **Used by:** Next.js itself (the file is `proxy.ts` per the Next 16 rename); it uses `lib/tenant-slug.ts` and the session cookie helpers.
-- **Never change without:** only the bare `APP_BASE_DOMAIN` or a one-label subdomain is served; nothing reads `x-tenant-slug`. Tests: `proxy.test.ts`, `lib/tenant-slug.test.ts`, `integration/host-tenant.integration.test.ts`, `integration/rolling-session.integration.test.ts`.
+- **Never change without:** only the bare `APP_BASE_DOMAIN` or a one-label subdomain is served; nothing reads `x-tenant-slug`; `/platform` (the platform admin, DR-006) is served only on exactly the bare host and, in production, only over https (404 anywhere else), with `noindex` and `no-store`, and never renews the owner cookie; the path is percent-decoded first (`/%70latform` is `/platform`), and `lib/require-platform-host.ts` repeats the same rule (`platformServed`) in the /platform layout, pages and actions. Tests: `proxy.test.ts`, `lib/tenant-slug.test.ts`, `integration/host-tenant.integration.test.ts`, `integration/rolling-session.integration.test.ts`.
 
 ### 2. `src/lib/tenant-context.ts`
 - **Does:** finds the current stadium from the validated Host, caches it for the request (`getCurrentTenant`), hands out its id (`getCurrentTenantId`) and runs code with the tenant stored for Prisma (`withCurrentTenant`).
@@ -101,3 +101,9 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 - **Why:** a two-currency counter must never record more or less than is owed, and a later rate change must not change what was owed.
 - **Used by:** the shop and booking-item use cases (`record-walk-in-sale`, `collect-tab-payment`, `add-booking-items`, `remove-booking-item`, `list-booking-items`, `sale-state`); pure, no database.
 - **Never change without:** a fully paid sale records exactly its frozen USD; an LBP line needs the rate when added and a removal reverses at the rate it was added at. Tests: `modules/shop/pricing.test.ts`, `integration/shop-lbp.integration.test.ts`, `integration/shop-money.integration.test.ts`, `integration/shop-change.integration.test.ts`.
+
+### 16. Platform admin login: `src/modules/platform/application/platform-login.ts` and `src/lib/require-platform-host.ts`
+- **Does:** `platformLogin` signs a platform operator in with an identifier, a password and a 6-digit code: limits first, a dummy scrypt for an unknown identifier, the password, the encrypted TOTP secret, the code, then `consumeTotpStep` (one atomic UPDATE, so a code works once); on success one transaction creates the session and the `admin.login` audit row. `requirePlatformHost` is the server-side guard (404 unless the request is for exactly the bare host and, in production, https) that runs first in the `/platform` layout, pages and every Server Action.
+- **Why:** the web admin can suspend every stadium and create owners. A wrong password, a wrong or replayed code, or a tenant host must never open it, and nothing may say which factor failed.
+- **Used by:** `src/app/(platform)/platform/` (`actions.ts` and the pages), `lib/tenant-slug.ts` (`platformServed`, the rule shared with `src/proxy.ts`), `platform/application/platform-session.ts`.
+- **Never change without:** one error key (`platform.login_failed`) for every failure; 5 failures in 15 minutes block, counted for unknown identifiers too; limits outside any transaction; the proxy and the guard use the same `platformServed`; the cookie is `__Host-` over https; the admin tables stay out of the tenant client. Tests: `integration/platform-login.integration.test.ts`, `integration/platform-admin.integration.test.ts`, `integration/platform-stadium-actions.integration.test.ts`, `integration/platform-pages.integration.test.ts`, `lib/platform-host.test.ts`, `proxy.test.ts`, `modules/platform/domain/totp.test.ts`, `modules/platform/domain/admin-session.test.ts`. Review: `audits/platform-admin-review.md`.

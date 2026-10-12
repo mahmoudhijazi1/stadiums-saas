@@ -67,14 +67,33 @@ export function hostOptionsFromEnv(): HostOptions {
   };
 }
 
+/** The last X-Forwarded-Host entry is the one our own proxy wrote. */
+function forwardedOf(headers: HostHeaders): string {
+  return headers.forwardedHost?.split(",").at(-1)?.trim() ?? "";
+}
+
+/** The Host the request is served on: X-Forwarded-Host only when it is trusted. */
+function requestHost(headers: HostHeaders, options: HostOptions): string {
+  const forwarded = forwardedOf(headers);
+  return options.trustProxyHeaders && forwarded ? forwarded : (headers.host ?? "");
+}
+
+/**
+ * True only when the request is for exactly the bare APP_BASE_DOMAIN: not www, not any
+ * subdomain, not an invalid host. Strict on purpose: unlike `resolveTenantHost` it never lets
+ * Origin or Referer change the answer (the development fallback), so a page that must live only
+ * on the bare host (the platform admin, DR-006) cannot be reached by a header trick.
+ */
+export function isBareHost(headers: HostHeaders, options: HostOptions = hostOptionsFromEnv()): boolean {
+  return classifyHost(requestHost(headers, options), options.baseDomain).kind === "apex";
+}
+
 export function resolveTenantHost(
   headers: HostHeaders,
   options: HostOptions = hostOptionsFromEnv(),
 ): TenantHost {
-  // The last X-Forwarded-Host entry is the one our own proxy wrote.
-  const forwarded = headers.forwardedHost?.split(",").at(-1)?.trim() ?? "";
-  const host =
-    options.trustProxyHeaders && forwarded ? forwarded : (headers.host ?? "");
+  const forwarded = forwardedOf(headers);
+  const host = requestHost(headers, options);
   const resolved = classifyHost(host, options.baseDomain);
   if (resolved.kind !== "apex" || !options.devFallback) return resolved;
 
@@ -96,4 +115,37 @@ export function resolveTenantFromHeaders(list: {
     origin: list.get("origin"),
     referer: list.get("referer"),
   });
+}
+
+/** `isBareHost` from a Headers-like object (the proxy). */
+export function isBareHostFromHeaders(list: { get(name: string): string | null }): boolean {
+  return isBareHost({ host: list.get("host"), forwardedHost: list.get("x-forwarded-host") });
+}
+
+/**
+ * The one rule for serving the platform admin (DR-006): exactly the bare host, and in production
+ * only when APP_PROTOCOL is https. The proxy and the server-side guard (`requirePlatformHost`) both
+ * call it, so they can never disagree. Reads headers and two env values only.
+ */
+export function platformServed(
+  list: { get(name: string): string | null },
+  env: { NODE_ENV?: string; APP_PROTOCOL?: string } = process.env,
+): boolean {
+  const insecureProduction = env.NODE_ENV === "production" && env.APP_PROTOCOL !== "https";
+  return isBareHostFromHeaders(list) && !insecureProduction;
+}
+
+/**
+ * Is this request path the platform admin? The path is percent-decoded first, because Next decodes
+ * it when it matches a route: "/%70latform" and "/platform%2F" reach /platform. A malformed
+ * escape counts as platform when it spells the word, so it fails closed.
+ */
+export function isPlatformPath(pathname: string): boolean {
+  let path = pathname;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    return /platform/i.test(pathname);
+  }
+  return path === "/platform" || path.startsWith("/platform/");
 }

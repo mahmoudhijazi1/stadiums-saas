@@ -18,6 +18,9 @@
  * 5 lib and components import modules only through EXCEPTIONS (components/shell may import a module's ui/),
  * 6 module ui/ folders get data and actions through props (see UI_LIBS below),
  * 7 src/app stays thin (see APP_CONVENTION_NAMES and APP_THIN_ALLOWLIST below).
+ *
+ * Route group src/app/(platform) (DR-006): /platform on the bare host only; it imports platform/application
+ * through rule 4 like any route, resolves no tenant and imports nothing from lib/tenant-context.
  */
 
 export const MODULES = [
