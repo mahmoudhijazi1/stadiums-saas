@@ -338,7 +338,7 @@ describe("proxy landing rewrite stays internal", () => {
   it("has the same origin as request.nextUrl and the path /landing for /", () => {
     const { request, target } = behindNginx("/");
     expect(target?.origin).toBe(request.nextUrl.origin);
-    expect(target?.origin).toBe("http://127.0.0.1:3000");
+    expect(target?.origin).not.toMatch(/^https:/); // the forwarded protocol is never used for the target
     expect(target?.pathname).toBe("/landing");
   });
 
@@ -362,6 +362,7 @@ describe("proxy landing rewrite stays internal", () => {
     // Code only: the comments explain what is not done and name those words.
     const body = source
       .slice(source.indexOf("export function proxy"), source.indexOf("function redirectToBareDomain"))
+      .replace(/\/\*[\s\S]*?\*\//g, "") // block comments (the redirect's doc comment follows the function)
       .split(/\r?\n/)
       .map((line) => line.replace(/\/\/.*$/, ""))
       .join("\n");

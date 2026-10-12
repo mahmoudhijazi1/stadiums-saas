@@ -681,3 +681,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `fix/landing-rewrite-origin` into `main` with `--no-ff`, no conflicts: the internal landing rewrite and its tests. `docs/NOW.md` lists `v1.7.1` and says `v1.7.0` (tagged on a commit whose CI run failed) was not moved and is superseded. The tag `v1.7.1` is created on the pushed head of `main`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run for this merge. No test suite, build or lint was run here; CI on `main` is the full run.
+
+## Fix: two proxy test mistakes found by CI on v1.7.1 (test only)
+
+**When:** 2026-10-12
+
+**What:** CI on `a3644ac` (tagged `v1.7.1`) failed 2 tests in `test/proxy.test.ts`, both mistakes in the new "landing rewrite stays internal" tests, not in `src/proxy.ts`. (1) The test expected the origin `http://127.0.0.1:3000`, but `NextRequest` writes the host as `localhost:3000`; it now only checks the target has the request's own origin and not the forwarded `https`. (2) The source check sliced the proxy function up to the next function and so included the redirect's doc comment, which names `APP_PROTOCOL`; it now strips block comments as well as line comments. The code of the rewrite is unchanged. `v1.7.1` was not moved; it contains the correct fix but its CI run was red because of these tests.
+
+**How to verify:** `npx tsc --noEmit` was not needed (test only). I ran the whole unit suite once with `npx jest`: 163 suites, 1493 tests, all passed. The build, lint and the integration tests were not run.
