@@ -395,3 +395,9 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Not wired:** no audit or history of the change (there is none for Person); an owner who renames a person does not change names already printed in notifications; the sheet is not offered to staff, and there is no screen to grant the flag (it cannot be granted).
 
 **How to verify:** `npx tsc --noEmit` was the only check run. Written and NOT run: the `can` case, `test/modules/people/schemas/update-person.test.ts` and `test/integration/update-person.integration.test.ts` (rename and search, canonical phone, taken phone changes nothing, clearing refused, legacy phone fixed, staff refused, another tenant not found). UNVERIFIED by eye: the sheet in both languages.
+
+## People: the edit button is a pencil beside the name (branch `feat/person-edit`)
+
+**What:** UI only. The "Edit" outline button under the person header is gone. A ghost icon button (lucide `Pencil`, 20px, `text-muted-foreground`, no fill or border, 44x44 tap area through `size="icon"`, `aria-label` from `person.edit`) sits at the end of the name row in the page header, shown only when `can(membership, "people.edit")`, and opens the same `PersonEditSheet`. The name has `min-w-0 flex-1 truncate` and the icon `shrink-0`, so a long name is cut before the icon leaves the row; the row is a flex row, so the icon is at the end in both RTL and LTR. No test checked the old button.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; no test was run. UNVERIFIED by eye (hover state of the ghost button, a very long name, Arabic).

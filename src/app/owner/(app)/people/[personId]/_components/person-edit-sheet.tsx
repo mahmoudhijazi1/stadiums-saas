@@ -23,7 +23,7 @@ import type { UpdatePersonResult } from "@/app/owner/(app)/people/[personId]/act
 const PHONE_ERRORS = new Set(["people.phone_invalid", "people.phone_required", "people.phone_taken"]);
 
 /**
- * "Edit" on the person page: a sheet with the name, the phone (country select + number) and one
+ * The pencil icon button beside the name on the person page: it opens a sheet with the name, the phone (country select + number) and one
  * Save. The page shows the button only to a member who may edit. Errors show under their field.
  * The action comes in as a prop.
  */
@@ -79,17 +79,18 @@ export function PersonEditSheet({
     <>
       <Button
         type="button"
-        variant="outline"
-        className="min-h-11 self-start"
+        variant="ghost"
+        size="icon"
+        className="shrink-0 text-muted-foreground"
         aria-haspopup="dialog"
+        aria-label={ui("person.edit", locale)}
         onClick={() => {
           setError(null);
           setCountry(DEFAULT_COUNTRY);
           setOpen(true);
         }}
       >
-        <Pencil aria-hidden className="size-4" />
-        {ui("person.edit", locale)}
+        <Pencil aria-hidden className="size-5" />
       </Button>
 
       <BottomSheet open={open} onOpenChange={setOpen}>

@@ -50,7 +50,18 @@ export default async function PersonPage({
     <section className="flex flex-col gap-6">
       <OwnerBackLink href="/owner/today" locale={locale} history />
       <header className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl leading-none font-extrabold"><bdi>{person.name}</bdi></h1>
+        <div className="flex items-center gap-2">
+          <h1 className="min-w-0 flex-1 truncate font-display text-3xl leading-none font-extrabold"><bdi>{person.name}</bdi></h1>
+          {can(membership, PEOPLE_EDIT) ? (
+            <PersonEditSheet
+              personId={person.id}
+              name={person.name}
+              phone={person.phone}
+              locale={locale}
+              action={submitUpdatePerson}
+            />
+          ) : null}
+        </div>
         {person.phone ? (
           <LtrIsolate className="text-sm text-muted-foreground">{person.phone}</LtrIsolate>
         ) : null}
@@ -59,15 +70,6 @@ export default async function PersonPage({
             ↻ <LtrIsolate>{line}</LtrIsolate>
           </p>
         ))}
-        {can(membership, PEOPLE_EDIT) ? (
-          <PersonEditSheet
-            personId={person.id}
-            name={person.name}
-            phone={person.phone}
-            locale={locale}
-            action={submitUpdatePerson}
-          />
-        ) : null}
       </header>
       <Suspense fallback={<Skeleton className="h-24 w-full rounded-xl" />}>
         <PersonStats
