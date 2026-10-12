@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ui } from "@/lib/copy";
 import type { UiLocale } from "@/lib/locale";
 import { FEATURE_MOCKUPS } from "@/app/(marketing)/landing/_components/phone-mockups";
+import { PublicPagePreview } from "@/app/(marketing)/landing/_components/public-page-preview";
 import { WhatsAppButton } from "@/app/(marketing)/landing/_components/whatsapp-button";
 
 /** One section: a centred title and its body. 64px of space on phones, 96px from 1024px. */
@@ -33,6 +34,16 @@ export function HowItWorks({ locale }: { locale: UiLocale }) {
           </li>
         ))}
       </ol>
+    </Section>
+  );
+}
+
+/** A snapshot of a stadium's public page: the title, one line, the drawn page. */
+export function PublicPage({ locale }: { locale: UiLocale }) {
+  return (
+    <Section id="page" title={ui("landing.pageTitle", locale)}>
+      <p className="-mt-2 mx-auto max-w-[60ch] text-center text-sm text-muted-foreground sm:text-base lg:-mt-6">{ui("landing.pageText", locale)}</p>
+      <PublicPagePreview locale={locale} />
     </Section>
   );
 }

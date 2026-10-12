@@ -741,3 +741,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The hero has no WhatsApp button; its only action is the "See how it works" link (now shown on phones too). WhatsApp stays in the header (small), the closing band and the footer links.
 
 **How to verify:** `npx tsc --noEmit` and the landing tests passed.
+
+## Landing page: a snapshot of a stadium's public page (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** New section after "How a day runs" (`id="page"`): the title "Your stadium's booking page" with one line, and a drawn snapshot of the public page (`_components/public-page-preview.tsx`, HTML and CSS with tokens, aria-hidden, no screenshot): the header band with the accent gradient, a letter logo, a sample name and address, the Map / Call / WhatsApp bar, three day pills with availability dots, and five hours (one "Nearest", two taken and faded, "Request" on the free ones). Sample data only. Copy keys `landing.pageTitle`, `pageText` and the `landing.preview*` keys.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.

@@ -3,7 +3,7 @@ import { Hero } from "@/app/(marketing)/landing/_components/landing-hero";
 import { LandingFooter } from "@/app/(marketing)/landing/_components/landing-footer";
 import { LandingHeader } from "@/app/(marketing)/landing/_components/landing-header";
 import { landingJsonLd } from "@/app/(marketing)/landing/_components/landing-metadata";
-import { ClosingBand, Faq, Features, HowItWorks, Pricing } from "@/app/(marketing)/landing/_components/landing-sections";
+import { ClosingBand, Faq, Features, HowItWorks, Pricing, PublicPage } from "@/app/(marketing)/landing/_components/landing-sections";
 import { PageColumn } from "@/app/(marketing)/landing/_components/page-column";
 
 /**
@@ -20,6 +20,7 @@ export function LandingContent({ locale }: { locale: UiLocale }) {
         <Hero locale={locale} />
         <PageColumn>
           <HowItWorks locale={locale} />
+          <PublicPage locale={locale} />
           <Features locale={locale} />
           <Pricing locale={locale} />
           <Faq locale={locale} />

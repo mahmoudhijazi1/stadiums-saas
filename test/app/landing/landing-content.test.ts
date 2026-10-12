@@ -27,7 +27,7 @@ const headings = (markup: string, level: number) => [...markup.matchAll(new RegE
 const between = (markup: string, open: string, close: string) => markup.slice(markup.indexOf(open), markup.indexOf(close, markup.indexOf(open)) + close.length);
 const visibleText = (markup: string) => markup.replace(/<script[\s\S]*?<\/script>/g, " ").replace(/<[^>]+>/g, " ");
 
-const SECTION_TITLES = ["landing.stepsTitle", "landing.featuresTitle", "landing.priceTitle", "landing.faqTitle", "landing.closingTitle"];
+const SECTION_TITLES = ["landing.stepsTitle", "landing.pageTitle", "landing.featuresTitle", "landing.priceTitle", "landing.faqTitle", "landing.closingTitle"];
 
 describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
   const markup = render(locale);
@@ -116,6 +116,20 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
     expect(markup.match(/hover:bg-muted/g)).toHaveLength(1); // the header's small button
     expect(footer).not.toContain("hover:opacity-90");
     expect(footer).not.toContain("hover:bg-muted");
+  });
+
+  it("shows a drawn snapshot of a stadium's public page after the steps, hidden from assistive technology", () => {
+    expect(markup.indexOf('id="how"')).toBeLessThan(markup.indexOf('id="page"'));
+    expect(markup.indexOf('id="page"')).toBeLessThan(markup.indexOf('id="features"'));
+    const start = markup.indexOf('<div aria-hidden="true" class="mx-auto w-full max-w-[340px]');
+    expect(start).toBeGreaterThan(-1);
+    const preview = markup.slice(start, markup.indexOf('id="features"'));
+    expect(markup).toContain(escaped(ui("landing.pageText", locale)));
+    for (const key of ["landing.previewStadium", "landing.previewAddress", "landing.previewNearest", "landing.previewTaken", "landing.previewRequest", "landing.previewDay1"]) {
+      expect(preview).toContain(escaped(ui(key, locale)));
+    }
+    expect(preview).toContain("19:00");
+    expect(preview).not.toContain("<img");
   });
 
   it("has a hero band with the accent gradient, the pitch lines and the eyebrow", () => {
