@@ -23,6 +23,14 @@
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 | 13 | People: no screen to rename a person or change a phone | Done on `feat/person-edit`: owner-only `people.edit`, `people/application/update-person.ts`, an Edit sheet on the person page | [progress.md](./progress.md) |
 
+## Server and schema: open (recorded 2026-10-12)
+
+| Item | Note |
+|---|---|
+| Server: a HestiaCP custom nginx proxy template | Every request goes to Next on `127.0.0.1:3000`, no static files served from the app folder (today `chmod 700 .next` after each build is the stopgap, see RUNBOOK "Deploy order"). Also: move the app out of `public_html`; rotate the database password (it is weak and was shared in a chat); test a restore from a dump (the first backup was verified on 2026-10-12, a restore has not been run); add lint to CI (`.github/workflows/ci.yml` runs tests and build, not `npm run lint`). Deploy of the web platform admin waits for this (DR-006). |
+| Schema: two foreign keys disagree with `schema.prisma` | `Booking_seriesId_fkey` and `BookingParticipant_personId_fkey` are `ON DELETE RESTRICT` in the database but default to `SET NULL` in `schema.prisma` (from `ecd0063` and `24eeb00`). `prisma migrate diff` shows them as drift. Fix: write `onDelete: Restrict` in the schema; no migration and no behaviour change. |
+| Phones: 11 stored phones on production | They could not be made canonical by the `canonical_phones` migration and were left as they were. Nothing breaks (they read as before); an owner can fix one by editing the person (people.edit). |
+
 ## Money page v2: next (recorded 2026-10-15)
 
 | Item | Note |

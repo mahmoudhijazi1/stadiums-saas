@@ -503,3 +503,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Note:** the unlock command uses the database and user names the RUNBOOK already uses (`-U stadiums -d stadiums`, password from `~/.pgpass`), not the `stadiums_user` / `stadiums_saas` of the request; use whatever your `~/.pgpass` names.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run (new links and paths are unchecked by it). The two integration files fixed in `f7aa67f` have not been run since.
+
+## Docs: server values corrected (branch `feat/platform-admin`)
+
+**When:** 2026-10-12
+
+**What:** Docs only. The production values, verified on the server (a real `pg_dump` succeeded with them, `pm2 restart` used this name), replace the placeholders in `docs/RUNBOOK.md`: database `-h 127.0.0.1 -U stadiums_user -d stadiums_saas` in every `psql`, `pg_dump` and `pg_restore` command (Login lockout, Database commands, the Platform admin unlock, Deploy order, Roll back), the `.pgpass` example line `127.0.0.1:5432:stadiums_saas:stadiums_user:THE_PASSWORD`, and the pm2 process `stadiums-saas` everywhere (the rollback block said `stadiums`; the UNVERIFIED note about the name is gone). Deploy order: after `npm run build`, `chmod 700 ~/web/lebstads.com/public_html/.next` with the reason (HestiaCP nginx serves static extensions straight from the app folder; a stopgap until a custom proxy template), the same line in the rollback block; the backup step now sets `chmod 600` on the dump and checks it is not empty, and says the first verified backup was taken on 2026-10-12. `docs/NOW.md`: the live tag is `v1.3.1` (canonical phones with the country code selector and the merge of duplicate people, the Requests card polish, the lint fixes); the slice 7 "In progress" line is kept. `docs/ROADMAP.md`: a new section "Server and schema: open" with three rows (the custom nginx template, moving the app out of `public_html`, rotating the database password, testing a restore, lint in CI; the two foreign keys `ON DELETE RESTRICT` versus the schema default; the 11 production phones that could not be made canonical). The older archived progress entries still show the old placeholder names; they are history and were not touched.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run.

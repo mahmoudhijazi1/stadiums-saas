@@ -4,8 +4,8 @@
 **Read when:** you start a session; read it before anything else under `docs/`.
 **Last verified:** `f01c9bf` (main, after refactor step 6c).
 
-## What is live (tag `v1.3.0`)
-Tag `v1.3.0` is the public page UI refinement on top of `v1.1.0` (the architecture cleanup, steps 1 to 7b and the docs reset, with no behaviour change; `v1.0.0` was the release after the Money page v2 merge). There is no `v1.2.0` tag: the version number jumped on purpose. The product it contains, in order of the build (dates and details are in [progress.md](./progress.md) and [archive/progress-2026.md](./archive/progress-2026.md)):
+## What is live (tag `v1.3.1`)
+Tag `v1.3.1` adds, on top of `v1.3.0`, canonical phones with a country code selector and a merge of duplicate people, the Requests card polish and the lint fixes. Tag `v1.3.0` is the public page UI refinement on top of `v1.1.0` (the architecture cleanup, steps 1 to 7b and the docs reset, with no behaviour change; `v1.0.0` was the release after the Money page v2 merge). There is no `v1.2.0` tag: the version number jumped on purpose. The product it contains, in order of the build (dates and details are in [progress.md](./progress.md) and [archive/progress-2026.md](./archive/progress-2026.md)):
 - **Booking:** a public page per stadium where players request slots; the owner approves, creates, cancels, records no-shows, runs a waitlist, extends a game by 30 minutes, and makes weekly recurring bookings.
 - **Money:** collection in USD, LBP or both with change, per-player payments, fees, waivers and due changes, expenses, a Money page with profit or loss, an activity list and cash today, all on an append-only USD ledger.
 - **Shop:** a catalog, walk-in sales and items charged to a game or a named player (USD or LBP).

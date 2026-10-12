@@ -55,7 +55,7 @@ To lift a block early (for example, an owner locked out by someone guessing at t
 
 ```bash
 # The password comes from ~/.pgpass (see "Database commands" below), never from the command line.
-psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
+psql -h 127.0.0.1 -U stadiums_user -d stadiums_saas -c "DELETE FROM \"RateLimit\" WHERE key IN ('login:block:acct:owner@ahmad', 'login:fail:acct:owner@ahmad');"
 ```
 
 **`TRUSTED_CLIENT_IP_HEADER`:** set it only when nginx overwrites that header with the real client address, for example `proxy_set_header X-Real-IP $remote_addr;` together with `TRUSTED_CLIENT_IP_HEADER=x-real-ip`. When it is unset, no per-IP limit applies. Never point it at a header the client can set by itself.
@@ -70,11 +70,11 @@ psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE ke
 
 ```bash
 # one line per database: host:port:database:user:password
-echo 'localhost:5432:stadiums:stadiums:THE_PASSWORD' >> ~/.pgpass   # type it in an editor instead, so the password is not in history
-chmod 600 ~/.pgpass                                                 # psql ignores the file if group/others can read it
+echo '127.0.0.1:5432:stadiums_saas:stadiums_user:THE_PASSWORD' >> ~/.pgpass   # type it in an editor instead, so the password is not in history
+chmod 600 ~/.pgpass                                                            # psql ignores the file if group/others can read it
 
-psql -h localhost -U stadiums -d stadiums -c 'SELECT 1;'
-pg_dump -h localhost -U stadiums -d stadiums -Fc -f /var/backups/stadiums-$(date +%F).dump
+psql -h 127.0.0.1 -U stadiums_user -d stadiums_saas -c 'SELECT 1;'
+pg_dump -h 127.0.0.1 -U stadiums_user -d stadiums_saas -Fc -f /var/backups/stadiums-$(date +%F).dump
 ```
 
 Use the same host name in `.pgpass` as in the command (`localhost` and `127.0.0.1` do not match each other). The app itself reads `DATABASE_URL` from `.env` (mode 600, owned by the app user), which is not a command argument. Prisma's `?schema=public` suffix is not accepted by psql, which is another reason to pass host, user and database as separate options.
@@ -217,10 +217,10 @@ After 5 failed logins for one identifier within 15 minutes, that identifier is r
 
 ```bash
 # The password comes from ~/.pgpass (see "Database commands" below), never from the command line.
-psql -h localhost -U stadiums -d stadiums -c "DELETE FROM \"RateLimit\" WHERE key IN ('platform:fail:acct:<identifier>', 'platform:block:acct:<identifier>');"
+psql -h 127.0.0.1 -U stadiums_user -d stadiums_saas -c "DELETE FROM \"RateLimit\" WHERE key IN ('platform:fail:acct:<identifier>', 'platform:block:acct:<identifier>');"
 ```
 
-The per-IP keys are `platform:fail:ip:<ip>` and `platform:block:ip:<ip>`; they exist only when `TRUSTED_CLIENT_IP_HEADER` is set. (The database and user names above are this runbook's; use the ones in your `~/.pgpass`.)
+The per-IP keys are `platform:fail:ip:<ip>` and `platform:block:ip:<ip>`; they exist only when `TRUSTED_CLIENT_IP_HEADER` is set.
 
 ### Deploy checklist (before the first deploy of `/platform`)
 
@@ -262,11 +262,14 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 
 ## Deploy order
 
-One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. UNVERIFIED: the process manager name below (`pm2`, process `stadiums-saas`) is the one used on the droplet; it is not configured anywhere in this repo, so check `pm2 list` for the real name.
+One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. The process manager is `pm2`, process `stadiums-saas` (verified on the server; it is not configured in this repo).
 
 ```bash
-# 1. backup first (custom format, restorable with pg_restore)
-pg_dump -h localhost -U stadiums -d stadiums -Fc -f /var/backups/stadiums-$(date +%F).dump
+# 1. backup first (custom format, restorable with pg_restore), readable by the app user only
+BACKUP=/var/backups/stadiums-$(date +%F).dump
+pg_dump -h 127.0.0.1 -U stadiums_user -d stadiums_saas -Fc -f "$BACKUP"
+chmod 600 "$BACKUP"
+test -s "$BACKUP" && ls -lh "$BACKUP"    # the size must not be zero; stop here if it is
 
 # 2. note what is running now (for the rollback), then update
 git rev-parse --short HEAD
@@ -285,12 +288,18 @@ npx prisma generate --config prisma7.config.ts
 npx prisma migrate status --config prisma7.config.ts
 npx prisma migrate deploy --config prisma7.config.ts
 
-# 7. build, restart, look at the logs
+# 7. build, lock the build folder, restart, look at the logs
 npm run build
+# Why: the server is a HestiaCP domain whose nginx serves static extensions (json, js, txt and more)
+# straight from the app folder; this is a stopgap until a custom proxy template sends every request
+# to 127.0.0.1:3000 (ROADMAP, "Server").
+chmod 700 ~/web/lebstads.com/public_html/.next
 pm2 restart stadiums-saas
 pm2 logs stadiums-saas --lines 100
 npx next --version
 ```
+
+The first verified backup (a real `pg_dump` with the values above) was taken on 2026-10-12.
 
 Check after the restart: the logs show no `Invalid environment` or `Missing` line at startup (the server refuses to start in production with a bad `.env`), `npx next --version` prints the version in `package.json` (16.3.8 at the time of writing; never older than 16.3.6, see "Framework version"), and the public page of one stadium loads.
 
@@ -306,7 +315,8 @@ rm -rf src/app/generated       # only needed when going back past the move of th
 npm ci
 npx prisma generate --config prisma7.config.ts
 npm run build
-pm2 restart stadiums
+chmod 700 ~/web/lebstads.com/public_html/.next   # see step 7 of the deploy order for why
+pm2 restart stadiums-saas
 ```
 
-Migrations only go forward. If the tag is older than a migration that has already been applied, the old code may not run on the new schema: restore the backup from step 1 instead (`pg_restore -h localhost -U stadiums -d stadiums --clean --if-exists /var/backups/stadiums-YYYY-MM-DD.dump`), which loses everything written after the backup. UNVERIFIED: this restore was not run from this repo. To return to the latest release: `git checkout main && git pull --ff-only`, then steps 4 to 7.
+Migrations only go forward. If the tag is older than a migration that has already been applied, the old code may not run on the new schema: restore the backup from step 1 instead (`pg_restore -h 127.0.0.1 -U stadiums_user -d stadiums_saas --clean --if-exists /var/backups/stadiums-YYYY-MM-DD.dump`), which loses everything written after the backup. UNVERIFIED: this restore was not run from this repo. To return to the latest release: `git checkout main && git pull --ff-only`, then steps 4 to 7.
