@@ -67,6 +67,11 @@ export const platform: CopyArea = {
     "platform.cancel": "إلغاء",
     "platform.confirmSuspend": "إيقاف الملعب",
     "platform.confirmResume": "استئناف الملعب",
+    "platform.recordPayment": "تسجيل دفعة",
+    "platform.recordPaymentTitle": "تسجيل دفعة اشتراك",
+    "platform.recordPaymentHelp": "يضيف سطراً جديداً إلى سجل الاشتراكات. لا يتغيّر أي سطر سابق.",
+    "platform.amountUsdOptional": "المبلغ بالدولار (اختياري)",
+    "platform.noteOptional": "ملاحظة (اختياري)",
   },
   en: {
     "platform.title": "Platform",
@@ -130,5 +135,10 @@ export const platform: CopyArea = {
     "platform.cancel": "Cancel",
     "platform.confirmSuspend": "Suspend stadium",
     "platform.confirmResume": "Resume stadium",
+    "platform.recordPayment": "Record payment",
+    "platform.recordPaymentTitle": "Record a subscription payment",
+    "platform.recordPaymentHelp": "Adds a new row to the history. No earlier row is ever changed.",
+    "platform.amountUsdOptional": "Amount in USD (optional)",
+    "platform.noteOptional": "Note (optional)",
   },
 };

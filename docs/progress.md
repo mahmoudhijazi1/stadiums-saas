@@ -557,3 +557,23 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Unsure:** that v1.5.0 is live and that the preconditions were met is as stated by the owner; nothing was checked on the server. The RUNBOOK "Platform admin" section still lists the DR-006 preconditions as a deploy checklist; it was not changed.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run.
+
+## Web platform admin: record a subscription payment (branch `feat/admin-subscriptions`)
+
+**When:** 2026-10-12
+
+**What:** On the stadium detail page, the Subscriptions section has a "Record payment" button that opens a form: plan (filled with the current plan), paid until (the current paid-until plus one month, or today plus one month when there is none, clamped to the month's last day), amount in USD (optional) and note (optional), and one primary "Record payment" button. New `submitRecordSubscription` in `platform/actions.ts`: host guard, then `requirePlatformAdmin`, then the existing `setSubscription` use case (the one behind `subscriptions set`) with actor `admin:<id>`; errors come back as copy keys shown under their field; it revalidates the list and the detail, and the form refreshes the page, so the new row is first in the history and OVERDUE follows the latest row. New: `domain/paid-until.ts` (pure date helpers), `parseRecordSubscription` in `schemas/stadium-actions.ts`, `_components/record-subscription-panel.tsx`, copy for the button and for three errors that had no text (`plan_required`, `amount_invalid`, `note_too_long`; they showed the generic message). **The use case and the CLI did not change.** The use case does not refuse a paid-until in the past (neither does the CLI), so the web accepts one and the stadium stays OVERDUE; a lapsed current paid-until plus one month can itself be in the past, and the admin can change the date. Subscription rows stay append-only.
+
+**Tests:** `test/integration/platform-subscriptions.integration.test.ts` (one Subscription row and one audit row by `admin:<id>`, history order and OVERDUE in the detail and the list, earlier rows untouched, a past date accepted, each input refusal writes nothing, no session refused, off the bare host 404, the CLI path unchanged) and `test/modules/platform/domain/paid-until.test.ts`. **Written and NOT run.**
+
+**Not done:** no page or component test for the form (the form is not rendered by any test); no change to the RUNBOOK or KEY-FILES.
+
+**How to verify:** `npx tsc --noEmit` was the only check run (clean). No test suite, build or lint was run. Run `npm test` and `npm run test:integration`, then record a payment on a stadium in the browser.
+
+## Web platform admin: the paid-until prefill starts from today when it lapsed (branch `feat/admin-subscriptions`)
+
+**When:** 2026-10-12
+
+**What:** `defaultPaidUntil` in `modules/platform/domain/paid-until.ts` is now one month after the LATER of the current paid-until and today (the calendar date in the owner time zone); with no paid-until, one month after today. Before, a lapsed paid-until plus one month could itself be in the past (the quirk noted in the previous entry). The page, the action and the use case did not change. Tests in `test/modules/platform/domain/paid-until.test.ts` replaced for this function: lapsed two months ago, next week, today and none, a month-end case (31 Jan to 28 Feb), and the owner time zone against UTC. **Written and NOT run.** The branch is pushed; not merged.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`.
