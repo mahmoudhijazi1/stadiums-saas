@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ui } from "@/lib/copy";
+import { formatDisplayDate, OWNER_TIME_ZONE } from "@/lib/format/time";
 import { requirePlatformHost } from "@/lib/require-platform-host";
 import { listTenants } from "@/modules/platform/application/list-tenants";
 import { getCurrentPlatformAdmin } from "@/modules/platform/application/platform-session";
@@ -25,7 +28,16 @@ export default async function PlatformPage() {
 
   return (
     <PlatformFrame identifier={admin.identifier} logout={submitPlatformLogout}>
-      <h1 className="text-2xl font-semibold">{ui("platform.stadiums", "en")}</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">{ui("platform.stadiums", "en")}</h1>
+        <Link
+          href="/platform/stadiums/new"
+          className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md border px-3 text-sm font-semibold hover:bg-muted/60"
+        >
+          <Plus aria-hidden className="size-4" />
+          {ui("platform.newStadium", "en")}
+        </Link>
+      </div>
       {stadiums.length === 0 ? (
         <EmptyState title={ui("platform.emptyTitle", "en")} next={ui("platform.emptyNext", "en")} />
       ) : (
@@ -39,7 +51,9 @@ export default async function PlatformPage() {
                   status: stadium.status,
                   overdue: stadium.overdue,
                   plan: stadium.plan,
-                  paidUntil: stadium.paidUntil ? stadium.paidUntil.toISOString().slice(0, 10) : null,
+                  paidUntil: stadium.paidUntil
+                    ? formatDisplayDate(stadium.paidUntil, "en", { day: "numeric", month: "short", year: "numeric" }, OWNER_TIME_ZONE)
+                    : null,
                   pitchCount: stadium.pitchCount,
                   bookingsLast30Days: stadium.bookingsLast30Days,
                 }}

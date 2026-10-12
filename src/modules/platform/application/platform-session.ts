@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { DomainError } from "@/lib/errors";
 import { hashSessionToken } from "@/modules/access/infrastructure/session-token";
 import { isSessionAlive, shouldTouch } from "@/modules/platform/domain/admin-session";
 import {
@@ -41,6 +42,16 @@ export async function resolvePlatformSession(
 export const getCurrentPlatformAdmin = cache(async (): Promise<CurrentPlatformAdmin | null> => {
   return resolvePlatformSession(await readAdminCookie());
 });
+
+/**
+ * The signed-in admin, or a refusal: every state-changing platform action calls this after the host
+ * guard (DR-006). No session is `platform.not_signed_in`, and nothing is read or written after it.
+ */
+export async function requirePlatformAdmin(): Promise<CurrentPlatformAdmin> {
+  const admin = await getCurrentPlatformAdmin();
+  if (!admin) throw new DomainError("platform.not_signed_in");
+  return admin;
+}
 
 /** Put the raw token in the admin cookie after a login. From a Server Action only. */
 export async function setPlatformSessionCookie(token: string): Promise<void> {

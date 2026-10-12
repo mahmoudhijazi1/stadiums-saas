@@ -2,20 +2,24 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import { ui } from "@/lib/copy";
+import { formatDisplayDate, formatLocalClock, OWNER_TIME_ZONE } from "@/lib/format/time";
 import { DomainError } from "@/lib/errors";
 import { requirePlatformHost } from "@/lib/require-platform-host";
 import { getTenantDetail } from "@/modules/platform/application/get-tenant-detail";
 import { getCurrentPlatformAdmin } from "@/modules/platform/application/platform-session";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
-import { submitPlatformLogout } from "@/app/(platform)/platform/actions";
+import { submitPlatformLogout, submitResumeStadium, submitSuspendStadium } from "@/app/(platform)/platform/actions";
 import { DetailRow, DetailSection } from "@/app/(platform)/platform/_components/detail-section";
 import { PlatformFrame } from "@/app/(platform)/platform/_components/platform-frame";
 import { StatusBadges } from "@/app/(platform)/platform/_components/status-badges";
+import { SuspendResumePanel } from "@/app/(platform)/platform/_components/suspend-resume-panel";
 
 export const dynamic = "force-dynamic";
 
-const day = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : ui("platform.none", "en"));
-const stamp = (date: Date) => `${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+/** Dates and times in the owner time zone (Asia/Beirut), through the shared helpers; never UTC. */
+const dateOf = (date: Date) => formatDisplayDate(date, "en", { day: "numeric", month: "short", year: "numeric" }, OWNER_TIME_ZONE);
+const day = (date: Date | null) => (date ? dateOf(date) : ui("platform.none", "en"));
+const stamp = (date: Date) => `${dateOf(date)}, ${formatLocalClock(date, "h23", "en")}`;
 
 /**
  * One stadium, read only (DR-006): status, public page, subscriptions, owner logins, counts and the
@@ -141,6 +145,13 @@ export default async function PlatformStadiumPage({ params }: { params: Promise<
           </ul>
         )}
       </DetailSection>
+
+      <SuspendResumePanel
+        slug={tenant.slug}
+        suspended={tenant.status === "SUSPENDED"}
+        suspend={submitSuspendStadium}
+        resume={submitResumeStadium}
+      />
     </PlatformFrame>
   );
 }
