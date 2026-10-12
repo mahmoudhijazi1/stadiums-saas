@@ -419,3 +419,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Test only. CI failed two tests after the merge. (1) `shop-booking-items` "the day line counts a tab on a game of that day" used `endedGame(fixture, 0)`, which is today's first slot: it is only "ended" when the clock is late enough, and otherwise the game is more than 60 minutes away, so `shop.items_not_open` is right. It now uses `bookingStartingIn(fixture, -30)` (a game that began 30 minutes ago). (2) `shop-races` "add x cancel": `bookingStartingIn` counted the earlier, cancelled games of the loop as in the way and moved the next game 90 minutes into the past, so `cancelBooking` answered `booking.cancel_started`. The helper now treats only APPROVED games as in the way, like the exclusion constraint, so a cancelled game frees its time. No source file changed.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; the two suites are NOT re-run.
+
+## Release rule: a pushed tag is never moved (branch `docs/release-rules`, not merged)
+
+**When:** 2026-10-12
+
+**What:** Docs only. `CLAUDE.md` Workflow item 8: never move, delete or force-push a pushed tag; a release mistake is fixed by a new release with a new number; `v1.3.2` was moved twice by force push on 2026-10-12 and must never be deployed. `docs/RUNBOOK.md`: "Deploy order" (and "Roll back to a tag") say to deploy only a tag whose CI run on `main` was green, and to stop and ask if `git fetch --tags` reports "would clobber existing tag"; never fetch tags with `--force` on the server. `docs/ROADMAP.md`: a "Phones: open" row for the 11 stored production phones (person editing can fix them, shipping in `v1.4.0`). `docs/NOW.md`: the live tag line now says `v1.4.0` with what it adds.
+
+**Held back:** this branch is based on `main`, where the "In progress" platform-admin line, the corrected server values and the other ROADMAP rows do not exist (they live only on the unmerged `feat/platform-admin`), so none of those was added here. NOW.md names `v1.4.0` as live: do not merge this branch before the tag exists.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run.

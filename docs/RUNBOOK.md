@@ -200,6 +200,8 @@ The QR button in the business menu shows a QR code of the stadium's public page 
 
 ## Deploy order
 
+Deploy only a tag whose CI run on `main` was green. If `git fetch --tags` reports "would clobber existing tag", stop and ask; never fetch tags with `--force` on the server.
+
 One complete order, run from the app directory on the server as the app user. The password for `pg_dump` comes from `~/.pgpass` (see "Database commands"), never from the command line. UNVERIFIED: the process manager name below (`pm2`, process `stadiums-saas`) is the one used on the droplet; it is not configured anywhere in this repo, so check `pm2 list` for the real name.
 
 ```bash
@@ -235,6 +237,8 @@ Check after the restart: the logs show no `Invalid environment` or `Missing` lin
 **`.env` on the server** (mode 600): `DATABASE_URL`, `APP_BASE_DOMAIN`, `APP_PROTOCOL=https`, the three VAPID values (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`; see "Push keys") and, only when nginx overwrites the header with the real client address, `TRUSTED_CLIENT_IP_HEADER="x-real-ip"` (see "Login lockout"). Missing or malformed required values stop the server at start.
 
 ### Roll back to a tag
+The same rule as the deploy order: if `git fetch --tags` reports "would clobber existing tag", stop and ask; never fetch tags with `--force`.
+
 Releases are git tags (`v1.0.0` is the first). To go back to a tag:
 
 ```bash
