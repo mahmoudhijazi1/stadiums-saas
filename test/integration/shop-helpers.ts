@@ -71,7 +71,8 @@ export async function endedGame(
  * An APPROVED $30 game of the same length that starts `minutes` from now (a negative number is a
  * game that already began). Items open 60 minutes before the start, so the shop suites use this
  * instead of `futureBooking`. Only `during` is moved, by raw SQL; if another game of the pitch is in
- * the way, the game steps 90 minutes earlier until it is free (still open, since it is in the past).
+ * the way, the game steps 90 minutes earlier until it is free (still open, since it is in the past). Only
+ * APPROVED games count as in the way, like the exclusion constraint, so a cancelled one frees its time.
  */
 export async function bookingStartingIn(fixture: TestFixture, minutes: number, name = "Booker"): Promise<string> {
   const bookingId = await futureBooking(fixture, 30, name);
@@ -80,6 +81,7 @@ export async function bookingStartingIn(fixture: TestFixture, minutes: number, n
     const [{ clash }] = await platformDb.$queryRaw<{ clash: bigint }[]>`
       SELECT count(*) AS clash FROM "Booking" b, "Booking" me
       WHERE me.id = ${bookingId} AND b.id <> me.id AND b."pitchId" = me."pitchId"
+        AND b.status = 'APPROVED'::"BookingStatus"
         AND b.during && tstzrange(${start}::timestamptz, ${start}::timestamptz + (upper(me.during) - lower(me.during)), '[)')`;
     if (clash === BigInt(0)) {
       await platformDb.$executeRaw`
