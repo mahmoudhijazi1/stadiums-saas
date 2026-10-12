@@ -121,14 +121,15 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
   it("shows a drawn snapshot of a stadium's public page after the steps, hidden from assistive technology", () => {
     expect(markup.indexOf('id="how"')).toBeLessThan(markup.indexOf('id="page"'));
     expect(markup.indexOf('id="page"')).toBeLessThan(markup.indexOf('id="features"'));
-    const start = markup.indexOf('<div aria-hidden="true" class="mx-auto w-full max-w-[340px]');
+    const start = markup.indexOf('<div aria-hidden="true" class="mx-auto w-full max-w-[360px]');
     expect(start).toBeGreaterThan(-1);
     const preview = markup.slice(start, markup.indexOf('id="features"'));
     expect(markup).toContain(escaped(ui("landing.pageText", locale)));
-    for (const key of ["landing.previewStadium", "landing.previewAddress", "landing.previewNearest", "landing.previewTaken", "landing.previewRequest", "landing.previewDay1"]) {
+    for (const key of ["landing.previewStadium", "landing.previewAddress", "public.nearest", "public.taken", "public.today", "public.availableTimes", "public.actionMap"]) {
       expect(preview).toContain(escaped(ui(key, locale)));
     }
-    expect(preview).toContain("19:00");
+    expect(preview).toContain("19:00 – 20:00");
+    expect(preview).not.toMatch(/<a |<button/); // decorative: nothing to press
     expect(preview).not.toContain("<img");
   });
 
