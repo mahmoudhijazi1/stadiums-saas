@@ -169,3 +169,19 @@ describe("platform sessions", () => {
     expect(await endPlatformSession(undefined)).toBe(false);
   });
 });
+
+describe("platform logout audit", () => {
+  it("writes one admin.logout audit row (actor admin:<id>) when it deletes the session, and none when there is no session", async () => {
+    const { admin } = await enrolled();
+    const { token } = await sessionFor(admin.id);
+
+    expect(await endPlatformSession(token)).toBe(true);
+    const rows = await platformDb.platformAuditLog.findMany({ where: { action: "admin.logout" } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.actor).toBe(`admin:${admin.id}`);
+    expect(JSON.stringify(rows[0]!.detail)).not.toContain(token);
+
+    expect(await endPlatformSession(token)).toBe(false); // already gone: no second row
+    expect(await platformDb.platformAuditLog.count({ where: { action: "admin.logout" } })).toBe(1);
+  });
+});

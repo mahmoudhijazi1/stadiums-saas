@@ -3,12 +3,11 @@ import { hashSessionToken } from "@/modules/access/infrastructure/session-token"
 import { isSessionAlive, shouldTouch } from "@/modules/platform/domain/admin-session";
 import {
   deletePlatformSession,
-  deletePlatformSessionByTokenHash,
   findPlatformSessionByTokenHash,
   touchPlatformSession,
 } from "@/modules/platform/infrastructure/platform-sessions";
 import { clearAdminCookie, readAdminCookie, writeAdminCookie } from "@/modules/platform/infrastructure/platform-session-cookie";
-import { platformTransaction } from "@/modules/platform/infrastructure/platform-store";
+import { platformTransaction, writeAudit } from "@/modules/platform/infrastructure/platform-store";
 
 /**
  * Reading and ending the platform admin session (DR-006). No tenant and no owner session is
@@ -48,11 +47,21 @@ export async function setPlatformSessionCookie(token: string): Promise<void> {
   await writeAdminCookie(token);
 }
 
-/** Delete the session behind a raw token. Returns whether one existed. */
+/**
+ * Delete the session behind a raw token and write the `admin.logout` audit row (actor
+ * `admin:<id>`) in the same transaction. Returns whether a session existed; nothing is written
+ * when there was none.
+ */
 export async function endPlatformSession(token: string | undefined): Promise<boolean> {
   if (!token) return false;
-  const deleted = await platformTransaction((tx) => deletePlatformSessionByTokenHash(tx, hashSessionToken(token)));
-  return deleted > 0;
+  const tokenHash = hashSessionToken(token);
+  return platformTransaction(async (tx) => {
+    const session = await findPlatformSessionByTokenHash(tx, tokenHash);
+    if (!session) return false;
+    await deletePlatformSession(tx, session.id);
+    await writeAudit(tx, { action: "admin.logout", tenantId: null, actor: `admin:${session.adminId}`, detail: { adminId: session.adminId } });
+    return true;
+  });
 }
 
 /** Log out: delete this browser's session and clear the cookie. From a Server Action only. */
