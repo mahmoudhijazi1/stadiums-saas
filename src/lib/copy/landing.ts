@@ -22,7 +22,7 @@ export const landing: CopyArea = {
     "landing.heroTitle": "حجوزات ملعبك ومدفوعاته، في مكان واحد",
     "landing.heroSub": "رابط حجز خاص، موافقة بضغطة، وتحصيل بالدولار والليرة.",
     "landing.heroSecondary": "كيف يعمل",
-    "landing.heroEyebrow": "لملاعب كرة القدم في لبنان",
+    "landing.heroEyebrow": "لملاعب كرة القدم والبادل وكرة السلة في لبنان",
 
     "landing.mockToday": "اليوم",
     "landing.mockNew": "طلب جديد",
@@ -98,7 +98,7 @@ export const landing: CopyArea = {
     "landing.heroTitle": "Your stadium's bookings and payments, in one place",
     "landing.heroSub": "Your own booking link, one-tap approvals, collection in dollars and pounds.",
     "landing.heroSecondary": "See how it works",
-    "landing.heroEyebrow": "For football stadiums in Lebanon",
+    "landing.heroEyebrow": "For football, padel and basketball venues in Lebanon",
 
     "landing.mockToday": "Today",
     "landing.mockNew": "New request",

@@ -709,3 +709,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The hero is now a full-width band with the public page's soft gradient (a tint of the accent to the page background, as a Tailwind arbitrary value from tokens, no inline style) and half a football pitch drawn in thin lines behind it at the end side (`_components/pitch-lines.tsx`, `currentColor` at 7% opacity, so it works in both themes and mirrors in RTL). A small eyebrow pill ("For football stadiums in Lebanon", key `landing.heroEyebrow`). Shorter copy: the headline, the sub-line and the three steps (titles and texts). Smaller on phones: headline 28px (36px from 640px, 48px from 1024px), sections 48px of space (96px from 1024px), headings 20px, the hero phone 240px wide, the feature mock-ups 144px tall, the steps as one compact row each (number beside the text) below 1024px. Cards get rounded-2xl and a soft shadow; the closing band takes the same gradient. Nothing else changed (routes, metadata, rewrites, WhatsApp links).
 
 **Tests:** `landing-content.test.ts` updated (new headline, 48px sections, hero band). Ran `npx jest test/app test/architecture test/lib/copy test/proxy.test.ts`: 28 suites, 220 tests, passed. `npx tsc --noEmit` clean. Build and lint not run. Not looked at in a browser.
+
+## Landing page: not only football (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero pill now names football, padel and basketball (`landing.heroEyebrow`): the app books any sport with hourly slots, not only football. The rest of the copy already said "stadium" and "pitch" without naming a sport. The background shape is still half a football pitch.
+
+**How to verify:** `npx tsc --noEmit` and `npx jest test/app/landing test/lib/copy` passed.
