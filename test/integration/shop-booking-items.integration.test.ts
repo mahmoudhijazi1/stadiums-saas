@@ -21,7 +21,7 @@ import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-p
 import { civilDateInTimeZone, formatCivilDate } from "@/modules/venue/domain/availability";
 import type { TestFixture } from "./fixtures";
 import { createStaffSession, seedMinimalFixture } from "./fixtures";
-import { endedGame, soonBooking, nextPhone, requesterPersonId } from "./shop-helpers";
+import { bookingStartingIn, endedGame, soonBooking, nextPhone, requesterPersonId } from "./shop-helpers";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
@@ -372,7 +372,8 @@ describe("what is owed", () => {
   });
 
   it("the day line counts a tab on a game of that day", async () => {
-    const { bookingId } = await endedGame(fixture, 0, "Today", "9613444444");
+    // Started 30 minutes ago: today, and open for items whatever the time of day.
+    const bookingId = await bookingStartingIn(fixture, -30, "Today");
     await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("30.00") }] });
     await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "name", name: "Kid" } });
     const day = await loadOwnerDay(formatCivilDate(civilDateInTimeZone(new Date(), "Asia/Beirut")));

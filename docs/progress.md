@@ -413,3 +413,9 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** UI only. The "Edit" outline button under the person header is gone. A ghost icon button (lucide `Pencil`, 20px, `text-muted-foreground`, no fill or border, 44x44 tap area through `size="icon"`, `aria-label` from `person.edit`) sits at the end of the name row in the page header, shown only when `can(membership, "people.edit")`, and opens the same `PersonEditSheet`. The name has `min-w-0 flex-1 truncate` and the icon `shrink-0`, so a long name is cut before the icon leaves the row; the row is a flex row, so the icon is at the end in both RTL and LTR. No test checked the old button.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; no test was run. UNVERIFIED by eye (hover state of the ghost button, a very long name, Arabic).
+
+## Test: two shop suites after the 60-minute window (branch `fix/shop-window-tests`)
+
+**What:** Test only. CI failed two tests after the merge. (1) `shop-booking-items` "the day line counts a tab on a game of that day" used `endedGame(fixture, 0)`, which is today's first slot: it is only "ended" when the clock is late enough, and otherwise the game is more than 60 minutes away, so `shop.items_not_open` is right. It now uses `bookingStartingIn(fixture, -30)` (a game that began 30 minutes ago). (2) `shop-races` "add x cancel": `bookingStartingIn` counted the earlier, cancelled games of the loop as in the way and moved the next game 90 minutes into the past, so `cancelBooking` answered `booking.cancel_started`. The helper now treats only APPROVED games as in the way, like the exclusion constraint, so a cancelled game frees its time. No source file changed.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the two suites are NOT re-run.
