@@ -15,7 +15,7 @@
 ## `src/`
 | Folder | What is in it |
 |---|---|
-| `app/` | Next.js routes: `(public)` (the stadium page a player sees), `owner` (the owner app: `(app)` tabs, `login`, `qr`, `suspended`), `brand` (icon route), `dev` (dev-only mockups). Convention files plus a `_components` folder per route (rule 7). |
+| `app/` | Next.js routes: `(public)` (the stadium page a player sees), `owner` (the owner app: `(app)` tabs, `login`, `qr`, `suspended`), `brand` (icon route), `dev` (dev-only mockups), `(marketing)` (the landing page of the bare domain: `/` and `/en`, no tenant and no database). Convention files plus a `_components` folder per route (rule 7). |
 | `components/ui/` | Generic primitives (button, input, sheet, dialog, calendar…) plus `settings-list`, `money-input`, `scrollbar-peek` |
 | `components/shell/` | The app frame: tab-bar, header, back-link, business-menu, offline-pill, theme-provider, theme-toggle, system-bars, owner-service-worker, lang-toggle, unavailable-notice |
 | `lib/` | Cross-cutting helpers with no business word (below) |

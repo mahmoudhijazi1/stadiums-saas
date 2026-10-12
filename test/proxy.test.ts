@@ -196,3 +196,126 @@ describe("proxy /platform", () => {
     }
   });
 });
+
+
+/**
+ * The landing page of the bare host (slice 1). Written, not run when authored. The bare host's "/" and
+ * "/en" are rewritten to the internal /landing routes with the language in x-lebstads-landing; the
+ * header is deleted from every incoming request; "www." redirects to the bare domain; /landing is
+ * never a public URL; tenant hosts, /platform and the host check are unchanged.
+ */
+describe("proxy landing routes", () => {
+  const env = process.env as Record<string, string | undefined>;
+  const saved = { APP_PROTOCOL: env.APP_PROTOCOL };
+  afterEach(() => {
+    env.APP_PROTOCOL = saved.APP_PROTOCOL;
+  });
+
+  function at(host: string, path: string, headers: Record<string, string> = {}) {
+    return proxy(new NextRequest(`http://${host}${path}`, { headers: { host, ...headers } }));
+  }
+  const target = (response: Response) => {
+    const value = response.headers.get("x-middleware-rewrite");
+    return value ? new URL(value) : null;
+  };
+  const forwarded = (response: Response) => response.headers.get("x-middleware-request-x-lebstads-landing");
+  const overridden = (response: Response) => (response.headers.get("x-middleware-override-headers") ?? "").split(",");
+
+  it("rewrites the bare host's / to /landing with the header ar", () => {
+    const response = at("lebstads.test", "/");
+    expect(response.status).toBe(200);
+    expect(target(response)?.pathname).toBe("/landing");
+    expect(forwarded(response)).toBe("ar");
+  });
+
+  it("rewrites the bare host's /en and /en/ to /landing/en with the header en, keeping the query", () => {
+    for (const path of ["/en", "/en/"]) {
+      const response = at("lebstads.test", path);
+      expect(target(response)?.pathname).toBe("/landing/en");
+      expect(forwarded(response)).toBe("en");
+    }
+    expect(target(at("lebstads.test", "/?utm=1"))?.search).toBe("?utm=1");
+  });
+
+  it("rewrites nothing else on the bare host", () => {
+    for (const path of ["/en/more", "/english", "/owner/login", "/robots.txt"]) {
+      const response = at("lebstads.test", path);
+      expect(target(response)).toBeNull();
+      expect(forwarded(response)).toBeNull();
+    }
+  });
+
+  it("removes a client-sent x-lebstads-landing on a tenant host and on the bare host", () => {
+    for (const [host, path] of [["ahmad.lebstads.test", "/"], ["ahmad.lebstads.test", "/owner/today"], ["lebstads.test", "/owner/login"], ["lebstads.test", "/platform"]]) {
+      const response = at(host!, path!, { "x-lebstads-landing": "en" });
+      expect(forwarded(response)).toBeNull();
+      expect(overridden(response)).not.toContain("x-lebstads-landing");
+    }
+    // On the landing routes the proxy's own value wins over the client's.
+    expect(forwarded(at("lebstads.test", "/", { "x-lebstads-landing": "en" }))).toBe("ar");
+    expect(forwarded(at("lebstads.test", "/en", { "x-lebstads-landing": "ar" }))).toBe("en");
+  });
+
+  it("answers 404 for /landing and everything under it, on the bare host and on a tenant host", () => {
+    for (const host of ["lebstads.test", "ahmad.lebstads.test"]) {
+      for (const path of ["/landing", "/landing/", "/landing/en", "/Landing", "/%6canding", "/landing%2Fen"]) {
+        expect([host, path, at(host, path).status]).toEqual([host, path, 404]);
+      }
+    }
+    expect(at("lebstads.test", "/landingpage").status).toBe(200); // a lookalike is not /landing
+  });
+
+  it("leaves a tenant host's / and /en alone: no rewrite, no header", () => {
+    for (const path of ["/", "/en"]) {
+      const response = at("ahmad.lebstads.test", path);
+      expect(response.status).toBe(200);
+      expect(target(response)).toBeNull();
+      expect(forwarded(response)).toBeNull();
+    }
+  });
+
+  it("does not rewrite a tenant host that only names the bare host in X-Forwarded-Host, unless that header is trusted", () => {
+    const response = at("ahmad.lebstads.test", "/", { "x-forwarded-host": "lebstads.test" });
+    expect(target(response)).toBeNull();
+  });
+
+  it("does not renew the owner session cookie on a landing rewrite", () => {
+    expect(at("lebstads.test", "/", { cookie: "stadium_session=tok_123" }).headers.getSetCookie()).toEqual([]);
+  });
+
+  it("redirects www.<base> with 308 to the bare domain, same path and query, for any path", () => {
+    env.APP_PROTOCOL = "https";
+    const response = at("www.lebstads.test", "/x?y=1");
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("https://lebstads.test/x?y=1");
+    expect(at("www.lebstads.test", "/").headers.get("location")).toBe("https://lebstads.test/");
+    expect(at("www.lebstads.test", "/en").headers.get("location")).toBe("https://lebstads.test/en");
+    expect(at("www.lebstads.test", "/landing").headers.get("location")).toBe("https://lebstads.test/landing"); // then a 404 on the bare host
+    env.APP_PROTOCOL = "http";
+    expect(at("www.lebstads.test", "/a").headers.get("location")).toBe("http://lebstads.test/a");
+  });
+
+  it("builds the www redirect from the configured base domain, never from the request path", () => {
+    env.APP_PROTOCOL = "https";
+    expect(at("www.lebstads.test", "//evil.example/x").headers.get("location")).toMatch(/^https:\/\/lebstads\.test\//);
+  });
+
+  it("keeps /platform on www a 404 (the platform invariant wins over the www redirect)", () => {
+    expect(at("www.lebstads.test", "/platform").status).toBe(404);
+  });
+
+  it("keeps /platform on the bare host unchanged: served, noindex, no-store, no landing header", () => {
+    const response = at("lebstads.test", "/platform");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(target(response)).toBeNull();
+    expect(forwarded(response)).toBeNull();
+  });
+
+  it("still answers 404 for an invalid host on / and /en, with no redirect", () => {
+    for (const host of ["ahmad.attacker.example", "www.attacker.example", "a.b.lebstads.test", "127.0.0.1:3000"]) {
+      for (const path of ["/", "/en"]) expect([host, path, at(host, path).status]).toEqual([host, path, 404]);
+    }
+  });
+});

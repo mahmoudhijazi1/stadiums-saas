@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isPlatformPath, platformServed, resolveTenantFromHeaders } from "@/lib/tenant-slug";
+import { LANDING_HEADER } from "@/lib/locale";
+import {
+  isBareHostFromHeaders,
+  isLandingPath,
+  isPlatformPath,
+  isWwwHostFromHeaders,
+  landingRouteFor,
+  platformServed,
+  resolveTenantFromHeaders,
+} from "@/lib/tenant-slug";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -22,20 +31,40 @@ import {
  *   3. /platform (the platform admin, DR-006) is served only on the bare APP_BASE_DOMAIN host, and
  *      in production only over https; anywhere else it is the same 404. Its responses are
  *      noindex and no-store, and it never touches the owner session cookie.
- *   4. Renew the session cookie (rolling 30 days), at most once a day
+ *   4. The landing page of the bare host (no tenant, no database): always delete a client-sent
+ *      x-lebstads-landing; `www.` gets a 308 to the bare domain (except /platform, a 404 as in 3);
+ *      /landing is a 404 on every host; on the bare host `/` is rewritten to /landing and `/en` to
+ *      /landing/en with x-lebstads-landing: ar | en. Tenant hosts are untouched.
+ *   5. Renew the session cookie (rolling 30 days), at most once a day
  */
 export function proxy(request: NextRequest) {
   if (resolveTenantFromHeaders(request.headers).kind === "invalid") {
     return new NextResponse(null, { status: 404 });
   }
 
-  const platform = isPlatformPath(request.nextUrl.pathname);
+  const pathname = request.nextUrl.pathname;
+  const platform = isPlatformPath(pathname);
   if (platform && !platformServed(request.headers)) {
     return new NextResponse(null, { status: 404 });
   }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete("x-tenant-slug");
+  requestHeaders.delete(LANDING_HEADER);
+
+  if (isWwwHostFromHeaders(request.headers)) {
+    return redirectToBareDomain(request);
+  }
+  if (isLandingPath(pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+  const landing = isBareHostFromHeaders(request.headers) ? landingRouteFor(pathname) : null;
+  if (landing) {
+    const url = request.nextUrl.clone();
+    url.pathname = landing.rewriteTo;
+    requestHeaders.set(LANDING_HEADER, landing.locale);
+    return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+  }
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
@@ -47,6 +76,17 @@ export function proxy(request: NextRequest) {
   }
   renewSessionCookie(request, response);
   return response;
+}
+
+/**
+ * `www.<base>` to the bare domain, same path and query, no tenant lookup. The target is built from
+ * APP_PROTOCOL and APP_BASE_DOMAIN only (never from the request host), so a path cannot change the
+ * host it points to.
+ */
+function redirectToBareDomain(request: NextRequest): NextResponse {
+  const protocol = process.env.APP_PROTOCOL?.trim() || "https";
+  const base = (process.env.APP_BASE_DOMAIN ?? "").trim().toLowerCase();
+  return NextResponse.redirect(`${protocol}://${base}${request.nextUrl.pathname}${request.nextUrl.search}`, 308);
 }
 
 /**

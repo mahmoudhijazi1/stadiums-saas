@@ -149,3 +149,54 @@ export function isPlatformPath(pathname: string): boolean {
   }
   return path === "/platform" || path.startsWith("/platform/");
 }
+
+/**
+ * The host `www.<APP_BASE_DOMAIN>`: `classifyHost` reads it as the tenant label "www", a reserved
+ * slug no tenant can own. Strict like `isBareHost`: Origin and Referer never change the answer.
+ */
+export function isWwwHostFromHeaders(list: { get(name: string): string | null }): boolean {
+  const options = hostOptionsFromEnv();
+  const host = requestHost({ host: list.get("host"), forwardedHost: list.get("x-forwarded-host") }, options);
+  const resolved = classifyHost(host, options.baseDomain);
+  return resolved.kind === "tenant" && resolved.slug === "www";
+}
+
+/**
+ * Is this request path the landing route itself (`/landing` or under it)? Those are internal
+ * rewrite targets of the bare host and never a public URL. Percent-decoded and case-folded first;
+ * a malformed escape that spells the word counts, so it fails closed.
+ */
+export function isLandingPath(pathname: string): boolean {
+  let path = pathname;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    return /landing/i.test(pathname);
+  }
+  path = path.toLowerCase();
+  return path === "/landing" || path.startsWith("/landing/");
+}
+
+/** Where the bare host's `/` and `/en` go: the internal route and the page language. */
+export function landingRouteFor(pathname: string): { rewriteTo: "/landing" | "/landing/en"; locale: "ar" | "en" } | null {
+  let path: string;
+  try {
+    path = decodeURIComponent(pathname);
+  } catch {
+    return null;
+  }
+  if (path === "/") return { rewriteTo: "/landing", locale: "ar" };
+  if (path === "/en" || path === "/en/") return { rewriteTo: "/landing/en", locale: "en" };
+  return null;
+}
+
+/**
+ * Who a crawler-facing route (robots.txt, sitemap.xml) is answering: exactly the bare host, a
+ * stadium's own host, or anything else (www, an invalid host). Strict, like `isBareHost`: Origin and
+ * Referer never change the answer. `www` is never a stadium.
+ */
+export function hostAudience(list: { get(name: string): string | null }): "bare" | "tenant" | "other" {
+  if (isBareHostFromHeaders(list)) return "bare";
+  const resolved = resolveTenantFromHeaders(list);
+  return resolved.kind === "tenant" && resolved.slug !== "www" ? "tenant" : "other";
+}

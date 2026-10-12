@@ -585,3 +585,63 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `feat/admin-subscriptions` into `main` with `--no-ff` (merge commit `e6f89ca`), no conflicts. `docs/NOW.md` gets a section "In the next release" with one line: the admin can record a subscription payment. No tag was created, moved or pushed.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run; the new integration and unit tests have never been run.
+
+## Landing page, slice 1: route "/" and "/en" on the bare host (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** Placeholder only. `src/proxy.ts`: a client-sent `x-lebstads-landing` is always deleted; `www.<base>` gets a 308 to `<APP_PROTOCOL>://<APP_BASE_DOMAIN>` with the same path and query (no tenant lookup), except `/platform`, which stays a 404 there (the platform invariant wins); `/landing` and under it are a 404 on every host; on the bare host `/` is rewritten to `/landing` with the header `ar` and `/en` or `/en/` to `/landing/en` with `en`; tenant hosts are untouched; the landing rewrite does not renew the owner cookie. Helpers `isWwwHostFromHeaders`, `isLandingPath`, `landingRouteFor` in `lib/tenant-slug.ts`; `LANDING_HEADER` and `parseLandingLocale` in `lib/locale.ts`. `src/app/layout.tsx`: `lang` and `dir` follow the header, but only on the bare host and only for `ar` or `en`, otherwise the cookie as before; `generateMetadata` sets `manifest: null` on the bare host. New route group `src/app/(marketing)/landing` (`page.tsx`, `en/page.tsx`, `_components`): host guard (`isBareHostFromHeaders`, else 404), heading "LebStads" and one line through `ui()` with a constant locale, noindex; copy area `landing`. Docs: KEY-FILES entry 1, CODEMAP; `rules.ts` header comment only (no rule changed).
+
+**Unsure:** in Next's metadata merge (`resolve-metadata.js`, `mergeStaticMetadata`) a root `manifest.ts` file is applied after the root layout's `generateMetadata`, so `manifest: null` there does not remove the link; it works from a deeper segment, so the two landing pages set `manifest: null` too. Not confirmed in a running app. `/manifest.webmanifest` itself still answers on the bare host (neutral manifest).
+
+**Tests (written, NOT run):** `test/proxy.test.ts` (landing routes, www, header removal, /landing 404, tenant host unchanged, /platform, invalid host), `test/app/root-layout.test.ts` (lang and dir, manifest), `test/app/marketing-guard.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` only (run before and after the tests were added). No test suite, build or lint was run. Run `npm test`, then open `/` and `/en` on the bare host and check the page source for `<html lang dir>` and no manifest link.
+
+## Landing page, slice 2: content, design, logo and metadata (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** The two landing pages (`/` Arabic, `/en` English, through the slice 1 rewrite) now have the content: hero with a WhatsApp button, paper versus the app, six features with phone mock-ups, three steps, price ("depends on your stadium, let's talk", no number), a four-question FAQ and a footer with WhatsApp and the AR/EN switch (links to `/` and `/en`). Copy is the `landing` area, simple standard Arabic first, only what is built (no offline, no off-site backups, no prices, no counts). The WhatsApp link is the existing `whatsAppHref` (the name in the request, `whatsAppChatHref`, does not exist) with the number as a constant in `_components/landing-contact.ts` and a short prefilled message per language. Design: the app's tokens and `Container` only (Tailwind token classes, SVG with `fill-primary` and the like; no raw colour, no screenshots), two primary buttons (hero, price) and a secondary one in the footer. Metadata per language: title, description, canonical, hreflang (ar, en, x-default to `/`), Open Graph, Twitter (the `og.png` card only if the file exists; it does not), one inline JSON-LD Organization with a WhatsApp contact point; robots stay noindex and no manifest link. The bare host's favicon and apple-touch icon are static files in `public/brand/lebstads/` (root layout metadata and `favicon.ico/route.ts`, paths in `src/lib/lebstads-brand.ts`); a stadium's host keeps its generated letter logo. `docs/ARCHITECTURE.md` brand paragraph: one sentence.
+
+**Unsure:** the logo inputs were NOT in `public/brand/lebstads/` (no `logo.svg`, no `icon-1024.png`, no `og.png`). I drew `logo.svg` and `icon-1024.png` from the SVG pasted in the request (BRAND = `#D7FF3F`, INK = `#111412`, the neutral brand's values) with sharp, then made `icon-32`, `icon-180` (corners filled with the brand colour: a full square for the OS to round) and `icon-512` from `icon-1024.png`. Replace `icon-1024.png` with the real file and re-run the sizes if it differs. sharp was already installed (Next's optional dependency, not in `package.json`); no dependency was added. `.svg` is not scanned by the accent guard, so its allowlist did not change. The number `96178862587` is read from the request (`<961 78862587>`).
+
+**Tests (written, NOT run):** `test/app/landing/landing-content.test.ts` (headings in both languages, WhatsApp href, switch, no number or claims, tokens only, JSON-LD), `test/app/landing/landing-metadata.test.ts` (canonical, alternates, Open Graph, Twitter, noindex), `test/app/root-layout.test.ts` (icons, PNG sizes), `test/app/favicon-route.test.ts`. The slice 1 guard test is unchanged.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then open `/` and `/en` on the bare host, in both themes and on a phone, and check the tab icon.
+
+## Landing page: a Stravon Solutions footer link (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** The landing footer (both languages) has one more line, "LebStads × Stravon Solutions", where "Stravon Solutions" links to `https://stravonsolutions.com` (same tab, `rel="noopener"`, no parameters). New `_components/stravon-credit.tsx`: the line is one `LtrIsolate`, so it reads correctly in the Arabic page; muted text, the name in the foreground colour with an underline; the name is copy key `landing.stravonName` (Latin letters in both languages). Their logo is shown (about 20px high, `alt="Stravon Solutions"`, before the name) only if `public/brand/stravon/logo.svg` or `logo.png` exists; it does not exist, so the line is text only, and nothing was drawn. No "by", "powered by", partnership or support wording anywhere, and nothing about them in the JSON-LD or the metadata.
+
+**Tests (written, NOT run):** `test/app/landing/landing-stravon.test.ts` (the exact link in both languages, same tab and no parameters, the logo only when the file exists, no other mention in the page text, no JSON-LD or metadata entry).
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then look at the footer of `/` and `/en`, in both themes.
+
+## Landing page, slice 3: robots.txt, sitemap.xml, indexing (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** `src/app/robots.ts` and `src/app/sitemap.ts` read the host themselves (`hostAudience` in `lib/tenant-slug.ts`: bare, tenant or other; strict, `www` is never a stadium). robots: bare host allows `/` and names `https://<base>/sitemap.xml`, with no `/platform` in any line (a Disallow would advertise it; it keeps its `noindex, nofollow`, `no-store` and the layout's robots meta); a stadium's host allows `/`, disallows `/owner/`, no Sitemap; www or anything else disallows all. sitemap: bare host lists `/` and `/en` with `ar` and `en` alternates; any other host an empty sitemap. No database query. The two landing pages no longer say noindex (canonical and hreflang kept; `x-default` stays in the page metadata, the sitemap carries `ar` and `en` as asked). `bareUrl` moved to `lib/bare-url.ts` (`landingUrl` is the same function). `robots` and `sitemap` were already in `APP_CONVENTION_NAMES` (`rules.ts`), checked, no change. Through the proxy, `www` gets a 308 to the bare domain before it reaches robots.txt, so the "disallow all" answer is for a request the proxy did not see.
+
+**Unsure:** a stadium's host now serves a robots.txt (before: a 404); the public page there stays as it was.
+
+**Tests (written, NOT run):** `test/app/robots-sitemap.test.ts` (robots and sitemap by host, no database imports, convention names, landing metadata has no robots, `/platform` still noindex); `landing-metadata.test.ts` updated from noindex to indexable.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then open `/robots.txt` and `/sitemap.xml` on the bare host and on a stadium's host.
+
+## Landing page redesign: copy, header, hero, sections, footer (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** The landing page (same routes, metadata, canonical, hreflang, JSON-LD, robots, sitemap and WhatsApp constant) is redesigned. A sticky slim header (translucent `bg-background/80`, hairline below): mark and name at the start; from 1024px the links to `#features`, `#how`, `#pricing`, `#faq`; at the end the language switch (the other language only) and a small WhatsApp button, icon only below 640px with its `aria-label`, with the text from 640px. Hero: two columns from 1024px (the text, then a phone drawn in HTML and CSS with the app's tokens: a Today screen with a new request, a confirmed game and an amber "To collect" row, with made-up names); stacked below. The "Paper or the app?" section is removed. New "How a day runs" (`#how`, three numbered steps), the six features (`#features`, the current phone mock-up cards are kept as they were liked, with the new one-line titles and texts), pricing (`#pricing`, one centred card, 560px), FAQ (`#faq`, 720px, same four questions), a closing band, and a footer centred on every width: mark and name, "LebStads × Stravon Solutions" (unchanged), WhatsApp and the language switch, "© 2026 LebStads". The column is 1120px with 20px padding (`PageColumn`, not the owner `Container`), sections 64px on phones and 96px from 1024px, text lines at most 60ch, tap targets 44px, logical properties and tokens only. Copy: exactly the brief's text (AR then EN) through `ui()`. Files: new `landing-header.tsx`, `landing-hero.tsx`, `hero-phone.tsx`, `landing-footer.tsx`, `language-link.tsx`, `page-column.tsx`; rewritten `landing-sections.tsx`, `landing-content.tsx`, `lib/copy/landing.ts`; the test `landing-content.test.ts`.
+
+**Copy keys removed:** `landing.paperTitle`, `paperHeading`, `appHeading`, `paper1` to `paper3`, `app1` to `app3`, `footerContact`. **Added:** `navLabel`, `navFeatures`, `navHow`, `navPricing`, `navFaq`, `heroSecondary`, `mockToday`, `mockNew`, `mockApprove`, `mockReject`, `mockConfirmed`, `mockToCollect`, `mockPitch1`, `mockPitch2`, `mockPlayer1` to `mockPlayer3`, `mockTime1`, `mockTime2`, `mockAmount`, `closingTitle`, `copyright`. Changed text: `whatsappCta`, `heroTitle`, `heroSub`, the steps, the features, `priceTitle`, `priceText`.
+
+**Unsure:** layout at 360, 390, 768 and 1280px was checked by reasoning only (header: logo, name, language link and a 44px icon button come to about 250px of the 320px available at 360px), not in a browser. The header's WhatsApp button is a secondary style so each area keeps one primary button (hero, pricing and the closing band each have one). The feature mock-ups were kept instead of the brief's per-card icons, as asked.
+
+**Tests (written, NOT run):** `test/app/landing/landing-content.test.ts` (headings and ids in both languages, no Paper text or keys, header, footer, WhatsApp links, responsive classes, tokens only, JSON-LD). `landing-stravon.test.ts`, the metadata, robots and sitemap tests are unchanged.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`, then look at `/` and `/en` at 360, 390, 768 and 1280px, in both themes.
