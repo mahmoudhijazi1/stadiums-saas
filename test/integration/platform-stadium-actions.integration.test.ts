@@ -5,26 +5,22 @@ import { verifyPassword } from "@/modules/access/infrastructure/password";
 import { createPlatformAdmin } from "@/modules/platform/application/platform-admins";
 import { ADMIN_SESSION_ABSOLUTE_MS } from "@/modules/platform/domain/admin-session";
 import { createPlatformSession } from "@/modules/platform/infrastructure/platform-sessions";
+import { adminCookie } from "@/modules/platform/infrastructure/platform-session-cookie";
 import { platformTransaction } from "@/modules/platform/infrastructure/platform-store";
+import { clearRequestStubs, setCookie, setRequestHeader } from "./request-stubs";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
 
 /**
- * DR-006 slice 6: create, suspend and resume through the web Server Actions, called as functions
- * with `next/headers` and `next/cache` mocked (the bare host, a session cookie or none). Written, not
- * run when authored: unverified until `npm run test:integration` has run.
+ * DR-006 slice 6: create, suspend and resume through the web Server Actions, called as functions.
+ * The host and the admin cookie come from the shared `next/headers` stub (setup-mocks.ts,
+ * request-stubs.ts); only `next/cache` is mocked (revalidatePath needs a request). Written, not run
+ * when authored: unverified until `npm run test:integration` has run.
  */
-let mockHeaders = new Headers({ host: "lebstads.test" });
-let mockToken: string | undefined;
-jest.mock("next/headers", () => ({
-  headers: async () => mockHeaders,
-  cookies: async () => ({
-    get: () => (mockToken ? { value: mockToken } : undefined),
-    set: () => undefined,
-    delete: () => undefined,
-  }),
-}));
 jest.mock("next/cache", () => ({ revalidatePath: () => undefined }));
+
+/** The bare APP_BASE_DOMAIN of the integration setup (setup-env.ts). */
+const BARE_HOST = "lebstads.test";
 
 afterAll(async () => {
   await truncateAll();
@@ -35,10 +31,12 @@ let adminId = "";
 
 beforeEach(async () => {
   await truncateAll();
-  mockHeaders = new Headers({ host: "lebstads.test" });
+  clearRequestStubs(); // also clears React.cache, so a session is never remembered between tests
+  setRequestHeader("host", BARE_HOST);
   await createPlatformAdmin({ identifier: "ops.one", password: "a long admin passphrase", actor: "cli:t@h" });
   adminId = (await platformDb.platformAdmin.findUniqueOrThrow({ where: { identifier: "ops.one" } })).id;
-  mockToken = (await platformTransaction((tx) => createPlatformSession(tx, adminId, new Date(Date.now() + ADMIN_SESSION_ABSOLUTE_MS)))).token;
+  const { token } = await platformTransaction((tx) => createPlatformSession(tx, adminId, new Date(Date.now() + ADMIN_SESSION_ABSOLUTE_MS)));
+  setCookie(adminCookie().name, token);
 });
 
 const actions = () => import("@/app/(platform)/platform/actions");
@@ -152,7 +150,8 @@ describe("submitSuspendStadium and submitResumeStadium", () => {
 describe("without a session or off the bare host", () => {
   it("every action is refused without a session and writes nothing", async () => {
     const { submitCreateStadium, submitSuspendStadium, submitResumeStadium } = await actions();
-    mockToken = undefined;
+    clearRequestStubs(); // no admin cookie (and a fresh React.cache)
+    setRequestHeader("host", BARE_HOST);
     const refused = { ok: false, errorKey: "platform.not_signed_in" };
     expect(await submitCreateStadium(NEW)).toEqual(refused);
     expect(await submitSuspendStadium({ slug: "al-nour", typedSlug: "al-nour", reason: "x" })).toEqual(refused);
@@ -163,7 +162,7 @@ describe("without a session or off the bare host", () => {
 
   it("every action answers 404 off the bare host, even with a valid session", async () => {
     const { submitCreateStadium, submitSuspendStadium, submitResumeStadium } = await actions();
-    mockHeaders = new Headers({ host: "ahmad.lebstads.test" });
+    setRequestHeader("host", "ahmad.lebstads.test");
     await expect(submitCreateStadium(NEW)).rejects.toMatchObject({ digest: expect.stringContaining("404") });
     await expect(submitSuspendStadium({ slug: "a", typedSlug: "a", reason: "x" })).rejects.toMatchObject({ digest: expect.stringContaining("404") });
     await expect(submitResumeStadium({ slug: "a", typedSlug: "a" })).rejects.toMatchObject({ digest: expect.stringContaining("404") });
