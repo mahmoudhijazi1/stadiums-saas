@@ -6,6 +6,7 @@ import { safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SHOP_SELL, can } from "@/modules/access/domain/can";
+import { mayAddItemsToBooking } from "@/modules/booking/domain/shop-window";
 import { findBookingForUpdate, findRequesterPersonId } from "@/modules/booking/infrastructure/bookings";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import { toCanonicalPhone } from "@/modules/people/domain/phone";
@@ -36,7 +37,8 @@ export type AddBookingItemsResult = {
  * optional phone. Either way it is that payer's own tab: it never touches the booking due or a slot
  * due, so it works in both collection modes. A second add for the same payer appends lines to the
  * same sale. Prices are read from the database; the client sends ids and quantities.
- * Lock order: the booking row first, then the sale row (an existing one; a new one is ours alone).
+ * Only from 60 minutes before the start (`mayAddItemsToBooking`), checked after the booking row is
+ * read under its lock. Lock order: the booking row first, then the sale row (an existing one; a new one is ours alone).
  */
 export async function addBookingItems(input: unknown): Promise<AddBookingItemsResult> {
   const membership = await getCurrentMembership();
@@ -50,6 +52,10 @@ export async function addBookingItems(input: unknown): Promise<AddBookingItemsRe
       const booking = await findBookingForUpdate(tx, parsed.bookingId);
       if (!booking) throw new DomainError("booking.not_found");
       if (booking.status !== "APPROVED") throw new DomainError("shop.booking_not_open");
+      // Items open one hour before the start (and stay open during and after the game).
+      if (!mayAddItemsToBooking({ status: booking.status, start: booking.start, now: new Date() })) {
+        throw new DomainError("shop.items_not_open");
+      }
 
       // Prices come from the database now. An LBP item freezes its USD value at the current rate and
       // cannot be sold while no rate is set.

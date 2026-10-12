@@ -11,7 +11,7 @@ import type { TestFixture } from "./fixtures";
 import { seedMinimalFixture } from "./fixtures";
 import { assertMoneyInvariants } from "./invariants";
 import { clearRequestStubs, setSessionCookie, setTenantSlug } from "./request-stubs";
-import { futureBooking, outcomes } from "./shop-helpers";
+import { soonBooking, outcomes } from "./shop-helpers";
 import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
 
@@ -42,7 +42,7 @@ describe("shop races (booking row, then sale row)", () => {
 
   it("add on the game (booker) x cancel: either order is fine, and a cancelled game takes no items", async () => {
     for (let i = 0; i < RUNS; i += 1) {
-      const bookingId = await futureBooking(fixture, 2 + i);
+      const bookingId = await soonBooking(fixture);
       const results = await Promise.allSettled([
         addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "game" } }),
         cancelBooking({ bookingId, initiator: "OWNER" }),
@@ -66,7 +66,7 @@ describe("shop races (booking row, then sale row)", () => {
 
   it("add on the game (booker) x booking collection: both succeed in either order and the due never moves", async () => {
     for (let i = 0; i < RUNS; i += 1) {
-      const bookingId = await futureBooking(fixture, 2 + i);
+      const bookingId = await soonBooking(fixture);
       const results = await Promise.allSettled([
         addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "game" } }),
         collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("30.00") }] }),
@@ -82,7 +82,7 @@ describe("shop races (booking row, then sale row)", () => {
 
   it("remove from a tab x collect on that tab: one wins, and a paid tab never loses an item", async () => {
     for (let i = 0; i < RUNS; i += 1) {
-      const bookingId = await futureBooking(fixture, 2 + i);
+      const bookingId = await soonBooking(fixture);
       const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "name", name: `Racer ${i}` } });
       const item = await platformDb.saleItem.findFirstOrThrow({ where: { saleId } });
       const results = await Promise.allSettled([
