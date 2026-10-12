@@ -293,11 +293,18 @@ On 2026-10-12 the counts of `Tenant`, `Person`, `Booking`, `Payment`, `LedgerEnt
 
 pm2 runs the app as the process `stadiums-saas`; the systemd unit `pm2-mahmoud` is enabled, so the process list comes back after a reboot. Run `pm2 save` only when the process list changes (a new or removed process), not after each deploy.
 
-### Certificate (manual, does NOT renew by itself)
+### Certificate (certbot, renews by itself)
 
-- The `*.lebstads.com` certificate is installed **manually** (`LETSENCRYPT='no'` on the domain). DNS is at Hostinger (`dns-parking.com`).
-- **It expires on 2026-12-24 and does not renew by itself.** Reissue it well before then (ROADMAP: automatic renewal).
-- **Never run `v-list-web-domain-ssl` in a shared terminal or paste its output:** it prints the private key.
+- The `lebstads.com` and `*.lebstads.com` certificate is issued by **certbot** (`/opt/certbot`, authenticator `dns-hostinger`, which uses the Hostinger DNS API; its credentials are in `/root/.secrets/certbot/hostinger.ini`, mode 600, owned by root). **Root's crontab** runs `certbot renew -q --deploy-hook /usr/local/bin/lebstads-cert-deploy.sh` daily at 03:00; the hook installs the new files into Hestia with `v-change-web-domain-sslcert`.
+- **Hestia shows `LETSENCRYPT='no'` on purpose.** Never tick "Use Let's Encrypt" in the Hestia panel for this domain: Hestia would try to issue its own certificate and fight certbot.
+- **Check renewal** (a dry run, nothing is replaced):
+
+```bash
+sudo /opt/certbot/bin/certbot renew --dry-run --cert-name lebstads.com
+```
+
+- **On 2026-10-12 the private key was exposed in a chat.** A new certificate with a new key was issued (`cert2`) and the old one (`cert1`) was revoked with the reason `keyCompromise`.
+- **Never run `v-list-web-domain-ssl` or open the Hestia SSL page where others can see it:** both show the private key.
 
 ## Fonts
 

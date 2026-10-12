@@ -521,3 +521,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Unsure:** the restore steps are written from the description given, not from a recorded session: the exact `pg_restore` flags and the temporary database name were not recorded (marked UNVERIFIED in the RUNBOOK), and the ledger comparison sums `LedgerEntry.amountUsd` by `direction`.
 
 **How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run.
+
+## Docs: the certificate notes corrected (branch `feat/platform-admin`)
+
+**When:** 2026-10-12
+
+**What:** Docs only. The previous commit (`9b5b170`) said the `*.lebstads.com` certificate was installed manually, expired on 2026-12-24 and did not renew. That was wrong. `docs/RUNBOOK.md`, "Certificate": the heading and its three bullets are replaced by what was verified on the server on 2026-10-12: certbot (`/opt/certbot`, authenticator `dns-hostinger` with the Hostinger DNS API, credentials in `/root/.secrets/certbot/hostinger.ini`, mode 600 root); root's crontab runs `certbot renew -q --deploy-hook /usr/local/bin/lebstads-cert-deploy.sh` daily at 03:00 and the hook installs the files into Hestia with `v-change-web-domain-sslcert`; Hestia shows `LETSENCRYPT='no'` on purpose (never tick "Use Let's Encrypt" for this domain); the check command `sudo /opt/certbot/bin/certbot renew --dry-run --cert-name lebstads.com`; the key exposed in a chat on 2026-10-12 was replaced (new certificate `cert2`, old `cert1` revoked with reason `keyCompromise`); never run `v-list-web-domain-ssl` or open the Hestia SSL page where others can see it. `docs/ROADMAP.md`: the certificate row is now "done on 2026-10-12" (renewal verified with a dry run, key replaced, old certificate revoked) and no longer says it does not renew; the off-server backup row stays open. Nowhere else in the docs said the certificate does not renew.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run. The facts are as given from the server; nothing was checked on it from here.
