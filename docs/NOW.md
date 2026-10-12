@@ -20,7 +20,7 @@ Merged on `main`: the dependency-rules guard (step 1), easy cleanup (2), the Pri
 The stadium's public page now has a day strip from today to 60 days ahead, the day as one list of rows with a "Nearest" badge (taken ones faded), availability dots on the days, a gradient header with an action bar (Map, Call, WhatsApp), a request sheet that confirms in place and explains errors, and per-stadium share metadata (title, description, Open Graph, Twitter, canonical; indexable). It also carries the two-option language toggle (public page, login, suspended page, business menu), system bars that follow the app theme, and a backdrop that darkens (not lightens) behind sheets and modals in the dark theme. The booking rules and use cases did not change. Details in [progress.md](./progress.md); open follow-ups in [ROADMAP.md](./ROADMAP.md) "Public page: later".
 
 ## In progress
-- **Web platform admin** ([DR-006](./decisions/DR-006-platform-admin.md)): built on `feat/platform-admin` (slices 1 to 7: tables and CLI, `/platform` routing, login, stadiums list and detail, create, suspend and resume, security review). Deploy waits for the DR-006 preconditions in the RUNBOOK ("Platform admin").
+- **Web platform admin** ([DR-006](./decisions/DR-006-platform-admin.md)): the web platform admin ships in `v1.5.0` (slices 1 to 7: tables and CLI, `/platform` routing, login, stadiums list and detail, create, suspend and resume, security review). Its deploy waits for the DR-006 preconditions in the RUNBOOK ("Platform admin").
 
 ## Next three steps
 1. **Step 7, the remaining file splits:** the other files over about 300 lines that do more than one job, moving code as is (`bookings.ts` and `upcoming-panel.tsx` are done).
