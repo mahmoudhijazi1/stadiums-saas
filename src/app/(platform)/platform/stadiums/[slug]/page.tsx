@@ -7,10 +7,12 @@ import { DomainError } from "@/lib/errors";
 import { requirePlatformHost } from "@/lib/require-platform-host";
 import { getTenantDetail } from "@/modules/platform/application/get-tenant-detail";
 import { getCurrentPlatformAdmin } from "@/modules/platform/application/platform-session";
+import { defaultPaidUntil } from "@/modules/platform/domain/paid-until";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
-import { submitPlatformLogout, submitResumeStadium, submitSuspendStadium } from "@/app/(platform)/platform/actions";
+import { submitPlatformLogout, submitRecordSubscription, submitResumeStadium, submitSuspendStadium } from "@/app/(platform)/platform/actions";
 import { DetailRow, DetailSection } from "@/app/(platform)/platform/_components/detail-section";
 import { PlatformFrame } from "@/app/(platform)/platform/_components/platform-frame";
+import { RecordSubscriptionPanel } from "@/app/(platform)/platform/_components/record-subscription-panel";
 import { StatusBadges } from "@/app/(platform)/platform/_components/status-badges";
 import { SuspendResumePanel } from "@/app/(platform)/platform/_components/suspend-resume-panel";
 
@@ -39,6 +41,7 @@ export default async function PlatformStadiumPage({ params }: { params: Promise<
   });
   const url = publicPageUrl(tenant.slug);
   const none = ui("platform.none", "en");
+  const latest = tenant.subscriptions[0];
 
   return (
     <PlatformFrame identifier={admin.identifier} logout={submitPlatformLogout}>
@@ -101,6 +104,12 @@ export default async function PlatformStadiumPage({ params }: { params: Promise<
       </DetailSection>
 
       <DetailSection title={ui("platform.subscriptions", "en")}>
+        <RecordSubscriptionPanel
+          slug={tenant.slug}
+          defaultPlan={latest?.plan ?? ""}
+          defaultPaidUntil={defaultPaidUntil(latest?.paidUntil ?? null, new Date(), OWNER_TIME_ZONE)}
+          action={submitRecordSubscription}
+        />
         {tenant.subscriptions.length === 0 ? (
           <p className="text-sm text-muted-foreground">{ui("platform.noSubscriptions", "en")}</p>
         ) : (

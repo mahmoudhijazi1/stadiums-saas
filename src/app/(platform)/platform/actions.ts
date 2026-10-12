@@ -11,6 +11,7 @@ import {
   resumeStadiumAsAdmin,
   suspendStadiumAsAdmin,
 } from "@/modules/platform/application/admin-tenant-actions";
+import { setSubscription } from "@/modules/platform/application/set-subscription";
 import { platformLogin } from "@/modules/platform/application/platform-login";
 import {
   getCurrentPlatformAdmin,
@@ -22,6 +23,7 @@ import { parsePlatformLogin } from "@/modules/platform/schemas/login";
 import {
   paidUntilDate,
   parseCreateStadium,
+  parseRecordSubscription,
   parseResumeStadium,
   parseSuspendStadium,
 } from "@/modules/platform/schemas/stadium-actions";
@@ -122,5 +124,33 @@ export async function submitResumeStadium(input: unknown): Promise<StadiumAction
     return { ok: true };
   } catch (error) {
     return { ok: false, errorKey: await actionErrorKey(error, "submitResumeStadium") };
+  }
+}
+
+/**
+ * Record a payment: append one Subscription row through the same use case as `subscriptions set`,
+ * actor `admin:<id>`. A paid-until in the past is accepted, as on the CLI (the use case does not
+ * refuse it; the stadium then shows OVERDUE).
+ */
+export async function submitRecordSubscription(input: unknown): Promise<StadiumActionResult> {
+  await requirePlatformHost();
+  try {
+    const admin = await requirePlatformAdmin();
+    const parsed = parseRecordSubscription(input);
+    const paidUntil = paidUntilDate(parsed.paidUntil);
+    if (!paidUntil || paidUntil === "invalid") throw new DomainError("platform.paid_until_invalid");
+    await setSubscription({
+      slug: parsed.slug,
+      plan: parsed.plan,
+      paidUntil,
+      amountUsd: parsed.amountUsd ?? null,
+      note: parsed.note ?? null,
+      actor: `admin:${admin.adminId}`,
+    });
+    revalidatePath("/platform");
+    revalidatePath(`/platform/stadiums/${parsed.slug}`);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, errorKey: await actionErrorKey(error, "submitRecordSubscription") };
   }
 }

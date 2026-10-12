@@ -23,10 +23,26 @@ const suspendSchema = z.strictObject({
 
 const resumeSchema = z.strictObject({ slug, typedSlug: z.string().max(64) });
 
+/**
+ * Record a payment (subscription row). Shape only: the plan, amount and note rules are the use
+ * case's (`setSubscription`, the same ones the CLI hits). paidUntil is checked as a real date by
+ * `paidUntilDate`; an empty one is refused there with `platform.paid_until_invalid`.
+ */
+const recordSubscriptionSchema = z.strictObject({
+  slug,
+  plan: z.string().max(200),
+  paidUntil: z.string().max(10),
+  amountUsd: z.string().max(40).optional(),
+  note: z.string().max(1000).optional(),
+});
+
 export type CreateStadiumInput = z.infer<typeof createSchema>;
 
 export function parseCreateStadium(input: unknown): CreateStadiumInput {
   return createSchema.parse(input);
+}
+export function parseRecordSubscription(input: unknown) {
+  return recordSubscriptionSchema.parse(input);
 }
 export function parseSuspendStadium(input: unknown) {
   return suspendSchema.parse(input);
