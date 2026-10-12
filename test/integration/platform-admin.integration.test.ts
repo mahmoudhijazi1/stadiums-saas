@@ -57,7 +57,8 @@ function run(argv: string[], answers: string[] = [], now = new Date()) {
 
 async function createAdmin(identifier = "ops.one") {
   await run(["admins", "create", identifier], [DATABASE, PASSWORD, PASSWORD]).promise;
-  return platformDb.platformAdmin.findUniqueOrThrow({ where: { identifier } });
+  // The CLI stores the identifier lowercase, so look it up that way.
+  return platformDb.platformAdmin.findUniqueOrThrow({ where: { identifier: identifier.toLowerCase() } });
 }
 
 /** Enroll through the CLI: read the secret from the printed URI, answer with its current code. */

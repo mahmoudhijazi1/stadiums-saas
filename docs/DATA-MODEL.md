@@ -33,8 +33,8 @@
 ### Platform admin
 | Table | Kind | What a row is | Columns that need explaining |
 |---|---|---|---|
-| `PlatformAdmin` | G | A platform operator who may use the web admin (DR-006). Created only by `scripts/platform.ts admins create`. | `identifier` unique, stored lowercase (SQL-only CHECK `PlatformAdmin_identifier_lowercase`). `passwordHash` as `User`. `totpSecretEnc` = AES-256-GCM of the base32 secret under `PLATFORM_TOTP_KEY` (`platform/infrastructure/totp-crypto.ts`); null = not enrolled, login refused. `lastTotpStep` = the last accepted 30-second step (`consumeTotpStep`, one atomic UPDATE). In `PLATFORM_ONLY_MODELS`. |
-| `PlatformSession` | G | A logged-in admin browser. Never shares a table or cookie with `Session`. | `tokenHash` = SHA-256 of the cookie token, unique. `adminId` → `PlatformAdmin` **ON DELETE CASCADE**. `lastSeenAt` (idle 30 minutes) and `expiresAt` (absolute 8 hours). Nothing writes it yet (the login is a later slice). In `PLATFORM_ONLY_MODELS`. |
+| `PlatformAdmin` | P | A platform operator who may use the web admin (DR-006). Created only by `scripts/platform.ts admins create`. | `identifier` unique, stored lowercase (SQL-only CHECK `PlatformAdmin_identifier_lowercase`). `passwordHash` as `User`. `totpSecretEnc` = AES-256-GCM of the base32 secret under `PLATFORM_TOTP_KEY` (`platform/infrastructure/totp-crypto.ts`); null = not enrolled, login refused. `lastTotpStep` = the last accepted 30-second step (`consumeTotpStep`, one atomic UPDATE). In `PLATFORM_ONLY_MODELS`. |
+| `PlatformSession` | P | A logged-in admin browser. Never shares a table or cookie with `Session`. | `tokenHash` = SHA-256 of the cookie token, unique. `adminId` → `PlatformAdmin` **ON DELETE CASCADE**. `lastSeenAt` (idle 30 minutes) and `expiresAt` (absolute 8 hours). Nothing writes it yet (the login is a later slice). In `PLATFORM_ONLY_MODELS`. |
 
 ### Venue and people
 | Table | Kind | What a row is | Columns that need explaining |
@@ -95,6 +95,7 @@
 | 13 | **SQL function** `people_canonical_phone(text)` (kept permanently) and the **canonical-phone backfill** that merged people sharing one canonical phone | `20261014090000_canonical_phones` | `people/domain/phone.ts` `toCanonicalPhone` (the same rule for stored values; `canonical-phone-sql.integration.test.ts` keeps them equal). | The SQL and the TypeScript rule drift apart; duplicate people per phone come back. |
 | 13 | **Append-only triggers** `PlatformAuditLog_append_only`, `Subscription_append_only` via `platform_append_only()` (`BEFORE UPDATE OR DELETE FOR EACH ROW`) | `20261001090000_tenant_management` | `platform/infrastructure/platform-store.ts` (inserts only). TRUNCATE is allowed, which the test helper and the seed rely on. | The audit log becomes editable. |
 | 14 | **Session wipe** (`DELETE FROM "Session"`), then `tokenHash NOT NULL UNIQUE` | `20260930120000_session_token_hash` | `access/infrastructure/sessions.ts` `findSessionByToken`. | — (one-time: everyone logged out) |
+| 15 | **CHECK** `PlatformAdmin_identifier_lowercase` (`identifier = lower(identifier)`) | `20261015090000_platform_admin` | `platform/application/platform-admins.ts` `normalizeAdminIdentifier` lowercases before insert and lookup (the CLI never passes the raw text). | Two admins differing only by case (`Ops` and `ops`) could both exist, and a login typed in the other case would find one of them. |
 
 **Not in the database, although older comments or docs call it "append-only":** `LedgerEntry`, `Payment`, `PaymentTender`, `ExchangeRate` and `BookingDueChange`. No trigger or grant protects them. The code never updates or deletes them (grep for `update`/`delete` on these models in `src/modules` finds none), but the seed deletes them. This is tracked as ROADMAP #2 / F-2.
 

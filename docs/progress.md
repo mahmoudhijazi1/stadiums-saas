@@ -439,3 +439,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Deploy note:** `PLATFORM_TOTP_KEY` is required in production, so the server `.env` must have it BEFORE this is deployed, or the server refuses to start (`instrumentation.ts`).
 
 **How to verify:** `npx prisma generate` and `npx tsc --noEmit` were the only commands run. Written and NOT run: `test/modules/platform/domain/totp.test.ts` (RFC 6238 and RFC 4226 vectors, window, base32, URI), `test/modules/platform/infrastructure/totp-crypto.test.ts`, the `PLATFORM_TOTP_KEY` cases in `test/lib/env.test.ts` (the existing production-valid case now sets the key), `test/integration/platform-admin.integration.test.ts` (consumeTotpStep once and under concurrency, create, enroll with a valid code, reset-totp, set-password, list, the CHECK and the cascade), and a throwaway key in `test/integration/setup-env.ts`. The migration was not applied and the DATA-MODEL section 4 drift check was not run.
+
+## Web platform admin, slice 2 follow-ups (branch `feat/platform-admin`)
+
+**What:** Tests and docs only. `platform-admin.integration.test.ts`: the `createAdmin` helper looked the admin up with the identifier as typed ("Ops.One") while the CLI stores it lowercase, so it now lowercases first (this was the one failing test of the verify run). `docs/DATA-MODEL.md`: `PlatformAdmin` and `PlatformSession` are kind P (they are in `PLATFORM_ONLY_MODELS`), not G; section 3 gets row 15 for the SQL-only CHECK `PlatformAdmin_identifier_lowercase` (migration `20261015090000_platform_admin`; `normalizeAdminIdentifier` lowercases before insert and lookup; if lost, two admins could differ only by case).
+
+**Noticed, not changed:** section 3 now has two rows numbered 13 (the canonical-phones row from `feat/phone-wiring` and the append-only triggers row); renumbering was out of scope.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; the test is written and NOT run.
