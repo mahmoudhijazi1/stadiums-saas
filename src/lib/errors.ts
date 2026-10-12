@@ -4,11 +4,14 @@
  */
 export class DomainError extends Error {
   readonly key: string;
+  /** Values for the placeholders of the copy (for example {name}); never shown by themselves. */
+  readonly params: Readonly<Record<string, string>> | undefined;
 
-  constructor(key: string) {
+  constructor(key: string, params?: Record<string, string>) {
     super(key);
     this.name = "DomainError";
     this.key = key;
+    this.params = params;
   }
 }
 

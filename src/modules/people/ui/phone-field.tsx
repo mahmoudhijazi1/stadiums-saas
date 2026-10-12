@@ -33,6 +33,7 @@ export function PhoneField({
   phoneId,
   invalid = false,
   describedBy,
+  defaultValue,
   onPhoneInput,
   className,
 }: {
@@ -42,6 +43,8 @@ export function PhoneField({
   phoneId: string;
   invalid?: boolean;
   describedBy?: string;
+  /** The phone to start with (an edit form). */
+  defaultValue?: string;
   /** Called after each edit of the phone box (to clear its error). */
   onPhoneInput?: () => void;
   className?: string;
@@ -66,6 +69,7 @@ export function PhoneField({
         id={phoneId}
         type="tel"
         name="phone"
+        defaultValue={defaultValue}
         autoComplete="tel"
         inputMode="tel"
         className="min-w-0 flex-1 font-mono"

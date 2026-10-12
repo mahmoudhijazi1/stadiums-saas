@@ -7,6 +7,7 @@ import {
   BOOKINGS_NO_SHOW,
   EXPENSES_RECORD,
   PAYMENTS_COLLECT,
+  PEOPLE_EDIT,
   REPORTS_VIEW,
   SETTINGS_MANAGE,
   can,
@@ -173,6 +174,12 @@ describe("can", () => {
     expect(
       can({ role: "STAFF", permissions: { "settings.manage": true } }, SETTINGS_MANAGE),
     ).toBe(true);
+  });
+
+  it("lets OWNER edit people and never STAFF, even with the flag true", () => {
+    expect(can({ role: "OWNER", permissions: {} }, PEOPLE_EDIT)).toBe(true);
+    expect(can({ role: "STAFF", permissions: {} }, PEOPLE_EDIT)).toBe(false);
+    expect(can({ role: "STAFF", permissions: { "people.edit": true } }, PEOPLE_EDIT)).toBe(false);
   });
 });
 

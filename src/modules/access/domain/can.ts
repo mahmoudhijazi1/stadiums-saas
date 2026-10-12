@@ -12,6 +12,8 @@ export const SETTINGS_MANAGE = "settings.manage";
 export const SHOP_SELL = "shop.sell";
 /** Owner only: no flag grants it to staff. */
 export const SHOP_MANAGE = "shop.manage";
+/** Owner only: rename a person or change their phone. No flag grants it to staff. */
+export const PEOPLE_EDIT = "people.edit";
 
 export type Permission =
   | typeof BOOKINGS_APPROVE
@@ -25,19 +27,20 @@ export type Permission =
   | typeof REPORTS_VIEW
   | typeof SETTINGS_MANAGE
   | typeof SHOP_SELL
-  | typeof SHOP_MANAGE;
+  | typeof SHOP_MANAGE
+  | typeof PEOPLE_EDIT;
 
 export type MembershipLike = {
   role: "OWNER" | "STAFF";
   permissions: unknown;
 };
 
-const OWNER_ONLY: ReadonlySet<Permission> = new Set([SHOP_MANAGE]);
+const OWNER_ONLY: ReadonlySet<Permission> = new Set([SHOP_MANAGE, PEOPLE_EDIT]);
 
 /**
  * May this membership do this action on *this* stadium (DR-003 §5).
  * OWNER is always yes. STAFF only if the jsonb flag is strictly true, and never for an
- * owner-only permission (shop.manage). STAFF get shop.sell by default: the flag is set on
+ * owner-only permission (shop.manage, people.edit). STAFF get shop.sell by default: the flag is set on
  * their row (migration for existing rows; the seed and any new STAFF row set it).
  */
 export function can(membership: MembershipLike, permission: Permission): boolean {

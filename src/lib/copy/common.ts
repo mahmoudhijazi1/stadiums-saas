@@ -5,6 +5,11 @@ export const common: CopyArea = {
   ar: {
     "doc.title": "ملاعب",
     "phone.countryCode": "رمز البلد",
+    "person.edit": "تعديل",
+    "person.editTitle": "تعديل الشخص",
+    "person.name": "الاسم",
+    "person.phone": "الهاتف",
+    "person.save": "حفظ",
     "dialog.close": "إغلاق",
     "owner.tabs": "الأقسام",
     "owner.home": "رئيسية",
@@ -68,6 +73,11 @@ export const common: CopyArea = {
   en: {
     "doc.title": "Pitches",
     "phone.countryCode": "Country code",
+    "person.edit": "Edit",
+    "person.editTitle": "Edit person",
+    "person.name": "Name",
+    "person.phone": "Phone",
+    "person.save": "Save",
     "dialog.close": "Close",
     "owner.tabs": "Sections",
     "owner.home": "Home",
