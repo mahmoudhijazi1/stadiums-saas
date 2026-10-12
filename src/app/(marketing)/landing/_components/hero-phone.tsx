@@ -11,10 +11,10 @@ import type { UiLocale } from "@/lib/locale";
 export function HeroPhone({ locale }: { locale: UiLocale }) {
   const t = (key: string) => ui(key, locale);
   return (
-    <div aria-hidden="true" className="mx-auto w-full max-w-[240px] rounded-[2rem] border-[5px] border-border bg-card p-3 shadow-xl select-none sm:max-w-[280px]">
-      <div className="mx-auto mb-3 h-1.5 w-16 rounded-full bg-muted" />
-      <p className="mb-3 px-1 text-lg font-semibold">{t("landing.mockToday")}</p>
-      <div className="flex flex-col gap-3">
+    <div aria-hidden="true" className="w-full rounded-2xl border bg-card p-3 shadow-lg select-none sm:mx-auto sm:max-w-[280px] sm:rounded-[2rem] sm:border-[5px] sm:shadow-xl">
+      <div className="mx-auto mb-3 hidden h-1.5 w-16 rounded-full bg-muted sm:block" />
+      <p className="mb-2 px-1 font-semibold sm:mb-3 sm:text-lg">{t("landing.mockToday")}</p>
+      <div className="flex flex-col gap-2 sm:gap-3">
         <div className="flex flex-col gap-2 rounded-xl border-2 border-primary bg-background p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground">{t("landing.mockNew")}</span>
@@ -29,7 +29,7 @@ export function HeroPhone({ locale }: { locale: UiLocale }) {
             <span className="flex h-9 flex-1 items-center justify-center rounded-md border text-sm font-semibold">{t("landing.mockReject")}</span>
           </div>
         </div>
-        <div className="flex flex-col gap-2 rounded-xl border bg-background p-3">
+        <div className="hidden flex-col gap-2 rounded-xl border bg-background p-3 sm:flex">
           <div className="flex items-center justify-between gap-2">
             <span className="rounded-full bg-paid-subtle px-2 py-0.5 text-xs font-semibold text-paid">{t("landing.mockConfirmed")}</span>
             <LtrIsolate className="text-sm font-semibold">{t("landing.mockTime2")}</LtrIsolate>

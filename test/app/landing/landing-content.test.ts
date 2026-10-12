@@ -119,7 +119,7 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
   });
 
   it("has a hero phone mock-up in HTML and CSS, hidden from assistive technology, with sample data", () => {
-    const start = markup.indexOf('<div aria-hidden="true" class="mx-auto w-full max-w-[240px]');
+    const start = markup.indexOf('<div aria-hidden="true" class="w-full rounded-2xl border bg-card p-3');
     expect(start).toBeGreaterThan(-1);
     const phone = markup.slice(start, markup.indexOf('id="how"'));
     for (const key of ["landing.mockToday", "landing.mockNew", "landing.mockApprove", "landing.mockReject", "landing.mockConfirmed", "landing.mockToCollect"]) {

@@ -717,3 +717,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The hero pill now names football, padel and basketball (`landing.heroEyebrow`): the app books any sport with hourly slots, not only football. The rest of the copy already said "stadium" and "pitch" without naming a sport. The background shape is still half a football pitch.
 
 **How to verify:** `npx tsc --noEmit` and `npx jest test/app/landing test/lib/copy` passed.
+
+## Landing page: the hero fits a phone screen (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** Below 640px the hero's example is a full-width card instead of a narrow phone frame (the frame, its notch and the confirmed game come back from 640px), so the words are no longer squeezed; it shows the new request and the "To collect" row. Less height: tighter padding and gaps, a 26px headline, a smaller sub-line, and the "See how it works" link hidden on phones (the header and the page below still lead there). From 640px nothing changed.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at on a phone.
