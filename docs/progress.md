@@ -585,3 +585,15 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `feat/admin-subscriptions` into `main` with `--no-ff` (merge commit `e6f89ca`), no conflicts. `docs/NOW.md` gets a section "In the next release" with one line: the admin can record a subscription payment. No tag was created, moved or pushed.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run; the new integration and unit tests have never been run.
+
+## Landing page, slice 1: route "/" and "/en" on the bare host (branch `feat/landing`)
+
+**When:** 2026-10-12
+
+**What:** Placeholder only. `src/proxy.ts`: a client-sent `x-lebstads-landing` is always deleted; `www.<base>` gets a 308 to `<APP_PROTOCOL>://<APP_BASE_DOMAIN>` with the same path and query (no tenant lookup), except `/platform`, which stays a 404 there (the platform invariant wins); `/landing` and under it are a 404 on every host; on the bare host `/` is rewritten to `/landing` with the header `ar` and `/en` or `/en/` to `/landing/en` with `en`; tenant hosts are untouched; the landing rewrite does not renew the owner cookie. Helpers `isWwwHostFromHeaders`, `isLandingPath`, `landingRouteFor` in `lib/tenant-slug.ts`; `LANDING_HEADER` and `parseLandingLocale` in `lib/locale.ts`. `src/app/layout.tsx`: `lang` and `dir` follow the header, but only on the bare host and only for `ar` or `en`, otherwise the cookie as before; `generateMetadata` sets `manifest: null` on the bare host. New route group `src/app/(marketing)/landing` (`page.tsx`, `en/page.tsx`, `_components`): host guard (`isBareHostFromHeaders`, else 404), heading "LebStads" and one line through `ui()` with a constant locale, noindex; copy area `landing`. Docs: KEY-FILES entry 1, CODEMAP; `rules.ts` header comment only (no rule changed).
+
+**Unsure:** in Next's metadata merge (`resolve-metadata.js`, `mergeStaticMetadata`) a root `manifest.ts` file is applied after the root layout's `generateMetadata`, so `manifest: null` there does not remove the link; it works from a deeper segment, so the two landing pages set `manifest: null` too. Not confirmed in a running app. `/manifest.webmanifest` itself still answers on the bare host (neutral manifest).
+
+**Tests (written, NOT run):** `test/proxy.test.ts` (landing routes, www, header removal, /landing 404, tenant host unchanged, /platform, invalid host), `test/app/root-layout.test.ts` (lang and dir, manifest), `test/app/marketing-guard.test.ts`.
+
+**How to verify:** `npx tsc --noEmit` only (run before and after the tests were added). No test suite, build or lint was run. Run `npm test`, then open `/` and `/en` on the bare host and check the page source for `<html lang dir>` and no manifest link.

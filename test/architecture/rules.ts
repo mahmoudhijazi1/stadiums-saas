@@ -21,6 +21,8 @@
  *
  * Route group src/app/(platform) (DR-006): /platform on the bare host only; it imports platform/application
  * through rule 4 like any route, resolves no tenant and imports nothing from lib/tenant-context.
+ * Route group src/app/(marketing): the landing page of the bare host (/ and /en, rewritten to /landing by the proxy);
+ * no tenant, no database, no module application or infrastructure (test/app/marketing-guard.test.ts).
  */
 
 export const MODULES = [

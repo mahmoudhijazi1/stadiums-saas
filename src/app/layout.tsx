@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import localFont from "next/font/local";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
 import { accentCss } from "@/modules/stadium/domain/accent-css";
@@ -9,7 +10,8 @@ import { SystemBars } from "@/components/shell/system-bars";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { htmlDir, htmlLang } from "@/lib/locale";
+import { htmlDir, htmlLang, LANDING_HEADER, parseLandingLocale } from "@/lib/locale";
+import { isBareHostFromHeaders } from "@/lib/tenant-slug";
 import { ui } from "@/lib/copy";
 import { THEME_COLOR, themeColorScript } from "@/lib/theme-color";
 import "./globals.css";
@@ -69,9 +71,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getUiLocale();
   // Per request: this host's generated logo (neutral lebstads when the host names no active stadium).
   const identity = await currentBrandIdentity();
+  // The bare host is the landing page and the platform admin, not an installable owner app: no manifest link.
+  const bare = isBareHostFromHeaders(await headers());
   return {
     title: ui("doc.title", locale),
     description: "Book a pitch. Collect in cash.",
+    ...(bare ? { manifest: null } : {}),
     icons: {
       icon: [{ url: brandIconPath("32", identity), sizes: "32x32", type: "image/png" }],
       apple: [{ url: brandIconPath("180", identity), sizes: "180x180", type: "image/png" }],
@@ -93,14 +98,19 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getUiLocale();
+  // The landing routes of the bare host carry their language in a header the proxy sets; anywhere
+  // else (and for any other value) the page language is the cookie's, as before.
+  const requestHeaders = await headers();
+  const landingLocale = isBareHostFromHeaders(requestHeaders) ? parseLandingLocale(requestHeaders.get(LANDING_HEADER)) : null;
+  const pageLocale = landingLocale ?? locale;
   // This host's stadium accent, server-rendered in <head> so the first paint already has it (no
   // flash of the default). Only constants from BRAND_PRESETS reach the CSS; an unknown key, a
   // missing or suspended stadium gives the default.
   const identity = await currentBrandIdentity();
   return (
     <html
-      lang={htmlLang(locale)}
-      dir={htmlDir(locale)}
+      lang={htmlLang(pageLocale)}
+      dir={htmlDir(pageLocale)}
       suppressHydrationWarning
       className={`${manrope.variable} ${plexArabic.variable} ${plexArabicLatin.variable} ${display.variable} ${plexMono.variable} h-full bg-background antialiased`}
     >

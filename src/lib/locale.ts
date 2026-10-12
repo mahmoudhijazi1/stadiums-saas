@@ -20,3 +20,14 @@ export function htmlDir(locale: UiLocale): "rtl" | "ltr" {
 export function otherUiLocale(locale: UiLocale): UiLocale {
   return locale === "ar" ? "en" : "ar";
 }
+
+/**
+ * The request header the proxy sets on the bare host's landing routes ("ar" or "en"). The proxy
+ * deletes any incoming one on every request, so only the proxy can set it.
+ */
+export const LANDING_HEADER = "x-lebstads-landing";
+
+/** The landing language named by the header, or null for anything else. */
+export function parseLandingLocale(value: string | null | undefined): UiLocale | null {
+  return value === "ar" || value === "en" ? value : null;
+}
