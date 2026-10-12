@@ -63,6 +63,26 @@ export async function findPersonById(
   return row;
 }
 
+/**
+ * Write a person's name (with its folded search form) and, when given, phone. Scoped db: the
+ * tenant is stamped by the extension, never passed by hand. Throws P2002 (Person_tenantId_phone_key)
+ * when another person of the tenant already has the phone.
+ */
+export async function updatePerson(
+  tx: PeopleTx,
+  input: { personId: string; name: string; searchName: string; phone?: string },
+): Promise<PersonProfile> {
+  return tx.person.update({
+    where: { id: input.personId },
+    data: {
+      name: input.name,
+      searchName: input.searchName,
+      ...(input.phone !== undefined ? { phone: input.phone } : {}),
+    },
+    select: { id: true, name: true, phone: true },
+  });
+}
+
 export type PersonSearchHit = {
   id: string;
   name: string;

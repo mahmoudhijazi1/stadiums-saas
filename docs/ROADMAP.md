@@ -21,6 +21,7 @@
 | 11 | Postgres RLS behind the Prisma extension (DR-001 trigger effectively met) | Deferred by decision; needs a DR-001 amendment, about 2–3 days | [§10](./audits/security-audit.md#10-rls) |
 | 12a | Pitch editor: show, before saving, how many upcoming bookings fall outside new hours. Today `updatePitch` refuses the save when a future APPROVED booking would be outside (`venue.hours_approved`) and asks for a confirm for PENDING ones, so a non-blocking "they stay booked" note would be wrong. A pre-save count needs `listLivePitchWindows` on the client path (a new query design). | Open, UI-only follow-up (2026-10-08) | `modules/venue/application/update-pitch.ts` |
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
+| 13 | People: no screen to rename a person or change a phone | Done on `feat/person-edit`: owner-only `people.edit`, `people/application/update-person.ts`, an Edit sheet on the person page | [progress.md](./progress.md) |
 
 ## Money page v2: next (recorded 2026-10-15)
 

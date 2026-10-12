@@ -3,6 +3,9 @@ import { Suspense } from "react";
 import { OwnerBackLink } from "@/components/shell/back-link";
 import { queryString } from "@/lib/search-params";
 import { requireOwnerMembership } from "@/app/owner/require-owner";
+import { PEOPLE_EDIT, can } from "@/modules/access/domain/can";
+import { submitUpdatePerson } from "@/app/owner/(app)/people/[personId]/actions";
+import { PersonEditSheet } from "@/app/owner/(app)/people/[personId]/_components/person-edit-sheet";
 import { getPerson } from "@/modules/people/application/get-person";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +28,7 @@ export default async function PersonPage({
   params: Promise<{ personId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireOwnerMembership();
+  const membership = await requireOwnerMembership();
   const { personId } = await params;
   const query = await searchParams;
   const locale = await getUiLocale();
@@ -56,6 +59,15 @@ export default async function PersonPage({
             ↻ <LtrIsolate>{line}</LtrIsolate>
           </p>
         ))}
+        {can(membership, PEOPLE_EDIT) ? (
+          <PersonEditSheet
+            personId={person.id}
+            name={person.name}
+            phone={person.phone}
+            locale={locale}
+            action={submitUpdatePerson}
+          />
+        ) : null}
       </header>
       <Suspense fallback={<Skeleton className="h-24 w-full rounded-xl" />}>
         <PersonStats
