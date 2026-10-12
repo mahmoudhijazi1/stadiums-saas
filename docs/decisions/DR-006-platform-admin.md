@@ -60,7 +60,9 @@ shares code with the owner app, never trust.
   invitation flow.
 - **Lost phone: CLI `admins reset-totp` over SSH. No web recovery.** A web recovery path would be
   the weakest link of the whole design. Reset also deletes that admin's sessions and writes an audit
-  row (actor `cli:<os user>`).
+  row (actor `cli:<os user>@<host>`).
+- **CLI `admins set-password`** sets a new password (16 characters or more) for an existing admin,
+  **deletes that admin's sessions and writes an audit row.** A password is never an argument.
 
 ### 3. Two-factor
 
@@ -83,9 +85,11 @@ shares code with the owner app, never trust.
   `__Host-` prefix requires). **Absolute 8 hours, idle 30 minutes.** Logout deletes the row (a POST
   Server Action; there is no GET logout). **Owner and admin sessions never share a cookie or a
   table.**
-- Local development runs over plain HTTP, where a `__Host-` cookie is refused: in development the
-  cookie is named `lebstads_admin` without `Secure` and without the prefix. Production always uses
-  the prefixed name. This is the only difference.
+- **The `__Host-` cookie is used whenever `APP_PROTOCOL` is `https`.** Only otherwise (local
+  development over plain HTTP, where a `__Host-` cookie is refused) the cookie is named
+  `lebstads_admin`, without the prefix and without `Secure`. **In production, if `APP_PROTOCOL` is
+  not `https`, `/platform` returns 404 entirely**: the admin never runs over plain HTTP where it
+  could be exposed.
 - `lastSeenAt` is updated at most once a minute, not on every request.
 
 ### 5. Login
@@ -97,7 +101,9 @@ shares code with the owner app, never trust.
 - **5 failures per account in 15 minutes block that account for 15 minutes; the same per IP** when
   `TRUSTED_CLIENT_IP_HEADER` is set. Uses `lib/rate-limit.ts`, outside any transaction.
 - *Accepted cost:* someone who knows the identifier can lock that admin out for 15 minutes at a
-  time. That is a nuisance, not a break-in; the per-IP limit and the CLI are the way through.
+  time. That is a nuisance, not a break-in; the per-IP limit and the CLI are the way through. **The admin
+  identifier must therefore not be guessable** (not `admin`, `root`, a person's name or the
+  domain): a long, unrelated string. The RUNBOOK (slice 7) documents how to unlock an account.
 
 ### 6. Audit
 
@@ -125,6 +131,8 @@ All of these before the first deploy of `/platform`:
 - nginx **overwrites `X-Real-IP`** with the client address and `TRUSTED_CLIENT_IP_HEADER=x-real-ip`
   is set.
 - `PLATFORM_TOTP_KEY` is in the server `.env`.
+- **The server clock is synchronised** (`timedatectl` shows "System clock synchronized: yes"): TOTP
+  codes depend on it, and so do the session expiries.
 
 ## Threats considered
 

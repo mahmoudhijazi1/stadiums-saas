@@ -6,6 +6,8 @@ import { prismaBase } from "@/lib/prisma-base";
  */
 const TABLES = [
   "PlatformAuditLog",
+  "PlatformSession",
+  "PlatformAdmin",
   "Subscription",
   "BookingDueChange",
   "BookingParticipant",

@@ -36,13 +36,18 @@ const envSchema = z.object({
   VAPID_PRIVATE_KEY: optionalString(
     z.string().regex(/^[A-Za-z0-9_-]{40,50}$/, { error: "must be a base64url private key" }),
   ),
+  // AES-256-GCM key for the platform admins' TOTP secrets (DR-006): 32 random bytes in base64,
+  // `openssl rand -base64 32`. Required in production. Never logged: messages name it only.
+  PLATFORM_TOTP_KEY: optionalString(
+    z.string().regex(/^[A-Za-z0-9+/]{43}=$/, { error: "must be 32 random bytes in base64 (openssl rand -base64 32)" }),
+  ),
   VAPID_SUBJECT: optionalString(
     z.string().regex(/^(mailto:\S+@\S+|https:\/\/\S+)$/, { error: "must be a mailto: address or an https URL" }),
   ),
 });
 
 /** Optional in the schema (local tools and tests run without them), mandatory in production. */
-const PRODUCTION_REQUIRED = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
+const PRODUCTION_REQUIRED = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT", "PLATFORM_TOTP_KEY"] as const;
 
 type Env = Record<string, string | undefined>;
 

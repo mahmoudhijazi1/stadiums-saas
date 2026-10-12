@@ -36,6 +36,8 @@ export const TENANT_SCOPED_MODELS: ReadonlySet<string> = new Set([
 export const PLATFORM_ONLY_MODELS: ReadonlySet<string> = new Set([
   "Subscription",
   "PlatformAuditLog",
+  "PlatformAdmin",
+  "PlatformSession",
 ]);
 
 /**

@@ -30,6 +30,12 @@
 | `Subscription` | P | One plan record. The latest by `createdAt` is current. | `plan` is a label only. `paidUntil` is informational (OVERDUE in `platform/application/list-tenants.ts`). `recordedBy` = actor string. Append-only (trigger). |
 | `PlatformAuditLog` | P | One mutating platform command. | `actor` as given (`cli:user@host`); `detail` jsonb, never a password (`platform/application/*`). Append-only (trigger). |
 
+### Platform admin
+| Table | Kind | What a row is | Columns that need explaining |
+|---|---|---|---|
+| `PlatformAdmin` | G | A platform operator who may use the web admin (DR-006). Created only by `scripts/platform.ts admins create`. | `identifier` unique, stored lowercase (SQL-only CHECK `PlatformAdmin_identifier_lowercase`). `passwordHash` as `User`. `totpSecretEnc` = AES-256-GCM of the base32 secret under `PLATFORM_TOTP_KEY` (`platform/infrastructure/totp-crypto.ts`); null = not enrolled, login refused. `lastTotpStep` = the last accepted 30-second step (`consumeTotpStep`, one atomic UPDATE). In `PLATFORM_ONLY_MODELS`. |
+| `PlatformSession` | G | A logged-in admin browser. Never shares a table or cookie with `Session`. | `tokenHash` = SHA-256 of the cookie token, unique. `adminId` → `PlatformAdmin` **ON DELETE CASCADE**. `lastSeenAt` (idle 30 minutes) and `expiresAt` (absolute 8 hours). Nothing writes it yet (the login is a later slice). In `PLATFORM_ONLY_MODELS`. |
+
 ### Venue and people
 | Table | Kind | What a row is | Columns that need explaining |
 |---|---|---|---|

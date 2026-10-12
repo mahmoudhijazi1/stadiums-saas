@@ -5,6 +5,7 @@ import { listTenants } from "@/modules/platform/application/list-tenants";
 import { resumeTenant } from "@/modules/platform/application/resume-tenant";
 import { setSubscription } from "@/modules/platform/application/set-subscription";
 import { suspendTenant } from "@/modules/platform/application/suspend-tenant";
+import { ADMIN_MESSAGES, runAdminsCommand } from "./platform-admins-cli";
 import {
   askNewPassword,
   confirmDatabase,
@@ -26,6 +27,7 @@ export const USAGE = [
   "  tenants suspend <slug> --reason <text>",
   "  tenants resume <slug>",
   "  subscriptions set <slug> --plan <label> --paid-until YYYY-MM-DD [--amount <usd>] [--note <text>]",
+  "  admins list | create <identifier> | enroll-totp <identifier> | reset-totp <identifier> | set-password <identifier>",
 ].join("\n");
 
 export type CliContext = {
@@ -52,6 +54,7 @@ const OPTIONS = {
 
 /** Operator-facing text for the platform domain keys. */
 const MESSAGES: Record<string, string> = {
+  ...ADMIN_MESSAGES,
   "platform.slug_invalid":
     "Refused: the slug must be 3-30 characters of a-z, 0-9 and single inner hyphens, not reserved, not xn--.",
   "platform.slug_taken": "Refused: that slug is already used.",
@@ -162,6 +165,8 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
       }
       return;
     }
+
+    if (group === "admins" && (await runAdminsCommand(command, target, ctx))) return;
 
     if (group === "subscriptions" && command === "set" && target) {
       requireInteractive(ctx.interactive);
