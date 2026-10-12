@@ -131,7 +131,7 @@ Recorded 2026-10-01 with the tenant-management CLI. These are deliberate decisio
 
 | Item | Why deferred |
 |---|---|
-| Web platform admin | **In progress, see [DR-006](./decisions/DR-006-platform-admin.md)** (decided 2026-10-12; build may start, deploy waits for the server safety work). |
+| Web platform admin | **Done in `v1.5.0`, see [DR-006](./decisions/DR-006-platform-admin.md)** (decided 2026-10-12): `/platform` on the bare domain, password and authenticator code, stadiums list, detail, create, suspend and resume. |
 | Date-based suspension (auto-suspend when `paidUntil` passes) | Suspension stays manual (decision 2). `paidUntil` is informational: `tenants list` flags OVERDUE. No cron. |
 | Plan limits and pricing | A plan is a text label only (decision 5). BR-103 is PARTIAL by decision: no limits, no pricing, no enforcement. |
 | Forced password change at first login | **Next job (2026-10-08).** Owners can now change their own password in the app (More → Account), but nothing forces it: the operator-set first password stays until they do. Forcing it needs a `mustChangePassword` flag on `User` (a migration), set by `tenants create` / `set-password`, and a redirect until it is cleared. |

@@ -547,3 +547,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `feat/platform-admin` into `main` with `--no-ff` (merge commit `34abe48`): the web platform admin (DR-006, slices 1 to 7). Only four docs files conflicted (NOW, ROADMAP, RUNBOOK, progress); no source file. Kept both sides: NOW keeps main's `v1.4.0` live text, ROADMAP keeps the branch's server table with main's phones wording, RUNBOOK keeps the tag rule and the verified pm2 sentence, progress keeps every entry. `docs/NOW.md` "In progress" now says the platform admin ships in `v1.5.0`. No tag was created, moved or pushed.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run; the platform integration suites have not been re-run since the shared-request-stubs fix (`f7aa67f`). `test/docs` was NOT run.
+
+## Docs: v1.5.0 is live (branch `main`)
+
+**When:** 2026-10-12
+
+**What:** Docs only. `docs/NOW.md`: the live tag is `v1.5.0` (the web platform admin at `/platform` on the bare domain, with password and authenticator code; stadiums list, detail, create, suspend and resume). The "In progress" section (the platform admin line and the note that deploy waits for the DR-006 preconditions) is removed: the preconditions were all met on 2026-10-12. `docs/ROADMAP.md`: the "Web platform admin" row now says done in `v1.5.0`. No tag was created or moved.
+
+**Unsure:** that v1.5.0 is live and that the preconditions were met is as stated by the owner; nothing was checked on the server. The RUNBOOK "Platform admin" section still lists the DR-006 preconditions as a deploy checklist; it was not changed.
+
+**How to verify:** `npx tsc --noEmit` was the only check run; `test/docs` was NOT run.
