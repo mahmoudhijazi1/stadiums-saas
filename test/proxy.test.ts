@@ -319,3 +319,53 @@ describe("proxy landing routes", () => {
     }
   });
 });
+
+/**
+ * The landing rewrite must stay internal (same origin as the request's own URL). Behind nginx the app
+ * listens on plain http while X-Forwarded-Proto says https; a target built from request.url, a host
+ * header or APP_PROTOCOL becomes an external rewrite and fails with EPROTO. Written, not run when authored.
+ */
+describe("proxy landing rewrite stays internal", () => {
+  function behindNginx(path: string) {
+    const request = new NextRequest(`http://127.0.0.1:3000${path}`, {
+      headers: { host: "lebstads.test", "x-forwarded-proto": "https", "x-forwarded-host": "lebstads.test" },
+    });
+    const response = proxy(request);
+    const header = response.headers.get("x-middleware-rewrite");
+    return { request, target: header ? new URL(header) : null };
+  }
+
+  it("has the same origin as request.nextUrl and the path /landing for /", () => {
+    const { request, target } = behindNginx("/");
+    expect(target?.origin).toBe(request.nextUrl.origin);
+    expect(target?.origin).toBe("http://127.0.0.1:3000");
+    expect(target?.pathname).toBe("/landing");
+  });
+
+  it("has the same origin and the path /landing/en for /en and /en/", () => {
+    for (const path of ["/en", "/en/"]) {
+      const { request, target } = behindNginx(path);
+      expect(target?.origin).toBe(request.nextUrl.origin);
+      expect(target?.pathname).toBe("/landing/en");
+    }
+  });
+
+  it("keeps the query string", () => {
+    for (const [path, expected] of [["/?utm=1&x=2", "/landing"], ["/en?utm=1&x=2", "/landing/en"], ["/en/?utm=1&x=2", "/landing/en"]] as const) {
+      const { target } = behindNginx(path);
+      expect([path, target?.pathname, target?.search]).toEqual([path, expected, "?utm=1&x=2"]);
+    }
+  });
+
+  it("builds no rewrite target from request.url, a URL constructor or APP_PROTOCOL", () => {
+    const source = readFileSync(join(process.cwd(), "src", "proxy.ts"), "utf8");
+    // Code only: the comments explain what is not done and name those words.
+    const body = source
+      .slice(source.indexOf("export function proxy"), source.indexOf("function redirectToBareDomain"))
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\/\/.*$/, ""))
+      .join("\n");
+    expect(body).toContain("request.nextUrl.clone()");
+    expect(body).not.toMatch(/request\.url|new URL\(|APP_PROTOCOL|APP_BASE_DOMAIN/);
+  });
+});
