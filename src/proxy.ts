@@ -60,8 +60,8 @@ export function proxy(request: NextRequest) {
   }
   const landing = isBareHostFromHeaders(request.headers) ? landingRouteFor(pathname) : null;
   if (landing) {
-    const url = request.nextUrl.clone();
-    url.pathname = landing.rewriteTo;
+    const url = new URL(landing.rewriteTo, request.url); // exact path: a clone of nextUrl keeps the trailing slash of /en/
+    url.search = request.nextUrl.search;
     requestHeaders.set(LANDING_HEADER, landing.locale);
     return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }

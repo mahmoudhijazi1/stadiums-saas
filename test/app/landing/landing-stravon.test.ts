@@ -1,7 +1,7 @@
 /** @jest-environment node */
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { afterAll, describe, expect, it } from "@jest/globals";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { UiLocale } from "@/lib/locale";
@@ -10,10 +10,9 @@ import { landingJsonLd, landingMetadata } from "@/app/(marketing)/landing/_compo
 
 /** The Stravon Solutions footer line (landing). Written, not run when authored. */
 const saved = { base: process.env.APP_BASE_DOMAIN, protocol: process.env.APP_PROTOCOL };
-beforeAll(() => {
-  process.env.APP_BASE_DOMAIN = "lebstads.test";
-  process.env.APP_PROTOCOL = "https";
-});
+// Set at module level: the pages are rendered while the describe blocks are collected, before beforeAll runs.
+process.env.APP_BASE_DOMAIN = "lebstads.test";
+process.env.APP_PROTOCOL = "https";
 afterAll(() => {
   process.env.APP_BASE_DOMAIN = saved.base;
   process.env.APP_PROTOCOL = saved.protocol;

@@ -653,3 +653,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `feat/landing` into `main` with `--no-ff`, no conflicts: the landing page slices 1 to 3, the Stravon footer link and the redesign. `docs/NOW.md`: the "next release" section becomes "Tagged after `v1.5.0`" with `v1.6.0` (subscription payment, tagged by the owner) and `v1.7.0` (landing page). The tag `v1.7.0` is created only after CI is green on the pushed head; no existing tag was touched.
 
 **How to verify:** `npx tsc --noEmit` was the only check run locally. No test suite, build or lint was run here: the landing tests were written and never run, so the first run is CI on `main`.
+
+## Fix: the five landing test failures from CI on main (after v1.7.0)
+
+**When:** 2026-10-12
+
+**What:** CI on `c95360a` (tagged `v1.7.0`) failed 4 tests and 2 suites, all in the landing tests written and never run. (1) `src/proxy.ts`: the rewrite of `/en/` kept the trailing slash (`/landing/en/`); the target is now built with `new URL(landing.rewriteTo, request.url)`, so it is exactly `/landing/en` for `/en` and `/en/` (a real, if small, behaviour fix). (2) `landing-content.test.ts` and `landing-stravon.test.ts` rendered the page while the describe blocks were collected, before `beforeAll` set `APP_BASE_DOMAIN`, so the JSON-LD URLs were `https:///`; the env is now set at module level. (3) `root-layout.test.ts` and `favicon-route.test.ts`: `jest.mock("@/app/brand/current-brand")` did not resolve; they mock it by relative path. (4) `public-metadata.test.ts` still expected `lang={htmlLang(locale)}` in the root layout; it now expects `pageLocale`. Nothing else changed.
+
+**Tag:** `v1.7.0` points at the failing commit and was not moved. The fix needs a new tag number.
+
+**How to verify:** `npx tsc --noEmit` clean. I ran only the affected test files (proxy, landing, root layout, favicon, robots and sitemap, marketing guard, public metadata): 9 suites, 112 tests, all passed. The full suite, the build and lint were not run here; CI on this commit is the full run.

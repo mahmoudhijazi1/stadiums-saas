@@ -1,5 +1,5 @@
 /** @jest-environment node */
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { afterAll, describe, expect, it } from "@jest/globals";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { COPY_AREAS, ui } from "@/lib/copy/ui";
@@ -12,10 +12,9 @@ import { landingWhatsAppHref, LEBSTADS_WHATSAPP } from "@/app/(marketing)/landin
  * footer) in both languages. Written, not run when authored.
  */
 const saved = { base: process.env.APP_BASE_DOMAIN, protocol: process.env.APP_PROTOCOL };
-beforeAll(() => {
-  process.env.APP_BASE_DOMAIN = "lebstads.test";
-  process.env.APP_PROTOCOL = "https";
-});
+// Set at module level: the pages are rendered while the describe blocks are collected, before beforeAll runs.
+process.env.APP_BASE_DOMAIN = "lebstads.test";
+process.env.APP_PROTOCOL = "https";
 afterAll(() => {
   process.env.APP_BASE_DOMAIN = saved.base;
   process.env.APP_PROTOCOL = saved.protocol;

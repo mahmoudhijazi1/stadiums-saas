@@ -17,7 +17,7 @@ jest.mock("next/headers", () => ({
   headers: async () => mockHeaders,
   cookies: async () => ({ get: (name: string) => (name === "stadium_locale" && mockLocaleCookie ? { value: mockLocaleCookie } : undefined) }),
 }));
-jest.mock("@/app/brand/current-brand", () => ({ currentBrandIdentity: async () => mockIdentity }));
+jest.mock("../../src/app/brand/current-brand", () => ({ currentBrandIdentity: async () => mockIdentity }));
 jest.mock("next/font/local", () => ({ __esModule: true, default: () => ({ variable: "", className: "" }) }));
 
 const savedBase = process.env.APP_BASE_DOMAIN;

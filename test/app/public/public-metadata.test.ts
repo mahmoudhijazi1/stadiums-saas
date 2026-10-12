@@ -66,7 +66,9 @@ describe("indexing and language", () => {
 
   it("the root layout sets lang and dir on <html> from the locale", () => {
     const layout = readFileSync(join(process.cwd(), "src", "app", "layout.tsx"), "utf8");
-    expect(layout).toContain("lang={htmlLang(locale)}");
-    expect(layout).toContain("dir={htmlDir(locale)}");
+    // pageLocale is the landing header's language on the bare host (landing routes), else the cookie's locale.
+    expect(layout).toContain("const pageLocale = landingLocale ?? locale;");
+    expect(layout).toContain("lang={htmlLang(pageLocale)}");
+    expect(layout).toContain("dir={htmlDir(pageLocale)}");
   });
 });

@@ -9,7 +9,7 @@ let mockHeaders = new Headers();
 let mockIdentity: { symbol: string; preset: string } | null = null;
 
 jest.mock("next/headers", () => ({ headers: async () => mockHeaders }));
-jest.mock("@/app/brand/current-brand", () => ({ currentBrandIdentity: async () => mockIdentity }));
+jest.mock("../../src/app/brand/current-brand", () => ({ currentBrandIdentity: async () => mockIdentity }));
 
 const savedBase = process.env.APP_BASE_DOMAIN;
 beforeAll(() => {
