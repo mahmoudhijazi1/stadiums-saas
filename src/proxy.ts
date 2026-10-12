@@ -60,8 +60,13 @@ export function proxy(request: NextRequest) {
   }
   const landing = isBareHostFromHeaders(request.headers) ? landingRouteFor(pathname) : null;
   if (landing) {
-    const url = new URL(landing.rewriteTo, request.url); // exact path: a clone of nextUrl keeps the trailing slash of /en/
-    url.search = request.nextUrl.search;
+    // The target is the request's own URL with another path (same origin, same search), never a URL built
+    // from request.url, a host header or APP_PROTOCOL: Next treats any other origin as an EXTERNAL rewrite
+    // (behind nginx: https://localhost:3000, EPROTO). NextURL keeps the trailing slash of the request path
+    // (/en/), so the href is re-parsed from its own origin to make the target exactly the route.
+    const url = request.nextUrl.clone();
+    url.pathname = landing.rewriteTo;
+    url.href = `${url.origin}${url.pathname}${url.search}`;
     requestHeaders.set(LANDING_HEADER, landing.locale);
     return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
   }

@@ -663,3 +663,13 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tag:** `v1.7.0` points at the failing commit and was not moved. The fix needs a new tag number.
 
 **How to verify:** `npx tsc --noEmit` clean. I ran only the affected test files (proxy, landing, root layout, favicon, robots and sitemap, marketing guard, public metadata): 9 suites, 112 tests, all passed. The full suite, the build and lint were not run here; CI on this commit is the full run.
+
+## Fix: the landing rewrite is an internal rewrite again (branch `fix/landing-rewrite-origin`)
+
+**When:** 2026-10-12
+
+**What:** In production, behind nginx (`X-Forwarded-Proto: https`, the app on plain http), the rewrite of `/` to `/landing` was treated as an external rewrite to `https://localhost:3000/landing` and failed with EPROTO. Next treats a rewrite whose target has another origin as external. `src/proxy.ts` now builds the target from `request.nextUrl.clone()` and sets its path, keeping the search; never from `request.url`, a host header or `APP_PROTOCOL`. Before: `const url = new URL(landing.rewriteTo, request.url); url.search = request.nextUrl.search;` (after `a16ddef`; `c95360a` and `v1.7.0` used a clone). After: `const url = request.nextUrl.clone(); url.pathname = landing.rewriteTo; url.href = ...own origin, pathname and search...`. The `href` line is there because `NextURL` keeps the trailing slash of the request path (`/en/` became `/landing/en/`, the CI failure fixed in `a16ddef`); it re-parses the clone's own origin, so the origin cannot change. The request header `x-lebstads-landing` and the www redirect (a redirect, built from `APP_PROTOCOL` and `APP_BASE_DOMAIN`) are unchanged. The only `NextResponse.rewrite` in `src` is this one; no other file has the problem. No tag was created or moved.
+
+**Tests (written, NOT run):** `test/proxy.test.ts`, new describe "proxy landing rewrite stays internal": a request with `x-forwarded-proto: https` and `nextUrl` `http://127.0.0.1:3000/` gets a target with the same origin and the path `/landing` (`/landing/en` for `/en` and `/en/`), the query is kept, and the proxy function builds no target from `request.url`, `new URL(` or `APP_PROTOCOL`. The existing proxy tests are unchanged.
+
+**How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`; after deploying, open `/` and `/en` on the bare domain.
