@@ -673,3 +673,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **Tests (written, NOT run):** `test/proxy.test.ts`, new describe "proxy landing rewrite stays internal": a request with `x-forwarded-proto: https` and `nextUrl` `http://127.0.0.1:3000/` gets a target with the same origin and the path `/landing` (`/landing/en` for `/en` and `/en/`), the query is kept, and the proxy function builds no target from `request.url`, `new URL(` or `APP_PROTOCOL`. The existing proxy tests are unchanged.
 
 **How to verify:** `npx tsc --noEmit` was the only check run. No test suite, build or lint was run. Run `npm test`; after deploying, open `/` and `/en` on the bare domain.
+
+## Merge: fix/landing-rewrite-origin into main for v1.7.1
+
+**When:** 2026-10-12
+
+**What:** Merged `fix/landing-rewrite-origin` into `main` with `--no-ff`, no conflicts: the internal landing rewrite and its tests. `docs/NOW.md` lists `v1.7.1` and says `v1.7.0` (tagged on a commit whose CI run failed) was not moved and is superseded. The tag `v1.7.1` is created on the pushed head of `main`.
+
+**How to verify:** `npx tsc --noEmit` was the only check run for this merge. No test suite, build or lint was run here; CI on `main` is the full run.

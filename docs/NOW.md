@@ -22,6 +22,7 @@ The stadium's public page now has a day strip from today to 60 days ahead, the d
 ## Tagged after `v1.5.0` (whether each is deployed is not recorded here)
 - **`v1.6.0`, record a subscription payment:** the platform admin can record a subscription payment on a stadium (plan, paid until, optional amount and note); the new row is first in the history and OVERDUE follows it.
 - **`v1.7.0`, the landing page:** the bare domain now serves a public landing page, Arabic at `/` and English at `/en` (no tenant, no database), with its own LebStads icons, `robots.txt` and `sitemap.xml`, indexable; `www.` redirects to the bare domain. `/platform` is unchanged and stays noindex. Details in [progress.md](./progress.md).
+- **`v1.7.1`, the landing rewrite fix:** the rewrite of `/` and `/en` to the landing routes is an internal rewrite again (it failed behind nginx with EPROTO), and the landing tests that failed CI on `v1.7.0` are fixed. `v1.7.0` was tagged on a commit whose CI run failed and was not moved; use `v1.7.1`.
 
 ## Next three steps
 1. **Step 7, the remaining file splits:** the other files over about 300 lines that do more than one job, moving code as is (`bookings.ts` and `upcoming-panel.tsx` are done).
