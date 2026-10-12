@@ -725,3 +725,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Below 640px the hero's example is a full-width card instead of a narrow phone frame (the frame, its notch and the confirmed game come back from 640px), so the words are no longer squeezed; it shows the new request and the "To collect" row. Less height: tighter padding and gaps, a 26px headline, a smaller sub-line, and the "See how it works" link hidden on phones (the header and the page below still lead there). From 640px nothing changed.
 
 **How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at on a phone.
+
+## Landing page: shorter WhatsApp button, footer links, plain Stravon line (branch `feat/landing-polish`)
+
+**When:** 2026-10-13
+
+**What:** The hero sub-line and the third step no longer name dollars and pounds (the features still do), and the hero pill no longer lists sports ("For venue owners in Lebanon" / "لأصحاب الملاعب في لبنان"). The WhatsApp button says one word with an icon ("WhatsApp" / "واتساب") and appears less: the header, the hero and the closing band (not in pricing any more). The footer has no big button: small links to Instagram (`@lebstads`, `https://www.instagram.com/lebstads/`), WhatsApp (the same number and message) and the other language. "LebStads × Stravon Solutions" is plain text, no link and no logo code. Copy keys added: `footerInstagram`, `footerWhatsapp`; changed: `whatsappCta`, `heroEyebrow`, `heroSub`, `step3Text`.
+
+**How to verify:** `npx tsc --noEmit` and the landing tests passed. Not looked at in a browser.

@@ -34,6 +34,12 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
   const header = between(markup, "<header", "</header>");
   const footer = markup.slice(markup.indexOf("<footer"));
 
+  it("does not name dollars and pounds in the hero or the steps, nor a list of sports", () => {
+    const top = visibleText(markup.slice(0, markup.indexOf('id="features"')));
+    expect(top).not.toMatch(/دولار|ليرة|dollar|pound/i);
+    expect(top).not.toMatch(/football|padel|basketball|كرة القدم|البادل|السلة/i);
+  });
+
   it("has the headline as its one h1, then the section headings in order: how, features, pricing, FAQ, closing", () => {
     expect(headings(markup, 1)).toEqual([escaped(ui("landing.heroTitle", locale))]);
     expect(headings(markup, 2)).toEqual(SECTION_TITLES.map((key) => escaped(ui(key, locale))));
@@ -96,7 +102,7 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
 
   it("builds every WhatsApp link with the number and the prefilled text in the page's language", () => {
     const hrefs = [...markup.matchAll(/href="(https:\/\/wa\.me\/[^"]+)"/g)].map((match) => match[1]!);
-    expect(hrefs).toHaveLength(5); // header, hero, pricing, closing band, footer
+    expect(hrefs).toHaveLength(4); // header, hero, closing band, footer link
     for (const href of hrefs) {
       expect(href.startsWith(`https://wa.me/${LEBSTADS_WHATSAPP}?text=`)).toBe(true);
       expect(decodeURIComponent(href.split("?text=")[1]!)).toBe(ui("landing.whatsappMessage", locale));
@@ -106,10 +112,10 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
   });
 
   it("has one primary button in each of hero, pricing and the closing band, and secondary ones in the header and the footer", () => {
-    expect(markup.match(/hover:opacity-90/g)).toHaveLength(3);
-    expect(markup.match(/hover:bg-muted/g)).toHaveLength(2);
-    expect(footer.match(/hover:bg-muted/g)).toHaveLength(1);
+    expect(markup.match(/hover:opacity-90/g)).toHaveLength(2);
+    expect(markup.match(/hover:bg-muted/g)).toHaveLength(1); // the header's small button
     expect(footer).not.toContain("hover:opacity-90");
+    expect(footer).not.toContain("hover:bg-muted");
   });
 
   it("has a hero band with the accent gradient, the pitch lines and the eyebrow", () => {
@@ -129,14 +135,16 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
     expect(markup).toContain("lg:grid-cols-2"); // two columns from 1024px, stacked below
   });
 
-  it("ends with the footer, all centred, in order: mark and name, Stravon, WhatsApp and language, copyright", () => {
+  it("ends with the footer, all centred, in order: mark and name, links, Stravon, copyright", () => {
     expect(footer).toContain("text-center");
     expect(footer).toContain("items-center");
     const at = (text: string) => footer.indexOf(text);
-    const order = [at('<svg viewBox="0 0 64 64"'), at("LebStads × "), at("https://wa.me/"), at("© 2026 LebStads")];
+    const order = [at('<svg viewBox="0 0 64 64"'), at("https://www.instagram.com/lebstads/"), at("https://wa.me/"), at("LebStads × Stravon Solutions"), at("© 2026 LebStads")];
     expect(order.every((index) => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
-    expect(footer).toContain('href="https://stravonsolutions.com"');
+    expect(footer).not.toContain("stravonsolutions.com");
+    expect(footer).toContain(`>${escaped(ui("landing.footerInstagram", locale))}</a>`);
+    expect(footer).toContain(`>${escaped(ui("landing.footerWhatsapp", locale))}</a>`);
     expect(footer).toContain(escaped(ui("landing.copyright", locale)));
     if (locale === "ar") expect(footer).toMatch(/<a href="\/en"[^>]*>English<\/a>/);
     else expect(footer).toMatch(/<a href="\/"[^>]*>العربية<\/a>/);
@@ -189,7 +197,7 @@ describe("the two languages", () => {
   it("have the exact headline and button label of the brief", () => {
     expect(ui("landing.heroTitle", "ar")).toBe("حجوزات ملعبك ومدفوعاته، في مكان واحد");
     expect(ui("landing.heroTitle", "en")).toBe("Your stadium's bookings and payments, in one place");
-    expect(ui("landing.whatsappCta", "ar")).toBe("تحدّث معنا على واتساب");
-    expect(ui("landing.whatsappCta", "en")).toBe("Talk to us on WhatsApp");
+    expect(ui("landing.whatsappCta", "ar")).toBe("واتساب");
+    expect(ui("landing.whatsappCta", "en")).toBe("WhatsApp");
   });
 });

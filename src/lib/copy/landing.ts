@@ -10,7 +10,7 @@ export const landing: CopyArea = {
     "landing.name": "LebStads",
     "landing.metaTitle": "LebStads | إدارة الملاعب من الهاتف",
     "landing.metaDescription": "حجوزات، ودفع بالدولار والليرة، وحساب واضح لكل يوم، لأصحاب الملاعب في لبنان.",
-    "landing.whatsappCta": "تحدّث معنا على واتساب",
+    "landing.whatsappCta": "واتساب",
     "landing.whatsappMessage": "مرحبًا، أريد أن أعرف أكثر عن LebStads لملعبي.",
 
     "landing.navLabel": "أقسام الصفحة",
@@ -20,9 +20,9 @@ export const landing: CopyArea = {
     "landing.navFaq": "أسئلة",
 
     "landing.heroTitle": "حجوزات ملعبك ومدفوعاته، في مكان واحد",
-    "landing.heroSub": "رابط حجز خاص، موافقة بضغطة، وتحصيل بالدولار والليرة.",
+    "landing.heroSub": "رابط حجز خاص بملعبك، موافقة بضغطة، وحساب واضح لكل يوم.",
     "landing.heroSecondary": "كيف يعمل",
-    "landing.heroEyebrow": "لملاعب كرة القدم والبادل وكرة السلة في لبنان",
+    "landing.heroEyebrow": "لأصحاب الملاعب في لبنان",
 
     "landing.mockToday": "اليوم",
     "landing.mockNew": "طلب جديد",
@@ -45,7 +45,7 @@ export const landing: CopyArea = {
     "landing.step2Title": "توافق بضغطة",
     "landing.step2Text": "الساعة المؤكَّدة لا تُحجز مرتين.",
     "landing.step3Title": "تحصّل وتعرف حسابك",
-    "landing.step3Text": "بالدولار أو الليرة، كاملاً أو لكل لاعب.",
+    "landing.step3Text": "كاملاً أو لكل لاعب، وترى ما بقي.",
 
     "landing.featuresTitle": "المزايا",
     "landing.feature1Title": "صفحة حجز ورمز QR",
@@ -81,12 +81,14 @@ export const landing: CopyArea = {
     "landing.languageEn": "English",
     "landing.stravonName": "Stravon Solutions",
     "landing.copyright": "© 2026 LebStads",
+    "landing.footerInstagram": "إنستغرام",
+    "landing.footerWhatsapp": "واتساب",
   },
   en: {
     "landing.name": "LebStads",
     "landing.metaTitle": "LebStads | Run your stadium from your phone",
     "landing.metaDescription": "Bookings, payments in dollars and pounds, and a clear count every day, for stadium owners in Lebanon.",
-    "landing.whatsappCta": "Talk to us on WhatsApp",
+    "landing.whatsappCta": "WhatsApp",
     "landing.whatsappMessage": "Hello, I would like to know more about LebStads for my stadium.",
 
     "landing.navLabel": "Page sections",
@@ -96,9 +98,9 @@ export const landing: CopyArea = {
     "landing.navFaq": "FAQ",
 
     "landing.heroTitle": "Your stadium's bookings and payments, in one place",
-    "landing.heroSub": "Your own booking link, one-tap approvals, collection in dollars and pounds.",
+    "landing.heroSub": "Your own booking link, one-tap approvals and a clear count every day.",
     "landing.heroSecondary": "See how it works",
-    "landing.heroEyebrow": "For football, padel and basketball venues in Lebanon",
+    "landing.heroEyebrow": "For venue owners in Lebanon",
 
     "landing.mockToday": "Today",
     "landing.mockNew": "New request",
@@ -121,7 +123,7 @@ export const landing: CopyArea = {
     "landing.step2Title": "You confirm in one tap",
     "landing.step2Text": "A confirmed hour is never booked twice.",
     "landing.step3Title": "You collect, and you know where you stand",
-    "landing.step3Text": "In dollars or pounds, in full or per player.",
+    "landing.step3Text": "In full or per player, and see what is left.",
 
     "landing.featuresTitle": "Features",
     "landing.feature1Title": "Your booking page and QR",
@@ -157,5 +159,7 @@ export const landing: CopyArea = {
     "landing.languageEn": "English",
     "landing.stravonName": "Stravon Solutions",
     "landing.copyright": "© 2026 LebStads",
+    "landing.footerInstagram": "Instagram",
+    "landing.footerWhatsapp": "WhatsApp",
   },
 };

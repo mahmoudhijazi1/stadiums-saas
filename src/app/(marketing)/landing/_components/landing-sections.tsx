@@ -60,7 +60,6 @@ export function Pricing({ locale }: { locale: UiLocale }) {
     <Section id="pricing" title={ui("landing.priceTitle", locale)}>
       <div className="mx-auto flex w-full max-w-[560px] flex-col items-center gap-6 rounded-2xl border bg-card p-6 text-center sm:p-8">
         <p className="max-w-[60ch] text-lg">{ui("landing.priceText", locale)}</p>
-        <WhatsAppButton locale={locale} />
       </div>
     </Section>
   );
