@@ -1,4 +1,6 @@
 /** @jest-environment node */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import type { ReactElement } from "react";
 
@@ -9,12 +11,13 @@ import type { ReactElement } from "react";
  */
 let mockHeaders = new Headers();
 let mockLocaleCookie: string | undefined;
+let mockIdentity: { symbol: string; preset: string } | null = null;
 
 jest.mock("next/headers", () => ({
   headers: async () => mockHeaders,
   cookies: async () => ({ get: (name: string) => (name === "stadium_locale" && mockLocaleCookie ? { value: mockLocaleCookie } : undefined) }),
 }));
-jest.mock("@/app/brand/current-brand", () => ({ currentBrandIdentity: async () => null }));
+jest.mock("@/app/brand/current-brand", () => ({ currentBrandIdentity: async () => mockIdentity }));
 jest.mock("next/font/local", () => ({ __esModule: true, default: () => ({ variable: "", className: "" }) }));
 
 const savedBase = process.env.APP_BASE_DOMAIN;
@@ -27,6 +30,7 @@ afterAll(() => {
 beforeEach(() => {
   mockHeaders = new Headers();
   mockLocaleCookie = undefined;
+  mockIdentity = null;
 });
 
 async function render() {
@@ -73,5 +77,35 @@ describe("root layout metadata", () => {
     expect((await generateMetadata()).manifest).toBeNull();
     mockHeaders = new Headers({ host: "ahmad.lebstads.test" });
     expect((await generateMetadata()).manifest).toBeUndefined();
+  });
+});
+
+describe("root layout icons", () => {
+  type Icons = { icon: Array<{ url: string }>; apple: Array<{ url: string }> };
+
+  it("points the bare host at the LebStads files, whatever a brand lookup would say", async () => {
+    const { generateMetadata } = await import("@/app/layout");
+    mockHeaders = new Headers({ host: "lebstads.test" });
+    mockIdentity = { symbol: "A", preset: "lime" };
+    const icons = (await generateMetadata()).icons as Icons;
+    expect(icons.icon.map((icon) => icon.url)).toEqual(["/brand/lebstads/icon-32.png"]);
+    expect(icons.apple.map((icon) => icon.url)).toEqual(["/brand/lebstads/icon-180.png"]);
+  });
+
+  it("keeps a stadium's generated letter logo on its own host", async () => {
+    const { generateMetadata } = await import("@/app/layout");
+    mockHeaders = new Headers({ host: "ahmad.lebstads.test" });
+    mockIdentity = { symbol: "A", preset: "lime" };
+    const icons = (await generateMetadata()).icons as Icons;
+    expect(icons.icon.map((icon) => icon.url)).toEqual(["/brand/icon/32?v=41.lime"]);
+    expect(icons.apple.map((icon) => icon.url)).toEqual(["/brand/icon/180?v=41.lime"]);
+  });
+
+  it("has the LebStads PNG files at the sizes the metadata names", () => {
+    for (const [size, name] of [[32, "icon-32.png"], [180, "icon-180.png"], [512, "icon-512.png"]] as const) {
+      const png = readFileSync(join(process.cwd(), "public", "brand", "lebstads", name));
+      expect(png.subarray(1, 4).toString("ascii")).toBe("PNG");
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([size, size]);
+    }
   });
 });

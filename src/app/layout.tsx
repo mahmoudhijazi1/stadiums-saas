@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/components/shell/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { htmlDir, htmlLang, LANDING_HEADER, parseLandingLocale } from "@/lib/locale";
+import { LEBSTADS_ICONS } from "@/lib/lebstads-brand";
 import { isBareHostFromHeaders } from "@/lib/tenant-slug";
 import { ui } from "@/lib/copy";
 import { THEME_COLOR, themeColorScript } from "@/lib/theme-color";
@@ -77,9 +78,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title: ui("doc.title", locale),
     description: "Book a pitch. Collect in cash.",
     ...(bare ? { manifest: null } : {}),
+    // The bare host has its own LebStads files; a stadium's host keeps its generated letter logo.
     icons: {
-      icon: [{ url: brandIconPath("32", identity), sizes: "32x32", type: "image/png" }],
-      apple: [{ url: brandIconPath("180", identity), sizes: "180x180", type: "image/png" }],
+      icon: [{ url: bare ? LEBSTADS_ICONS["32"] : brandIconPath("32", identity), sizes: "32x32", type: "image/png" }],
+      apple: [{ url: bare ? LEBSTADS_ICONS["180"] : brandIconPath("180", identity), sizes: "180x180", type: "image/png" }],
     },
   };
 }

@@ -1,13 +1,128 @@
 import type { CopyArea } from "./types";
 
-/** The landing page of the bare domain (placeholder until the content slice). */
+/**
+ * The landing page of the bare domain. Arabic first (simple standard Arabic), the same meaning in
+ * English. It claims only what is built: no offline use, no off-site backups, no prices, no counts.
+ */
 export const landing: CopyArea = {
   ar: {
     "landing.name": "LebStads",
-    "landing.placeholder": "حجز الملاعب وتحصيل المبالغ نقداً، لأصحاب الملاعب في لبنان. الصفحة قيد الإعداد.",
+    "landing.metaTitle": "LebStads | إدارة الملاعب من الهاتف",
+    "landing.metaDescription": "حجوزات، ودفع بالدولار والليرة، وحساب واضح لكل يوم، لأصحاب الملاعب في لبنان.",
+    "landing.whatsappCta": "اكتب لنا على واتساب",
+    "landing.whatsappMessage": "مرحبًا، أريد أن أعرف أكثر عن LebStads لملعبي.",
+
+    "landing.heroTitle": "أدِر ملعبك من هاتفك، بدل الدفتر",
+    "landing.heroSub": "حجوزات من رابط خاص بملعبك، ودفع بالدولار والليرة، وحساب واضح لكل يوم.",
+
+    "landing.paperTitle": "الورق أم التطبيق؟",
+    "landing.paperHeading": "على الورق",
+    "landing.appHeading": "مع LebStads",
+    "landing.paper1": "حجوزات بالاتصال والرسائل، وخطر حجز الموعد مرتين",
+    "landing.paper2": "مبالغ تُكتب في دفتر وتُجمع آخر الليل",
+    "landing.paper3": "من دفع ومن عليه دين؟ لا جواب سريع",
+    "landing.app1": "اللاعب يطلب الموعد من الرابط، وأنت توافق بضغطة واحدة",
+    "landing.app2": "لا يُحجز الموعد نفسه مرتين على الملعب نفسه",
+    "landing.app3": "كل دفعة تُسجَّل بالدولار أو بالليرة، وترى المدفوع والمتبقي",
+
+    "landing.featuresTitle": "ماذا يقدّم لك",
+    "landing.feature1Title": "صفحة حجز عامة مع رمز QR",
+    "landing.feature1Text": "لملعبك رابط خاص يرى فيه اللاعبون الأوقات المتاحة ويطلبون الحجز. ويمكنك مشاركة رمز QR للصفحة.",
+    "landing.feature2Title": "موافقة بضغطة واحدة مع تنبيهات",
+    "landing.feature2Text": "يصلك تنبيه على هاتفك عند كل طلب جديد، وتوافق أو ترفض بضغطة واحدة.",
+    "landing.feature3Title": "دفع بالدولار والليرة مع الباقي",
+    "landing.feature3Text": "استلم المبلغ بالدولار أو بالليرة أو بالاثنين مع حساب الباقي، وقسّمه بين اللاعبين إذا أردت.",
+    "landing.feature4Title": "حجوزات أسبوعية",
+    "landing.feature4Text": "ثبّت موعدًا يتكرر كل أسبوع لفريق دائم، بدل أن تكتبه من جديد كل مرة.",
+    "landing.feature5Title": "الكانتين وحسابات اللاعبين",
+    "landing.feature5Text": "بِع المشروبات والمأكولات، وسجّلها على الحجز أو على لاعب باسمه لتحاسبه لاحقًا.",
+    "landing.feature6Title": "صفحة المال: الربح والمصاريف",
+    "landing.feature6Text": "شاهد ما دخل وما خرج، وسجّل المصاريف، واعرف الربح أو الخسارة لكل فترة.",
+
+    "landing.stepsTitle": "ثلاث خطوات للبدء",
+    "landing.step1Title": "نجهّز لك ملعبك",
+    "landing.step1Text": "نفتح لك حسابًا ونجهّز ملعبك على التطبيق.",
+    "landing.step2Title": "تضيف الملاعب والأسعار",
+    "landing.step2Text": "تُدخل ملاعبك وساعات العمل والأسعار.",
+    "landing.step3Title": "تشارك الرابط أو الرمز",
+    "landing.step3Text": "ترسل رابط ملعبك أو رمز QR إلى اللاعبين، وتبدأ باستقبال الطلبات.",
+
+    "landing.priceTitle": "السعر",
+    "landing.priceText": "يعتمد السعر على ملعبك. دعنا نتحدث.",
+
+    "landing.faqTitle": "أسئلة شائعة",
+    "landing.faq1Question": "هل يعمل على أي هاتف؟",
+    "landing.faq1Answer": "نعم. يعمل من المتصفح على أي هاتف، ويمكن تثبيته على الشاشة الرئيسية كأي تطبيق.",
+    "landing.faq2Question": "هل يدعم العربية والإنجليزية؟",
+    "landing.faq2Answer": "نعم. التطبيق عربي أولًا، ويمكنك التبديل إلى الإنجليزية في أي وقت.",
+    "landing.faq3Question": "هل أتعامل بالدولار والليرة؟",
+    "landing.faq3Answer": "نعم. تُسجَّل كل دفعة بالدولار أو بالليرة اللبنانية أو بالاثنين.",
+    "landing.faq4Question": "هل بياناتي محفوظة؟",
+    "landing.faq4Answer": "نعم. تُؤخذ نسخة احتياطية من البيانات كل يوم.",
+
+    "landing.footerContact": "تواصل معنا",
+    "landing.footerLanguage": "اللغة",
+    "landing.languageAr": "العربية",
+    "landing.languageEn": "English",
   },
   en: {
     "landing.name": "LebStads",
-    "landing.placeholder": "Pitch booking and cash collection for stadium owners in Lebanon. This page is being built.",
+    "landing.metaTitle": "LebStads | Run your stadium from your phone",
+    "landing.metaDescription": "Bookings, payments in dollars and pounds, and a clear count every day, for stadium owners in Lebanon.",
+    "landing.whatsappCta": "Message us on WhatsApp",
+    "landing.whatsappMessage": "Hello, I would like to know more about LebStads for my stadium.",
+
+    "landing.heroTitle": "Run your stadium from your phone, not a notebook",
+    "landing.heroSub": "Bookings from your own link, payments in dollars and pounds, and a clear count every day.",
+
+    "landing.paperTitle": "Paper or the app?",
+    "landing.paperHeading": "On paper",
+    "landing.appHeading": "With LebStads",
+    "landing.paper1": "Bookings by calls and messages, and the risk of booking a slot twice",
+    "landing.paper2": "Amounts written in a notebook and added up late at night",
+    "landing.paper3": "Who paid and who owes? No quick answer",
+    "landing.app1": "The player asks for a slot from the link, and you approve with one tap",
+    "landing.app2": "The same slot is never booked twice on the same pitch",
+    "landing.app3": "Every payment is recorded in dollars or pounds, and you see what is paid and what is left",
+
+    "landing.featuresTitle": "What you get",
+    "landing.feature1Title": "A public booking page with a QR code",
+    "landing.feature1Text": "Your stadium has its own link where players see the free times and ask to book. You can share a QR code of the page.",
+    "landing.feature2Title": "Approve in one tap, with alerts",
+    "landing.feature2Text": "You get an alert on your phone for every new request, and you approve or decline with one tap.",
+    "landing.feature3Title": "Dollars and pounds, with change",
+    "landing.feature3Text": "Take the payment in dollars, in pounds or in both, with the change worked out, and split it between players if you like.",
+    "landing.feature4Title": "Weekly bookings",
+    "landing.feature4Text": "Fix a slot that repeats every week for a regular team, instead of writing it again each time.",
+    "landing.feature5Title": "Canteen and player tabs",
+    "landing.feature5Text": "Sell drinks and snacks, and charge them to the booking or to a player by name, to settle later.",
+    "landing.feature6Title": "The money page: profit and expenses",
+    "landing.feature6Text": "See what came in and what went out, record expenses, and know the profit or loss for any period.",
+
+    "landing.stepsTitle": "Three steps to start",
+    "landing.step1Title": "We set up your stadium",
+    "landing.step1Text": "We open your account and set your stadium up in the app.",
+    "landing.step2Title": "You add pitches and prices",
+    "landing.step2Text": "You enter your pitches, opening hours and prices.",
+    "landing.step3Title": "You share the link or QR",
+    "landing.step3Text": "You send your stadium's link or QR code to players and start receiving requests.",
+
+    "landing.priceTitle": "Price",
+    "landing.priceText": "The price depends on your stadium. Let's talk.",
+
+    "landing.faqTitle": "Questions",
+    "landing.faq1Question": "Does it work on any phone?",
+    "landing.faq1Answer": "Yes. It runs in the browser on any phone, and it can be installed on the home screen like an app.",
+    "landing.faq2Question": "Does it support Arabic and English?",
+    "landing.faq2Answer": "Yes. The app is Arabic first, and you can switch to English at any time.",
+    "landing.faq3Question": "Can I work in dollars and Lebanese pounds?",
+    "landing.faq3Answer": "Yes. Every payment is recorded in dollars, in Lebanese pounds or in both.",
+    "landing.faq4Question": "Is my data backed up?",
+    "landing.faq4Answer": "Yes. A backup of the data is taken every day.",
+
+    "landing.footerContact": "Contact us",
+    "landing.footerLanguage": "Language",
+    "landing.languageAr": "العربية",
+    "landing.languageEn": "English",
   },
 };

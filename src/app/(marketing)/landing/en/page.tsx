@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
-import { ui } from "@/lib/copy";
-import { LandingPlaceholder } from "@/app/(marketing)/landing/_components/landing-placeholder";
+import { LandingContent } from "@/app/(marketing)/landing/_components/landing-content";
+import { landingMetadata } from "@/app/(marketing)/landing/_components/landing-metadata";
 import { requireBareHost } from "@/app/(marketing)/landing/_components/require-bare-host";
 
-/** English: the English landing page. Reached only through the proxy's rewrite from /en; noindex until the content slice. */
-export const metadata: Metadata = {
-  title: ui("landing.name", "en"),
-  robots: { index: false, follow: false },
-  manifest: null,
-};
+/** The English landing page. Reached only through the proxy's rewrite from /en; noindex until the robots and sitemap slice. */
+export function generateMetadata(): Metadata {
+  return landingMetadata("en");
+}
 
 export default async function LandingPageEn() {
   await requireBareHost();
-  return <LandingPlaceholder locale="en" />;
+  return <LandingContent locale="en" />;
 }
