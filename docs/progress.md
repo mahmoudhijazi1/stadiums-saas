@@ -771,3 +771,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `feat/landing-polish` into `main` with `--no-ff`, no conflicts. `docs/NOW.md` lists `v1.7.4`. The tag `v1.7.4` is created on the pushed head.
 
 **How to verify:** `npx tsc --noEmit` and the whole unit suite (`npx jest`) were run before tagging. Build, lint and integration tests not run.
+
+## Landing page: the "For venue owners in Lebanon" line moves to the footer (branch `feat/landing-tagline`)
+
+**When:** 2026-10-13
+
+**What:** The pill above the hero headline is removed; the same line is now a plain tagline under the logo and name in the footer (small muted text). The hero starts with the headline.
+
+**Tests:** `landing-content.test.ts` updated; `npx tsc --noEmit` and the landing tests passed.

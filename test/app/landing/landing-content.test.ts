@@ -133,10 +133,11 @@ describe.each<UiLocale>(["ar", "en"])("the landing page in %s", (locale) => {
     expect(preview).not.toContain("<img");
   });
 
-  it("has a hero band with the accent gradient, the pitch lines and the eyebrow", () => {
+  it("has a hero band with the accent gradient and the pitch lines, and the tagline in the footer", () => {
     expect(markup).toContain("bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--brand)_20%,var(--bg)),var(--bg))]");
     expect(markup).toContain('<svg viewBox="0 0 400 520" aria-hidden="true"');
-    expect(markup).toContain(escaped(ui("landing.heroEyebrow", locale)));
+    expect(markup.slice(markup.indexOf("<footer"))).toContain(escaped(ui("landing.heroEyebrow", locale)));
+    expect(markup.slice(0, markup.indexOf("<footer"))).not.toContain(escaped(ui("landing.heroEyebrow", locale)));
   });
 
   it("has a hero phone mock-up in HTML and CSS, hidden from assistive technology, with sample data", () => {
