@@ -1,39 +1,33 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Container } from "@/components/ui/container";
+import { PRIMARY_ACTION, StatusIcon, StatusPage, WarningIcon } from "@/components/shell/status-page";
 import "./globals.css";
 
 /**
- * Root layout failure (Next global-error). Must include html + body (error.md).
- * Client — no logger, no Prisma, no ui-copy. Do not show error.message. retry().
+ * Root layout failure (Next global-error): the server could not build the page frame. Must include
+ * html and body (error.md). Client: no logger, no Prisma, no copy module. Same look as error.tsx,
+ * with the app's tokens from globals.css (the theme class is not set here, so it shows the light
+ * theme unless the device prefers dark). Never shows error.message or the digest. retry().
  */
-export default function GlobalError({
-  error,
-  retry,
-}: {
-  error: Error & { digest?: string };
-  retry: () => void;
-}) {
+export default function GlobalError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="min-h-svh bg-[#f8f9fa] text-[#1a1d20]">
-        <Container className="flex flex-col gap-4 py-8">
-          <h1 className="font-heading text-3xl lg:text-4xl">حدث خطأ. حاول مرة أخرى.</h1>
-          <p dir="ltr" className="text-[#495057]">
-            Something went wrong. Try again.
-          </p>
-          <p>
-            <Button type="button" onClick={() => retry()}>
-              حاول مرة أخرى / Try again
-            </Button>
-          </p>
-          {error.digest ? (
-            <p className="font-mono text-sm text-[#495057]">
-              <code>{error.digest}</code>
-            </p>
-          ) : null}
-        </Container>
+      <body className="flex min-h-svh flex-col bg-background text-foreground antialiased">
+        <StatusPage
+          mark={
+            <StatusIcon>
+              <WarningIcon />
+            </StatusIcon>
+          }
+          titleAr="تعذّر تحميل الصفحة"
+          lineAr="حدث خطأ في الخادم. حاول مرة أخرى بعد لحظة."
+          titleEn="The page could not load"
+          lineEn="A server error happened. Please try again in a moment."
+        >
+          <button type="button" className={PRIMARY_ACTION} onClick={() => retry()}>
+            حاول مرة أخرى · Try again
+          </button>
+        </StatusPage>
       </body>
     </html>
   );
