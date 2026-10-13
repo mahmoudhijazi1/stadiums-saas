@@ -787,3 +787,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The 404 page's action is "رجوع · Go back" (back in this tab's history, so an owner stays in the owner app; "/" only when there is no earlier page), not a link to the home page, which sent an owner to the public page. Shared `components/shell/back-button.tsx` (with a chevron that flips in RTL), also used by the error page. The buttons are compact pills: 44px high, as wide as their label, a soft hover and a slight press (no motion with reduced motion). Copy key `notFound.home` becomes `notFound.back`.
 
 **Tests:** `status-pages.test.ts` updated; `npx tsc --noEmit` and the app tests passed.
+
+## Landing page: the "For venue owners in Lebanon" line moves to the footer (branch `feat/landing-tagline`)
+
+**When:** 2026-10-13
+
+**What:** The pill above the hero headline is removed; the same line is now a plain tagline under the logo and name in the footer (small muted text). The hero starts with the headline.
+
+**Tests:** `landing-content.test.ts` updated; `npx tsc --noEmit` and the landing tests passed.

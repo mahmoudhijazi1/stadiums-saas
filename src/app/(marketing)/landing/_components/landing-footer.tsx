@@ -22,6 +22,7 @@ export function LandingFooter({ locale }: { locale: UiLocale }) {
             {ui("landing.name", locale)}
           </span>
         </div>
+        <p className="-mt-2 text-sm">{ui("landing.heroEyebrow", locale)}</p>
         <nav className="flex flex-wrap items-center justify-center gap-1">
           <a href={LEBSTADS_INSTAGRAM} target="_blank" rel="noopener noreferrer" className={LINK}>
             {ui("landing.footerInstagram", locale)}
