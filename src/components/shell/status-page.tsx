@@ -52,7 +52,7 @@ export function StatusPage({
             {titleEn}. {lineEn}
           </p>
         </div>
-        <div className="flex w-full flex-col gap-2">{children}</div>
+        <div className="flex flex-col items-center gap-1">{children}</div>
       </div>
     </main>
   );
@@ -78,7 +78,8 @@ export function WarningIcon() {
   );
 }
 
+/** A compact pill: 44px high, the width of its label, a soft hover and press. */
 export const PRIMARY_ACTION =
-  "inline-flex h-12 w-full items-center justify-center rounded-md bg-primary px-6 text-base font-semibold text-primary-foreground shadow-sm outline-none hover:opacity-90 focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm outline-none transition-[opacity,transform] duration-150 ease-out hover:opacity-90 active:scale-[0.98] focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none";
 export const QUIET_ACTION =
-  "inline-flex h-12 w-full items-center justify-center rounded-md px-6 text-sm font-semibold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 ease-out hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none";

@@ -5,7 +5,7 @@ export const common: CopyArea = {
   ar: {
     "notFound.title": "الصفحة غير موجودة",
     "notFound.line": "ربما تغيّر الرابط أو أُزيلت الصفحة.",
-    "notFound.home": "الصفحة الرئيسية",
+    "notFound.back": "رجوع",
     "doc.title": "ملاعب",
     "phone.countryCode": "رمز البلد",
     "person.edit": "تعديل",
@@ -76,7 +76,7 @@ export const common: CopyArea = {
   en: {
     "notFound.title": "Page not found",
     "notFound.line": "The link may have changed, or the page was removed.",
-    "notFound.home": "Home",
+    "notFound.back": "Go back",
     "doc.title": "Pitches",
     "phone.countryCode": "Country code",
     "person.edit": "Edit",

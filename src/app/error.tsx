@@ -1,5 +1,6 @@
 "use client";
 
+import { BackButton } from "@/components/shell/back-button";
 import { PRIMARY_ACTION, QUIET_ACTION, StatusIcon, StatusPage, WarningIcon } from "@/components/shell/status-page";
 
 /**
@@ -8,11 +9,6 @@ import { PRIMARY_ACTION, QUIET_ACTION, StatusIcon, StatusPage, WarningIcon } fro
  * the digest is in the server log for whoever needs it. retry() per local error.md (not reset).
  */
 export default function ErrorPage({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
-  function goBack() {
-    if (window.history.length > 1) window.history.back();
-    else window.location.assign("/");
-  }
-
   return (
     <StatusPage
       mark={
@@ -28,9 +24,7 @@ export default function ErrorPage({ retry }: { error: Error & { digest?: string 
       <button type="button" className={PRIMARY_ACTION} onClick={() => retry()}>
         حاول مرة أخرى · Try again
       </button>
-      <button type="button" className={QUIET_ACTION} onClick={goBack}>
-        رجوع · Go back
-      </button>
+      <BackButton label="رجوع · Go back" className={QUIET_ACTION} />
     </StatusPage>
   );
 }

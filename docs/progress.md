@@ -779,3 +779,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** One frame for the three status pages (`src/components/shell/status-page.tsx`): full height, the public page's soft accent gradient, a pitch's centre circle and halfway line in thin lines behind, one centred column, Arabic headline and line first with the English line under it, a primary action and at most one quiet one; tokens only. `error.tsx` (render failure) and `global-error.tsx` (the server could not build the frame) no longer show the error digest (the "weird number"; it stays in the server log) and `global-error.tsx` no longer uses raw grey hex colours. New `src/app/not-found.tsx`: a large "404" in the display face, the copy through `ui()` (`notFound.title`, `notFound.line`, `notFound.home` in the common area), and a link to `/` (the stadium's page or the landing page); noindex. Before, a 404 was Next's default page.
 
 **Tests:** `test/app/status-pages.test.ts` (both languages, no digest or message, the gradient, 404 and the home link, no raw colours). `npx tsc --noEmit` and `npx jest test/app test/architecture test/lib` passed. Not looked at in a browser.
+
+## Status pages: back to where the visitor was, compact buttons (branch `feat/status-pages`)
+
+**When:** 2026-10-13
+
+**What:** The 404 page's action is "رجوع · Go back" (back in this tab's history, so an owner stays in the owner app; "/" only when there is no earlier page), not a link to the home page, which sent an owner to the public page. Shared `components/shell/back-button.tsx` (with a chevron that flips in RTL), also used by the error page. The buttons are compact pills: 44px high, as wide as their label, a soft hover and a slight press (no motion with reduced motion). Copy key `notFound.home` becomes `notFound.back`.
+
+**Tests:** `status-pages.test.ts` updated; `npx tsc --noEmit` and the app tests passed.

@@ -24,13 +24,14 @@ describe("status pages", () => {
     expect(markup).toContain("color-mix(in_oklab,var(--brand)_16%,var(--bg))");
   });
 
-  it("not-found.tsx shows 404, the copy in both languages and a link home", () => {
+  it("not-found.tsx shows 404, the copy in both languages and a back button, not a link to the home page", () => {
     const markup = renderToStaticMarkup(createElement(NotFound));
     expect(markup).toContain(">404</p>");
     for (const locale of ["ar", "en"] as const) {
       expect(markup).toContain(ui("notFound.title", locale));
     }
-    expect(markup).toMatch(/<a href="\/"[^>]*>/);
+    expect(markup).not.toMatch(/<a href="\/"/);
+    expect(markup).toMatch(/<button type="button"[^>]*>.*Go back<\/button>/);
   });
 
   it("global-error.tsx never shows the digest or the message, and uses tokens, not raw colours", () => {

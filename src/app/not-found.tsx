@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BackButton } from "@/components/shell/back-button";
 import { PRIMARY_ACTION, StatusPage } from "@/components/shell/status-page";
 import { ui } from "@/lib/copy";
 
@@ -10,7 +11,8 @@ export const metadata: Metadata = {
 /**
  * Every 404 of the app (an unknown path, an unknown stadium, a host check). It resolves nothing: no
  * tenant, no session, no database. Arabic first, the English line under it, like the error pages.
- * One action: the home page of the same host ("/": the stadium's page, or the landing page).
+ * One action: back to wherever the visitor was (an owner stays in the owner app); "/" only when
+ * there is no earlier page in this tab.
  */
 export default function NotFound() {
   return (
@@ -25,9 +27,7 @@ export default function NotFound() {
       titleEn={ui("notFound.title", "en")}
       lineEn={ui("notFound.line", "en")}
     >
-      <a href="/" className={PRIMARY_ACTION}>
-        {`${ui("notFound.home", "ar")} · ${ui("notFound.home", "en")}`}
-      </a>
+      <BackButton label={`${ui("notFound.back", "ar")} · ${ui("notFound.back", "en")}`} className={PRIMARY_ACTION} />
     </StatusPage>
   );
 }
