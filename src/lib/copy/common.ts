@@ -3,6 +3,9 @@ import type { CopyArea } from "./types";
 /** Shared owner chrome: tabs, navigation, weekday names, small verbs, unavailable notices. */
 export const common: CopyArea = {
   ar: {
+    "notFound.title": "الصفحة غير موجودة",
+    "notFound.line": "ربما تغيّر الرابط أو أُزيلت الصفحة.",
+    "notFound.home": "الصفحة الرئيسية",
     "doc.title": "ملاعب",
     "phone.countryCode": "رمز البلد",
     "person.edit": "تعديل",
@@ -71,6 +74,9 @@ export const common: CopyArea = {
     "owner.wd.sun": "أحد",
   },
   en: {
+    "notFound.title": "Page not found",
+    "notFound.line": "The link may have changed, or the page was removed.",
+    "notFound.home": "Home",
     "doc.title": "Pitches",
     "phone.countryCode": "Country code",
     "person.edit": "Edit",

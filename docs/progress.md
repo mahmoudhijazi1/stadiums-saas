@@ -771,3 +771,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Merged `feat/landing-polish` into `main` with `--no-ff`, no conflicts. `docs/NOW.md` lists `v1.7.4`. The tag `v1.7.4` is created on the pushed head.
 
 **How to verify:** `npx tsc --noEmit` and the whole unit suite (`npx jest`) were run before tagging. Build, lint and integration tests not run.
+
+## Status pages: 404, error and server error in the app's look (branch `feat/status-pages`)
+
+**When:** 2026-10-13
+
+**What:** One frame for the three status pages (`src/components/shell/status-page.tsx`): full height, the public page's soft accent gradient, a pitch's centre circle and halfway line in thin lines behind, one centred column, Arabic headline and line first with the English line under it, a primary action and at most one quiet one; tokens only. `error.tsx` (render failure) and `global-error.tsx` (the server could not build the frame) no longer show the error digest (the "weird number"; it stays in the server log) and `global-error.tsx` no longer uses raw grey hex colours. New `src/app/not-found.tsx`: a large "404" in the display face, the copy through `ui()` (`notFound.title`, `notFound.line`, `notFound.home` in the common area), and a link to `/` (the stadium's page or the landing page); noindex. Before, a 404 was Next's default page.
+
+**Tests:** `test/app/status-pages.test.ts` (both languages, no digest or message, the gradient, 404 and the home link, no raw colours). `npx tsc --noEmit` and `npx jest test/app test/architecture test/lib` passed. Not looked at in a browser.
