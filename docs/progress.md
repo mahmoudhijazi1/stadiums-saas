@@ -795,3 +795,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** The pill above the hero headline is removed; the same line is now a plain tagline under the logo and name in the footer (small muted text). The hero starts with the headline.
 
 **Tests:** `landing-content.test.ts` updated; `npx tsc --noEmit` and the landing tests passed.
+
+## Learning guide: the owner approves a booking request (branch `docs/learning-approve`)
+
+**When:** 2026-10-13
+
+**What:** New `docs/learning/approve-a-request.md`, listed under "Start here" in `docs/README.md`: one feature end to end (the public request as a prologue, then `approveBooking`) for a developer who knows Laravel and Vue. Laravel-to-Next map, step-by-step request, server vs client components, tenant isolation, the tables and the `Booking_approved_during_excl` constraint with ER and race diagrams, lock order, errors, the tests, the decisions, 12 hard questions, 6 exercises and a glossary. Every claim cites `file:line`; points not traced in code are marked UNVERIFIED. No code changed.
+
+**Tests:** none run (docs only, not a living doc checked by `test/docs`).
