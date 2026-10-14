@@ -811,3 +811,10 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** New `/owner/more/help` (Server Component, no client JavaScript) and a Help row at the end of the More hub. Ten groups and 32 topics, each a closed native `<details>`: what it does, a "Where" link to the real screen, at most 3 steps, one "Good to know" line for a real pitfall (split before collecting, expenses and sales cannot be edited, items from 60 minutes before a game, Cancel the rest keeps weeks with a payment, the frozen exchange rate, iPhone notifications need the Home Screen, and others). Every rule was checked in the code. Topics are hidden when the member lacks the permission the real screen checks (`can()`); Notifications shows only when push is configured. A WhatsApp support line ends the page, with a message naming the stadium. The support number moved to `src/lib/support-contact.ts`; the landing page's `LEBSTADS_WHATSAPP` now reads it (same value). Copy area `src/lib/copy/help.ts`, Arabic first. `docs/owner-ia.md` updated.
 
 **Tests:** `test/app/owner/help-page.test.ts` written and **not run**. Only `npx tsc --noEmit` was run (clean).
+## Booking sheet: the owed Collect button stands out in light mode (branch `fix/collect-contrast`)
+
+**When:** 2026-10-14
+
+**What:** On an owed game, the sheet's Collect button had the same amber fill as its amber row and a transparent border, so in light mode it merged with the row (dark mode looked fine because the outline variant's own dark fill and border win). It now sits on the surface colour with an amber border and amber text; dark mode is unchanged.
+
+**Tests:** `npx tsc --noEmit` and `npx jest test/modules/booking test/app` passed. Not looked at in a browser.

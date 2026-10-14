@@ -117,9 +117,11 @@ export function MoneyBlock({
                   variant="outline"
                   className={cn(
                     "h-11 rounded-full px-5 type-button",
-                    // The same look as a tab's Collect: amber once owed, bordered ink before.
+                    // Amber once owed, bordered ink before. The owed row is already amber-tinted, so
+                    // the button sits on the surface with an amber border to stand out from it (in
+                    // light mode an amber fill merged with the row; dark keeps the outline's own fill).
                     moneyTone(row) === "owed"
-                      ? "border-transparent bg-owed-subtle text-owed hover:bg-owed-subtle/80"
+                      ? "border-owed/40 bg-surface text-owed hover:bg-surface/80"
                       : "border-line-strong bg-surface-2 text-foreground",
                   )}
                 >
