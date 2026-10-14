@@ -818,3 +818,10 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** On an owed game, the sheet's Collect button had the same amber fill as its amber row and a transparent border, so in light mode it merged with the row (dark mode looked fine because the outline variant's own dark fill and border win). It now sits on the surface colour with an amber border and amber text; dark mode is unchanged.
 
 **Tests:** `npx tsc --noEmit` and `npx jest test/modules/booking test/app` passed. Not looked at in a browser.
+## Sheets: room under the last line (branch `fix/sheet-bottom-space`)
+
+**When:** 2026-10-14
+
+**What:** `BottomSheetBody` (the scrolling body of every sheet) had top padding but none at the bottom, so the last line of text sat on the sheet's edge, most visibly when the body scrolls (the approve sheet among others). It now has `pb-4` by default; sheets that already added `pb-4` by hand are unchanged.
+
+**Tests:** `npx tsc --noEmit` and `npx jest test/components test/modules/booking test/app` passed. Not looked at in a browser.
