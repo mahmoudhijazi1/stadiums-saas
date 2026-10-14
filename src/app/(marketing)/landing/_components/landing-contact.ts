@@ -1,9 +1,10 @@
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import { SUPPORT_WHATSAPP } from "@/lib/support-contact";
 import { whatsAppHref } from "@/modules/notification/domain/whatsapp-link";
 
-/** LebStads's WhatsApp number (Lebanon, country code 961). Never shown as text; it is only in the link. */
-export const LEBSTADS_WHATSAPP = "96178862587";
+/** LebStads's WhatsApp number: the shared support number (`src/lib/support-contact.ts`). */
+export const LEBSTADS_WHATSAPP = SUPPORT_WHATSAPP;
 
 /** LebStads on Instagram (@lebstads). */
 export const LEBSTADS_INSTAGRAM = "https://www.instagram.com/lebstads/";
