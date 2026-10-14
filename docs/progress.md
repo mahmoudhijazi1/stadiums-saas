@@ -803,3 +803,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** New `docs/learning/approve-a-request.md`, listed under "Start here" in `docs/README.md`: one feature end to end (the public request as a prologue, then `approveBooking`) for a developer who knows Laravel and Vue. Laravel-to-Next map, step-by-step request, server vs client components, tenant isolation, the tables and the `Booking_approved_during_excl` constraint with ER and race diagrams, lock order, errors, the tests, the decisions, 12 hard questions, 6 exercises and a glossary. Every claim cites `file:line`; points not traced in code are marked UNVERIFIED. No code changed.
 
 **Tests:** none run (docs only, not a living doc checked by `test/docs`).
+
+## Owner Help page under More (branch `feat/owner-help`)
+
+**When:** 2026-10-14
+
+**What:** New `/owner/more/help` (Server Component, no client JavaScript) and a Help row at the end of the More hub. Ten groups and 32 topics, each a closed native `<details>`: what it does, a "Where" link to the real screen, at most 3 steps, one "Good to know" line for a real pitfall (split before collecting, expenses and sales cannot be edited, items from 60 minutes before a game, Cancel the rest keeps weeks with a payment, the frozen exchange rate, iPhone notifications need the Home Screen, and others). Every rule was checked in the code. Topics are hidden when the member lacks the permission the real screen checks (`can()`); Notifications shows only when push is configured. A WhatsApp support line ends the page, with a message naming the stadium. The support number moved to `src/lib/support-contact.ts`; the landing page's `LEBSTADS_WHATSAPP` now reads it (same value). Copy area `src/lib/copy/help.ts`, Arabic first. `docs/owner-ia.md` updated.
+
+**Tests:** `test/app/owner/help-page.test.ts` written and **not run**. Only `npx tsc --noEmit` was run (clean).

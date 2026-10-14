@@ -1,6 +1,7 @@
 import type { UiLocale } from "@/lib/locale";
 import { account } from "./account";
 import { common } from "./common";
+import { help } from "./help";
 import { money } from "./money";
 import { landing } from "./landing";
 import { platform } from "./platform";
@@ -16,7 +17,7 @@ import type { CopyArea } from "./types";
  * (missing copy stays visible). Interpolated money/counts are helpers in helpers.ts.
  * Optional English is a second table for the EN/ع toggle — not next-intl.
  */
-export const COPY_AREAS: Record<string, CopyArea> = { common, today, requests, money, shop, settings, public: publicPage, account, platform, landing };
+export const COPY_AREAS: Record<string, CopyArea> = { common, today, requests, money, shop, settings, public: publicPage, account, platform, landing, help };
 
 const ARABIC: Record<string, string> = Object.assign({}, ...Object.values(COPY_AREAS).map((area) => area.ar));
 const ENGLISH: Record<string, string> = Object.assign({}, ...Object.values(COPY_AREAS).map((area) => area.en));

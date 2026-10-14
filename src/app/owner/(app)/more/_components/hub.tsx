@@ -239,6 +239,10 @@ export function MoreHub({
         />
       </SettingsSection>
 
+      <SettingsSection>
+        <SettingsRow label={ui("owner.help", locale)} href="/owner/more/help" />
+      </SettingsSection>
+
       <BottomSheet open={sheet !== null} onOpenChange={(next) => { if (!next) setSheet(null); }}>
         <BottomSheetContent closeLabel={ui("dialog.close", locale)}>
           {sheet === "rate" ? (
