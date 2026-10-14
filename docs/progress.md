@@ -803,3 +803,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** New `docs/learning/approve-a-request.md`, listed under "Start here" in `docs/README.md`: one feature end to end (the public request as a prologue, then `approveBooking`) for a developer who knows Laravel and Vue. Laravel-to-Next map, step-by-step request, server vs client components, tenant isolation, the tables and the `Booking_approved_during_excl` constraint with ER and race diagrams, lock order, errors, the tests, the decisions, 12 hard questions, 6 exercises and a glossary. Every claim cites `file:line`; points not traced in code are marked UNVERIFIED. No code changed.
 
 **Tests:** none run (docs only, not a living doc checked by `test/docs`).
+
+## Booking sheet: the owed Collect button stands out in light mode (branch `fix/collect-contrast`)
+
+**When:** 2026-10-14
+
+**What:** On an owed game, the sheet's Collect button had the same amber fill as its amber row and a transparent border, so in light mode it merged with the row (dark mode looked fine because the outline variant's own dark fill and border win). It now sits on the surface colour with an amber border and amber text; dark mode is unchanged.
+
+**Tests:** `npx tsc --noEmit` and `npx jest test/modules/booking test/app` passed. Not looked at in a browser.
