@@ -21,7 +21,7 @@ function lbpText(amount: Decimal, locale: UiLocale): string {
  * (e.g. $30 due: $20 typed → "Left to complete $10.00 · 895,000 LBP"). Uses `previewTenders`,
  * the same parsing and rounding the server applies, so the figure is the one recorded.
  * With a target and a rate, "Complete with 895,000 LBP" fills the LBP field with what the USD part
- * leaves. Warn, never block: an overpay is shown, not refused (RULE-9/10).
+ * leaves. Warn, never block: more than is due is shown as "Give back", not refused (RULE-9/10); the server records only what the game owed and returns the rest as change (DR-007).
  */
 export function TenderBalance({
   usdText,
@@ -90,7 +90,7 @@ export function TenderBalance({
           </p>
         ) : (
           <p className="flex items-baseline justify-between gap-3 text-sm font-medium text-owed">
-            <span>{ui("owner.tenderOver", locale)}</span>
+            <span>{ui("owner.giveBack", locale)}</span>
             <span>
               <LtrIsolate>${formatUsd(remaining.abs())}</LtrIsolate>
               {preview.remainingLbp ? (

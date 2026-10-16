@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -11,10 +12,10 @@ import { getCurrentMembership } from "@/modules/access/application/get-current-m
 import {
   assertCanCollect,
   assertHasDue,
-  freezeTenders,
   bookingRemaining,
   type TenderDraft,
 } from "@/modules/payment/domain/collect";
+import { applyToGameDue, handedFromTenders } from "@/modules/booking/domain/game-change";
 import { recordPayment } from "@/modules/payment/application/record-payment";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
@@ -25,19 +26,24 @@ import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings"
  * Auth before $transaction. The booking row is locked first and collected is summed
  * after the lock, so a double submit, a cancel, a no-show, an adjust or a split on the
  * same booking runs one at a time (audit §2.6).
+ * Cash beyond what is owed is not recorded: the tenders are reduced to what the game used and the
+ * rest comes back as change, in the currency it was handed over in (DR-007 decision 6), so a game's
+ * collected total never exceeds its due and the remaining never goes negative.
  * recordPayment writes payment + tenders + ledger IN inside this tx (DR-002 §2.21).
  */
 export async function collectBookingPayment(input: {
   bookingId: string;
   tenders: TenderDraft[];
-}): Promise<void> {
+}): Promise<{ changeUsd: Decimal; changeLbp: Decimal }> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, PAYMENTS_COLLECT)) {
     throw new DomainError("access.not_allowed");
   }
 
+  const handed = handedFromTenders(input.tenders);
+
   try {
-    const paymentId = await db.$transaction(async (tx) => {
+    const outcome = await db.$transaction(async (tx) => {
       const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
@@ -53,22 +59,24 @@ export async function collectBookingPayment(input: {
       const remaining = bookingRemaining(booking.amountDueUsd, collected);
       assertHasDue(remaining);
 
-      const frozen = freezeTenders(input.tenders, rate);
+      const kept = applyToGameDue({ remainingUsd: remaining, handed, rate });
 
-      return recordPayment(tx, {
+      const paymentId = await recordPayment(tx, {
         direction: "IN",
         sourceType: "BOOKING",
         sourceId: booking.id,
         amountDueUsd: booking.amountDueUsd,
-        tenders: frozen,
+        tenders: kept.tenders,
       });
+      return { paymentId, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp };
     });
 
-    logger.info(`Payment collected ${paymentId} booking ${input.bookingId}`, undefined, {
+    logger.info(`Payment collected ${outcome.paymentId} booking ${input.bookingId}`, undefined, {
       useCase: "collectBookingPayment",
       tenantId: await safeTenantId(),
     });
+    return { changeUsd: outcome.changeUsd, changeLbp: outcome.changeLbp };
   } catch (error) {
-    await rethrowUnexpected(error, "Collect payment failed", "collectBookingPayment");
+    return await rethrowUnexpected(error, "Collect payment failed", "collectBookingPayment");
   }
 }

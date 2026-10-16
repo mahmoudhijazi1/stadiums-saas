@@ -833,3 +833,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** Docs only. New `docs/decisions/DR-007-game-price-currency.md` (13 decisions with reasons, the consequences to plan for, the ten slices). `docs/README.md` lists it with the other decisions, `docs/ROADMAP.md` has row 14 "Game prices in LBP or USD: in progress", and `docs/domain/money.md` has a one-line pointer at the top. No code changed.
 
 **Tests:** `npx tsc --noEmit` only. No test suite, build or lint run. Not committed.
+
+## DR-007 slice 1: money handed over beyond the due on a game is change (branch `feat/lbp-pricing`)
+
+**When:** 2026-10-16
+
+**What:** `collectBookingPayment` now applies the cash like the shop: up to what the game still owes (computed under the booking lock), and the excess is change in the currency it was handed over in. The tenders and the ledger IN hold only the kept amount, so a game's collected total cannot exceed its due and the remaining cannot go negative; nothing owed is still refused (`payment.nothing_due`). It returns `{ changeUsd, changeLbp }`. New pure `booking/domain/game-change.ts` (`applyToGameDue`, `handedFromTenders`) reuses the shop's `applyPayment` and `paymentTenders`. Per-player slot collection was already capped by `planSlotCharge` and is unchanged. `submitCollectPayment` passes the change on the redirect; `FlashToast` shows "Give back $20" / "رجّع له $20" (`giveBackText`, key `owner.giveBack`, which replaces `owner.tenderOver`), and `TenderBalance` shows the same "Give back" line while the owner types. The collect screen never blocked more than owed (it only warned), so nothing was removed. Updated: `money.md`, `per-player-payments.md`, the "unchanged" test in `shop-change` and R3 in `money-races`.
+
+**Tests:** written, not run: `test/modules/booking/domain/game-change.test.ts`, `test/integration/booking-change.integration.test.ts`. Only `npx tsc --noEmit` was run (clean). Not looked at in a browser.

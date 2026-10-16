@@ -20,7 +20,7 @@ import { truncateAll } from "./truncate";
 /**
  * Change at the counter: a walk-in sale or a tab collection records what the sale used, never the
  * excess; the last tender is reduced and the rest is change in the currency it was handed over in.
- * A booking collection keeps recording an overpay in full.
+ * A booking collection works the same way (DR-007): see booking-change.integration.test.ts.
  */
 let fixture: TestFixture;
 let water: { id: string }; // 20,000 LBP
@@ -142,12 +142,13 @@ describe("each tender settles its own currency first", () => {
   });
 });
 
-describe("a booking collection is unchanged", () => {
-  it("an overpay is still recorded in full", async () => {
+describe("a booking collection gives change too", () => {
+  it("an overpay records only the due; the rest is change", async () => {
     const bookingId = await soonBooking(fixture);
-    await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("35.00") }] });
+    const done = await collectBookingPayment({ bookingId, tenders: [{ currency: "USD", amount: new Decimal("35.00") }] });
+    expect(done.changeUsd.toFixed(2)).toBe("5.00");
     const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceType: "BOOKING", sourceId: bookingId } });
-    expect(ledger.map((entry) => entry.amountUsd.toFixed(2))).toEqual(["35.00"]);
+    expect(ledger.map((entry) => entry.amountUsd.toFixed(2))).toEqual(["30.00"]);
   });
 });
 

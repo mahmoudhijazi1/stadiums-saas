@@ -30,7 +30,7 @@ Slot 1 is always the person who booked (the requester). The other slots have no 
 | **Collected** | Everything paid on the booking, whole-game and slot payments together. |
 | **Allocation** | "This part of that payment belongs to this slot." A `PaymentAllocation` row. |
 | **Unassigned** | Collected minus allocated. Money that was paid before the split (or that no slot claims). |
-| **Remaining (booking)** | Due minus collected. Can go negative when overpaid. |
+| **Remaining (booking)** | Due minus collected. A whole-game collection no longer records more than the due (DR-007); only older overpayments can show a negative remaining. |
 | **Remaining (slot)** | The slot's due minus its allocations. |
 
 ## 3. Numbers

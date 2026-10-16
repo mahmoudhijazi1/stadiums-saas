@@ -235,6 +235,7 @@ function optionalFee(formData: FormData) {
 
 export async function submitCollectPayment(formData: FormData) {
   let errorKey: string | undefined;
+  let change = { changeUsd: "", changeLbp: "" };
   try {
     const parsed = parseCollectPayment({
       bookingId: field(formData, "bookingId"),
@@ -248,14 +249,19 @@ export async function submitCollectPayment(formData: FormData) {
     if (parsed.lbpAmount) {
       tenders.push({ currency: "LBP", amount: parseLbp(parsed.lbpAmount) });
     }
-    await collectBookingPayment({ bookingId: parsed.bookingId, tenders });
+    const done = await collectBookingPayment({ bookingId: parsed.bookingId, tenders });
+    // The toast tells the owner what to hand back (DR-007). Empty when there is none.
+    change = {
+      changeUsd: done.changeUsd.gt(0) ? done.changeUsd.toFixed(2) : "",
+      changeLbp: done.changeLbp.gt(0) ? done.changeLbp.toFixed(0) : "",
+    };
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitCollectPayment");
   }
   if (errorKey) {
     redirectOwner("/owner/today", formData, TODAY_KEEP, { error: errorKey });
   }
-  redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected" });
+  redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected", ...change });
 }
 
 

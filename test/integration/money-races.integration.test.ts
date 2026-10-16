@@ -105,8 +105,10 @@ describe("money races (booking row lock)", () => {
       expect(state.payments).toBe(1);
       if (adjust === "ok") {
         // Adjust ran first. The collect waited, read due 10.00 under the lock, and took
-        // $30 as a knowing overpay (SPEC-06). Before the lock it recorded due 30.00.
+        // $30; only the $10 owed is recorded and $20 is change (DR-007). Before the lock it
+        // recorded due 30.00.
         expect(state.due.equals("10.00")).toBe(true);
+        expect(state.collected.equals("10.00")).toBe(true);
         expect(state.paymentDueSnapshots).toEqual(["10.00"]);
       } else {
         // Collect ran first. Adjust saw the $30 and refused to drop below it.

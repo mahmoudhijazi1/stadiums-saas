@@ -243,6 +243,15 @@ export function changeDescription(
   return text === "0" ? undefined : `${ui("owner.changeLabel", locale)}: ${text}`;
 }
 
+/**
+ * "Give back $20" / "رجّع له $20": the change after a game collection, in the currency it was handed
+ * over in (dollars stay dollars, pounds stay pounds). Empty when there is none.
+ */
+export function giveBackText(change: { lbp: string; usd: string }, locale: UiLocale = "ar"): string | undefined {
+  const text = formatChange(change, locale);
+  return text === "0" ? undefined : `${ui("owner.giveBack", locale)} ${text}`;
+}
+
 /** The last suggestion of the payer search: add the typed text as a new person. */
 export function addNewLabel(text: string, locale: UiLocale = "ar"): string {
   return locale === "en" ? `Add "${text}" as new` : `إضافة "${text}" كجديد`;

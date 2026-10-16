@@ -6,12 +6,15 @@ import { toast } from "sonner"
 
 import { errorMessage } from "@/lib/copy/errors"
 import type { UiLocale } from "@/lib/locale"
+import { giveBackText } from "@/lib/copy/helpers"
 import { successMessage } from "@/lib/copy/success"
 
 /**
  * Toast from ?ok= / ?error= (and legacy public ?received=1), then strip
  * those keys. Must sit under <Suspense> (use-search-params.md).
  * Local Next use-router.md: router.replace.
+ * A game collection that handed back change adds `changeUsd` / `changeLbp`: the toast then says
+ * what to give back (DR-007).
  * Does not strip `highlight` (Home confirm-notify ring after Approve).
  */
 function FlashToast({ locale = "ar" }: { locale?: UiLocale }) {
@@ -33,11 +36,19 @@ function FlashToast({ locale = "ar" }: { locale?: UiLocale }) {
     if (shown.current) return
     shown.current = true
     if (error) toast.error(errorMessage(error, locale))
-    else if (ok) toast.success(successMessage(ok, locale))
+    else if (ok) {
+      const description = giveBackText(
+        { usd: searchParams.get("changeUsd") ?? "0", lbp: searchParams.get("changeLbp") ?? "0" },
+        locale,
+      )
+      toast.success(successMessage(ok, locale), description ? { description } : undefined)
+    }
     const next = new URLSearchParams(searchParams.toString())
     next.delete("ok")
     next.delete("error")
     next.delete("received")
+    next.delete("changeUsd")
+    next.delete("changeLbp")
     const qs = next.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }, [searchParams, pathname, router, locale])

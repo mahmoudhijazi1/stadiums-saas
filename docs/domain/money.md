@@ -24,7 +24,7 @@
 | **priceUsd** | `Booking.priceUsd`, set at request time from the pitch price rules | The price snapshot. It changes only when the game is extended (§4, "Extend"): it rises by the added price, so the next extension is still priced per minute from the agreed total. |
 | **amountDueUsd** | `Booking.amountDueUsd` | What is collectible **now**. Starts equal to `priceUsd`; changed only through due changes (§4). Every collect and cap reads it, not `priceUsd`. |
 | **Collected** | `sumCollectedUsd(tx, "BOOKING", id)` = Σ tender `usdEquivalent` over the booking's payments | Derived, never stored. |
-| **Remaining** | `collect.ts` `bookingRemaining(amountDueUsd, collected)`, **not clamped** | Negative = overpaid. It stays visible rather than hidden (RULE-9/10: warn, never block). |
+| **Remaining** | `collect.ts` `bookingRemaining(amountDueUsd, collected)`, **not clamped** | Never negative on a new collection: a game records at most what it owes (§2, DR-007). Old rows from before that change may still be negative. |
 | **Unassigned** | `collect.ts` `unassignedUsd(collected, allocated)` | Money on a PER_PLAYER booking that no slot claims, usually paid before the split. Still counts as collected (F-1). |
 
 ---
@@ -39,7 +39,7 @@
 5. `freezeTenders(tenders, latestRate)` drops zero parts, rejects negatives, requires at least one part, and freezes the rate.
 6. `recordPayment` writes the Payment (with `amountDueUsd` = the due at that moment), its tenders, and **one** ledger IN whose amount = Σ `usdEquivalent`.
 
-**By design, the tenders are not capped at the remaining.** An owner may take more than is owed; remaining goes negative and shows as overpaid. **Why:** RULE-9/10, the owner is never blocked from taking money.
+**A game never records more than it is owed (DR-007 decision 6).** The owner may still type more than is owed (never blocked, RULE-9/10): `booking/domain/game-change.ts` `applyToGameDue` applies the cash like the shop (`applyPayment`, `paymentTenders` with `keepChange` false), so the tenders and the ledger IN hold only what the game used, and `collectBookingPayment` returns the change in the currency it was handed over in. The Today toast says "Give back $20" / "رجّع له $20", and the mixed form shows "Give back" while typing. **Why:** an overpayment used to be income and made the remaining negative; at the counter it is change. Games before this change may still hold an overpayment.
 
 Input formats are checked at the edge, not in the domain:
 - USD: exactly two decimals (`lib/format/parse-money.ts` `parseUsd`).
@@ -98,7 +98,7 @@ USD stays the unit of account; **LBP is the price tag and the payment**.
 
 ### Change at the counter (walk-in sales and tab collections)
 
-When the cash handed over exceeds what is owed, the excess is **not** recorded: the last tender is reduced to what the sale or tab used and the rest is change for the customer, shown as "Change: X" / "الباقي للزبون: X" in the currency it was handed over in (pounds whole). So $10 for a $4.50 item records $4.50 with $5.50 change; 100,000 ل.ل for 60,000 ل.ل records 60,000 with 40,000 ل.ل change. Excess pounds first settle any dollar part at the current rate (and excess dollars any pound part); only what is beyond both parts is change. The sheets show the change live, computed by the same `applyPayment` the server runs. **Booking collection is unchanged**: it still accepts an overpay and records it in full (RULE-9/10, M8).
+When the cash handed over exceeds what is owed, the excess is **not** recorded: the last tender is reduced to what the sale or tab used and the rest is change for the customer, shown as "Change: X" / "الباقي للزبون: X" in the currency it was handed over in (pounds whole). So $10 for a $4.50 item records $4.50 with $5.50 change; 100,000 ل.ل for 60,000 ل.ل records 60,000 with 40,000 ل.ل change. Excess pounds first settle any dollar part at the current rate (and excess dollars any pound part); only what is beyond both parts is change. The sheets show the change live, computed by the same `applyPayment` the server runs. A booking collection now works the same way (see above).
 
 ### Cash today (a deliberate exception to "everything in USD")
 
@@ -122,7 +122,7 @@ What it is not: it is a count of notes for one business day, never a value, neve
 | M5 | An LBP tender has a positive frozen rate | `usdEquivalent` → `payment.rate_required` | — | No CHECK (`rateAtTime` is nullable for USD). |
 | M6 | A frozen rate never changes | Tenders are insert-only (`payments.ts` `insertPaymentWithTenders`) | — | Convention (M3). |
 | M7 | `Booking.amountDueUsd` ≥ 0 | `assertAdjustDue` | CHECK `Booking_amountDueUsd_nonneg` | — |
-| M8 | After any **due change**, due ≥ collected | `assertAdjustDue` (`due_below_collected`), `suggest-fee.ts` clamp | — | Not an invariant of the booking itself: a collect may overpay (§2). |
+| M8 | After any **due change**, due ≥ collected | `assertAdjustDue` (`due_below_collected`), `suggest-fee.ts` clamp | — | Not an invariant of the booking itself: a collect no longer overpays (§2, DR-007). |
 | M9 | A cancel or no-show fee ≤ the due | `assertFeeWithinDue` | — | — |
 | M10 | Collect only on APPROVED / NO_SHOW / CANCELLED, and only while something is due | `assertCanCollect`, `assertHasDue` under the booking lock | — | — |
 | M11 | No whole-game collect on a PER_PLAYER booking | `collectBookingPayment` → `booking.collect_per_player` | — | — |
