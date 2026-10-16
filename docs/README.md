@@ -34,7 +34,7 @@ Rule of thumb: **Start here** and **Core** are living and must match the code. *
 - [ROADMAP.md](./ROADMAP.md) — known open work that is not a product slice.
 
 ## History (true when written; do not rewrite)
-- Decisions: [decisions/DR-001](./decisions/DR-001-tenancy-and-modules.md) tenancy, [DR-002](./decisions/DR-002-core-data-model.md) data model, [DR-003](./decisions/DR-003-auth-sessions.md) auth, [DR-004](./decisions/DR-004-error-handling.md) errors, [DR-005](./decisions/DR-005-arabic-rtl.md) Arabic and RTL, [DR-006](./decisions/DR-006-platform-admin.md) web platform admin.
+- Decisions: [decisions/DR-001](./decisions/DR-001-tenancy-and-modules.md) tenancy, [DR-002](./decisions/DR-002-core-data-model.md) data model, [DR-003](./decisions/DR-003-auth-sessions.md) auth, [DR-004](./decisions/DR-004-error-handling.md) errors, [DR-005](./decisions/DR-005-arabic-rtl.md) Arabic and RTL, [DR-006](./decisions/DR-006-platform-admin.md) web platform admin, [DR-007](./decisions/DR-007-game-price-currency.md) game prices in LBP or USD.
 - Specs: `specs/SPEC-01` … `SPEC-16` (tenancy, venue, booking, access, approve, collect, expense, dashboard, owner booking, cancel, waitlist, errors, RTL, no-show, per-player payments, due adjustments).
 - UX records: [owner-ux.md](./owner-ux.md) (UX-01), [ux-02-history.md](./ux-02-history.md) (UX-02).
 - Audits: `audits/` (security, security 2, architecture review, booking and payments audit, logic findings, doc-vs-code discrepancies) and `guides/` audits ([engineering](./guides/engineering-audit.md), [error handling and logging](./guides/error-handling-logging-audit.md), [MVP readiness](./guides/mvp-readiness-audit.md)), [mentor defense](./guides/mentor-defense-backend.md).

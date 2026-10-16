@@ -4,6 +4,8 @@
 **Read when:** you touch payments, the ledger or any amount on screen.
 **Last verified:** `f01c9bf` (main, after refactor step 6c).
 
+**Planned change:** [DR-007](../decisions/DR-007-game-price-currency.md) will change how game dues are stored (in the game's price currency, USD or LBP); until its slices land, this page describes USD-only game dues.
+
 **Living.** Written 2026-10-01 from the code on `main` at `f3c3f93`. Every claim cites a file and function. **UNVERIFIED** marks a claim not traced to code. The per-player user guide is [../per-player-payments.md](../per-player-payments.md), the tables are in [../DATA-MODEL.md](../DATA-MODEL.md), and the locks are in [../ARCHITECTURE.md](../ARCHITECTURE.md) §6. Background decisions: DR-002 §2.14–2.21, SPEC-06, SPEC-15, SPEC-16.
 
 ---

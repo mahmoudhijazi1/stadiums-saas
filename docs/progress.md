@@ -825,3 +825,11 @@ Entries are appended at the end, newest last, and kept short (a heading, **When*
 **What:** `BottomSheetBody` (the scrolling body of every sheet) had top padding but none at the bottom, so the last line of text sat on the sheet's edge, most visibly when the body scrolls (the approve sheet among others). It now has `pb-4` by default; sheets that already added `pb-4` by hand are unchanged.
 
 **Tests:** `npx tsc --noEmit` and `npx jest test/components test/modules/booking test/app` passed. Not looked at in a browser.
+
+## DR-007: game prices in LBP or USD (branch `feat/lbp-pricing`)
+
+**When:** 2026-10-16
+
+**What:** Docs only. New `docs/decisions/DR-007-game-price-currency.md` (13 decisions with reasons, the consequences to plan for, the ten slices). `docs/README.md` lists it with the other decisions, `docs/ROADMAP.md` has row 14 "Game prices in LBP or USD: in progress", and `docs/domain/money.md` has a one-line pointer at the top. No code changed.
+
+**Tests:** `npx tsc --noEmit` only. No test suite, build or lint run. Not committed.
