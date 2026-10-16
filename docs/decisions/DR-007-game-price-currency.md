@@ -91,9 +91,12 @@ What the code does today:
    *Why:* a few thousand pounds should not keep a game "owed" forever, but forgiving money is the
    owner's call (RULE-9/10: warn, never decide for the owner). The due-change log keeps the proof.
 
-9. **Collecting in the other currency shows the exact equivalent and the nearest 5,000 LBP** next
-   to it ("$6 = 537,000 LBP, about 540,000").
-   *Why:* the owner can say a round number out loud and still see the exact one.
+9. **Collecting in the other currency shows the exact equivalent and, next to it, the amount
+   rounded UP to the next 5,000 LBP** ("$6 = 537,000 LBP, about 540,000"). It is for display
+   only; what is recorded is never the rounded figure.
+   *Why:* the owner can say a round number out loud and still see the exact one. It rounds up so
+   the owner never loses by quoting it; a player who wants to round down uses "Consider it paid"
+   (decision 8).
 
 10. **Pitch prices.** `scheduleConfig` keeps its USD prices and gains LBP prices (whole pounds,
     multiples of 5,000). The stadium setting decides which set is used. Switching the setting
