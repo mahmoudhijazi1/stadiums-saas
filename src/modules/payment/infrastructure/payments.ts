@@ -28,6 +28,8 @@ export async function insertPaymentWithTenders(
     data: {
       sourceType: input.sourceType,
       sourceId: input.sourceId,
+      // Every payment's due snapshot is USD until LBP games are collected (DR-007 slice 6).
+      dueCurrency: "USD",
       amountDueUsd: formatUsd(input.amountDueUsd),
     } as Parameters<typeof tx.payment.create>[0]["data"],
   });

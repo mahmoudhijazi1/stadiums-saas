@@ -78,7 +78,7 @@ describe("midnight-crossing windows", () => {
       const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
       expect(booking.status).toBe("APPROVED");
       // The window's weekday rule ($50), not the start's weekday (default $30).
-      expect(new Decimal(booking.priceUsd.toString()).equals("50.00")).toBe(true);
+      expect(new Decimal(booking.priceUsd!.toString()).equals("50.00")).toBe(true);
     }
     await assertMoneyInvariants([]);
   });
@@ -98,7 +98,7 @@ describe("midnight-crossing windows", () => {
       await approveBooking(bookingId);
       const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
       expect(booking.status).toBe("APPROVED");
-      expect(new Decimal(booking.priceUsd.toString()).equals("50.00")).toBe(true);
+      expect(new Decimal(booking.priceUsd!.toString()).equals("50.00")).toBe(true);
     }
   });
 

@@ -4,6 +4,8 @@ import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/format/money";
 import Decimal from "decimal.js";
+import { requireUsd, shareDue } from "@/modules/booking/domain/game-money";
+import { usdSumOnly, type SqlMoney } from "./_shared";
 
 /** How many allocations sit on this booking's participants. Zero allows switching back. */
 export async function countBookingAllocations(
@@ -127,8 +129,10 @@ type SlotSqlRow = {
   isRequester: boolean;
   personId: string | null;
   name: string | null;
-  dueUsd: Decimal | string;
-  paidUsd: Decimal | string | null;
+  dueUsd: SqlMoney;
+  dueLbp: SqlMoney;
+  paidUsd: SqlMoney;
+  paidLbp: SqlMoney;
 };
 
 /**
@@ -150,11 +154,17 @@ export async function listSlotsForBookings(
       bp."personId" AS "personId",
       per.name AS name,
       bp."amountDueUsd" AS "dueUsd",
+      bp."amountDueLbp" AS "dueLbp",
       COALESCE((
         SELECT SUM(a."amountUsd")
         FROM "PaymentAllocation" a
         WHERE a."participantId" = bp.id AND a."tenantId" = bp."tenantId"
-      ), 0) AS "paidUsd"
+      ), 0) AS "paidUsd",
+      COALESCE((
+        SELECT SUM(a."amountLbp")
+        FROM "PaymentAllocation" a
+        WHERE a."participantId" = bp.id AND a."tenantId" = bp."tenantId"
+      ), 0) AS "paidLbp"
     FROM "BookingParticipant" bp
     LEFT JOIN "Person" per ON per.id = bp."personId"
     WHERE bp."tenantId" = ${tenantId}
@@ -169,7 +179,8 @@ export async function listSlotsForBookings(
     isRequester: row.isRequester,
     personId: row.personId,
     name: row.name,
-    dueUsd: new Decimal(row.dueUsd.toString()),
-    paidUsd: new Decimal((row.paidUsd ?? 0).toString()),
+    // An LBP slot throws booking.lbp_not_supported: slot charging is in dollars until DR-007 slice 7.
+    dueUsd: requireUsd(shareDue({ amountDueUsd: row.dueUsd, amountDueLbp: row.dueLbp }), "slots.dueUsd"),
+    paidUsd: usdSumOnly(row.paidUsd, row.paidLbp, "slots.paidUsd"),
   }));
 }

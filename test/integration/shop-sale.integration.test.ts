@@ -65,7 +65,7 @@ describe("recordWalkInSale", () => {
       [2, "1.50", "3.00"],
     ]);
     const payment = await platformDb.payment.findFirstOrThrow({ where: { sourceType: "SALE", sourceId: sale.id }, include: { tenders: true } });
-    expect(payment.amountDueUsd.toFixed(2)).toBe("5.25");
+    expect(payment.amountDueUsd!.toFixed(2)).toBe("5.25");
     expect(payment.tenders.map((tender) => [tender.currency, tender.usdEquivalent.toFixed(2)])).toEqual([["USD", "5.25"]]);
     const ledger = await platformDb.ledgerEntry.findMany({ where: { sourceType: "SALE", sourceId: sale.id } });
     expect(ledger.map((entry) => [entry.direction, entry.amountUsd.toFixed(2)])).toEqual([["IN", "5.25"]]);

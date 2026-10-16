@@ -139,6 +139,7 @@ What the code does today:
 
 - `Payment.amountDueUsd` and `BookingDueChange.fromUsd/toUsd` are USD columns and cannot carry an
   LBP due as they are. Slice 3 decides the shape; the CHECK pattern of decision 2 applies
+  (slice 3 done: migration `20261016090000_game_price_currency`)
   (settled by decision 14).
 - The "keep it" record must not break the money invariant that booking ledger IN equals booking
   tender sums (`test/integration/invariants.ts:21-31`). It needs its own label or source type,
@@ -158,7 +159,9 @@ What the code does today:
 0. This record.
 1. An overpayment becomes change on USD games.
 2. Pure helpers (units, split, rounding, the friendly amount) with tests.
-3. The migration and currency-aware types.
+3. The migration and currency-aware types. **Done** (migrations `20261016090000_game_price_currency`
+   and `20261016090100_rounding_due_reason`; progress.md, 2026-10-16). **3b done:** every raw SQL
+   reader of game money names its currency and refuses an LBP game (progress.md, 2026-10-16).
 4. The setting and LBP pitch prices.
 5. Creating bookings in LBP (owner, public request, weekly series).
 6. Collecting a whole game in LBP, and "Consider it paid".

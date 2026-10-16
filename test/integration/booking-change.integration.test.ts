@@ -51,7 +51,7 @@ async function recordedOf(bookingId: string) {
 async function remainingOf(bookingId: string): Promise<string> {
   const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
   const { collected } = await recordedOf(bookingId);
-  return new Decimal(booking.amountDueUsd.toString()).minus(collected).toFixed(2);
+  return new Decimal(booking.amountDueUsd!.toString()).minus(collected).toFixed(2);
 }
 
 describe("a game collection gives change", () => {

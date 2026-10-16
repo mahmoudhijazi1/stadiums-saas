@@ -1,9 +1,11 @@
+import { Prisma } from "@/generated/prisma/client";
 import type { BookingStatus } from "@/generated/prisma/enums";
 import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/format/money";
 import Decimal from "decimal.js";
+import { refuseLbpGames } from "./_shared";
 
 /**
  * PENDING → APPROVED or REJECTED. 0 rows means gone or already decided.
@@ -77,8 +79,11 @@ export async function setBookingEndAndPrice(
     WHERE id = ${input.bookingId}
       AND "tenantId" = ${tenantId}
       AND status = 'APPROVED'::"BookingStatus"
+      AND "priceCurrency" = 'USD'::"Currency"
   `;
   if (count !== 1) {
+    // An LBP game is not extended in dollars (DR-007 slice 8): say so instead of "not found".
+    await refuseLbpGames(tx, Prisma.sql`b.id = ${input.bookingId}`, "setBookingEndAndPrice");
     throw new DomainError("booking.not_found");
   }
 }

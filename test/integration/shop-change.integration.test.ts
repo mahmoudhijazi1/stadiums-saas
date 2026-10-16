@@ -111,7 +111,7 @@ describe("a tab collection gives change", () => {
     const bookingId = await soonBooking(fixture);
     const { saleId } = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: booker });
     await collectTabPayment({ saleId, usdAmount: "2.00" });
-    expect((await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).amountDueUsd.toFixed(2)).toBe("30.00");
+    expect((await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).amountDueUsd!.toFixed(2)).toBe("30.00");
     expect(await platformDb.bookingDueChange.count({ where: { bookingId } })).toBe(0);
     expect(await platformDb.payment.count({ where: { sourceType: "BOOKING", sourceId: bookingId } })).toBe(0);
   });

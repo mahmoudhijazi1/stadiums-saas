@@ -36,7 +36,7 @@ async function insertBookingDuring(
   await tx.$executeRaw`
     INSERT INTO "Booking" (
       "id", "tenantId", "pitchId", "during", "status", "source",
-      "priceUsd", "amountDueUsd", "collectionMode", "requestedName", "seriesId"
+      "priceCurrency", "priceUsd", "amountDueUsd", "collectionMode", "requestedName", "seriesId"
     )
     VALUES (
       ${id},
@@ -45,6 +45,7 @@ async function insertBookingDuring(
       tstzrange(${input.start}, ${input.end}, '[)'),
       ${status}::"BookingStatus",
       ${source}::"BookingSource",
+      'USD'::"Currency",
       ${price}::decimal,
       ${price}::decimal,
       'WHOLE'::"CollectionMode",

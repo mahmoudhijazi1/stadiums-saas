@@ -57,7 +57,7 @@ function actAs(token: string, slug = fixture.tenantSlug) {
 const game = { kind: "game" } as const;
 
 async function dueOf(bookingId: string) {
-  return (await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).amountDueUsd.toFixed(2);
+  return (await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } })).amountDueUsd!.toFixed(2);
 }
 
 async function netTotalOf(saleId: string): Promise<string> {
@@ -111,14 +111,14 @@ describe("putting items on a game", () => {
   it("per-player: the booker's tab and a named player's tab both work, and no due or slot due moves", async () => {
     const bookingId = await soonBooking(fixture);
     await switchToPerPlayer({ bookingId, count: 3 });
-    const slotsBefore = (await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd.toFixed(2));
+    const slotsBefore = (await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd!.toFixed(2));
 
     await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 1 }], payer: game });
     const personId = await requesterPersonId(bookingId);
     const tab = await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 2 }], payer: { kind: "person", personId } });
     expect(tab.totalUsd.toFixed(2)).toBe("3.00");
     expect(await dueOf(bookingId)).toBe("30.00");
-    expect((await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd.toFixed(2))).toEqual(slotsBefore);
+    expect((await platformDb.bookingParticipant.findMany({ where: { bookingId }, orderBy: { id: "asc" } })).map((p) => p.amountDueUsd!.toFixed(2))).toEqual(slotsBefore);
     expect(await platformDb.bookingDueChange.count({ where: { bookingId, reason: "SHOP_ITEMS" } })).toBe(0);
   });
 
@@ -285,7 +285,7 @@ describe("cancel, no-show and split with a tab on the game", () => {
     await addBookingItems({ bookingId, lines: [{ productId: cola.id, qty: 4 }], payer: game });
     await switchToPerPlayer({ bookingId, count: 3 });
     const slots = await platformDb.bookingParticipant.findMany({ where: { bookingId, slotNumber: { not: null } } });
-    expect(slots.reduce((sum, p) => sum.plus(p.amountDueUsd.toString()), new Decimal(0)).toFixed(2)).toBe("30.00");
+    expect(slots.reduce((sum, p) => sum.plus(p.amountDueUsd!.toString()), new Decimal(0)).toFixed(2)).toBe("30.00");
   });
 });
 

@@ -12,7 +12,9 @@ export type DueChangeReason =
   | "WAIVER"
   | "CORRECTION"
   | "EXTENSION"
-  | "SHOP_ITEMS";
+  | "SHOP_ITEMS"
+  /** "Consider it paid" (DR-007 decision 8). Nothing writes it yet. */
+  | "ROUNDING";
 
 export type FeePolicy = {
   cancellationWindowHours: number;

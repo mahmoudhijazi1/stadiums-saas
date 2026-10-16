@@ -125,8 +125,8 @@ describe("the basic extension", () => {
 
     const change = await platformDb.bookingDueChange.findFirstOrThrow({ where: { bookingId } });
     expect(change).toMatchObject({ reason: "EXTENSION" });
-    expect(change.fromUsd.toFixed(2)).toBe("30.00");
-    expect(change.toUsd.toFixed(2)).toBe("45.00");
+    expect(change.fromUsd!.toFixed(2)).toBe("30.00");
+    expect(change.toUsd!.toFixed(2)).toBe("45.00");
     expect(change.note).toMatch(/→/);
     await assertMoneyInvariants([]);
   });
@@ -500,7 +500,7 @@ describe("races (10 iterations each)", () => {
       expect(["20.00", "35.00"]).toContain((await rangeOf(bookingId)).amountDueUsd);
       const changes = await platformDb.bookingDueChange.findMany({ where: { bookingId }, orderBy: { createdAt: "asc" } });
       expect(changes).toHaveLength(2);
-      expect(changes[1]!.fromUsd.toFixed(2)).toBe(changes[0]!.toUsd.toFixed(2));
+      expect(changes[1]!.fromUsd!.toFixed(2)).toBe(changes[0]!.toUsd!.toFixed(2));
     }
     await assertMoneyInvariants([]);
   }, 120_000);

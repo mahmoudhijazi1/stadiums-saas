@@ -3,7 +3,8 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { asDate } from "./_shared";
+import { gameDue, gamePrice, requireUsd, type GameCurrency } from "@/modules/booking/domain/game-money";
+import { asDate, refuseLbpGames, type SqlMoney } from "./_shared";
 
 /**
  * What the players of a game still owe the shop: the sum, over its player tabs, of the tab total
@@ -92,8 +93,11 @@ type DayBookingSqlRow = {
   pitchName: string;
   start: Date | string;
   end: Date | string;
-  priceUsd: Decimal | string;
-  amountDueUsd: Decimal | string;
+  priceCurrency: GameCurrency;
+  priceUsd: SqlMoney;
+  amountDueUsd: SqlMoney;
+  priceLbp: SqlMoney;
+  amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
   tabsRemainingUsd: Decimal | string | null;
   collectionMode: "WHOLE" | "PER_PLAYER";
@@ -103,6 +107,10 @@ type DayBookingSqlRow = {
   pitchDefaultPlayerCount: number;
 };
 
+/** The game money columns of `b`, for every DayBookingSqlRow query. */
+const DAY_MONEY_COLUMNS = Prisma.sql`b."priceCurrency"::text AS "priceCurrency", b."priceUsd", b."amountDueUsd", b."priceLbp", b."amountDueLbp"`;
+
+/** An LBP game throws `booking.lbp_not_supported` here: the day views read dollars only (DR-007). */
 function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
   return {
     id: row.id,
@@ -111,8 +119,8 @@ function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
     pitchName: row.pitchName,
     start: asDate(row.start),
     end: asDate(row.end),
-    priceUsd: new Decimal(row.priceUsd.toString()),
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    priceUsd: requireUsd(gamePrice(row), "day.priceUsd"),
+    amountDueUsd: requireUsd(gameDue(row), "day.amountDueUsd"),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
     tabsRemainingUsd: new Decimal((row.tabsRemainingUsd ?? 0).toString()),
     collectionMode: row.collectionMode,
@@ -144,8 +152,7 @@ export async function listBookingsForStartDay(
       p."defaultPlayerCount" AS "pitchDefaultPlayerCount",
       lower(b.during) AS start,
       upper(b.during) AS end,
-      b."priceUsd",
-      b."amountDueUsd",
+      ${DAY_MONEY_COLUMNS},
       b."collectionMode"::text AS "collectionMode",
       COALESCE((
         SELECT SUM(t."usdEquivalent")
@@ -187,6 +194,19 @@ export async function listEndedWithRemaining(
   limit: number,
 ): Promise<DayBookingRow[]> {
   const tenantId = await getCurrentTenantId();
+  const endedOrFee = Prisma.sql`(
+        (
+          b.status = 'APPROVED'::"BookingStatus"
+          AND upper(b.during) <= ${now}
+        )
+        OR b.status IN (
+          'NO_SHOW'::"BookingStatus",
+          'CANCELLED'::"BookingStatus"
+        )
+      )`;
+  // The due comparison is in dollars, so only USD games are kept; an LBP game that would be listed
+  // is refused instead of left out (DR-007).
+  await refuseLbpGames(tx, endedOrFee, "listEndedWithRemaining");
   const rows = await tx.$queryRaw<DayBookingSqlRow[]>`
     SELECT
       b.id,
@@ -196,8 +216,7 @@ export async function listEndedWithRemaining(
       p."defaultPlayerCount" AS "pitchDefaultPlayerCount",
       lower(b.during) AS start,
       upper(b.during) AS end,
-      b."priceUsd",
-      b."amountDueUsd",
+      ${DAY_MONEY_COLUMNS},
       b."collectionMode"::text AS "collectionMode",
       COALESCE(collected.usd, 0) AS "collectedUsd",
       tabs.usd AS "tabsRemainingUsd",
@@ -218,17 +237,9 @@ export async function listEndedWithRemaining(
     ) collected ON true
     JOIN LATERAL (SELECT ${TABS_REMAINING_SQL} AS usd) tabs ON true
     WHERE b."tenantId" = ${tenantId}
+      AND b."priceCurrency" = 'USD'::"Currency"
       AND (b."amountDueUsd" > collected.usd OR tabs.usd > 0)
-      AND (
-        (
-          b.status = 'APPROVED'::"BookingStatus"
-          AND upper(b.during) <= ${now}
-        )
-        OR b.status IN (
-          'NO_SHOW'::"BookingStatus",
-          'CANCELLED'::"BookingStatus"
-        )
-      )
+      AND ${endedOrFee}
     ORDER BY lower(b.during) ASC, b.id ASC
     LIMIT ${limit}
   `;

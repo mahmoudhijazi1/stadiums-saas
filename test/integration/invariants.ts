@@ -31,18 +31,23 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
     true,
   );
 
+  // The latest due change matches the booking's due, in the game's currency (DR-007): a USD game
+  // compares the USD pair as before, an LBP game the LBP pair. A change in the other currency, or a
+  // NULL on either side, is a mismatch.
   const dueMismatches = await platformDb.$queryRaw<Array<{ id: string }>>`
     SELECT b.id
     FROM "Booking" b
     JOIN LATERAL (
-      SELECT d."toUsd"
+      SELECT d."currency", d."toUsd", d."toLbp"
       FROM "BookingDueChange" d
       WHERE d."bookingId" = b.id
         AND d."tenantId" = b."tenantId"
       ORDER BY d."createdAt" DESC, d.id DESC
       LIMIT 1
     ) latest ON true
-    WHERE latest."toUsd" <> b."amountDueUsd"
+    WHERE latest."currency" <> b."priceCurrency"
+       OR (b."priceCurrency" = 'USD' AND latest."toUsd" IS DISTINCT FROM b."amountDueUsd")
+       OR (b."priceCurrency" = 'LBP' AND latest."toLbp" IS DISTINCT FROM b."amountDueLbp")
   `;
   expect(dueMismatches).toHaveLength(0);
 

@@ -295,7 +295,7 @@ async function latestChange(bookingId: string) {
     where: { bookingId },
     orderBy: { createdAt: "desc" },
   });
-  return { reason: row.reason, toUsd: new Decimal(row.toUsd.toString()).toFixed(2) };
+  return { reason: row.reason, toUsd: new Decimal(row.toUsd!.toString()).toFixed(2) };
 }
 
 async function startOf(bookingId: string): Promise<Date> {

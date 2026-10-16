@@ -433,7 +433,7 @@ describe("cancel the rest", () => {
 
     // No fee: the due goes to zero with a CANCELLATION_NO_FEE row.
     const cancelled = await platformDb.booking.findUniqueOrThrow({ where: { id: games[1]!.id } });
-    expect(cancelled.amountDueUsd.toFixed(2)).toBe("0.00");
+    expect(cancelled.amountDueUsd!.toFixed(2)).toBe("0.00");
     const change = await platformDb.bookingDueChange.findFirstOrThrow({ where: { bookingId: games[1]!.id } });
     expect(change.reason).toBe("CANCELLATION_NO_FEE");
     await assertMoneyInvariants([]);

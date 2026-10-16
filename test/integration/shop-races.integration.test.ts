@@ -73,7 +73,7 @@ describe("shop races (booking row, then sale row)", () => {
       ]);
       expect(outcomes(results)).toEqual(["ok", "ok"]);
       const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
-      expect(booking.amountDueUsd.toFixed(2)).toBe("30.00");
+      expect(booking.amountDueUsd!.toFixed(2)).toBe("30.00");
       expect(await platformDb.bookingDueChange.count({ where: { bookingId } })).toBe(0);
       expect(await platformDb.sale.count({ where: { bookingId } })).toBe(1);
     }

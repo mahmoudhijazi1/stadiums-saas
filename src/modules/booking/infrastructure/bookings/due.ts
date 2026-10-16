@@ -36,7 +36,8 @@ export async function insertBookingDueChange(
       | "WAIVER"
       | "CORRECTION"
       | "EXTENSION"
-      | "SHOP_ITEMS";
+      | "SHOP_ITEMS"
+      | "ROUNDING";
     note: string | null;
     actorMembershipId: string;
   },
@@ -44,6 +45,8 @@ export async function insertBookingDueChange(
   await tx.bookingDueChange.create({
     data: {
       bookingId: input.bookingId,
+      // USD only until LBP games exist (DR-007 slice 6).
+      currency: "USD",
       fromUsd: formatUsd(input.fromUsd),
       toUsd: formatUsd(input.toUsd),
       reason: input.reason,

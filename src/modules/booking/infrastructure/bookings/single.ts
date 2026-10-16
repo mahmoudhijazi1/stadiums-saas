@@ -2,7 +2,14 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { asDate, BookingSqlRow, toBookingForDecision } from "./_shared";
+import {
+  dueChangeAmounts,
+  gameDue,
+  requireUsd,
+  type GameCurrency,
+  type GameMoney,
+} from "@/modules/booking/domain/game-money";
+import { asDate, BOOKING_MONEY_COLUMNS, BookingSqlRow, toBookingForDecision, type SqlMoney } from "./_shared";
 
 export type BookingForDecision = {
   id: string;
@@ -30,8 +37,7 @@ export async function findBookingForDecision(
       status,
       lower(during) AS start,
       upper(during) AS end,
-      "priceUsd",
-      "amountDueUsd",
+      ${BOOKING_MONEY_COLUMNS},
       "collectionMode"::text AS "collectionMode"
     FROM "Booking"
     WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
@@ -123,14 +129,32 @@ type BookingFeeSqlRow = {
   status: BookingStatus;
   pitchName: string;
   start: Date | string;
-  amountDueUsd: Decimal | string;
+  priceCurrency: GameCurrency;
+  amountDueUsd: SqlMoney;
+  amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
   dueNote: string | null;
-  dueToUsd: Decimal | string | null;
+  dueCurrency: GameCurrency | null;
+  dueFromUsd: SqlMoney;
+  dueToUsd: SqlMoney;
+  dueFromLbp: SqlMoney;
+  dueToLbp: SqlMoney;
 };
+
+/** The "to" amount of the latest due change, in its own currency. */
+function latestDueTo(row: BookingFeeSqlRow, currency: GameCurrency): GameMoney {
+  const change = dueChangeAmounts({
+    currency,
+    fromUsd: row.dueFromUsd,
+    toUsd: row.dueToUsd,
+    fromLbp: row.dueFromLbp,
+    toLbp: row.dueToLbp,
+  });
+  return { currency: change.currency, amount: change.to };
+}
 
 /**
  * Saved due, collected, and the latest due-change note. Used to build a
@@ -147,13 +171,19 @@ export async function findBookingFeeState(
       b.status::text AS status,
       p.name AS "pitchName",
       lower(b.during) AS start,
+      b."priceCurrency"::text AS "priceCurrency",
       b."amountDueUsd",
+      b."amountDueLbp",
       COALESCE(collected.usd, 0) AS "collectedUsd",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone",
       latest.note AS "dueNote",
-      latest."toUsd" AS "dueToUsd"
+      latest."currency"::text AS "dueCurrency",
+      latest."fromUsd" AS "dueFromUsd",
+      latest."toUsd" AS "dueToUsd",
+      latest."fromLbp" AS "dueFromLbp",
+      latest."toLbp" AS "dueToLbp"
     FROM "Booking" b
     JOIN "Pitch" p ON p.id = b."pitchId"
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."isRequester" = true
@@ -167,7 +197,7 @@ export async function findBookingFeeState(
         AND pay."sourceId" = b.id
     ) collected ON true
     LEFT JOIN LATERAL (
-      SELECT d.note, d."toUsd"
+      SELECT d.note, d."currency", d."fromUsd", d."toUsd", d."fromLbp", d."toLbp"
       FROM "BookingDueChange" d
       WHERE d."tenantId" = b."tenantId"
         AND d."bookingId" = b.id
@@ -183,16 +213,14 @@ export async function findBookingFeeState(
     status: row.status,
     pitchName: row.pitchName,
     start: asDate(row.start),
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    // An LBP game throws booking.lbp_not_supported: the WhatsApp fee text is in dollars (DR-007).
+    amountDueUsd: requireUsd(gameDue(row), "fee-state.amountDueUsd"),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
     dueNote: row.dueNote,
-    dueToUsd:
-      row.dueToUsd === null || row.dueToUsd === undefined
-        ? null
-        : new Decimal(row.dueToUsd.toString()),
+    dueToUsd: row.dueCurrency ? requireUsd(latestDueTo(row, row.dueCurrency), "fee-state.dueToUsd") : null,
   };
 }
 

@@ -7,7 +7,7 @@ import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { BookingForDecision } from "./single";
-import { BookingSqlRow, toBookingForDecision } from "./_shared";
+import { BOOKING_MONEY_COLUMNS, BookingSqlRow, toBookingForDecision } from "./_shared";
 
 /**
  * Serialize approved writes on one pitch (BR-24).
@@ -45,8 +45,7 @@ export async function findBookingForUpdate(
       status,
       lower(during) AS start,
       upper(during) AS end,
-      "priceUsd",
-      "amountDueUsd",
+      ${BOOKING_MONEY_COLUMNS},
       "collectionMode"::text AS "collectionMode"
     FROM "Booking"
     WHERE id = ${bookingId} AND "tenantId" = ${tenantId}

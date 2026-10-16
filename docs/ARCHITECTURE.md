@@ -114,6 +114,7 @@ Prefer `updateMany({ where: { id } })` (filtered by the extension) inside transa
 2. Put `"tenantId" = ${tenantId}` on the **driving** table of every statement. Add it on joined tables too when a join is not by a tenant-owned id.
 3. Use tagged templates or `Prisma.join` only. Never `$queryRawUnsafe` or `Prisma.raw` with input.
 4. Add a cross-tenant case to `test/integration/isolation.integration.test.ts` (or the suite for that use case).
+5. **Game money (DR-007).** A statement that reads, filters or sums a USD game-money column (`"priceUsd"`, `"amountDueUsd"`, `"fromUsd"`/`"toUsd"`, a `PaymentAllocation` `"amountUsd"`) also selects its currency column (or LBP twin) and maps the row through `booking/domain/game-money.ts` (`requireUsd` where it is used as dollars). A USD total keeps only USD games (`b."priceCurrency" = 'USD'`) and calls `refuseLbpGames` with the same condition, so an LBP game is refused (`booking.lbp_not_supported`), never left out. `test/architecture/game-money-sql.test.ts` checks every SQL string under `src`.
 
 ---
 

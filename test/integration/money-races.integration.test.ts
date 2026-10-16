@@ -277,11 +277,11 @@ async function moneyOf(bookingId: string) {
   return {
     status: booking.status,
     mode: booking.collectionMode,
-    due: new Decimal(booking.amountDueUsd.toString()),
+    due: new Decimal(booking.amountDueUsd!.toString()),
     collected,
     payments: payments.length,
     paymentDueSnapshots: payments.map((payment) =>
-      new Decimal(payment.amountDueUsd.toString()).toFixed(2),
+      new Decimal(payment.amountDueUsd!.toString()).toFixed(2),
     ),
     dueChanges: await platformDb.bookingDueChange.count({ where: { bookingId } }),
   };

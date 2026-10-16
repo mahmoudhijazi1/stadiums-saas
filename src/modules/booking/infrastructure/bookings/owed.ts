@@ -1,8 +1,10 @@
+import { Prisma } from "@/generated/prisma/client";
 import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { asDate } from "./_shared";
+import { gameDue, requireUsd, shareDue, type GameCurrency } from "@/modules/booking/domain/game-money";
+import { asDate, refuseLbpGames, usdSumOnly, type SqlMoney } from "./_shared";
 
 export type OwedParticipationSqlRow = {
   bookingId: string;
@@ -25,12 +27,19 @@ export type OwedParticipationSqlRow = {
  * Every participant of every booking with money still due (an ended approved game, any
  * no-show, any cancelled fee), one query and no per-person lookups. Slots with no person
  * come through with a null personId. The caller classifies and groups.
+ * The due comparison is in dollars: only USD games are kept, and an LBP game that would match is
+ * refused (`booking.lbp_not_supported`) instead of being left out of the total (DR-007).
  */
 export async function listOwedParticipations(
   tx: TenantTx,
   now: Date,
 ): Promise<OwedParticipationSqlRow[]> {
   const tenantId = await getCurrentTenantId();
+  const endedOrFee = Prisma.sql`(
+        (b.status = 'APPROVED'::"BookingStatus" AND upper(b.during) <= ${now})
+        OR b.status IN ('NO_SHOW'::"BookingStatus", 'CANCELLED'::"BookingStatus")
+      )`;
+  await refuseLbpGames(tx, endedOrFee, "listOwedParticipations");
   const rows = await tx.$queryRaw<
     {
       bookingId: string;
@@ -43,10 +52,14 @@ export async function listOwedParticipations(
       personName: string | null;
       personPhone: string | null;
       isRequester: boolean;
-      amountDueUsd: { toString(): string };
+      priceCurrency: GameCurrency;
+      amountDueUsd: SqlMoney;
+      amountDueLbp: SqlMoney;
       collectedUsd: { toString(): string } | null;
-      participantDueUsd: { toString(): string };
-      allocatedUsd: { toString(): string } | null;
+      participantDueUsd: SqlMoney;
+      participantDueLbp: SqlMoney;
+      allocatedUsd: SqlMoney;
+      allocatedLbp: SqlMoney;
     }[]
   >`
     SELECT
@@ -60,10 +73,14 @@ export async function listOwedParticipations(
       per.name AS "personName",
       per.phone AS "personPhone",
       bp."isRequester",
+      b."priceCurrency"::text AS "priceCurrency",
       b."amountDueUsd",
+      b."amountDueLbp",
       collected.usd AS "collectedUsd",
       bp."amountDueUsd" AS "participantDueUsd",
-      alloc.usd AS "allocatedUsd"
+      bp."amountDueLbp" AS "participantDueLbp",
+      alloc.usd AS "allocatedUsd",
+      alloc.lbp AS "allocatedLbp"
     FROM "Booking" b
     JOIN "Pitch" p ON p.id = b."pitchId"
     JOIN LATERAL (
@@ -77,17 +94,15 @@ export async function listOwedParticipations(
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."tenantId" = b."tenantId"
     LEFT JOIN "Person" per ON per.id = bp."personId"
     LEFT JOIN LATERAL (
-      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd, COALESCE(SUM(a."amountLbp"), 0) AS lbp
       FROM "PaymentAllocation" a
       WHERE a."tenantId" = bp."tenantId"
         AND a."participantId" = bp.id
     ) alloc ON true
     WHERE b."tenantId" = ${tenantId}
+      AND b."priceCurrency" = 'USD'::"Currency"
       AND b."amountDueUsd" > collected.usd
-      AND (
-        (b.status = 'APPROVED'::"BookingStatus" AND upper(b.during) <= ${now})
-        OR b.status IN ('NO_SHOW'::"BookingStatus", 'CANCELLED'::"BookingStatus")
-      )
+      AND ${endedOrFee}
     ORDER BY lower(b.during) DESC, b.id DESC, bp."slotNumber" ASC NULLS FIRST
   `;
   return rows.map((row) => ({
@@ -101,10 +116,13 @@ export async function listOwedParticipations(
     personName: row.personName,
     personPhone: row.personPhone,
     isRequester: row.isRequester,
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    amountDueUsd: requireUsd(gameDue(row), "owed.amountDueUsd"),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
-    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
-    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
+    participantDueUsd: requireUsd(
+      shareDue({ amountDueUsd: row.participantDueUsd, amountDueLbp: row.participantDueLbp }),
+      "owed.participantDueUsd",
+    ),
+    allocatedUsd: usdSumOnly(row.allocatedUsd, row.allocatedLbp, "owed.allocatedUsd"),
   }));
 }
 

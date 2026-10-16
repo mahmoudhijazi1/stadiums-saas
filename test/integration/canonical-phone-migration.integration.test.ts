@@ -128,7 +128,7 @@ describe("canonical_phones migration", () => {
     });
     await platformDb.tenant.update({ where: { id: a.tenantId }, data: { settings: { phone: "03123456", whatsapp: "0933123456" } } });
     const amountsBefore = (await platformDb.bookingParticipant.findMany({ select: { id: true, amountDueUsd: true }, orderBy: { id: "asc" } })).map(
-      (row) => `${row.id}:${row.amountDueUsd.toString()}`,
+      (row) => `${row.id}:${row.amountDueUsd!.toString()}`,
     );
 
     await runMigration();
@@ -154,7 +154,7 @@ describe("canonical_phones migration", () => {
     expect(settings.whatsapp).toBe("0933123456");
 
     const amountsAfter = (await platformDb.bookingParticipant.findMany({ select: { id: true, amountDueUsd: true }, orderBy: { id: "asc" } })).map(
-      (row) => `${row.id}:${row.amountDueUsd.toString()}`,
+      (row) => `${row.id}:${row.amountDueUsd!.toString()}`,
     );
     expect(amountsAfter).toEqual(amountsBefore);
   });

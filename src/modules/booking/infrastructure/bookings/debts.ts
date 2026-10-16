@@ -3,7 +3,8 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { asDate } from "./_shared";
+import { gameDue, requireUsd, shareDue, type GameCurrency } from "@/modules/booking/domain/game-money";
+import { asDate, usdSumOnly, type SqlMoney } from "./_shared";
 
 export type DebtParticipationSqlRow = {
   personId: string;
@@ -28,16 +29,22 @@ type DebtParticipationRaw = {
   end: Date | string;
   collectionMode: "WHOLE" | "PER_PLAYER";
   isRequester: boolean;
-  amountDueUsd: Decimal | string;
+  priceCurrency: GameCurrency;
+  amountDueUsd: SqlMoney;
+  amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
-  participantDueUsd: Decimal | string;
-  allocatedUsd: Decimal | string | null;
+  participantDueUsd: SqlMoney;
+  participantDueLbp: SqlMoney;
+  allocatedUsd: SqlMoney;
+  allocatedLbp: SqlMoney;
   reason: string | null;
 };
 
 /**
  * Participations for many people, one query. Latest due-change reason rides along.
  * Caller passes the person ids on this screen. Empty list does not hit the database.
+ * No money filter: every participation of these people comes back, and an LBP game among them
+ * throws `booking.lbp_not_supported` in the mapping (DR-007), never a warning that leaves it out.
  */
 export async function listDebtParticipations(
   tx: TenantTx,
@@ -54,10 +61,14 @@ export async function listDebtParticipations(
       upper(b.during) AS end,
       b."collectionMode"::text AS "collectionMode",
       bp."isRequester",
+      b."priceCurrency"::text AS "priceCurrency",
       b."amountDueUsd",
+      b."amountDueLbp",
       bp."amountDueUsd" AS "participantDueUsd",
+      bp."amountDueLbp" AS "participantDueLbp",
       COALESCE(collected.usd, 0) AS "collectedUsd",
       COALESCE(alloc.usd, 0) AS "allocatedUsd",
+      COALESCE(alloc.lbp, 0) AS "allocatedLbp",
       latest.reason::text AS reason
     FROM "BookingParticipant" bp
     JOIN "Booking" b ON b.id = bp."bookingId"
@@ -70,7 +81,7 @@ export async function listDebtParticipations(
         AND pay."sourceId" = b.id
     ) collected ON true
     LEFT JOIN LATERAL (
-      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd, COALESCE(SUM(a."amountLbp"), 0) AS lbp
       FROM "PaymentAllocation" a
       WHERE a."tenantId" = bp."tenantId"
         AND a."participantId" = bp.id
@@ -100,10 +111,13 @@ export async function listDebtParticipations(
     end: asDate(row.end),
     collectionMode: row.collectionMode,
     isRequester: row.isRequester,
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
+    amountDueUsd: requireUsd(gameDue(row), "debts.amountDueUsd"),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
-    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
-    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
+    participantDueUsd: requireUsd(
+      shareDue({ amountDueUsd: row.participantDueUsd, amountDueLbp: row.participantDueLbp }),
+      "debts.participantDueUsd",
+    ),
+    allocatedUsd: usdSumOnly(row.allocatedUsd, row.allocatedLbp, "debts.allocatedUsd"),
     reason: row.reason,
   }));
 }
