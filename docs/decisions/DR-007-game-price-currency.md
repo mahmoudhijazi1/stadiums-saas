@@ -165,7 +165,9 @@ What the code does today:
 4. The setting and LBP pitch prices. **Done** (progress.md, 2026-10-16): `gamePriceCurrency` in the
    tenant settings, `tenants set-game-currency` in the operator CLI, LBP prices in `scheduleConfig`,
    `priceForSlotIn`, and every pitch price shown in the stadium's currency.
-5. Creating bookings in LBP (owner, public request, weekly series).
+5. Creating bookings in LBP (owner, public request, weekly series). **Done** (progress.md, 2026-10-18):
+   a new game is priced in the stadium's currency, approve and reject work on LBP games, and Today,
+   the booking sheet and the person page show an LBP game in pounds with its money actions hidden.
 6. Collecting a whole game in LBP, and "Consider it paid".
 7. Per-player in LBP.
 8. Fees, extensions and adjust-due in LBP.

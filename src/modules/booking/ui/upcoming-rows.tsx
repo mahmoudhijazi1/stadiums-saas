@@ -47,6 +47,7 @@ export function UpcomingRows({
               <StatusPill
                 display={row.display}
                 amountUsd={row.displayAmountUsd}
+                amountText={row.lbp?.pill}
                 locale={locale}
               />
             }

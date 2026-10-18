@@ -1,8 +1,10 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
+import type { GameCurrency, GameMoney } from "@/modules/booking/domain/game-money";
 import {
   addCalendarDays,
   generateSlotsForDay,
+  priceForSlotIn,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
 import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
@@ -28,7 +30,7 @@ export function resolveOfferedSlot(input: {
   occupied?: UtcRange[];
   /** "They played" on a missed request. Skips the future-start check only. */
   allowStarted?: boolean;
-}): { start: Date; end: Date; priceUsd: Decimal } {
+}): { start: Date; end: Date; priceUsd: Decimal; windowDate: CivilDate } {
   const offered = [input.localDate, addCalendarDays(input.localDate, -1)]
     .flatMap((localDate) =>
       generateSlotsForDay({
@@ -36,7 +38,7 @@ export function resolveOfferedSlot(input: {
         localDate,
         timeZone: input.timeZone,
         occupied: input.occupied ?? [],
-      }),
+      }).map((slot) => ({ ...slot, windowDate: localDate })),
     )
     .find(
       (slot) =>
@@ -60,7 +62,26 @@ export function resolveOfferedSlot(input: {
     start: offered.start,
     end: offered.end,
     priceUsd: offered.priceUsd,
+    windowDate: offered.windowDate,
   };
+}
+
+/**
+ * The price of an offered slot in the stadium's currency (DR-007), from the window's day like the
+ * engine. The currency comes from the stadium's settings, never from the form. A slot with no price
+ * in that currency is refused (`booking.no_price_in_currency`): a game is never booked at 0.
+ */
+export function priceOfferedSlot(
+  config: ScheduleConfig,
+  currency: GameCurrency,
+  slot: { start: Date; windowDate: CivilDate },
+  timeZone: string,
+): GameMoney {
+  const { amount } = priceForSlotIn(config, currency, { start: slot.start, localDate: slot.windowDate, timeZone });
+  if (amount === null) {
+    throw new DomainError("booking.no_price_in_currency");
+  }
+  return { currency, amount };
 }
 
 /**

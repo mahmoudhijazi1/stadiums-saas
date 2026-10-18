@@ -1,10 +1,13 @@
 import Decimal from "decimal.js";
+import type { GameCurrency, GameMoney } from "@/modules/booking/domain/game-money";
+import { roundToUnit } from "@/modules/payment/domain/units";
 import {
   addCalendarDays,
   bookingFitsOpenHours,
   generateSlotsForDay,
   localTimeToUtc,
   localWallClock,
+  priceForSlotIn,
   windowDaysForStart,
   type CivilDate,
 } from "@/modules/venue/domain/availability";
@@ -86,18 +89,39 @@ export function occurrencePrice(
   durationMinutes: number,
   timeZone: string,
 ): Decimal | null {
+  return occurrencePriceIn(config, "USD", start, durationMinutes, timeZone).price?.amount ?? null;
+}
+
+/**
+ * The same, in `currency` (DR-007): `offered` says a grid slot starts at that time; `price` is null
+ * when that slot has no price in this currency. USD scales half up to cents, exactly as before;
+ * pounds scale to the 5,000 LBP unit (decision 7).
+ */
+export function occurrencePriceIn(
+  config: ScheduleConfig,
+  currency: GameCurrency,
+  start: Date,
+  durationMinutes: number,
+  timeZone: string,
+): { offered: boolean; price: GameMoney | null } {
   for (const localDate of windowDaysForStart(start, timeZone)) {
     const slot = generateSlotsForDay({ config, localDate, timeZone, occupied: [] }).find(
       (candidate) => candidate.start.getTime() === start.getTime(),
     );
     if (slot) {
-      return slot.priceUsd
-        .times(durationMinutes)
-        .div(config.slotDurationMinutes)
-        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+      const { amount } = priceForSlotIn(config, currency, { start, localDate, timeZone });
+      if (amount === null) return { offered: true, price: null };
+      const scaled = amount.times(durationMinutes).div(config.slotDurationMinutes);
+      return {
+        offered: true,
+        price: {
+          currency,
+          amount: currency === "USD" ? scaled.toDecimalPlaces(2, Decimal.ROUND_HALF_UP) : roundToUnit(scaled, "LBP"),
+        },
+      };
     }
   }
-  return null;
+  return { offered: false, price: null };
 }
 
 export type OccurrenceState = "free" | "taken" | "outside_hours" | "past";
@@ -108,8 +132,8 @@ export type OccurrencePreview = {
   start: Date;
   end: Date;
   state: OccurrenceState;
-  /** Null unless free. */
-  priceUsd: Decimal | null;
+  /** In the stadium's currency. Null unless free, and null on a free week with no price in that currency. */
+  price: GameMoney | null;
   /** Pending requests this week would decline (only counted for a free week). */
   pendingCount: number;
 };
@@ -130,13 +154,15 @@ export function classifyOccurrence(input: {
   pending: readonly Range[];
   now: Date;
   timeZone: string;
+  /** The stadium's gamePriceCurrency (DR-007). Omitted means USD. */
+  currency?: GameCurrency;
 }): OccurrencePreview {
   const end = new Date(input.start.getTime() + input.durationMinutes * 60_000);
-  const base = { index: input.index, start: input.start, end, priceUsd: null, pendingCount: 0 };
+  const base = { index: input.index, start: input.start, end, price: null, pendingCount: 0 };
   if (input.start.getTime() <= input.now.getTime()) return { ...base, state: "past" };
 
-  const price = occurrencePrice(input.config, input.start, input.durationMinutes, input.timeZone);
-  if (price === null || !bookingFitsOpenHours(input.config, { start: input.start, end }, input.timeZone)) {
+  const priced = occurrencePriceIn(input.config, input.currency ?? "USD", input.start, input.durationMinutes, input.timeZone);
+  if (!priced.offered || !bookingFitsOpenHours(input.config, { start: input.start, end }, input.timeZone)) {
     return { ...base, state: "outside_hours" };
   }
   const range = { start: input.start, end };
@@ -145,7 +171,7 @@ export function classifyOccurrence(input: {
   return {
     ...base,
     state: "free",
-    priceUsd: price,
+    price: priced.price,
     pendingCount: input.pending.filter((request) => overlaps(request, range)).length,
   };
 }
@@ -160,9 +186,11 @@ export function buildSeriesPreview(input: {
   pending: readonly Range[];
   now: Date;
   timeZone: string;
+  currency?: GameCurrency;
 }): OccurrencePreview[] {
   return input.starts.map((start, offset) =>
     classifyOccurrence({
+      currency: input.currency,
       index: (input.firstIndex ?? 0) + offset,
       start,
       durationMinutes: input.durationMinutes,

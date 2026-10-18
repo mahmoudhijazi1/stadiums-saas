@@ -1,8 +1,10 @@
 import type { TenantTx } from "@/lib/db";
+import { DomainError } from "@/lib/errors";
 import {
   rejectOverlappingPending,
   type AutoRejectedPerson,
 } from "@/modules/booking/application/reject-overlapping-pending";
+import type { GameCurrency } from "@/modules/booking/domain/game-money";
 import { classifyOccurrence, type OccurrenceState } from "@/modules/booking/domain/series";
 import {
   insertApprovedOwnerBooking,
@@ -31,6 +33,8 @@ export type WeeksResult = {
  * became taken since the preview is skipped and reported, never a failure of the series. Pending
  * requests overlapping a created week are rejected and recorded as interests, as approval does.
  * The exclusion constraint stays the backstop (the caller maps 23P01).
+ * Each week is priced in `currency`, the stadium's gamePriceCurrency the caller read (DR-007); a
+ * free week with no price in it refuses the whole call (booking.no_price_in_currency).
  */
 export async function createWeeksUnderLock(
   tx: TenantTx,
@@ -42,6 +46,7 @@ export async function createWeeksUnderLock(
     durationMinutes: number;
     weeks: readonly { index: number; start: Date }[];
     now: Date;
+    currency: GameCurrency;
   },
 ): Promise<WeeksResult> {
   const approved = await listApprovedRanges(tx, input.pitchId, input.now);
@@ -57,23 +62,27 @@ export async function createWeeksUnderLock(
       pending: [],
       now: input.now,
       timeZone: SERIES_TIME_ZONE,
+      currency: input.currency,
     });
-    if (verdict.state !== "free" || verdict.priceUsd === null) {
+    if (verdict.state !== "free") {
       result.skipped.push({ index: week.index, start: week.start, reason: verdict.state });
       continue;
+    }
+    if (verdict.price === null) {
+      throw new DomainError("booking.no_price_in_currency");
     }
 
     const bookingId = await insertApprovedOwnerBooking(tx, {
       pitchId: input.pitchId,
       start: verdict.start,
       end: verdict.end,
-      priceUsd: verdict.priceUsd,
+      price: verdict.price,
       seriesId: input.seriesId,
     });
     await insertRequesterParticipant(tx, {
       bookingId,
       personId: input.personId,
-      amountDueUsd: verdict.priceUsd,
+      amountDue: verdict.price,
     });
     result.declined.push(
       ...(await rejectOverlappingPending(tx, {

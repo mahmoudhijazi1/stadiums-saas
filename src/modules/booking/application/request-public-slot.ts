@@ -3,12 +3,12 @@ import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { hitRateLimit } from "@/lib/rate-limit";
-import { getCurrentTenantId, safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenant, getCurrentTenantId, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import { cleanPersonName } from "@/modules/people/domain/clean-person-name";
 import { normalizeName } from "@/modules/people/domain/normalize-name";
-import { overlaps, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
+import { overlaps, priceOfferedSlot, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import { isWithinPublicWindow } from "@/modules/booking/domain/public-window";
 import {
   PUBLIC_MAX_PENDING_PER_PHONE,
@@ -48,12 +48,16 @@ const TIME_ZONE = "Asia/Beirut";
  * Limits (security audit S-5), all answered with booking.request_limit:
  * 5 requests per phone per hour and 60 per IP per hour (Postgres counters,
  * before the transaction), then at most 3 future PENDING per phone (inside it).
+ *
+ * Priced in the stadium's gamePriceCurrency (DR-007), read before the transaction, never from the
+ * form; a slot with no price in it is refused (booking.no_price_in_currency) and writes nothing.
  */
 export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
   bookingId: string;
 }> {
   try {
     await assertRequestRate(input.phone);
+    const { gamePriceCurrency } = await getCurrentTenant();
     const outcome = await db.$transaction(async (tx) => {
       await lockPitchForUpdate(tx, input.pitchId);
       const pitch = await findPitchById(tx, input.pitchId);
@@ -78,6 +82,7 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
         end,
         now: new Date(),
       });
+      const price = priceOfferedSlot(config, gamePriceCurrency, slot, TIME_ZONE);
 
       const person = await findOrCreatePerson(tx, {
         name: input.name,
@@ -109,14 +114,14 @@ export async function requestPublicSlot(input: PublicSlotRequest): Promise<{
         pitchId: pitch.id,
         start: slot.start,
         end: slot.end,
-        priceUsd: slot.priceUsd,
+        price,
         requestedName: typedNameIfDifferent(input.name, person.name),
       });
 
       await insertRequesterParticipant(tx, {
         bookingId: id,
         personId: person.id,
-        amountDueUsd: slot.priceUsd,
+        amountDue: price,
       });
 
       return { taken: false as const, bookingId: id };

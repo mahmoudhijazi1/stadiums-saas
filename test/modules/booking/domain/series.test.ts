@@ -140,7 +140,8 @@ describe("classifyOccurrence and buildSeriesPreview", () => {
   it("a free week carries its price and no pending count", () => {
     const week = classifyOccurrence({ ...base, index: 1, start: at("2026-10-13T17:00:00") });
     expect(week).toMatchObject({ state: "free", index: 1, pendingCount: 0 });
-    expect(week.priceUsd?.toFixed(2)).toBe("30.00");
+    expect(week.price?.amount.toFixed(2)).toBe("30.00");
+    expect(week.price?.currency).toBe("USD");
     expect(week.end).toEqual(at("2026-10-13T18:00:00"));
   });
 
@@ -222,7 +223,7 @@ describe("classifyOccurrence and buildSeriesPreview", () => {
       timeZone: TZ,
     });
     expect(preview.map((week) => week.index)).toEqual([3, 4]);
-    expect(preview.every((week) => week.priceUsd instanceof Decimal)).toBe(true);
+    expect(preview.every((week) => week.price?.amount instanceof Decimal)).toBe(true);
   });
 });
 

@@ -3,7 +3,7 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { gameDue, gamePrice, requireUsd, type GameCurrency } from "@/modules/booking/domain/game-money";
+import { gameDue, gamePrice, requireUsd, type GameCurrency, type GameMoney } from "@/modules/booking/domain/game-money";
 import { asDate, refuseLbpGames, type SqlMoney } from "./_shared";
 
 /**
@@ -74,8 +74,10 @@ export type DayBookingRow = {
   pitchName: string;
   start: Date;
   end: Date;
-  priceUsd: Decimal;
-  amountDueUsd: Decimal;
+  /** The agreed price and the due, in the game's own currency (DR-007): the caller handles both. */
+  price: GameMoney;
+  amountDue: GameMoney;
+  /** Booking tenders in dollars (the ledger's unit). */
   collectedUsd: Decimal;
   /** Unpaid player tabs on this game (shop items charged to a player). Never part of the booking due. */
   tabsRemainingUsd: Decimal;
@@ -107,10 +109,13 @@ type DayBookingSqlRow = {
   pitchDefaultPlayerCount: number;
 };
 
+/** A row of a USD-only read (`listEndedWithRemaining`): its price and due are dollars. */
+export type UsdDayBookingRow = DayBookingRow & { priceUsd: Decimal; amountDueUsd: Decimal };
+
 /** The game money columns of `b`, for every DayBookingSqlRow query. */
 const DAY_MONEY_COLUMNS = Prisma.sql`b."priceCurrency"::text AS "priceCurrency", b."priceUsd", b."amountDueUsd", b."priceLbp", b."amountDueLbp"`;
 
-/** An LBP game throws `booking.lbp_not_supported` here: the day views read dollars only (DR-007). */
+/** Price and due in the game's currency (DR-007 slice 5): Today shows an LBP game in pounds. */
 function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
   return {
     id: row.id,
@@ -119,8 +124,8 @@ function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
     pitchName: row.pitchName,
     start: asDate(row.start),
     end: asDate(row.end),
-    priceUsd: requireUsd(gamePrice(row), "day.priceUsd"),
-    amountDueUsd: requireUsd(gameDue(row), "day.amountDueUsd"),
+    price: gamePrice(row),
+    amountDue: gameDue(row),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
     tabsRemainingUsd: new Decimal((row.tabsRemainingUsd ?? 0).toString()),
     collectionMode: row.collectionMode,
@@ -192,7 +197,7 @@ export async function listEndedWithRemaining(
   tx: TenantTx,
   now: Date,
   limit: number,
-): Promise<DayBookingRow[]> {
+): Promise<UsdDayBookingRow[]> {
   const tenantId = await getCurrentTenantId();
   const endedOrFee = Prisma.sql`(
         (
@@ -243,5 +248,12 @@ export async function listEndedWithRemaining(
     ORDER BY lower(b.during) ASC, b.id ASC
     LIMIT ${limit}
   `;
-  return rows.map(mapDayBooking);
+  return rows.map((row) => {
+    const mapped = mapDayBooking(row);
+    return {
+      ...mapped,
+      priceUsd: requireUsd(mapped.price, "ended.priceUsd"),
+      amountDueUsd: requireUsd(mapped.amountDue, "ended.amountDueUsd"),
+    };
+  });
 }

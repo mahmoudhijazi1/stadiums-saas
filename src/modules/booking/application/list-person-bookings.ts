@@ -4,13 +4,13 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
   listPersonBookingRows,
-  type PersonHistoryRow,
+  type PersonGameRow,
 } from "@/modules/booking/infrastructure/bookings";
 
 export const PERSON_BOOKING_PAGE = 20;
 
 export type PersonBookingPage = {
-  rows: PersonHistoryRow[];
+  rows: PersonGameRow[];
   nextCursor: { start: Date; id: string } | null;
 };
 

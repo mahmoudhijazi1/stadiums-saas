@@ -108,6 +108,7 @@ const ARABIC: Record<string, string> = {
   "booking.due_whole_only": "تعديل المبلغ متاح للحجز الكامل فقط.",
   "booking.fee_above_due": "الرسوم لا يمكن أن تكون أكثر من المبلغ المستحق على الحجز.",
   "booking.lbp_not_supported": "الحجوزات بالليرة غير مدعومة هنا بعد.",
+  "booking.no_price_in_currency": "لا يوجد سعر لهذا الوقت بعملة الملعب. أضف السعر في إعدادات الملعب.",
   "booking.due_not_confirmed": "تعديل المبلغ متاح لحجز مؤكد أو ملغى أو لم يحضر فقط.",
   "payment.collect_unapproved": "يمكن التحصيل من حجز مؤكد أو لم يحضر أو ملغى فقط.",
   "payment.nothing_due": "لا يوجد مبلغ مستحق.",
@@ -233,6 +234,7 @@ const ENGLISH: Record<string, string> = {
   "booking.due_whole_only": "Adjusting the due is only available for a whole-game booking.",
   "booking.fee_above_due": "The fee can't be more than what the booking owes.",
   "booking.lbp_not_supported": "LBP games are not supported here yet.",
+  "booking.no_price_in_currency": "This time has no price in the stadium's currency. Add the price in the pitch settings.",
   "booking.due_not_confirmed":
     "Only a confirmed, cancelled, or no-show booking can have its due adjusted.",
   "payment.collect_unapproved": "Only a confirmed, no-show, or cancelled booking can be collected.",

@@ -331,7 +331,7 @@ describe("make weekly and renew", () => {
     const preview = await previewMakeWeekly({ bookingId, count: 4 });
     expect(preview.durationMinutes).toBe(60);
     expect(preview.items.every((item) => item.end.getTime() - item.start.getTime() === 3_600_000)).toBe(true);
-    expect(preview.items.every((item) => item.priceUsd?.equals(30))).toBe(true);
+    expect(preview.items.every((item) => item.price?.currency === "USD" && item.price.amount.equals(30))).toBe(true);
 
     const made = await makeWeekly({ bookingId, count: 4, acceptedStarts: preview.items.map((item) => item.start) });
     expect(made.created).toHaveLength(4);

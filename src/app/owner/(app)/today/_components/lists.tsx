@@ -15,6 +15,7 @@ import type { ExtendOfferView } from "@/modules/booking/ui/extend-form";
 import {
   loadOwnerDay,
   type OwnerDayBooking,
+  type UsdOwnerDayBooking,
 } from "@/modules/booking/application/load-owner-day";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
@@ -69,6 +70,7 @@ import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, su
 import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
 import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
 import { submitExtendBooking } from "@/app/owner/(app)/today/extend-actions";
+import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
 
 export async function OwnerToday({
   membership,
@@ -106,8 +108,12 @@ export async function OwnerToday({
   const mayCancel = can(membership, BOOKINGS_CANCEL);
   const mayNoShow = can(membership, BOOKINGS_NO_SHOW);
   const mayAdjust = can(membership, BOOKINGS_ADJUST_DUE);
-  // "Extend 30 min": a preview per game, empty for a member without bookings.extend.
-  const extensionOffers = await loadExtensionOffers(ownerDay.games, now);
+  // "Extend 30 min": a preview per game, empty for a member without bookings.extend. Never on an LBP
+  // game: extending one is refused until DR-007 slice 8.
+  const extensionOffers = await loadExtensionOffers(
+    ownerDay.games.filter((row): row is UsdOwnerDayBooking => row.currency === "USD"),
+    now,
+  );
   const policy = {
     cancellationWindowHours: tenant.cancellationWindowHours,
     lateCancellationFeePercent: tenant.lateCancellationFeePercent,
@@ -147,7 +153,14 @@ export async function OwnerToday({
   const repeatable = new Set(
     mayCreate
       ? ownerDay.games
-          .filter((row) => row.status === "APPROVED" && row.end.getTime() > now.getTime() && !seriesInfo.has(row.id))
+          // Not an LBP game: "Repeat weekly" reads the source game as money (refused until DR-007 slice 9).
+          .filter(
+            (row) =>
+              row.currency === "USD" &&
+              row.status === "APPROVED" &&
+              row.end.getTime() > now.getTime() &&
+              !seriesInfo.has(row.id),
+          )
           .map((row) => row.id)
       : [],
   );
@@ -355,6 +368,21 @@ function toUpcomingViews(
   seriesInfo: Map<string, SeriesInfo> = new Map(),
 ): UpcomingRowView[] {
   return rows.map((row) => {
+    if (row.currency === "LBP") {
+      return lbpUpcomingView(row, {
+        items: itemsByBooking.get(row.id),
+        itemsPanel: itemsView(row, itemsByBooking.get(row.id), now),
+        now,
+        locale,
+        hourCycle,
+        openWaitlist,
+        stadiumName,
+        showPitch,
+        dayStartHour,
+        extendedMinutes: extendedMinutes.get(row.id) ?? 0,
+        series: seriesInfo.get(row.id),
+      });
+    }
     // The pill, the card state and the owed class count the player tabs too; the Collect amounts
     // below (remainingUsd) stay the booking only.
     const display = deriveCardDisplay({
@@ -516,7 +544,7 @@ function toUpcomingViews(
  * the reason; every other case (ended, not confirmed, per player) has no offer at all.
  */
 function extendView(
-  row: OwnerDayBooking,
+  row: UsdOwnerDayBooking,
   offer: ExtensionOffer | undefined,
   hourCycle: HourCycle,
   locale: UiLocale,

@@ -99,10 +99,20 @@ describe("priceForSlotIn", () => {
 
   it("says there is no price in pounds rather than giving a wrong one", () => {
     expect(lbpAt(config({}), FRIDAY, 18)).toBeNull();
-    // A matching rule with only a USD price: no LBP price for that slot, not the default.
+    // A matching rule with only a USD price is skipped (slice 5): the default in pounds applies,
+    // exactly as priceForSlot skips a rule with only pounds.
     const cfg = config({ defaultPriceLbp: "2000000", priceRules: [{ days: ["fri"], priceUsd: "40.00" }] });
-    expect(lbpAt(cfg, FRIDAY, 18)).toBeNull();
+    expect(lbpAt(cfg, FRIDAY, 18)).toBe("2000000");
     expect(lbpAt(cfg, SATURDAY, 18)).toBe("2000000");
+    // An earlier matching rule in pounds still wins over a later one without pounds.
+    const both = config({
+      defaultPriceLbp: "2000000",
+      priceRules: [{ days: ["fri"], priceLbp: "2500000" }, { days: ["fri"], start: "20:00", end: "22:00", priceUsd: "50.00" }],
+    });
+    expect(lbpAt(both, FRIDAY, 20)).toBe("2500000");
+    // No default in pounds, but a matching rule in pounds: that rule is the price.
+    expect(lbpAt(config({ priceRules: [{ days: ["fri"], priceLbp: "2500000" }] }), FRIDAY, 18)).toBe("2500000");
+    expect(lbpAt(config({ priceRules: [{ days: ["fri"], priceLbp: "2500000" }] }), SATURDAY, 18)).toBeNull();
     expect(defaultPriceIn(config({}), "LBP")).toBeNull();
     expect(defaultPriceIn(config({ defaultPriceLbp: "2000000" }), "LBP")).toEqual({ currency: "LBP", amount: "2000000" });
   });

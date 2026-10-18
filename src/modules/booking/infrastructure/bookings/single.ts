@@ -46,6 +46,36 @@ export async function findBookingForDecision(
   return row ? toBookingForDecision(row) : null;
 }
 
+/** A booking without its money: what a status-only decision (approve, reject) needs. */
+export type BookingStatusRow = {
+  id: string;
+  pitchId: string;
+  status: BookingStatus;
+  start: Date;
+  end: Date;
+};
+
+/**
+ * One booking on this tenant, status and window only. Missing → null. Approve and reject only change
+ * the status, so they read a game here in either currency (DR-007 slice 5); every money-changing use
+ * case keeps `findBookingForDecision` / `findBookingForUpdate`, which refuse an LBP game.
+ */
+export async function findBookingStatus(
+  tx: TenantTx,
+  bookingId: string,
+): Promise<BookingStatusRow | null> {
+  const tenantId = await getCurrentTenantId();
+  const rows = await tx.$queryRaw<{ id: string; pitchId: string; status: BookingStatus; start: Date | string; end: Date | string }[]>`
+    SELECT id, "pitchId", status, lower(during) AS start, upper(during) AS end
+    FROM "Booking"
+    WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
+  `;
+  const row = rows[0];
+  return row
+    ? { id: row.id, pitchId: row.pitchId, status: row.status, start: asDate(row.start), end: asDate(row.end) }
+    : null;
+}
+
 export type BookingRequesterRow = {
   id: string;
   status: BookingStatus;

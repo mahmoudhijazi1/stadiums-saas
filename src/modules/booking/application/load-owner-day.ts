@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
+import { requireUsd } from "@/modules/booking/domain/game-money";
 import db from "@/lib/db";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
@@ -46,22 +47,17 @@ export type OwnerSlot = {
   remainingUsd: Decimal;
 };
 
-export type OwnerDayBooking = {
+/** What every game on Today has, whatever its currency. */
+type OwnerDayGame = {
   id: string;
   status: DayBookingStatus;
   pitchId: string;
   pitchName: string;
   start: Date;
   end: Date;
-  priceUsd: Decimal;
-  amountDueUsd: Decimal;
-  /** The booking only: due minus collected. "Booker pays all remaining" uses this, never the tabs. */
-  remaining: Decimal;
   collectedUsd: Decimal;
   /** Unpaid player tabs (shop items charged to a player). Never part of the booking due. */
   tabsRemainingUsd: Decimal;
-  /** What the game still owes the stadium overall: the booking remaining (not below zero) plus the tabs. */
-  owedUsd: Decimal;
   collectionMode: "WHOLE" | "PER_PLAYER";
   pitchDefaultPlayerCount: number;
   /** Empty on WHOLE. */
@@ -73,6 +69,29 @@ export type OwnerDayBooking = {
   requesterPhone: string | null;
 };
 
+/** A game priced in dollars: every money action works on it, as before. */
+export type UsdOwnerDayBooking = OwnerDayGame & {
+  currency: "USD";
+  priceUsd: Decimal;
+  amountDueUsd: Decimal;
+  /** The booking only: due minus collected. "Booker pays all remaining" uses this, never the tabs. */
+  remaining: Decimal;
+  /** What the game still owes the stadium overall: the booking remaining (not below zero) plus the tabs. */
+  owedUsd: Decimal;
+};
+
+/**
+ * A game priced in pounds (DR-007 slice 5): shown in pounds, never collected yet (slices 6 to 9), so
+ * nothing was paid on it and its due is what is left. Always WHOLE, no player slots.
+ */
+export type LbpOwnerDayBooking = OwnerDayGame & {
+  currency: "LBP";
+  priceLbp: Decimal;
+  amountDueLbp: Decimal;
+};
+
+export type OwnerDayBooking = UsdOwnerDayBooking | LbpOwnerDayBooking;
+
 export type OwnerDay = {
   /** Business date shown (06:00 to 06:00 Beirut). */
   day: CivilDate;
@@ -83,7 +102,8 @@ export type OwnerDay = {
   afterMidnight: boolean;
   summary: DaySummary;
   games: OwnerDayBooking[];
-  toCollect: OwnerDayBooking[];
+  /** USD only: the To collect read refuses an LBP game (an owed reader, DR-007 slice 9). */
+  toCollect: UsdOwnerDayBooking[];
   toCollectHasMore: boolean;
 };
 
@@ -116,7 +136,19 @@ export async function loadOwnerDay(
         ? listEndedWithRemaining(db, now, TO_COLLECT_LIMIT + 1)
         : Promise.resolve([]),
     ]);
-    const summary = summarizeDay(gameRows, now);
+    // The day's USD totals; an LBP game counts as a game but its pounds are not added to dollars
+    // (per-currency totals are DR-007 slice 9). The summary is not shown on any screen.
+    const summary = summarizeDay(
+      gameRows.map((row) => ({
+        status: row.status,
+        start: row.start,
+        end: row.end,
+        amountDueUsd: row.amountDue.currency === "USD" ? row.amountDue.amount : new Decimal(0),
+        collectedUsd: row.collectedUsd,
+        tabsRemainingUsd: row.tabsRemainingUsd,
+      })),
+      now,
+    );
     const slotsByBooking = groupSlots(
       await listSlotsForBookings(
         db,
@@ -137,9 +169,7 @@ export async function loadOwnerDay(
       ),
       toCollect: collectRows
         .slice(0, TO_COLLECT_LIMIT)
-        .map((row) =>
-          toOwnerDayBooking(row, slotsByBooking),
-        ),
+        .map((row) => toUsdOwnerDayBooking(row, slotsByBooking)),
       toCollectHasMore: collectRows.length > TO_COLLECT_LIMIT,
     };
   } catch (error) {
@@ -170,7 +200,38 @@ function toOwnerDayBooking(
   row: DayBookingRow,
   slotsByBooking: Map<string, OwnerSlot[]>,
 ): OwnerDayBooking {
+  if (row.amountDue.currency === "LBP") {
+    // Collecting an LBP game is refused until slice 6, so nothing can have been paid on it in dollars.
+    if (row.collectedUsd.gt(0) || row.collectionMode !== "WHOLE") {
+      throw new DomainError("booking.lbp_not_supported", { where: "owner-day.lbpCollected" });
+    }
+    return {
+      ...gameFields(row, []),
+      currency: "LBP",
+      priceLbp: row.price.amount,
+      amountDueLbp: row.amountDue.amount,
+    };
+  }
+  return toUsdOwnerDayBooking(row, slotsByBooking);
+}
+
+function toUsdOwnerDayBooking(
+  row: DayBookingRow,
+  slotsByBooking: Map<string, OwnerSlot[]>,
+): UsdOwnerDayBooking {
   const slots = slotsByBooking.get(row.id) ?? [];
+  const amountDueUsd = requireUsd(row.amountDue, "owner-day.amountDueUsd");
+  return {
+    ...gameFields(row, slots),
+    currency: "USD",
+    priceUsd: requireUsd(row.price, "owner-day.priceUsd"),
+    amountDueUsd,
+    remaining: bookingRemaining(amountDueUsd, row.collectedUsd),
+    owedUsd: Decimal.max(bookingRemaining(amountDueUsd, row.collectedUsd), 0).plus(row.tabsRemainingUsd),
+  };
+}
+
+function gameFields(row: DayBookingRow, slots: OwnerSlot[]): OwnerDayGame {
   const allocated = slots.reduce((sum, slot) => sum.plus(slot.paidUsd), new Decimal(0));
   return {
     id: row.id,
@@ -179,12 +240,8 @@ function toOwnerDayBooking(
     pitchName: row.pitchName,
     start: row.start,
     end: row.end,
-    priceUsd: row.priceUsd,
-    amountDueUsd: row.amountDueUsd,
-    remaining: bookingRemaining(row.amountDueUsd, row.collectedUsd),
     collectedUsd: row.collectedUsd,
     tabsRemainingUsd: row.tabsRemainingUsd,
-    owedUsd: Decimal.max(bookingRemaining(row.amountDueUsd, row.collectedUsd), 0).plus(row.tabsRemainingUsd),
     collectionMode: row.collectionMode,
     pitchDefaultPlayerCount: row.pitchDefaultPlayerCount,
     slots,

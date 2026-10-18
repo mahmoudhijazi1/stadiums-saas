@@ -167,8 +167,9 @@ export type PriceView = { currency: GamePriceCurrency; amount: string };
  * The price of the slot starting at `slot.start` on `slot.localDate` (the day of the window it came
  * from, as `generateSlotsForDay` takes it) in `currency` (DR-007). Same order as `priceForSlot`: the
  * default, then every matching rule in order, the last one winning. A matching rule with no price in
- * this currency, or no default in it, gives `amount: null` ("no price in this currency"): a screen
- * then shows no price rather than a wrong one. USD prices are exactly `priceForSlot`'s.
+ * this currency is skipped (the default or an earlier rule applies), exactly as `priceForSlot` skips a
+ * rule with only pounds. No price in this currency at all gives `amount: null` ("no price"): a
+ * screen then shows no price and a booking is refused. USD prices are exactly `priceForSlot`'s.
  */
 export function priceForSlotIn(
   config: ScheduleConfig,
@@ -181,8 +182,10 @@ export function priceForSlotIn(
     value === undefined ? null : currency === "USD" ? parseUsd(value) : parseLbp(value);
   let amount = read(currency === "USD" ? config.defaultPriceUsd : config.defaultPriceLbp);
   for (const rule of config.priceRules) {
+    const value = currency === "USD" ? rule.priceUsd : rule.priceLbp;
+    if (value === undefined) continue;
     if (!ruleMatches(rule, windowDay, wall.minutes)) continue;
-    amount = read(currency === "USD" ? rule.priceUsd : rule.priceLbp);
+    amount = read(value);
   }
   return { currency, amount };
 }

@@ -48,10 +48,13 @@ const PILL =
 export function StatusPill({
   display,
   amountUsd,
+  amountText,
   locale,
 }: {
   display: CardDisplay;
   amountUsd: string;
+  /** The amount already written with its currency (an LBP game, DR-007); replaces "$" + amountUsd. */
+  amountText?: string;
   locale: UiLocale;
 }) {
   switch (display.kind) {
@@ -72,6 +75,7 @@ export function StatusPill({
       return (
         <OwedPill
           amountUsd={amountUsd}
+          text={amountText}
           word={ui(display.kind === "partial" ? "owner.leftShort" : "owner.dueShort", locale)}
         />
       );
@@ -88,7 +92,7 @@ export function StatusPill({
           <CircleAlert aria-hidden className="size-4 shrink-0" />
           <span>{ui("owner.noShow", locale)}</span>
           <span aria-hidden>·</span>
-          <LtrIsolate>${amountUsd}</LtrIsolate>
+          <LtrIsolate>{amountText ?? `$${amountUsd}`}</LtrIsolate>
           <span>{ui("owner.dueShort", locale)}</span>
         </span>
       );
@@ -120,12 +124,12 @@ export function ExpectedPill({ amountUsd, word }: { amountUsd: string; word: str
   );
 }
 
-/** Owed token and icon: "$30 due" / "$12 left". */
-export function OwedPill({ amountUsd, word }: { amountUsd: string; word: string }) {
+/** Owed token and icon: "$30 due" / "$12 left"; `text` is an amount already written with its currency. */
+export function OwedPill({ amountUsd, text, word }: { amountUsd: string; text?: string; word: string }) {
   return (
     <span className={cn(PILL, "bg-owed-subtle text-owed")}>
       <CircleAlert aria-hidden className="size-4 shrink-0" />
-      <LtrIsolate>${amountUsd}</LtrIsolate>
+      <LtrIsolate>{text ?? `$${amountUsd}`}</LtrIsolate>
       <span>{word}</span>
     </span>
   );

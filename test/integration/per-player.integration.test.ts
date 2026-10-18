@@ -607,7 +607,9 @@ async function ownerDayFor(bookingId: string) {
   const civil = civilDateInTimeZone(row!.start, TIME_ZONE);
   const param = `${civil.year}-${String(civil.month).padStart(2, "0")}-${String(civil.day).padStart(2, "0")}`;
   const day = await loadOwnerDay(param);
-  return day.games.find((game) => game.id === bookingId);
+  // Every game here is priced in dollars (the USD Today fields; DR-007 slice 5 split the type).
+  const game = day.games.find((row) => row.id === bookingId);
+  return game?.currency === "USD" ? game : undefined;
 }
 
 async function eveningSlot(pitchId: string, daysAhead: number, index = 0) {

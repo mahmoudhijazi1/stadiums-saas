@@ -49,12 +49,15 @@ function moneyTone(row: UpcomingRowView): MoneyTone {
 function DueRemainingFigures({
   paidUsd,
   remainingUsd,
+  amountText,
   tone,
   locale,
   action,
 }: {
   paidUsd: string;
   remainingUsd: string;
+  /** The amount already written with its currency (an LBP game); replaces the dollar figure. */
+  amountText?: string;
   tone: MoneyTone;
   locale: UiLocale;
   action?: ReactNode;
@@ -71,7 +74,7 @@ function DueRemainingFigures({
           )}
         </p>
         <p className={cn("type-strong", TONE_TEXT[tone])}>
-          <LtrIsolate>${tone === "paid" ? paidUsd : remainingUsd}</LtrIsolate>
+          <LtrIsolate>{amountText ?? `$${tone === "paid" ? paidUsd : remainingUsd}`}</LtrIsolate>
         </p>
       </div>
       {action}
@@ -98,6 +101,20 @@ export function MoneyBlock({
   const [mixedOpen, setMixedOpen] = useState(false);
   const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitSwitchToPerPlayer, submitSwitchToWhole } =
     collectActions;
+  // An LBP game (DR-007 slice 5): the due in pounds, no Collect and no split until slices 6 and 7.
+  if (row.lbp) {
+    return (
+      <section className="flex flex-col gap-3">
+        <DueRemainingFigures
+          paidUsd={row.collectedExact}
+          remainingUsd={row.remainingUsd}
+          amountText={row.lbp.due}
+          tone={owesCash(row) ? "owed" : "expected"}
+          locale={locale}
+        />
+      </section>
+    );
+  }
   const canCollect = mayCollect && owesCash(row) && !isPerPlayer(row);
   const splitAdjust = splitAdjustOf(row, mayAdjust);
 

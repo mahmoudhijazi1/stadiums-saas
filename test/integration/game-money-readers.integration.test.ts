@@ -78,10 +78,19 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
     expect((await findBookingForDecision(db, usd.bookingId))?.amountDueUsd.toFixed(2)).toBe("30.00");
   });
 
-  it("the day view of the day the LBP game was played", async () => {
+  it("the day view of the day the LBP game was played returns it with its price and due in LBP (slice 5)", async () => {
     const from = new Date(lbp.start.getTime() - 60 * 60_000);
     const to = new Date(lbp.end.getTime() + 60 * 60_000);
-    await expect(listBookingsForStartDay(db, from, to)).rejects.toMatchObject(LBP_REFUSED);
+    const rows = await listBookingsForStartDay(db, from, to);
+    const row = rows.find((item) => item.id === lbp.bookingId);
+    expect(row?.price.currency).toBe("LBP");
+    expect(row?.price.amount.toFixed(0)).toBe("2000000");
+    expect(row?.amountDue.currency).toBe("LBP");
+    expect(row?.amountDue.amount.toFixed(0)).toBe("2000000");
+    // The stored row: the currency is LBP and the USD columns are null.
+    const stored = await platformDb.booking.findUniqueOrThrow({ where: { id: lbp.bookingId } });
+    expect([stored.priceCurrency, stored.priceUsd, stored.amountDueUsd]).toEqual(["LBP", null, null]);
+    expect(stored.priceLbp?.toFixed(0)).toBe("2000000");
   });
 
   it("Today's earlier debts (ended games with money left): a USD total never leaves the LBP game out", async () => {
@@ -99,10 +108,19 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
     expect(rows.map((row) => row.amountDueUsd.toFixed(2))).toEqual(["30.00"]);
   });
 
-  it("the person page history (both pages) and stats: refused for the LBP player; per person by design otherwise", async () => {
-    await expect(listPersonBookingRows(db, lbp.personId, null, 10)).rejects.toMatchObject(LBP_REFUSED);
+  it("the person page history (both pages) returns the LBP game in pounds (slice 5); stats still refuse it; per person by design otherwise", async () => {
+    const first = await listPersonBookingRows(db, lbp.personId, null, 10);
     const cursor = { start: new Date(Date.now() + 86_400_000), id: "zzz" };
-    await expect(listPersonBookingRows(db, lbp.personId, cursor, 10)).rejects.toMatchObject(LBP_REFUSED);
+    const second = await listPersonBookingRows(db, lbp.personId, cursor, 10);
+    for (const rows of [first, second]) {
+      expect(rows.map((row) => row.id)).toEqual([lbp.bookingId]);
+      const row = rows[0]!;
+      expect([row.price.currency, row.price.amount.toFixed(0)]).toEqual(["LBP", "2000000"]);
+      expect([row.amountDue.currency, row.amountDue.amount.toFixed(0)]).toEqual(["LBP", "2000000"]);
+      expect([row.participantDue.currency, row.participantDue.amount.toFixed(0)]).toEqual(["LBP", "2000000"]);
+      expect([row.collected.currency, row.collected.amount.toFixed(0)]).toEqual(["LBP", "0"]);
+    }
+    // The stats reader is an owed total: it changes in the next slice.
     await expect(listPersonStatRows(db, lbp.personId)).rejects.toMatchObject(LBP_REFUSED);
     // Only this person's games are read, and none of them is in LBP: unchanged.
     expect((await listPersonStatRows(db, usd.personId)).map((row) => row.amountDueUsd.toFixed(2))).toEqual(["30.00"]);
