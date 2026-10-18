@@ -9,7 +9,7 @@ describe("parseLedgerPeriodQuery", () => {
       from: "2026-07-01",
       to: "2026-07-31",
       filter: "all",
-      view: "usd",
+      view: undefined,
       displayRate: undefined,
     });
   });
@@ -19,7 +19,7 @@ describe("parseLedgerPeriodQuery", () => {
       from: undefined,
       to: undefined,
       filter: "all",
-      view: "usd",
+      view: undefined,
       displayRate: undefined,
     });
   });
@@ -52,7 +52,7 @@ describe("parseLedgerPeriodQuery", () => {
       from: "2026-07-01",
       to: "2026-07-31",
       filter: "all",
-      view: "usd",
+      view: undefined,
       displayRate: undefined,
     });
   });

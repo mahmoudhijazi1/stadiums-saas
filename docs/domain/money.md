@@ -150,3 +150,11 @@ What it is not: it is a count of notes for one business day, never a value, neve
 4. **Never recompute an old tender.** Rates are frozen (M6). Report totals from the ledger, not from tenders times today's rate.
 5. **Round once, half-up, to cents** (`usdEquivalent`, `splitEvenly`). Never round a sum of already-rounded parts again.
 6. **Test with real Decimals** and run `npm run test:integration` (the money-races, per-player, booking-money and fees suites). Add a reconciliation assertion (Σ ledger = Σ tenders per source; see `test/integration/invariants.ts`).
+
+## The Money page in pounds (DR-007)
+
+The $ / LBP toggle on Money is not one conversion of the dollar ledger. The **USD view** reads the ledger exactly as it always did. The **LBP view** counts each payment at its own value (`payment/application/summarize-lbp-period.ts`, `payment/domain/lbp-period.ts`): an LBP tender counts its amount; a USD tender counts amount x the `rateAtTime` stored on it; a USD tender with no stored rate is counted at the display rate (the current rate, or the typed `displayRate`) and reported in `unrated`, which the page shows under the headline figure. In is BOOKING and SALE payments, Out is EXPENSE payments, Profit is In minus Out, the comparison uses the same method for the previous period, and the shop card shows the SALE payments in pounds.
+
+The period is the one the ledger uses: a BOOKING or SALE payment by `Payment.createdAt` (its ledger row is written in the same transaction, within milliseconds), an EXPENSE payment by `Expense.occurredAt`, the business date its ledger row carries (an expense has exactly one payment). A payment dated by its entry time would put a back-dated expense in a different period from its ledger row. The read is `sumTendersInLbpBySource` (`payment/infrastructure/lbp-period.ts`).
+
+With no `view` in the URL the page opens on the stadium's `gamePriceCurrency` (`withDefaultView`); an explicit `?view=` wins. Recent activity rows (both views) show what was kept, from the tenders of the payment behind the row (`payment/domain/entry-payments.ts`: the payment of the row's source made closest to its time; an expense needs no time match): "+$20", "+2,000,000 LBP" or both parts, "−" for an expense, never added across currencies. A row with no payment behind it falls back to the ledger's dollars.

@@ -7,6 +7,7 @@ import { formatUsdCompact } from "@/lib/format/money";
 import { groupDigits } from "@/lib/format/money";
 import { comparisonLine, profitHeadline, ui } from "@/lib/copy";
 import type { LedgerPeriodSummary } from "@/modules/ledger/application/summarize-ledger-period";
+import type { LbpPeriodSummary } from "@/modules/payment/application/summarize-lbp-period";
 import { isCalendarMonth, previousRange, type PeriodKind } from "@/modules/ledger/domain/period";
 import { usdToDisplayLbp } from "@/modules/ledger/domain/totals";
 import { sourceName } from "@/app/owner/(app)/money/_components/activity-map";
@@ -41,6 +42,7 @@ export function SummaryCard({
   kind,
   view,
   lbpPerUsd,
+  lbp,
   locale,
 }: {
   summary: LedgerPeriodSummary;
@@ -48,29 +50,47 @@ export function SummaryCard({
   view: "usd" | "lbp";
   /** The rate used when the LBP view is on; null shows dollars. */
   lbpPerUsd: Decimal | null;
+  /** The LBP view's figures, each payment at its own value; when set (and view is lbp) they replace the dollars. */
+  lbp?: LbpPeriodSummary | null;
   locale: UiLocale;
 }) {
   const range = { from: summary.from, to: summary.to };
-  const loss = summary.netUsd.isNegative();
+  const pounds = view === "lbp" && lbp ? lbp : null;
+  const loss = (pounds ? pounds.netLbp : summary.netUsd).isNegative();
   const chip = periodChipLabel(kind, range, locale);
   const name = kind === "custom" && !isCalendarMonth(range) ? rangeLabel(range, locale) : chip;
   const conversion = view === "lbp" ? lbpPerUsd : null;
   const customRange = kind === "custom" ? { from: summary.from, to: summary.to } : {};
 
   const previous = summary.previous;
-  const delta = previous && showsComparison(summary) ? summary.netUsd.minus(previous.netUsd) : null;
+  const delta = pounds
+    ? pounds.previous && pounds.previous.payments > 0
+      ? pounds.netLbp.minus(pounds.previous.netLbp)
+      : null
+    : previous && showsComparison(summary)
+      ? summary.netUsd.minus(previous.netUsd)
+      : null;
+  const text = (value: Decimal) => (pounds ? `${groupDigits(value.abs())} LBP` : amountText(value, conversion));
   const against = comparedWithLabel(range, previousRange(range), locale);
-  const sources = inSourceParts(summary);
+  const sources = pounds
+    ? pounds.inBySource.filter((source) => source.lbp.gt(0)).map((source) => ({ sourceType: source.sourceType, usd: source.lbp }))
+    : inSourceParts(summary);
 
   return (
     <section className="flex flex-col gap-2 rounded-xl border bg-card p-4">
       <p className="type-section">{profitHeadline(kind, name, loss, locale)}</p>
-      <Figure className="block text-4xl">{amountText(summary.netUsd, conversion)}</Figure>
+      <Figure className="block text-4xl">{text(pounds ? pounds.netLbp : summary.netUsd)}</Figure>
+      {pounds ? (
+        <p className="type-caption text-muted-foreground">
+          {ui("owner.lbpAtDayRate", locale)}
+          {pounds.unrated > 0 ? ` · ${ui("owner.lbpUnrated", locale).replace("{n}", String(pounds.unrated))}` : ""}
+        </p>
+      ) : null}
       {delta ? (
         <p className="type-secondary">
           {comparisonLine(
             delta.isZero() ? "same" : delta.isPositive() ? "up" : "down",
-            amountText(delta, conversion),
+            text(delta),
             against,
             locale,
           )}
@@ -83,7 +103,7 @@ export function SummaryCard({
           className="inline-flex min-h-11 items-center gap-1 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <span>{ui("owner.in", locale)}</span>
-          <LtrIsolate className="type-strong text-paid">{amountText(summary.inUsd, conversion)}</LtrIsolate>
+          <LtrIsolate className="type-strong text-paid">{text(pounds ? pounds.inLbp : summary.inUsd)}</LtrIsolate>
         </Link>
         <span aria-hidden className="inline-flex items-center">
           ·
@@ -93,7 +113,7 @@ export function SummaryCard({
           className="inline-flex min-h-11 items-center gap-1 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <span>{ui("owner.out", locale)}</span>
-          <LtrIsolate className="type-strong">{amountText(summary.outUsd, conversion)}</LtrIsolate>
+          <LtrIsolate className="type-strong">{text(pounds ? pounds.outLbp : summary.outUsd)}</LtrIsolate>
         </Link>
       </p>
 
@@ -102,7 +122,7 @@ export function SummaryCard({
           {sources.map((source, index) => (
             <span key={source.sourceType}>
               {index > 0 ? <span aria-hidden> · </span> : null}
-              {sourceName(source.sourceType, locale)} <LtrIsolate>{amountText(source.usd, conversion)}</LtrIsolate>
+              {sourceName(source.sourceType, locale)} <LtrIsolate>{text(source.usd)}</LtrIsolate>
             </span>
           ))}
         </p>

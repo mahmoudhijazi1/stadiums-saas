@@ -1,5 +1,7 @@
 import Decimal from "decimal.js";
 import { formatDisplayDate } from "@/lib/format/time";
+import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
+import type { KeptPart } from "@/modules/payment/domain/entry-payments";
 import type { UiLocale } from "@/lib/locale";
 import { shopActivityLabel, ui } from "@/lib/copy";
 import type { BookingLabel } from "@/modules/booking/application/list-booking-labels";
@@ -31,6 +33,8 @@ export type ActivityRowView = {
   id: string;
   direction: "IN" | "OUT";
   amountUsd: string;
+  /** What was kept, in the currency it was paid in: "+$20", "+2,000,000 LBP", "+$20 + 1,500,000 LBP". */
+  amountText: string;
   occurredAt: string;
   /** Beirut calendar day, `YYYY-MM-DD`. */
   day: string;
@@ -49,6 +53,8 @@ export type ActivityContext = {
   bookings: ReadonlyMap<string, BookingLabel>;
   expenses: ReadonlyMap<string, ExpenseDetail>;
   sales: ReadonlyMap<string, SaleDetail>;
+  /** The tenders behind each ledger row (by entry id); a row without them shows the ledger's dollars. */
+  kept?: ReadonlyMap<string, readonly KeptPart[]>;
 };
 
 type Parts = Pick<ActivityRowView, "label" | "secondary" | "icon" | "open">;
@@ -166,6 +172,7 @@ export function mapActivityEntry(entry: LedgerEntryRow, context: ActivityContext
     id: entry.id,
     direction: entry.direction,
     amountUsd: entry.amountUsd.toFixed(2),
+    amountText: keptText(entry.direction, context.kept?.get(entry.id), entry.amountUsd.toFixed(2), locale),
     occurredAt: entry.occurredAt.toISOString(),
     day: formatCivilDate(civilDateInTimeZone(entry.occurredAt, TZ)),
     ...mapper(entry, context, locale),
@@ -195,6 +202,23 @@ export function groupByDay(rows: readonly ActivityRowView[]): { day: string; row
     else groups.push({ day: row.day, rows: [row] });
   }
   return groups;
+}
+
+/**
+ * The row's main amount: what the payment kept, each currency as the owner handed it, never added
+ * across currencies; a minus for money out. Without tenders, the ledger's dollars.
+ */
+export function keptText(
+  direction: "IN" | "OUT",
+  parts: readonly KeptPart[] | undefined,
+  amountUsd: string,
+  locale: UiLocale,
+): string {
+  if (!parts || parts.length === 0) return signedAmount(direction, amountUsd);
+  const text = parts
+    .map((part) => (part.currency === "USD" ? formatUsdAmount(part.amount) : formatLbpAmount(part.amount, locale)))
+    .join(" + ");
+  return `${direction === "IN" ? "+" : "−"}${text}`;
 }
 
 export function signedAmount(direction: "IN" | "OUT", amountUsd: string): string {

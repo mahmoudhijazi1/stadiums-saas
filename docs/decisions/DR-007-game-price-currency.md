@@ -204,6 +204,13 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    `PaymentAllocation.amountLbp`. Totals are per currency and never added (decision 11). `requireUsd`
    remains only in the money-writing paths (and the fee state behind the cancel and no-show WhatsApp
    texts, with fees in slice 8).
+   **The Money page: done** (progress.md, 2026-10-19). It opens on the stadium's `gamePriceCurrency` when
+   the URL has no `view` (an explicit `?view=` wins). In the LBP view, In, Out, Profit, the comparison
+   and the shop card come from `summarizeLbpPeriod`: each payment at its own value (an LBP tender is its
+   amount; a USD tender is amount x the `rateAtTime` stored on it; one with no stored rate is counted at
+   the display rate and the page says how many). The period is the ledger's: an expense by
+   `Expense.occurredAt`, a booking or sale payment by `Payment.createdAt`. The USD view still reads the
+   ledger. Recent activity rows (both views) show what was kept in the currency it was paid in.
 10. "Keep it".
 
 ## The unit lives in one place

@@ -32,12 +32,23 @@ export function readPeriodQuery(params: {
         filter: "all",
         from: undefined,
         to: undefined,
-        view: "usd",
+        view: undefined,
         displayRate: undefined,
       };
     }
     throw error;
   }
+}
+
+/** The URL state with the view settled: `view` is always "usd" or "lbp". */
+export type ResolvedPeriodQuery = LedgerPeriodQuery & { view: "usd" | "lbp" };
+
+/**
+ * The view the page opens on (DR-007): an explicit `?view=` wins; with none, the stadium's own
+ * currency (a stadium that prices games in pounds opens on LBP).
+ */
+export function withDefaultView(query: LedgerPeriodQuery, gamePriceCurrency: "USD" | "LBP"): ResolvedPeriodQuery {
+  return { ...query, view: query.view ?? (gamePriceCurrency === "LBP" ? "lbp" : "usd") };
 }
 
 /** The period the URL names: a from/to pair is "custom", otherwise a named period, this month by default. */

@@ -8,7 +8,8 @@ import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-ca
 import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-period";
 import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
-import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
+import type { ResolvedPeriodQuery } from "@/app/owner/(app)/money/_components/period-url";
+import { summarizeLbpPeriod } from "@/modules/payment/application/summarize-lbp-period";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import Link from "next/link";
 import { CircleAlert, ChevronRight } from "lucide-react";
@@ -56,7 +57,7 @@ export async function OwnerMoney({
   locale = "ar",
 }: {
   membership: CurrentMembership;
-  periodQuery: LedgerPeriodQuery;
+  periodQuery: ResolvedPeriodQuery;
   kind: PeriodKind;
   range: CivilRange;
   today: string;
@@ -92,6 +93,12 @@ export async function OwnerMoney({
     : [null, null];
   const typedDisplayRate = periodQuery.displayRate ? parseLbp(periodQuery.displayRate) : null;
   const displayRate = typedDisplayRate ?? rate;
+  // The LBP view counts each payment at its own value (DR-007); a USD tender with no stored rate is
+  // counted at the display rate. The USD view reads the ledger exactly as before.
+  const lbp =
+    mayViewReports && periodQuery.view === "lbp"
+      ? await summarizeLbpPeriod({ from: range.from, to: range.to, compare: true, fallbackRate: displayRate })
+      : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -102,7 +109,7 @@ export async function OwnerMoney({
             from={summary.from}
             to={summary.to}
             view={periodQuery.view}
-            rateKnown={displayRate !== null}
+            rateKnown={displayRate !== null || periodQuery.view === "lbp"}
             locale={locale}
           />
           <SummaryCard
@@ -110,6 +117,7 @@ export async function OwnerMoney({
             kind={kind}
             view={periodQuery.view}
             lbpPerUsd={displayRate}
+            lbp={lbp}
             locale={locale}
           />
         </div>
@@ -182,7 +190,7 @@ export async function OwnerMoney({
       ) : null}
 
       {shop && supplies && showsShopRow(shop.items.length, supplies) ? (
-        <ShopRow salesUsd={shop.salesUsd} kind={kind} range={range} view={periodQuery.view} locale={locale} />
+        <ShopRow salesUsd={shop.salesUsd} salesLbp={lbp ? lbp.salesLbp : undefined} kind={kind} range={range} view={periodQuery.view} locale={locale} />
       ) : null}
     </div>
   );

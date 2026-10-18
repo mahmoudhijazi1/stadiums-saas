@@ -68,8 +68,8 @@ describe("In split by source", () => {
 
 describe("links keep the period and open the right filter", () => {
   it("In and Out open the activity page filtered, for the default month", () => {
-    expect(activityHref({ period: "month", view: "usd", filter: "in" })).toBe("/owner/money/activity?filter=in");
-    expect(activityHref({ period: "month", view: "usd", filter: "out" })).toBe("/owner/money/activity?filter=out");
+    expect(activityHref({ period: "month", view: "usd", filter: "in" })).toBe("/owner/money/activity?view=usd&filter=in");
+    expect(activityHref({ period: "month", view: "usd", filter: "out" })).toBe("/owner/money/activity?view=usd&filter=out");
   });
 
   it("keeps a named period, the view and a custom range", () => {
@@ -81,12 +81,12 @@ describe("links keep the period and open the right filter", () => {
 
   it("the unfiltered activity page and the shop page keep the period too", () => {
     expect(activityHref({ period: "month" })).toBe("/owner/money/activity");
-    expect(shopHref({ period: "last", view: "usd" })).toBe("/owner/money/shop?period=last");
+    expect(shopHref({ period: "last", view: "usd" })).toBe("/owner/money/shop?period=last&view=usd");
     expect(shopHref({ from: "2026-10-01", to: "2026-10-31" })).toBe("/owner/money/shop?from=2026-10-01&to=2026-10-31");
   });
 
   it("Money itself is unchanged", () => {
-    expect(moneyHref({ period: "month", view: "usd" })).toBe("/owner/money");
+    expect(moneyHref({ period: "month", view: "usd" })).toBe("/owner/money?view=usd");
     expect(moneyHref({ period: "week", view: "lbp" })).toBe("/owner/money?period=week&view=lbp");
   });
 });

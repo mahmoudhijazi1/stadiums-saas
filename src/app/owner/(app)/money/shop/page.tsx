@@ -10,7 +10,8 @@ import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-category";
 import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-period";
 import { periodChipLabel } from "@/modules/ledger/ui/period-label";
-import { readPeriodQuery, resolvePeriod } from "@/app/owner/(app)/money/_components/period-url";
+import { readPeriodQuery, resolvePeriod, withDefaultView } from "@/app/owner/(app)/money/_components/period-url";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { moneyHref } from "../query";
 
 /**
@@ -27,7 +28,7 @@ export default async function MoneyShopPage({ searchParams }: { searchParams: Pr
     return <EmptyState title={ui("empty.noReports", locale)} next={ui("empty.noReportsNext", locale)} />;
   }
 
-  const periodQuery = readPeriodQuery(params);
+  const periodQuery = withDefaultView(readPeriodQuery(params), (await getCurrentTenant()).gamePriceCurrency);
   const { kind, range } = resolvePeriod(periodQuery, new Date());
   const [shop, supplies] = await Promise.all([
     summarizeShopPeriod(range),
