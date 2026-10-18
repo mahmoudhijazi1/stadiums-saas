@@ -12,12 +12,12 @@ import { planShareCharge, type ShareSlot } from "@/modules/booking/domain/share-
 import { planSlotCharge } from "@/modules/booking/domain/slot-charge";
 import { assertCanPaySlot } from "@/modules/booking/domain/switch-mode";
 import {
-  findGameForCollect,
+  findBookingForUpdate,
   insertBookingSettlement,
   listSlotsForBookings,
   sumSettledLbp,
   usdSlots,
-  type GameForCollect,
+  type BookingForDecision,
   type SlotRow,
 } from "@/modules/booking/infrastructure/bookings";
 import { recordPayment } from "@/modules/payment/application/record-payment";
@@ -59,7 +59,7 @@ async function payRemaining(input: {
   tenders?: TenderDraft[];
 }): Promise<Paid> {
   return db.$transaction(async (tx) => {
-    const booking = await findGameForCollect(tx, input.bookingId);
+    const booking = await findBookingForUpdate(tx, input.bookingId);
     if (!booking) throw new DomainError("booking.not_found");
 
     const slotRows = await listSlotsForBookings(tx, [booking.id]);
@@ -75,7 +75,7 @@ async function payRemaining(input: {
   });
 }
 
-async function payInDollars(tx: TenantTx, booking: GameForCollect, chosen: SlotRow[]): Promise<Paid> {
+async function payInDollars(tx: TenantTx, booking: BookingForDecision, chosen: SlotRow[]): Promise<Paid> {
   const amountDueUsd = booking.due.amount;
   const charge = planSlotCharge({
     amountDueUsd,
@@ -109,7 +109,7 @@ async function payInDollars(tx: TenantTx, booking: GameForCollect, chosen: SlotR
 
 async function payInPounds(
   tx: TenantTx,
-  booking: GameForCollect,
+  booking: BookingForDecision,
   chosen: SlotRow[],
   tenders: TenderDraft[] | undefined,
 ): Promise<Paid> {

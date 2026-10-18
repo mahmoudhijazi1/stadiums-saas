@@ -1,22 +1,30 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
+import { LBP_UNIT_VALUE } from "@/lib/format/lbp-unit";
 import type { TenderCurrency } from "@/modules/payment/domain/collect";
 
 /**
- * Money units for game prices (DR-007 decision 7): $1 and 5,000 LBP. Pure, no caller yet.
+ * Money units for game prices (DR-007 decision 7): $1 and the LBP unit (`lib/format/lbp-unit.ts`, the one
+ * place its number is written). Pure.
  * Amounts are Decimal, like `collect.ts` and the shop's `pricing.ts`: USD in dollars (cents allowed),
  * LBP in whole pounds. Nothing here is a float.
  */
 
-const LBP_UNIT = new Decimal(5000);
+const LBP_UNIT = new Decimal(LBP_UNIT_VALUE);
 const USD_UNIT = new Decimal(1);
 
-/** The smallest amount a game is priced, split or rounded in: $1.00 or 5,000 LBP. */
+/** The smallest amount a game is priced, split or rounded in: $1.00 or one LBP unit. */
 export function moneyUnit(currency: TenderCurrency): Decimal {
   return currency === "USD" ? USD_UNIT : LBP_UNIT;
 }
 
-/** The nearest whole unit, half up: 2,500 LBP -> 5,000; $0.50 -> $1. */
+/**
+ * "Consider it paid" is offered when what is left is under this many pounds: one LBP unit. The one
+ * name of that threshold; `isForgivable` and the copy that explains it ({unit}) both come from here.
+ */
+export const FORGIVE_BELOW_LBP = moneyUnit("LBP");
+
+/** The nearest whole unit, half up: half a unit rounds up to a whole one ($0.50 -> $1). */
 export function roundToUnit(amount: Decimal, currency: TenderCurrency): Decimal {
   const unit = moneyUnit(currency);
   return amount.div(unit).toDecimalPlaces(0, Decimal.ROUND_HALF_UP).times(unit);
@@ -58,7 +66,7 @@ export function splitInUnits(total: Decimal, count: number, currency: TenderCurr
 }
 
 /**
- * What to say out loud: pounds rounded UP to the next 5,000 (537,000 -> 540,000; 540,000 stays).
+ * What to say out loud: pounds rounded UP to the next unit (537,000 -> 540,000 at 5,000; 540,000 stays).
  * Up, so the owner never loses by quoting it. Display only: never record it.
  */
 export function friendlyLbp(amountLbp: Decimal): Decimal {
@@ -67,13 +75,13 @@ export function friendlyLbp(amountLbp: Decimal): Decimal {
 
 /**
  * May the owner mark what is left as paid in one tap ("Consider it paid", reason ROUNDING)?
- * LBP: more than 0 and under 5,000. USD: more than 0 and worth under 5,000 LBP at `rate`; without a
+ * LBP: more than 0 and under `FORGIVE_BELOW_LBP`. USD: more than 0 and worth under it at `rate`; without a
  * rate there is no way to tell, so no. The conversion is the shop's `usdToLbp` (whole pounds, half
  * up); it is repeated here because `payment` may not import `shop` (test/architecture/rules.ts).
  */
 export function isForgivable(remaining: Decimal, currency: TenderCurrency, rate: Decimal | null): boolean {
   if (remaining.lte(0)) return false;
-  if (currency === "LBP") return remaining.lt(LBP_UNIT);
+  if (currency === "LBP") return remaining.lt(FORGIVE_BELOW_LBP);
   if (!rate || rate.lte(0)) return false;
-  return remaining.times(rate).toDecimalPlaces(0, Decimal.ROUND_HALF_UP).lt(LBP_UNIT);
+  return remaining.times(rate).toDecimalPlaces(0, Decimal.ROUND_HALF_UP).lt(FORGIVE_BELOW_LBP);
 }

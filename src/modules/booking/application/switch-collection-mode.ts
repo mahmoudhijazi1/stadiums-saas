@@ -14,7 +14,7 @@ import {
   applyPerPlayerSlots,
   applyWholeMode,
   countBookingAllocations,
-  findGameForCollect,
+  findBookingForUpdate,
   findRequesterPersonId,
 } from "@/modules/booking/infrastructure/bookings";
 
@@ -45,7 +45,7 @@ export async function switchToPerPlayer(input: {
 
   try {
     await db.$transaction(async (tx) => {
-      const booking = await findGameForCollect(tx, input.bookingId);
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) throw new DomainError("booking.not_found");
 
       assertCanSwitchToPerPlayer({
@@ -79,7 +79,7 @@ export async function switchToWhole(input: { bookingId: string }): Promise<void>
 
   try {
     await db.$transaction(async (tx) => {
-      const booking = await findGameForCollect(tx, input.bookingId);
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) throw new DomainError("booking.not_found");
 
       assertCanSwitchToWhole({

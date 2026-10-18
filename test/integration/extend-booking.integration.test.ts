@@ -116,7 +116,7 @@ describe("the basic extension", () => {
     const result = await extend(bookingId, slot.end);
 
     expect(result.newEnd.getTime()).toBe(slot.endAt.getTime() + THIRTY);
-    expect(result.addedPriceUsd.toFixed(2)).toBe("15.00");
+    expect(result.addedPrice.toFixed(2)).toBe("15.00");
     const row = await rangeOf(bookingId);
     expect(row.end.getTime()).toBe(slot.endAt.getTime() + THIRTY);
     expect(row.start.toISOString()).toBe(slot.start);
@@ -160,7 +160,7 @@ describe("the basic extension", () => {
   it("an owner may change the added amount; the price and the due rise by that amount", async () => {
     const { bookingId, slot } = await bookGame(3, 0);
     const result = await extend(bookingId, slot.end, new Decimal("20.00"));
-    expect(result.addedPriceUsd.toFixed(2)).toBe("20.00");
+    expect(result.addedPrice.toFixed(2)).toBe("20.00");
     const row = await rangeOf(bookingId);
     expect(row.priceUsd).toBe("50.00");
     expect(row.amountDueUsd).toBe("50.00");
@@ -301,7 +301,7 @@ describe("who may extend", () => {
     const token = await createStaffSession(fixture.tenantId, { "bookings.extend": true, "bookings.adjust_due": true });
     actAs(fixture.tenantSlug, token);
     const result = await extend(bookingId, slot.end, new Decimal("5.00"));
-    expect(result.addedPriceUsd.toFixed(2)).toBe("5.00");
+    expect(result.addedPrice.toFixed(2)).toBe("5.00");
   });
 
   it("an unauthenticated call is refused", async () => {
@@ -331,7 +331,7 @@ describe("who may extend", () => {
       pitchId: fixture.pitchId,
       start: row.start,
       end: row.end,
-      priceUsd: new Decimal(row.priceUsd),
+      price: { currency: "USD" as const, amount: new Decimal(row.priceUsd) },
       collectionMode: "WHOLE" as const,
     };
     const plain = await createStaffSession(fixture.tenantId, {});
@@ -358,7 +358,7 @@ describe("pending requests in the added time", () => {
         pitchId: fixture.pitchId,
         start: row.start,
         end: row.end,
-        priceUsd: new Decimal(row.priceUsd),
+        price: { currency: "USD" as const, amount: new Decimal(row.priceUsd) },
         collectionMode: "WHOLE",
       },
     ]);
@@ -387,7 +387,7 @@ describe("the exclusion constraint is the backstop", () => {
         setBookingEndAndPrice(tx, {
           bookingId,
           newEnd: new Date(slot.endAt.getTime() + THIRTY),
-          priceUsd: new Decimal("45.00"),
+          price: { currency: "USD", amount: new Decimal("45.00") },
         }),
       )
       .then(

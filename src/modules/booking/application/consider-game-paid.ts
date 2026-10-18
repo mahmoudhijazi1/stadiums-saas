@@ -6,15 +6,10 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import { assertDueAdjustableStatus, forgivenDue } from "@/modules/booking/domain/adjust-due";
+import { collectedOn } from "@/modules/booking/application/game-collected";
 import { writeDueIfChanged } from "@/modules/booking/application/write-due-change";
-import {
-  findGameForCollect,
-  insertBookingDueChangeLbp,
-  setBookingAmountDueLbp,
-  sumSettledLbp,
-} from "@/modules/booking/infrastructure/bookings";
+import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings";
 import { bookingRemaining } from "@/modules/payment/domain/collect";
-import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 
 /**
@@ -33,47 +28,27 @@ export async function considerGamePaid(input: { bookingId: string }): Promise<vo
 
   try {
     await db.$transaction(async (tx) => {
-      const game = await findGameForCollect(tx, input.bookingId);
+      const game = await findBookingForUpdate(tx, input.bookingId);
       if (!game) {
         throw new DomainError("booking.not_found");
       }
       assertDueAdjustableStatus(game.status);
       const rate = await findLatestExchangeRate(tx);
 
-      if (game.due.currency === "LBP") {
-        const settled = await sumSettledLbp(tx, game.id);
-        const toLbp = forgivenDue({
-          due: game.due.amount,
-          remaining: bookingRemaining(game.due.amount, settled),
-          currency: "LBP",
-          rate,
-          collectionMode: game.collectionMode,
-        });
-        await setBookingAmountDueLbp(tx, game.id, toLbp);
-        await insertBookingDueChangeLbp(tx, {
-          bookingId: game.id,
-          fromLbp: game.due.amount,
-          toLbp,
-          reason: "ROUNDING",
-          note: null,
-          actorMembershipId: membership.membershipId,
-        });
-        return;
-      }
-
-      const collected = await sumCollectedUsd(tx, "BOOKING", game.id);
-      const toUsd = forgivenDue({
+      const collected = await collectedOn(tx, game);
+      const to = forgivenDue({
         due: game.due.amount,
         remaining: bookingRemaining(game.due.amount, collected),
-        currency: "USD",
+        currency: game.due.currency,
         rate,
         collectionMode: game.collectionMode,
       });
       await writeDueIfChanged(tx, {
         bookingId: game.id,
-        fromUsd: game.due.amount,
-        toUsd,
-        collectedUsd: collected,
+        currency: game.due.currency,
+        from: game.due.amount,
+        to,
+        collected,
         collectionMode: game.collectionMode,
         reason: "ROUNDING",
         note: null,

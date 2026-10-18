@@ -1,4 +1,5 @@
 import type { UiLocale } from "@/lib/locale";
+import { withUnit } from "./unit-text";
 
 /**
  * Arabic copy for DomainError keys (DR-005). Keys stay (DR-004); next-intl later.
@@ -108,7 +109,8 @@ const ARABIC: Record<string, string> = {
   "booking.due_whole_only": "تعديل المبلغ متاح للحجز الكامل فقط.",
   "booking.fee_above_due": "الرسوم لا يمكن أن تكون أكثر من المبلغ المستحق على الحجز.",
   "booking.lbp_not_supported": "الحجوزات بالليرة غير مدعومة هنا بعد.",
-  "booking.not_forgivable": "المتبقي 5,000 ل.ل أو أكثر، لا يمكن اعتباره مدفوعاً.",
+  "booking.not_forgivable": "المتبقي {unit} أو أكثر، لا يمكن اعتباره مدفوعاً.",
+  "booking.fee_unit": "الرسوم بالليرة يجب أن تكون من مضاعفات {unit}.",
   "booking.no_price_in_currency": "لا يوجد سعر لهذا الوقت بعملة الملعب. أضف السعر في إعدادات الملعب.",
   "booking.due_not_confirmed": "تعديل المبلغ متاح لحجز مؤكد أو ملغى أو لم يحضر فقط.",
   "payment.collect_unapproved": "يمكن التحصيل من حجز مؤكد أو لم يحضر أو ملغى فقط.",
@@ -125,7 +127,7 @@ const ARABIC: Record<string, string> = {
     "هناك طلب معلّق في ساعات ستُحذف. أكّد للحفظ دون رفض الطلب.",
   "venue.hours_day_overlap": "لا يمكن وضع نفس اليوم في مجموعتي ساعات.",
   "venue.lbp_price_required": "الملعب يسعّر المباريات بالليرة: اكتب سعر المباراة بالليرة.",
-  "venue.lbp_price_unit": "السعر بالليرة يجب أن يكون أكثر من صفر ومن مضاعفات 5,000.",
+  "venue.lbp_price_unit": "السعر بالليرة يجب أن يكون أكثر من صفر ومن مضاعفات {unit}.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -235,7 +237,8 @@ const ENGLISH: Record<string, string> = {
   "booking.due_whole_only": "Adjusting the due is only available for a whole-game booking.",
   "booking.fee_above_due": "The fee can't be more than what the booking owes.",
   "booking.lbp_not_supported": "LBP games are not supported here yet.",
-  "booking.not_forgivable": "What is left is 5,000 LBP or more, so it can't be considered paid.",
+  "booking.not_forgivable": "What is left is {unit} or more, so it can't be considered paid.",
+  "booking.fee_unit": "A fee in pounds must be a multiple of {unit}.",
   "booking.no_price_in_currency": "This time has no price in the stadium's currency. Add the price in the pitch settings.",
   "booking.due_not_confirmed":
     "Only a confirmed, cancelled, or no-show booking can have its due adjusted.",
@@ -253,7 +256,7 @@ const ENGLISH: Record<string, string> = {
     "A pending request sits in hours you are removing. Confirm to save without rejecting it.",
   "venue.hours_day_overlap": "A day cannot be in two hours groups.",
   "venue.lbp_price_required": "This stadium prices games in LBP: enter the price per game in pounds.",
-  "venue.lbp_price_unit": "A price in pounds must be above 0 and in steps of 5,000.",
+  "venue.lbp_price_unit": "A price in pounds must be above 0 and in steps of {unit}.",
 };
 
 /** Owner-facing copy for a key. Never returns a stack or Prisma dump. */
@@ -261,6 +264,9 @@ export function errorMessage(key: string, locale: UiLocale = "ar"): string {
   if (key === "1") {
     return locale === "en" ? ENGLISH["error.generic"]! : ARABIC["error.generic"]!;
   }
-  if (locale === "en") return ENGLISH[key] ?? ARABIC[key] ?? ENGLISH["error.generic"]!;
-  return ARABIC[key] ?? ARABIC["error.generic"]!;
+  const text =
+    locale === "en"
+      ? (ENGLISH[key] ?? ARABIC[key] ?? ENGLISH["error.generic"]!)
+      : (ARABIC[key] ?? ARABIC["error.generic"]!);
+  return withUnit(text, locale);
 }

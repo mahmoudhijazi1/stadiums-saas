@@ -20,7 +20,7 @@ import { recordPayment } from "@/modules/payment/application/record-payment";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import {
-  findGameForCollect,
+  findBookingForUpdate,
   insertBookingSettlement,
   sumSettledLbp,
 } from "@/modules/booking/infrastructure/bookings";
@@ -53,7 +53,7 @@ export async function collectBookingPayment(input: {
 
   try {
     const outcome = await db.$transaction(async (tx) => {
-      const booking = await findGameForCollect(tx, input.bookingId);
+      const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }

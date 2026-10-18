@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { z } from "zod";
+import { formatLbpAmount } from "@/lib/format/money";
 import { isLbpString, isUsdString, parseUsd } from "@/lib/format/parse-money";
 import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { moneyUnit } from "@/modules/payment/domain/units";
@@ -39,7 +40,7 @@ export function isLbpPriceString(value: string): boolean {
 }
 
 const lbpPriceString = z.string().refine(isLbpPriceString, {
-  error: "LBP must be whole pounds, above 0 and a multiple of 5,000 (e.g. \"2000000\")",
+  error: `LBP must be whole pounds, above 0 and a multiple of ${formatLbpAmount(moneyUnit("LBP"), "en")} (e.g. "2000000")`,
 });
 
 const timeWindowSchema = z.strictObject({

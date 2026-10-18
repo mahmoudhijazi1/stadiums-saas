@@ -26,11 +26,12 @@ import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
 
 /**
- * DR-007 slice 3b and the readers slice: every raw SQL reader of game money is currency-aware. One
- * LBP game is inserted directly (valid under the CHECKs) next to a USD one. The money-writing reads
- * (the locked single-booking reads, the fee state behind the WhatsApp texts, the dollar slot
- * charging) still refuse the LBP game with booking.lbp_not_supported; every reader that shows what
- * is owed returns it in pounds, next to the USD game in dollars, and never leaves it out.
+ * DR-007 slice 3b, the readers slice and the fees slice: every raw SQL reader of game money is
+ * currency-aware. One LBP game is inserted directly (valid under the CHECKs) next to a USD one. Only
+ * the dollar slot charging still refuses the LBP game with booking.lbp_not_supported; the locked
+ * single-booking reads, the fee state behind the WhatsApp texts and the end-and-price update return
+ * or write it in pounds, and every reader that shows what is owed returns it in pounds, next to the
+ * USD game in dollars, and never leaves it out.
  */
 let fixture: TestFixture;
 let usd: { bookingId: string; personId: string };
@@ -73,10 +74,17 @@ async function insertEndedLbpGame(daysAgo: number) {
 const LBP_REFUSED = { key: "booking.lbp_not_supported" };
 
 describe("raw SQL readers refuse an LBP game instead of reading it as dollars", () => {
-  it("the locked and plain single-booking reads (slice 3)", async () => {
-    await expect(db.$transaction((tx) => findBookingForUpdate(tx, lbp.bookingId))).rejects.toMatchObject(LBP_REFUSED);
-    await expect(findBookingForDecision(db, lbp.bookingId)).rejects.toMatchObject(LBP_REFUSED);
-    expect((await findBookingForDecision(db, usd.bookingId))?.amountDueUsd.toFixed(2)).toBe("30.00");
+  it("the locked and plain single-booking reads return the game in its own currency (slice 8)", async () => {
+    const locked = await db.$transaction((tx) => findBookingForUpdate(tx, lbp.bookingId));
+    expect([locked?.price.currency, locked?.price.amount.toFixed(0), locked?.due.amount.toFixed(0)]).toEqual([
+      "LBP",
+      "2000000",
+      "2000000",
+    ]);
+    const plain = await findBookingForDecision(db, lbp.bookingId);
+    expect([plain?.due.currency, plain?.due.amount.toFixed(0)]).toEqual(["LBP", "2000000"]);
+    const dollars = await findBookingForDecision(db, usd.bookingId);
+    expect([dollars?.due.currency, dollars?.due.amount.toFixed(2)]).toEqual(["USD", "30.00"]);
   });
 
   it("the day view of the day the LBP game was played returns it with its price and due in LBP (slice 5)", async () => {
@@ -158,24 +166,49 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
     await expect(listSlotsForBookings(db, [usd.bookingId])).rejects.toMatchObject(LBP_REFUSED);
   });
 
-  it("the fee state behind the cancel and no-show WhatsApp texts stays dollars (fees in pounds are DR-007 slice 8)", async () => {
-    await expect(findBookingFeeState(db, lbp.bookingId)).rejects.toMatchObject(LBP_REFUSED);
-    expect((await findBookingFeeState(db, usd.bookingId))?.amountDueUsd.toFixed(2)).toBe("30.00");
+  it("the fee state behind the cancel and no-show WhatsApp texts is in the game's currency (slice 8)", async () => {
+    const pounds = await findBookingFeeState(db, lbp.bookingId);
+    expect([pounds?.currency, pounds?.amountDue.toFixed(0), pounds?.collected.toFixed(0), pounds?.dueTo]).toEqual([
+      "LBP",
+      "2000000",
+      "0",
+      null,
+    ]);
+    const dollars = await findBookingFeeState(db, usd.bookingId);
+    expect([dollars?.currency, dollars?.amountDue.toFixed(2)]).toEqual(["USD", "30.00"]);
   });
 
-  it("extending an LBP game in dollars is refused, not reported as not found", async () => {
+  it("moving the end and the price of an LBP game writes pounds, and a missing game is not found (slice 8)", async () => {
+    await db.$transaction((tx) =>
+      setBookingEndAndPrice(tx, {
+        bookingId: lbp.bookingId,
+        newEnd: new Date(lbp.end.getTime() + 30 * 60_000),
+        price: { currency: "LBP", amount: new Decimal("3000000") },
+      }),
+    );
+    const [row] = await platformDb.$queryRaw<Array<{ priceLbp: string; priceUsd: string | null; end: Date }>>`
+      SELECT "priceLbp"::text AS "priceLbp", "priceUsd"::text AS "priceUsd", upper(during) AS "end"
+      FROM "Booking" WHERE id = ${lbp.bookingId}`;
+    expect([row?.priceLbp, row?.priceUsd, row?.end.getTime()]).toEqual(["3000000", null, lbp.end.getTime() + 30 * 60_000]);
+    await expect(
+      db.$transaction((tx) =>
+        setBookingEndAndPrice(tx, {
+          bookingId: "no-such-booking",
+          newEnd: new Date(),
+          price: { currency: "USD", amount: new Decimal("1.00") },
+        }),
+      ),
+    ).rejects.toMatchObject({ key: "booking.not_found" });
+  });
+
+  it("a price in dollars is never written to a game in pounds", async () => {
     await expect(
       db.$transaction((tx) =>
         setBookingEndAndPrice(tx, {
           bookingId: lbp.bookingId,
           newEnd: new Date(lbp.end.getTime() + 30 * 60_000),
-          priceUsd: new Decimal("45.00"),
+          price: { currency: "USD", amount: new Decimal("45.00") },
         }),
-      ),
-    ).rejects.toMatchObject(LBP_REFUSED);
-    await expect(
-      db.$transaction((tx) =>
-        setBookingEndAndPrice(tx, { bookingId: "no-such-booking", newEnd: new Date(), priceUsd: new Decimal("1.00") }),
       ),
     ).rejects.toMatchObject({ key: "booking.not_found" });
   });

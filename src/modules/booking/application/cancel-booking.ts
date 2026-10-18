@@ -13,10 +13,12 @@ import {
   assertCancelWindowOpen,
 } from "@/modules/booking/domain/decision";
 import {
+  assertFeeInUnit,
   assertFeeWithinDue,
   confirmedFee,
   ownerInitiatorLowersFee,
   suggestFee,
+  typedFeeFor,
   type FeeInitiator,
 } from "@/modules/booking/domain/suggest-fee";
 import {
@@ -24,16 +26,18 @@ import {
   findBookingForDecision,
   findBookingForUpdate,
   findRequesterPersonId,
-  insertBookingDueChange,
   lockPitchForUpdate,
   setApprovedCancelled,
 } from "@/modules/booking/infrastructure/bookings";
-import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
-import { writeDueIfChanged } from "@/modules/booking/application/write-due-change";
+import { collectedOn } from "@/modules/booking/application/game-collected";
+import { appendDueChange, writeDueIfChanged } from "@/modules/booking/application/write-due-change";
 
 /**
  * APPROVED → CANCELLED, and set the due to the confirmed fee, in one transaction.
  * Auth before $transaction. Past unpaid is still refused (BR-49). No refund.
+ * The fee is in the game's currency (DR-007 slice 8): suggested and rounded to its money unit, typed
+ * in the field of that currency (`feeUsd` or `feeLbp`, a whole multiple of the unit in pounds), compared
+ * with what the game has collected in that currency, and written as a due change in that currency.
  */
 export type CancelledWindow = {
   bookingId: string;
@@ -48,6 +52,8 @@ export async function cancelBooking(input: {
   initiator: Exclude<FeeInitiator, "NO_SHOW">;
   /** Omitted: use the suggestion. An edited amount needs bookings.adjust_due. */
   feeUsd?: Decimal;
+  /** The same, for a game priced in pounds. Only the field of the game's currency may be sent. */
+  feeLbp?: Decimal;
 }): Promise<CancelledWindow> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, BOOKINGS_CANCEL)) {
@@ -74,30 +80,29 @@ export async function cancelBooking(input: {
       }
       assertApprovedForCancel(booking.status);
 
-      const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
+      const { currency } = booking.due;
+      const collected = await collectedOn(tx, booking);
       assertCancelWindowOpen({ start: booking.start, now });
 
       const suggestion = suggestFee(
         settings,
-        { amountDueUsd: booking.amountDueUsd, start: booking.start },
+        { due: booking.due, start: booking.start },
         now,
         input.initiator,
       );
-      if (
-        input.feeUsd !== undefined &&
-        !input.feeUsd.equals(suggestion.feeUsd) &&
-        !can(membership, BOOKINGS_ADJUST_DUE)
-      ) {
+      const typedFee = typedFeeFor(currency, input);
+      if (typedFee !== undefined && !typedFee.equals(suggestion.fee) && !can(membership, BOOKINGS_ADJUST_DUE)) {
         throw new DomainError("access.not_allowed");
       }
-      if (input.feeUsd !== undefined) {
-        assertFeeWithinDue(input.feeUsd, booking.amountDueUsd);
+      if (typedFee !== undefined) {
+        assertFeeInUnit(typedFee, currency);
+        assertFeeWithinDue(typedFee, booking.due.amount);
       }
 
       const confirmed = confirmedFee({
         suggestion,
-        collectedUsd: collected,
-        feeUsd: input.feeUsd,
+        collected,
+        fee: typedFee,
       });
       // Picking "I cancelled" must not become a way around adjust_due.
       if (
@@ -105,9 +110,9 @@ export async function cancelBooking(input: {
         !can(membership, BOOKINGS_ADJUST_DUE) &&
         ownerInitiatorLowersFee({
           policy: settings,
-          booking: { amountDueUsd: booking.amountDueUsd, start: booking.start },
+          booking: { due: booking.due, start: booking.start },
           now,
-          resultingFeeUsd: confirmed.feeUsd,
+          resultingFee: confirmed.fee,
         })
       ) {
         throw new DomainError("access.not_allowed");
@@ -116,22 +121,21 @@ export async function cancelBooking(input: {
       // fee logic below runs unchanged on the booking's total collected.
       let collectionMode = booking.collectionMode;
       if (collectionMode === "PER_PLAYER") {
-        await collapseToWhole(tx, {
-          bookingId: booking.id,
-          due: { currency: "USD", amount: booking.amountDueUsd },
-        });
+        await collapseToWhole(tx, { bookingId: booking.id, due: booking.due });
         collectionMode = "WHOLE";
       }
       // Note is PLAYER or OWNER so the later send row can tell the templates
       // apart from the saved row. An unchanged due still gets that row.
-      const feeSame = confirmed.feeUsd
-        .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-        .equals(booking.amountDueUsd.toDecimalPlaces(2, Decimal.ROUND_HALF_UP));
+      const places = currency === "LBP" ? 0 : 2;
+      const feeSame = confirmed.fee
+        .toDecimalPlaces(places, Decimal.ROUND_HALF_UP)
+        .equals(booking.due.amount.toDecimalPlaces(places, Decimal.ROUND_HALF_UP));
       if (feeSame) {
-        await insertBookingDueChange(tx, {
+        await appendDueChange(tx, {
           bookingId: booking.id,
-          fromUsd: booking.amountDueUsd,
-          toUsd: confirmed.feeUsd,
+          currency,
+          from: booking.due.amount,
+          to: confirmed.fee,
           reason: confirmed.reason,
           note: input.initiator,
           actorMembershipId: membership.membershipId,
@@ -139,9 +143,10 @@ export async function cancelBooking(input: {
       } else {
         await writeDueIfChanged(tx, {
           bookingId: booking.id,
-          fromUsd: booking.amountDueUsd,
-          toUsd: confirmed.feeUsd,
-          collectedUsd: collected,
+          currency,
+          from: booking.due.amount,
+          to: confirmed.fee,
+          collected,
           collectionMode,
           reason: confirmed.reason,
           note: input.initiator,

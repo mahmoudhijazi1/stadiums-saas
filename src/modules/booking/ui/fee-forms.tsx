@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatLbpAmount, formatPrice } from "@/lib/format/money";
 import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
 import { ui, uiCount } from "@/lib/copy";
 import { previewMessage } from "@/modules/notification/domain/whatsapp-link";
@@ -25,6 +25,32 @@ export type FeeActions = {
 
 type FeeChoice = "PLAYER" | "OWNER";
 type FeeMode = "shown" | "edit" | "waive";
+type Currency = "USD" | "LBP";
+
+/**
+ * The fee screens work in the game's own currency (DR-007 slice 8). A row's fee, collected and due
+ * strings are in it: dollars with cents ("7.50"), or whole pounds ("1000000"). Absent `currency` is USD.
+ */
+function currencyOf(row: UpcomingRowView): Currency {
+  return row.currency ?? "USD";
+}
+
+/** An amount of the game's currency, written for a screen: "$15" or "1,000,000 LBP". */
+function moneyText(currency: Currency, amount: string, locale: UiLocale): string {
+  return currency === "LBP" ? formatLbpAmount(amount, locale) : `$${amount}`;
+}
+
+/** What the owner typed, when it is a valid amount of the currency: cents in dollars, whole pounds in pounds. */
+function typedAmount(currency: Currency, raw: string): Decimal | null {
+  const text = raw.trim();
+  if (currency === "LBP") return /^(?:0|[1-9]\d*)$/.test(text) ? new Decimal(text) : null;
+  const normalized = normalizeUsdForm(text);
+  return /^(?:0|[1-9]\d*)\.\d{2}$/.test(normalized) ? parseUsd(normalized) : null;
+}
+
+/** The form field a fee or an amount is sent in: one per currency, so the server can tell them apart. */
+const FEE_FIELD: Record<Currency, string> = { USD: "feeUsd", LBP: "feeLbp" };
+const WAIVED_FEE: Record<Currency, string> = { USD: "0.00", LBP: "0" };
 
 export function CancelDecisionForm({
   row,
@@ -72,6 +98,7 @@ export function CancelDecisionForm({
     locale,
     link: publicUrl,
   });
+  const currency = currencyOf(row);
 
   return (
     <form action={submitCancelBooking} className="flex flex-col gap-3">
@@ -95,6 +122,7 @@ export function CancelDecisionForm({
       ) : null}
       <FeeLine
         locale={locale}
+        currency={currency}
         compact={mode === "waive" ? "0" : compact}
         hoursBefore={row.hoursBefore}
         lead="cancel"
@@ -152,6 +180,7 @@ export function NoShowDecisionForm({
       {date ? <input type="hidden" name="date" value={date} /> : null}
       <FeeLine
         locale={locale}
+        currency={currencyOf(row)}
         compact={compact}
         hoursBefore={row.hoursBefore}
         lead="noshow"
@@ -191,15 +220,16 @@ export function AdjustDueForm({
   submitAdjustBookingDue: (formData: FormData) => Promise<void>;
 }) {
   const [blocked, setBlocked] = useState(false);
+  const currency = currencyOf(row);
+  const field = currency === "LBP" ? "toLbp" : "toUsd";
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
-    const raw = String(new FormData(event.currentTarget).get("toUsd") ?? "");
-    const normalized = normalizeUsdForm(raw.trim());
-    if (!/^(?:0|[1-9]\d*)\.\d{2}$/.test(normalized)) {
+    const typed = typedAmount(currency, String(new FormData(event.currentTarget).get(field) ?? ""));
+    if (typed === null) {
       setBlocked(false);
       return;
     }
-    if (parseUsd(normalized).lt(parseUsd(row.collectedExact))) {
+    if (typed.lt(new Decimal(row.collectedExact))) {
       event.preventDefault();
       setBlocked(true);
       return;
@@ -217,9 +247,9 @@ export function AdjustDueForm({
           id={`due-${row.id}`}
           dir="ltr"
           type="text"
-          name="toUsd"
+          name={field}
           required
-          inputMode="decimal"
+          inputMode={currency === "LBP" ? "numeric" : "decimal"}
           defaultValue={row.priceUsd}
           className="font-mono"
         />
@@ -240,7 +270,7 @@ export function AdjustDueForm({
       {blocked ? (
         <p role="alert" className="text-sm text-alert">
           {ui("owner.collectedPrefix", locale)}{" "}
-          <LtrIsolate>${row.collectedCompact}</LtrIsolate>
+          <LtrIsolate>{moneyText(currency, row.collectedCompact, locale)}</LtrIsolate>
           {ui("owner.noRefundYet", locale)}
         </p>
       ) : null}
@@ -256,6 +286,7 @@ export function AdjustDueForm({
 
 function FeeLine({
   locale,
+  currency,
   compact,
   hoursBefore,
   lead,
@@ -269,6 +300,7 @@ function FeeLine({
   onDraft,
 }: {
   locale: UiLocale;
+  currency: Currency;
   compact: string | null;
   hoursBefore: number;
   lead: "cancel" | "noshow";
@@ -283,7 +315,7 @@ function FeeLine({
 }) {
   const [draft, setDraft] = useState(exact);
   if (compact === null) return null;
-  const keepsCollected = feeKeepsCollected(mode, draft, collectedExact);
+  const keepsCollected = feeKeepsCollected(currency, mode, draft, collectedExact);
   const leadText =
     lead === "noshow"
       ? ui("owner.noShowFeeLine", locale)
@@ -301,19 +333,19 @@ function FeeLine({
         )}
         <span aria-hidden> · </span>
         {ui("owner.feeWord", locale)}{" "}
-        <LtrIsolate>${compact}</LtrIsolate>
+        <LtrIsolate>{moneyText(currency, compact, locale)}</LtrIsolate>
       </p>
       {keepsCollected ? (
         <p className="text-muted-foreground">
           {locale === "en" ? (
             <>
-              <LtrIsolate>${collectedCompact}</LtrIsolate>
+              <LtrIsolate>{moneyText(currency, collectedCompact, locale)}</LtrIsolate>
               {ui("owner.collectedKeptTail", locale)}
             </>
           ) : (
             <>
               {ui("owner.collectedPrefix", locale)}{" "}
-              <LtrIsolate>${collectedCompact}</LtrIsolate>
+              <LtrIsolate>{moneyText(currency, collectedCompact, locale)}</LtrIsolate>
               {ui("owner.collectedKeptTail", locale)}
             </>
           )}
@@ -323,9 +355,9 @@ function FeeLine({
         <Input
           dir="ltr"
           type="text"
-          name="feeUsd"
+          name={FEE_FIELD[currency]}
           required
-          inputMode="decimal"
+          inputMode={currency === "LBP" ? "numeric" : "decimal"}
           defaultValue={exact}
           onChange={(event) => {
             setDraft(event.target.value);
@@ -334,7 +366,7 @@ function FeeLine({
           className="font-mono"
         />
       ) : null}
-      {mode === "waive" ? <input type="hidden" name="feeUsd" value="0.00" /> : null}
+      {mode === "waive" ? <input type="hidden" name={FEE_FIELD[currency]} value={WAIVED_FEE[currency]} /> : null}
       {mayAdjust && mode === "shown" ? (
         <div className="flex gap-2">
           <Button type="button" variant="outline" className="min-h-11 flex-1" onClick={onEdit}>
@@ -349,14 +381,13 @@ function FeeLine({
   );
 }
 
-function feeKeepsCollected(mode: FeeMode, draft: string, collectedExact: string): boolean {
-  const collected = parseUsd(collectedExact);
+function feeKeepsCollected(currency: Currency, mode: FeeMode, draft: string, collectedExact: string): boolean {
+  const collected = new Decimal(collectedExact);
   if (!collected.gt(0)) return false;
   if (mode === "waive") return true;
   if (mode !== "edit") return false;
-  const normalized = normalizeUsdForm(draft.trim());
-  if (!/^(?:0|[1-9]\d*)\.\d{2}$/.test(normalized)) return false;
-  return !parseUsd(normalized).gt(collected);
+  const typed = typedAmount(currency, draft);
+  return typed !== null && !typed.gt(collected);
 }
 
 function Choice({
@@ -414,7 +445,8 @@ function cancelWhatsAppText(input: {
   locale: UiLocale;
   link: string;
 }): string | null {
-  const fee = cancelFeeUsd(input.mode, input.exact, input.feeExact);
+  const currency = currencyOf(input.row);
+  const fee = chosenFee(currency, input.mode, input.exact, input.feeExact);
   return previewMessage({
     context: "after_cancel",
     facts: {
@@ -424,7 +456,7 @@ function cancelWhatsAppText(input: {
       time: input.row.waTime,
       initiator: input.initiator === "OWNER" ? "OWNER" : "PLAYER",
       link: input.link,
-      fee: fee.gt(0) ? `$${formatUsdCompact(fee)}` : null,
+      fee: fee.gt(0) ? formatPrice({ currency, amount: fee }, input.locale) : null,
     },
     locale: input.locale,
   });
@@ -437,7 +469,8 @@ function noShowWhatsAppText(input: {
   row: UpcomingRowView;
   locale: UiLocale;
 }): string | null {
-  const fee = cancelFeeUsd(input.mode, input.exact, input.feeExact);
+  const currency = currencyOf(input.row);
+  const fee = chosenFee(currency, input.mode, input.exact, input.feeExact);
   // A fee: the payment reminder. No fee: nothing to say, so no text is previewed.
   return previewMessage({
     context: "after_no_show",
@@ -447,17 +480,15 @@ function noShowWhatsAppText(input: {
       stadiumName: input.row.stadiumName,
       day: input.row.waDay,
       time: input.row.waTime,
-      amount: `$${formatUsdCompact(fee)}`,
+      amount: formatPrice({ currency, amount: fee }, input.locale),
     },
     locale: input.locale,
   });
 }
 
-function cancelFeeUsd(mode: FeeMode, exact: string, feeExact: string): Decimal {
+/** The fee the message will name: waived is nothing, edited is what is typed, else the suggestion. */
+function chosenFee(currency: Currency, mode: FeeMode, exact: string, feeExact: string): Decimal {
   if (mode === "waive") return new Decimal(0);
-  const raw = mode === "edit" ? feeExact : exact;
-  const normalized = normalizeUsdForm(raw.trim());
-  if (!/^(?:0|[1-9]\d*)\.\d{2}$/.test(normalized)) return parseUsd(exact);
-  return parseUsd(normalized);
+  return typedAmount(currency, mode === "edit" ? feeExact : exact) ?? typedAmount(currency, exact) ?? new Decimal(0);
 }
 

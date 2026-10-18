@@ -40,7 +40,7 @@ function booking(start: string, end: string, extra: Partial<ExtensibleBooking> =
     collectionMode: "WHOLE",
     start: at(start),
     end: at(end),
-    priceUsd: new Decimal("30.00"),
+    price: { currency: "USD", amount: new Decimal("30.00") },
     ...extra,
   };
 }
@@ -52,7 +52,8 @@ describe("extensionPlan", () => {
     expect(plan.allowed).toBe(true);
     expect(plan.reason).toBeNull();
     expect(plan.newEnd).toEqual(at("2026-07-15T16:30:00"));
-    expect(plan.addedPriceUsd.toFixed(2)).toBe("15.00");
+    expect(plan.addedPrice.toFixed(2)).toBe("15.00");
+    expect(plan.currency).toBe("USD");
   });
 
   it("is allowed during the game, refused once it has ended", () => {
@@ -135,34 +136,63 @@ describe("extensionPlan", () => {
 
 describe("addedPriceForExtension", () => {
   const start = at("2026-07-15T15:00:00");
+  const usd = (amount: string) => ({ currency: "USD" as const, amount: new Decimal(amount) });
+  const lbp = (amount: string) => ({ currency: "LBP" as const, amount: new Decimal(amount) });
+
+  // CHANGED by DR-007 slice 8 (decision 7): the added price rounds to the money unit, $1 in dollars.
+  // It used to round to cents: 25 for 60 minutes was 12.50, 10 for 90 was 3.33, 10 for 70 was 4.29,
+  // 0.10 for 60 was 0.05 and 0.01 for 60 was 0.01.
   it.each([
     ["30.00", 60, "15.00"],
     ["30.00", 90, "10.00"],
-    ["25.00", 60, "12.50"],
-    ["10.00", 90, "3.33"], // 3.3333 -> 3.33
-    ["10.00", 70, "4.29"], // 4.2857 -> 4.29
-    ["0.10", 60, "0.05"], // 0.05 exactly
-    ["0.01", 60, "0.01"], // 0.005 rounds half up
+    ["25.00", 60, "13.00"], // 12.50 -> 13, half up
+    ["10.00", 90, "3.00"], // 3.3333 -> 3
+    ["10.00", 70, "4.00"], // 4.2857 -> 4
+    ["0.10", 60, "0.00"], // 0.05 is under half a dollar
+    ["0.01", 60, "0.00"],
     ["0.00", 60, "0.00"],
-  ])("price %s for %i minutes adds %s", (price, minutes, expected) => {
+  ])("price $%s for %i minutes adds $%s (whole dollars)", (price, minutes, expected) => {
     const end = new Date(start.getTime() + minutes * 60_000);
-    expect(addedPriceForExtension(new Decimal(price), start, end).toFixed(2)).toBe(expected);
+    expect(addedPriceForExtension(usd(price), start, end).toFixed(2)).toBe(expected);
+  });
+
+  it.each([
+    ["2000000", 60, "1000000"],
+    ["1990000", 60, "995000"],
+    ["2000000", 90, "665000"], // 666,666.67 -> the nearest 5,000
+    ["2000000", 70, "855000"], // 857,142.86 -> the nearest 5,000
+    ["0", 60, "0"],
+  ])("price %s LBP for %i minutes adds %s LBP (steps of the LBP unit)", (price, minutes, expected) => {
+    const end = new Date(start.getTime() + minutes * 60_000);
+    expect(addedPriceForExtension(lbp(price), start, end).toFixed(0)).toBe(expected);
   });
 
   it("an empty or reversed range adds nothing", () => {
-    expect(addedPriceForExtension(new Decimal("30"), start, start).toFixed(2)).toBe("0.00");
-    expect(addedPriceForExtension(new Decimal("30"), start, new Date(start.getTime() - 1000)).toFixed(2)).toBe("0.00");
+    expect(addedPriceForExtension(usd("30"), start, start).toFixed(2)).toBe("0.00");
+    expect(addedPriceForExtension(usd("30"), start, new Date(start.getTime() - 1000)).toFixed(2)).toBe("0.00");
+    expect(addedPriceForExtension(lbp("2000000"), start, start).toFixed(0)).toBe("0");
   });
 
   it("a second extension is priced from the new total, so the per-minute price holds", () => {
     // 60 min for $30 -> +$15 -> 90 min for $45 -> +$15 again.
-    const first = addedPriceForExtension(new Decimal("30.00"), start, new Date(start.getTime() + 60 * 60_000));
+    const first = addedPriceForExtension(usd("30.00"), start, new Date(start.getTime() + 60 * 60_000));
     const second = addedPriceForExtension(
-      new Decimal("30.00").plus(first),
+      usd(new Decimal("30.00").plus(first).toString()),
       start,
       new Date(start.getTime() + 90 * 60_000),
     );
     expect(second.toFixed(2)).toBe("15.00");
+  });
+
+  it("the plan of a game in pounds suggests pounds", () => {
+    const plan = extensionPlan(
+      booking("2026-07-15T15:00:00", "2026-07-15T16:00:00", { price: lbp("2000000") }),
+      evenings,
+      BEFORE,
+      null,
+    );
+    expect(plan.allowed).toBe(true);
+    expect([plan.currency, plan.addedPrice.toFixed(0)]).toEqual(["LBP", "1000000"]);
   });
 });
 

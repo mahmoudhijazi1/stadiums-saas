@@ -24,6 +24,12 @@ export type UpcomingRowView = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
+  /**
+   * The game's currency (DR-007 slice 8); absent means USD. The fee, collected and due strings below
+   * (`priceUsd` as the due, `playerFeeExact`, `ownerFeeCompact`, `noShowFeeExact`, `collectedExact` ...) are in it:
+   * dollars with cents on a USD game, whole pounds on an LBP game.
+   */
+  currency?: "USD" | "LBP";
   remainingUsd: string;
   /** Unpaid player tabs on this game; shown in the pill, never collected with the booking. */
   tabsRemainingUsd: string;

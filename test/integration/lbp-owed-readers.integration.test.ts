@@ -128,6 +128,9 @@ describe("an unpaid LBP game next to an old USD game", () => {
       extendedMinutes: 0,
       series: undefined,
       splitEnabled: false,
+      policy: { cancellationWindowHours: 24, lateCancellationFeePercent: 50, noShowFeePercent: 100 },
+      repeatWeekly: false,
+      extend: null,
     });
     expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP", remaining: "210000" });
   });

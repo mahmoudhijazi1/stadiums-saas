@@ -260,12 +260,16 @@ describe("showing an LBP game", () => {
       extendedMinutes: 0,
       series: undefined,
       splitEnabled: false,
+      policy: { cancellationWindowHours: 24, lateCancellationFeePercent: 50, noShowFeePercent: 100 },
+      repeatWeekly: false,
+      extend: null,
     });
     // Nothing settled yet: the whole due is left (the readers slice added what was paid and whether it is settled).
     expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP", remaining: "2000000" });
-    // Money actions stay refused until their slices: hidden, not offered.
+    // A game two days ahead: it can be cancelled and adjusted; not a no-show yet, no items before the
+    // shop window, and no repeat or extend offer was passed in (DR-007 slice 8 shows the actions again).
     expect([view.showCancel, view.showNoShow, view.canAdjust, view.mayAddItems, view.repeatWeekly]).toEqual([
-      false, false, false, false, false,
+      true, false, true, false, false,
     ]);
     expect(view.extend).toBeNull();
     expect(view.perPlayer.canSplit).toBe(false);

@@ -12,9 +12,9 @@ import { MoneyBlock } from "@/modules/booking/ui/booking-sheet/money-block";
 import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
 
 /**
- * DR-007 slice 5: an LBP game on Today shows its due in pounds on the card and in the sheet, and its
- * money actions are hidden. Slice 6: Collect is shown again, and "Consider it paid" under 5,000 LBP.
- * Written, not run when authored.
+ * DR-007 slice 5: an LBP game on Today shows its due in pounds on the card and in the sheet. Slice 6:
+ * Collect and "Consider it paid" (under one LBP unit). Slice 7: the split. Slice 8: cancel, no-show,
+ * adjust and the fee figures, in pounds. Written, not run when authored.
  */
 const NOW = new Date("2026-10-16T20:00:00Z");
 
@@ -83,6 +83,9 @@ function viewOf(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
     extendedMinutes: 0,
     series: undefined,
     splitEnabled: true,
+    policy: { cancellationWindowHours: 24, lateCancellationFeePercent: 50, noShowFeePercent: 100 },
+    repeatWeekly: false,
+    extend: null,
   });
 }
 
@@ -149,18 +152,26 @@ describe("an LBP game on Today", () => {
     expect(moneyBlock("en", SETTLED)).not.toContain(ui("owner.collect", "en"));
   });
 
-  it("hides every money action that is still refused on an LBP game", () => {
+  it("offers the money actions again, with their figures in pounds (slice 8)", () => {
     const view = viewOf("en");
     expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP", remaining: "2000000" });
-    expect(view.showCancel).toBe(false);
-    expect(view.showNoShow).toBe(false);
-    expect(view.canAdjust).toBe(false);
-    expect(view.extend).toBeNull();
-    // The split is back (DR-007 slice 7): offered on an approved game with something due.
+    expect(view.currency).toBe("LBP");
+    // The game ended an hour ago: it can be marked a no-show and adjusted; its cancel window is closed.
+    expect([view.showCancel, view.showNoShow, view.canAdjust]).toEqual([false, true, true]);
+    // The split is offered on an approved game with something due.
     expect(view.perPlayer.canSplit).toBe(true);
     expect(view.perPlayer.currency).toBe("LBP");
-    expect(view.mayAddItems).toBe(false);
+    // Fees are suggested in pounds and rounded to the unit: no-show 100%, a player cancel inside the window 50%.
+    expect([view.noShowFeeExact, view.noShowFeeCompact]).toEqual(["2000000", "2000000"]);
+    expect([view.playerFeeExact, view.ownerFeeExact, view.ownerCancelLowersFee]).toEqual(["1000000", "0", true]);
+    expect([view.priceUsd, view.collectedExact, view.collectedCompact]).toEqual(["2000000", "0", "0"]);
+    expect(view.extend).toBeNull();
     expect(view.repeatWeekly).toBe(false);
+  });
+
+  it("the fee figures of a part-paid game use what was settled", () => {
+    const view = viewOf("en", PART_PAID);
+    expect([view.collectedExact, view.collectedCompact, view.priceUsd]).toEqual(["1790000", "1790000", "2000000"]);
   });
 
   it("puts the pounds in the WhatsApp reminder of an ended game", () => {

@@ -6,18 +6,16 @@ import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { PAYMENTS_COLLECT, can } from "@/modules/access/domain/can";
 import { forgivenShare } from "@/modules/booking/domain/adjust-due";
+import { collectedOn } from "@/modules/booking/application/game-collected";
+import { appendDueChange } from "@/modules/booking/application/write-due-change";
 import {
-  findGameForCollect,
-  insertBookingDueChange,
-  insertBookingDueChangeLbp,
+  findBookingForUpdate,
   listSlotsForBookings,
   setBookingAmountDue,
   setBookingAmountDueLbp,
   setParticipantDue,
-  sumSettledLbp,
 } from "@/modules/booking/infrastructure/bookings";
 import { bookingRemaining } from "@/modules/payment/domain/collect";
-import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 
 /**
@@ -38,7 +36,7 @@ export async function considerSharePaid(input: { bookingId: string; participantI
 
   try {
     await db.$transaction(async (tx) => {
-      const game = await findGameForCollect(tx, input.bookingId);
+      const game = await findBookingForUpdate(tx, input.bookingId);
       if (!game) throw new DomainError("booking.not_found");
       if (game.collectionMode !== "PER_PLAYER") throw new DomainError("booking.switch_not_per_player");
       if (game.status !== "APPROVED") throw new DomainError("payment.collect_unapproved");
@@ -46,8 +44,7 @@ export async function considerSharePaid(input: { bookingId: string; participantI
       const slot = (await listSlotsForBookings(tx, [game.id])).find((row) => row.participantId === input.participantId);
       if (!slot) throw new DomainError("booking.not_found");
 
-      const collected =
-        game.due.currency === "LBP" ? await sumSettledLbp(tx, game.id) : await sumCollectedUsd(tx, "BOOKING", game.id);
+      const collected = await collectedOn(tx, game);
       const amount = forgivenShare({
         shareRemaining: slot.due.minus(slot.paid),
         bookingRemaining: bookingRemaining(game.due.amount, collected),
@@ -60,27 +57,17 @@ export async function considerSharePaid(input: { bookingId: string; participantI
         participantId: slot.participantId,
         due: { currency: game.due.currency, amount: slot.due.minus(amount) },
       });
-      if (game.due.currency === "LBP") {
-        await setBookingAmountDueLbp(tx, game.id, newDue);
-        await insertBookingDueChangeLbp(tx, {
-          bookingId: game.id,
-          fromLbp: game.due.amount,
-          toLbp: newDue,
-          reason: "ROUNDING",
-          note: null,
-          actorMembershipId: membership.membershipId,
-        });
-      } else {
-        await setBookingAmountDue(tx, game.id, newDue);
-        await insertBookingDueChange(tx, {
-          bookingId: game.id,
-          fromUsd: game.due.amount,
-          toUsd: newDue,
-          reason: "ROUNDING",
-          note: null,
-          actorMembershipId: membership.membershipId,
-        });
-      }
+      if (game.due.currency === "LBP") await setBookingAmountDueLbp(tx, game.id, newDue);
+      else await setBookingAmountDue(tx, game.id, newDue);
+      await appendDueChange(tx, {
+        bookingId: game.id,
+        currency: game.due.currency,
+        from: game.due.amount,
+        to: newDue,
+        reason: "ROUNDING",
+        note: null,
+        actorMembershipId: membership.membershipId,
+      });
     });
 
     logger.info(`Share considered paid ${input.participantId} booking ${input.bookingId}`, undefined, {

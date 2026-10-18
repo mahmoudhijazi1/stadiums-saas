@@ -16,7 +16,14 @@ export type PayerHit = { id: string; name: string; phone: string | null };
  * inside the use case; `expectedEndsAt` is the end the owner saw (a double tap adds 30 minutes once).
  */
 export type ExtendActionResult =
-  | { ok: true; amountDueUsd: string; addedPriceUsd: string; declined: number }
+  | {
+      ok: true;
+      /** The game's currency; the two amounts are in it: "45.00" in dollars, "3000000" in whole pounds. */
+      currency: "USD" | "LBP";
+      amountDue: string;
+      addedPrice: string;
+      declined: number;
+    }
   | { error: string };
 
 /**

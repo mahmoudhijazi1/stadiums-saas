@@ -9,20 +9,24 @@ export type AdjustDueVerdict = "ok" | "noop";
  * May this due change be written? Unchanged is a no-op (no log row).
  * Below what was already collected would be a refund, which is out of scope.
  * Per-player dues are edited per participant, not here.
+ * Every amount is in the game's currency (DR-007): dollars to the cent, or whole pounds; the
+ * collected amount is what its tenders (dollars) or its settlements (pounds) add up to.
  */
 export function assertAdjustDue(input: {
-  fromUsd: Decimal;
-  toUsd: Decimal;
-  collectedUsd: Decimal;
+  currency: "USD" | "LBP";
+  from: Decimal;
+  to: Decimal;
+  collected: Decimal;
   collectionMode: CollectionModeName;
 }): AdjustDueVerdict {
-  const fromUsd = input.fromUsd.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-  const toUsd = input.toUsd.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-  if (toUsd.equals(fromUsd)) return "noop";
-  if (toUsd.lt(0)) {
+  const places = input.currency === "LBP" ? 0 : 2;
+  const from = input.from.toDecimalPlaces(places, Decimal.ROUND_HALF_UP);
+  const to = input.to.toDecimalPlaces(places, Decimal.ROUND_HALF_UP);
+  if (to.equals(from)) return "noop";
+  if (to.lt(0)) {
     throw new DomainError("booking.due_negative");
   }
-  if (toUsd.lt(input.collectedUsd)) {
+  if (to.lt(input.collected)) {
     throw new DomainError("booking.due_below_collected");
   }
   if (input.collectionMode !== "WHOLE") {

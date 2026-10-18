@@ -185,7 +185,18 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    rules (one payment, one allocation per slot with `amountLbp`, one `BookingSettlement`), and
    "Consider it paid" works on one share in both currencies (`considerSharePaid`). Fees, extensions and
    adjust-due stay refused.
-8. Fees, extensions and adjust-due in LBP.
+8. Fees, extensions and adjust-due in LBP. **Done** (progress.md, 2026-10-19): a cancel or no-show fee
+   is suggested in the game's currency and rounded to the money unit (`suggestFee`, `roundToUnit`; a
+   USD fee is now whole dollars too), compared with what the game has collected in that currency
+   (`confirmedFee`, `assertFeeWithinDue`), written as a due change in that currency, and a fee typed in
+   pounds must be a whole multiple of the unit (`booking.fee_unit`). The 30-minute extension adds half
+   the price in the game's currency, rounded to the unit (`MAX_ADDED_PRICE_LBP` bounds a typed amount),
+   and writes `priceLbp`, `amountDueLbp` and the EXTENSION change in pounds. Adjust-due takes the amount
+   in the game's currency and refuses less than what was collected in it. The WhatsApp texts after a
+   cancel, a no-show and an adjust name amounts in the game's currency. `requireUsd` and
+   `refuseLbpGames` left every money path: the single-booking reads return the price and the due as
+   `GameMoney`. Cancel, no-show, extend, adjust, add items and repeat weekly are shown again on a game
+   in pounds.
 9. Every reader: Today, Owed, the person page, debt warnings, the booking sheet, WhatsApp texts,
    the Money page. **Done, built before 6** (progress.md, 2026-10-18): every owed reader handles both
    currencies. A USD game is read from its tenders as before; an LBP game from its
@@ -194,6 +205,22 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    remains only in the money-writing paths (and the fee state behind the cancel and no-show WhatsApp
    texts, with fees in slice 8).
 10. "Keep it".
+
+## The unit lives in one place
+
+The LBP money unit (decision 7) is written once, as `LBP_UNIT_VALUE` in `src/lib/format/lbp-unit.ts`.
+Code never uses the number: it asks `moneyUnit("LBP")` (`src/modules/payment/domain/units.ts`), and the
+"Consider it paid" threshold is `FORGIVE_BELOW_LBP`, which is that unit. Text that states the unit on a
+screen writes `{unit}` in the copy tables; `ui()` and `errorMessage()` fill it with the unit and the money
+formatter (`lib/copy/unit-text.ts`), so no sentence has the amount typed in it.
+`test/architecture/lbp-unit.test.ts` fails, with file:line, on a literal 5000 or 5_000, or a quoted
+"5,000", anywhere else in `src`.
+
+To change the unit: change `LBP_UNIT_VALUE`, run `npx jest test/architecture`, and read the effects:
+new splits, rounded fees and extension prices, the forgiveness threshold, the check on a pitch price
+and on a typed fee all follow. Nothing stored changes: games, dues, shares and prices already written
+keep their amounts, so a price or a share made at the old unit is simply no longer a multiple of the
+new one (a pitch price in the schedule is re-validated the next time its pitch is saved).
 
 ## Not decided here
 

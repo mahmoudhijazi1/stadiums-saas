@@ -11,6 +11,7 @@ import { settings } from "./settings";
 import { shop } from "./shop";
 import { today } from "./today";
 import type { CopyArea } from "./types";
+import { withUnit } from "./unit-text";
 
 /**
  * Arabic chrome (DR-005). Keys, not sentences in JSX. Unknown key → the key
@@ -24,6 +25,6 @@ const ENGLISH: Record<string, string> = Object.assign({}, ...Object.values(COPY_
 
 /** Chrome for a key. Default Arabic. Missing English key falls back to Arabic. */
 export function ui(key: string, locale: UiLocale = "ar"): string {
-  if (locale === "en") return ENGLISH[key] ?? ARABIC[key] ?? key;
-  return ARABIC[key] ?? key;
+  const text = locale === "en" ? (ENGLISH[key] ?? ARABIC[key] ?? key) : (ARABIC[key] ?? key);
+  return withUnit(text, locale);
 }

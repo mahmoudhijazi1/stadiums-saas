@@ -32,7 +32,7 @@
 ## 2. Collecting (WHOLE mode)
 
 `booking/application/collect-booking-payment.ts` `collectBookingPayment`, in one transaction:
-1. `findGameForCollect` locks the booking row (either currency). **Why:** two taps of Collect must not both see "remaining > 0" (progress.md "Booking row lock on every money path").
+1. `findBookingForUpdate` locks the booking row and reads its price and due in its own currency. **Why:** two taps of Collect must not both see "remaining > 0" (progress.md "Booking row lock on every money path").
 2. `assertCanCollect(status)`: only APPROVED, NO_SHOW or CANCELLED (a fee).
 3. PER_PLAYER is refused (`booking.collect_per_player`). Cash on a split booking goes through the slots.
 4. `assertHasDue(remaining)`: something must still be due. This stops a double submit.
@@ -79,14 +79,14 @@ While the owner types, the mixed USD + LBP forms (the collect sheet on Today, an
 
 ## 4. Due changes
 
-Every change of `Booking.amountDueUsd` goes through `booking/application/write-due-change.ts` `writeDueIfChanged`: `assertAdjustDue` → `setBookingAmountDue` → `insertBookingDueChange`, in the caller's transaction and under the booking row lock.
+Every change of `Booking.amountDueUsd` (or `amountDueLbp` on a game in pounds, DR-007 slice 8; the amounts below are in the game's currency) goes through `booking/application/write-due-change.ts` `writeDueIfChanged`: `assertAdjustDue` → `setBookingAmountDue` / `setBookingAmountDueLbp` → `appendDueChange`, in the caller's transaction and under the booking row lock.
 
 | Path | Rule (code) |
 |---|---|
-| Adjust (`adjust-booking-due.ts` `adjustBookingDue`) | The status must be APPROVED, CANCELLED or NO_SHOW (`assertDueAdjustableStatus`). The new due must be ≥ 0 and ≥ collected (`assertAdjustDue`: `booking.due_negative`, `booking.due_below_collected`; going below collected would be a refund, which is out of scope). **WHOLE only** (`booking.due_whole_only`). |
-| Cancel (`cancel-booking.ts`) / no-show (`record-no-show.ts`) | The fee comes from the tenant policy (`suggest-fee.ts`). It must be ≤ the due (`assertFeeWithinDue` → `booking.fee_above_due`). If it would be below collected, it is clamped up to collected, and the logged reason then follows `clampedReason`: `CANCELLATION_NO_FEE` for a cancel, `WAIVER` or `NO_SHOW_FEE` for a no-show. |
-| Extend (`extend-booking.ts` `extendBooking`) | 30 minutes added to an APPROVED, whole-pay game that has not ended (repeatable, 180 minutes in total). The suggested added price is `priceUsd / current minutes x 30`, rounded half up to cents (`extension-plan.ts` `addedPriceForExtension`): $30 for 60 minutes adds $15; $10 for 90 minutes adds $3.33. `Booking.priceUsd` and `amountDueUsd` both rise by the added amount; the due goes through `writeDueIfChanged` with reason `EXTENSION`, so it is never below collected and what was collected is untouched. A member with `bookings.adjust_due` may send a different amount (0 to 100,000); anyone else gets the suggestion or `access.not_allowed`. Shop tabs, the ledger and the start time are not touched. |
-| No-op | The same value (after rounding to cents) writes nothing (`assertAdjustDue` → `"noop"`). |
+| Adjust (`adjust-booking-due.ts` `adjustBookingDue`) | The status must be APPROVED, CANCELLED or NO_SHOW (`assertDueAdjustableStatus`). The new due must be ≥ 0 and ≥ collected (`assertAdjustDue`: `booking.due_negative`, `booking.due_below_collected`; going below collected would be a refund, which is out of scope). **WHOLE only** (`booking.due_whole_only`). The amount is typed in the game's currency (`toUsd`, or `toLbp` in whole pounds; the other is `form.invalid`) and compared with what the game collected in that currency (tenders in dollars, settlements in pounds). |
+| Cancel (`cancel-booking.ts`) / no-show (`record-no-show.ts`) | The fee comes from the tenant policy (`suggest-fee.ts`), **in the game's currency and rounded half up to its money unit** ($1, or the LBP unit; DR-007 slice 8): 50% of $25 is $13, 50% of 2,000,000 LBP is 1,000,000 LBP. It must be ≤ the due (`assertFeeWithinDue` → `booking.fee_above_due`). A fee the owner types for a game in pounds must be a whole multiple of the unit (`assertFeeInUnit` → `booking.fee_unit`) and is sent in its own field (`feeLbp`; `feeUsd` for a game in dollars, the other is `form.invalid`). If it would be below collected (tenders in dollars, settlements in pounds), it is clamped up to collected, and the logged reason then follows `clampedReason`: `CANCELLATION_NO_FEE` for a cancel, `WAIVER` or `NO_SHOW_FEE` for a no-show. The due change is written in the game's currency. Cancelling a split game collapses it first (`collapseToWhole`), keeping every payment, tender, ledger row and settlement. |
+| Extend (`extend-booking.ts` `extendBooking`) | 30 minutes added to an APPROVED, whole-pay game that has not ended (repeatable, 180 minutes in total). The suggested added price is the agreed price (in the game's currency) `/ current minutes x 30`, rounded half up to the money unit (`extension-plan.ts` `addedPriceForExtension`, DR-007 slice 8): $30 for 60 minutes adds $15; $10 for 90 minutes adds $3 (it was $3.33); 2,000,000 LBP for 60 minutes adds 1,000,000 LBP. `Booking.priceUsd` and `amountDueUsd` (or `priceLbp` and `amountDueLbp`) both rise by the added amount; the due goes through `writeDueIfChanged` with reason `EXTENSION`, so it is never below collected and what was collected is untouched. A member with `bookings.adjust_due` may send a different amount in the game's currency (0 to 100,000 dollars, `MAX_ADDED_PRICE_USD`, or 0 to `MAX_ADDED_PRICE_LBP` whole pounds); anyone else gets the suggestion or `access.not_allowed`. Shop tabs, the ledger and the start time are not touched. |
+| No-op | The same value (after rounding to cents, or to whole pounds) writes nothing (`assertAdjustDue` → `"noop"`). |
 
 `fromUsd`/`toUsd` are recorded exactly, and `actorMembershipId` says who changed it.
 
@@ -128,7 +128,7 @@ What it is not: it is a count of notes for one business day, never a value, neve
 | M5 | An LBP tender has a positive frozen rate | `usdEquivalent` → `payment.rate_required` | — | No CHECK (`rateAtTime` is nullable for USD). |
 | M6 | A frozen rate never changes | Tenders are insert-only (`payments.ts` `insertPaymentWithTenders`) | — | Convention (M3). |
 | M7 | `Booking.amountDueUsd` ≥ 0 | `assertAdjustDue` | CHECK `Booking_amountDueUsd_nonneg` | — |
-| M8 | After any **due change**, due ≥ collected | `assertAdjustDue` (`due_below_collected`), `suggest-fee.ts` clamp | — | Not an invariant of the booking itself: a collect no longer overpays (§2, DR-007). |
+| M8 | After any **due change**, due ≥ collected, in the game's currency | `assertAdjustDue` (`due_below_collected`), `suggest-fee.ts` clamp | — | Not an invariant of the booking itself: a collect no longer overpays (§2, DR-007). |
 | M9 | A cancel or no-show fee ≤ the due | `assertFeeWithinDue` | — | — |
 | M10 | Collect only on APPROVED / NO_SHOW / CANCELLED, and only while something is due | `assertCanCollect`, `assertHasDue` under the booking lock | — | — |
 | M11 | No whole-game collect on a PER_PLAYER booking | `collectBookingPayment` → `booking.collect_per_player` | — | — |

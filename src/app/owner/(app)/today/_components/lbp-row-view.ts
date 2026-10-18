@@ -1,8 +1,9 @@
 import Decimal from "decimal.js";
-import { formatLbpAmount, formatParts, formatUsd, formatUsdCompact } from "@/lib/format/money";
+import { formatLbpAmount, formatParts, formatUsd } from "@/lib/format/money";
 import { formatLocalClockRange, formatLocalHm, type HourCycle } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
+import { gameFeeFields } from "@/app/owner/(app)/today/_components/game-fee-view";
 import { perPlayerViewOf } from "@/app/owner/(app)/today/_components/per-player-view";
 import type { LbpOwnerDayBooking } from "@/modules/booking/application/load-owner-day";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
@@ -10,6 +11,10 @@ import type { SeriesInfo } from "@/modules/booking/application/load-series-info"
 import { messageDayLabel, nightHint } from "@/modules/booking/application/night-hint";
 import { deriveCardDisplay } from "@/modules/booking/domain/card-display";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
+import { isCancelWindowClosed, isNoShowWindowEnded } from "@/modules/booking/domain/decision";
+import { mayAddItemsToBooking } from "@/modules/booking/domain/shop-window";
+import type { FeePolicy } from "@/modules/booking/domain/suggest-fee";
+import type { ExtendOfferView } from "@/modules/booking/ui/extend-form";
 import { upcomingStatus } from "@/modules/booking/domain/home-inbox";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import type { BookingItemsPanelView } from "@/modules/booking/ui/booking-items";
@@ -19,10 +24,10 @@ import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import type { BookingItemsView } from "@/modules/shop/application/list-booking-items";
 
 /**
- * An LBP game on Today (DR-007): the card, the sheet and the WhatsApp text show its due in pounds.
- * Collect, "Consider it paid" and the per-player split work on it (slices 6 and 7); the other money
- * actions (fees on cancel and no-show, adjust, extend, add items, repeat weekly) are hidden, because
- * each one is refused (booking.lbp_not_supported) until its slice lands.
+ * An LBP game on Today (DR-007): the card, the sheet and the WhatsApp text show its due in pounds, and
+ * every action works on it: collect, "Consider it paid", the per-player split (slices 6 and 7), and the
+ * cancel and no-show fees, extend, adjust, add items and repeat weekly (slice 8), all in pounds. The
+ * fee, collected and due strings of the row are whole pounds (`currency` says so).
  */
 export function lbpUpcomingView(
   row: LbpOwnerDayBooking,
@@ -41,6 +46,12 @@ export function lbpUpcomingView(
     series: SeriesInfo | undefined;
     /** The stadium allows splitting a game per player. */
     splitEnabled: boolean;
+    /** The cancellation and no-show fee rules of the stadium. */
+    policy: FeePolicy;
+    /** The game may be repeated weekly (confirmed, upcoming, not in a series, member may create). */
+    repeatWeekly: boolean;
+    /** The Extend button's data, from the same offer as a game in dollars. */
+    extend: ExtendOfferView | null;
   },
 ): UpcomingRowView {
   const { now, locale, hourCycle, dayStartHour } = ctx;
@@ -74,12 +85,20 @@ export function lbpUpcomingView(
     locale,
   });
   const zero = formatUsd(new Decimal(0));
+  const fees = gameFeeFields({
+    due: { currency: "LBP", amount: row.amountDueLbp },
+    collected: row.settledLbp,
+    start: row.start,
+    now,
+    policy: ctx.policy,
+  });
+  const dueState = classifyDue({ status: row.status, start: row.start, end: row.end, remaining, now });
   return {
     id: row.id,
     pitchName: ctx.showPitch ? row.pitchName : null,
     timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
     extendedMinutes: ctx.extendedMinutes,
-    repeatWeekly: false,
+    repeatWeekly: ctx.repeatWeekly,
     series: ctx.series
       ? {
           seriesId: ctx.series.seriesId,
@@ -92,12 +111,14 @@ export function lbpUpcomingView(
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
+    currency: "LBP",
     remainingUsd: zero,
     bookingOwes: remaining.gt(0),
     approved: row.status === "APPROVED",
-    mayAddItems: false,
+    mayAddItems: mayAddItemsToBooking({ status: row.status, start: row.start, now }),
     items: ctx.itemsPanel,
-    priceUsd: zero,
+    // The due, in whole pounds: the Adjust form starts from it.
+    priceUsd: row.amountDueLbp.toFixed(0),
     lbp: {
       due: formatLbpAmount(Decimal.max(remaining, 0), locale),
       paid: formatLbpAmount(row.settledLbp, locale),
@@ -111,8 +132,8 @@ export function lbpUpcomingView(
     displayAmountUsd: zero,
     tabsRemainingUsd: formatUsd(row.tabsRemainingUsd),
     whatsAppHref: whatsApp.href,
-    showCancel: false,
-    showNoShow: false,
+    showCancel: row.status === "APPROVED" && !isCancelWindowClosed(row.start, now),
+    showNoShow: row.status === "APPROVED" && isNoShowWindowEnded(row.end, now),
     perPlayer: perPlayerViewOf({
       bookingId: row.id,
       currency: "LBP",
@@ -124,18 +145,9 @@ export function lbpUpcomingView(
       collected: row.settledLbp,
       unassigned: row.unassignedLbp,
     }),
-    extend: null,
-    canAdjust: false,
-    hoursBefore: Math.max(0, Math.floor((row.start.getTime() - now.getTime()) / 3_600_000)),
-    playerFeeCompact: null,
-    playerFeeExact: zero,
-    ownerFeeCompact: null,
-    ownerFeeExact: zero,
-    ownerCancelLowersFee: false,
-    noShowFeeCompact: null,
-    noShowFeeExact: zero,
-    collectedExact: zero,
-    collectedCompact: formatUsdCompact(new Decimal(0)),
+    extend: ctx.extend,
+    canAdjust: row.collectionMode === "WHOLE" && (dueState === "owed" || dueState === "expected"),
+    ...fees,
     stadiumName: ctx.stadiumName,
     waDay,
     waTime,

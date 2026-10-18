@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { DomainError } from "@/lib/errors";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { rejectReasonText } from "@/lib/copy";
-import { normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
+import { isLbpString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
 import { actionErrorKey } from "@/lib/use-case-error";
 import { adjustBookingDue } from "@/modules/booking/application/adjust-booking-due";
 import { approveBooking } from "@/modules/booking/application/approve-booking";
@@ -156,6 +156,7 @@ export async function submitCancelBooking(formData: FormData) {
       bookingId: parsed.bookingId,
       initiator,
       feeUsd: optionalFee(formData),
+      feeLbp: optionalFeeLbp(formData),
     });
     const waiting = peopleWaitingOn(
       await listOpenWaitlist(),
@@ -187,6 +188,7 @@ export async function submitRecordNoShow(formData: FormData) {
     await recordNoShow({
       bookingId: parsed.bookingId,
       feeUsd: optionalFee(formData),
+      feeLbp: optionalFeeLbp(formData),
     });
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitRecordNoShow");
@@ -208,13 +210,15 @@ export async function submitAdjustBookingDue(formData: FormData) {
     const parsed = parseAdjustDueForm({
       bookingId: field(formData, "bookingId"),
       toUsd: field(formData, "toUsd"),
+      toLbp: field(formData, "toLbp"),
       reason: field(formData, "reason"),
       note: field(formData, "note"),
     });
     bookingId = parsed.bookingId;
     await adjustBookingDue({
       bookingId: parsed.bookingId,
-      toUsd: parseUsd(parsed.toUsd),
+      toUsd: parsed.toUsd === undefined ? undefined : parseUsd(parsed.toUsd),
+      toLbp: parsed.toLbp === undefined ? undefined : parseLbp(parsed.toLbp),
       reason: parsed.reason,
       note: parsed.note,
     });
@@ -235,6 +239,14 @@ function optionalFee(formData: FormData) {
   const raw = field(formData, "feeUsd").trim();
   if (!raw) return undefined;
   return parseUsd(normalizeUsdForm(raw));
+}
+
+/** The fee typed for a game in pounds (whole pounds; the use case checks the unit). */
+function optionalFeeLbp(formData: FormData) {
+  const raw = field(formData, "feeLbp").trim();
+  if (!raw) return undefined;
+  if (!isLbpString(raw)) throw new DomainError("form.invalid");
+  return parseLbp(raw);
 }
 
 /** The cash typed on a collect form, as tenders (USD first, then LBP). */

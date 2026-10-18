@@ -7,7 +7,6 @@ import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { BookingForDecision } from "./single";
-import { gameDue, type GameMoney } from "@/modules/booking/domain/game-money";
 import { BOOKING_MONEY_COLUMNS, BookingSqlRow, toBookingForDecision } from "./_shared";
 
 /**
@@ -32,7 +31,8 @@ export async function lockPitchForUpdate(
 
 /**
  * Same read, holding the booking row until the transaction ends. A second tap on the
- * same slot waits here, then sees the slot already paid (SPEC-15 slice 2).
+ * same slot waits here, then sees the slot already paid (SPEC-15 slice 2). The price and the due are
+ * in the game's own currency (DR-007), so a cancel, a collect or an extension works on either.
  */
 export async function findBookingForUpdate(
   tx: TenantTx,
@@ -77,39 +77,4 @@ export async function lockPendingRowsInOrder(
     FOR UPDATE
   `;
   return new Set(rows.filter((row) => row.status === "PENDING").map((row) => row.id));
-}
-
-/** A game's money as collecting needs it, in the game's own currency (DR-007). */
-export type GameForCollect = {
-  id: string;
-  status: BookingForDecision["status"];
-  collectionMode: "WHOLE" | "PER_PLAYER";
-  /** What the game owes before payments: dollars on a USD game, pounds on an LBP game. */
-  due: GameMoney;
-};
-
-/**
- * The same locked read as `findBookingForUpdate`, for the paths that take money on a game in either
- * currency (collect, "Consider it paid", DR-007 slice 6). It does not refuse an LBP game.
- */
-export async function findGameForCollect(
-  tx: TenantTx,
-  bookingId: string,
-): Promise<GameForCollect | null> {
-  const tenantId = await getCurrentTenantId();
-  const rows = await tx.$queryRaw<BookingSqlRow[]>`
-    SELECT
-      id,
-      "pitchId",
-      status,
-      lower(during) AS start,
-      upper(during) AS end,
-      ${BOOKING_MONEY_COLUMNS},
-      "collectionMode"::text AS "collectionMode"
-    FROM "Booking"
-    WHERE id = ${bookingId} AND "tenantId" = ${tenantId}
-    FOR UPDATE
-  `;
-  const row = rows[0];
-  return row ? { id: row.id, status: row.status, collectionMode: row.collectionMode, due: gameDue(row) } : null;
 }

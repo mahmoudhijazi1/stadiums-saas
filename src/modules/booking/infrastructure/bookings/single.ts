@@ -5,11 +5,17 @@ import Decimal from "decimal.js";
 import {
   dueChangeAmounts,
   gameDue,
-  requireUsd,
   type GameCurrency,
   type GameMoney,
 } from "@/modules/booking/domain/game-money";
-import { asDate, BOOKING_MONEY_COLUMNS, BookingSqlRow, toBookingForDecision, type SqlMoney } from "./_shared";
+import {
+  asDate,
+  BOOKING_MONEY_COLUMNS,
+  BookingSqlRow,
+  SETTLED_LBP_SQL,
+  toBookingForDecision,
+  type SqlMoney,
+} from "./_shared";
 
 export type BookingForDecision = {
   id: string;
@@ -17,8 +23,9 @@ export type BookingForDecision = {
   status: BookingStatus;
   start: Date;
   end: Date;
-  priceUsd: Decimal;
-  amountDueUsd: Decimal;
+  /** The agreed price and what is collectible now, each in the game's own currency (DR-007). */
+  price: GameMoney;
+  due: GameMoney;
   collectionMode: "WHOLE" | "PER_PLAYER";
 };
 
@@ -58,7 +65,7 @@ export type BookingStatusRow = {
 /**
  * One booking on this tenant, status and window only. Missing → null. Approve and reject only change
  * the status, so they read a game here in either currency (DR-007 slice 5); every money-changing use
- * case keeps `findBookingForDecision` / `findBookingForUpdate`, which refuse an LBP game.
+ * case reads it with `findBookingForDecision` / `findBookingForUpdate`, in its own currency.
  */
 export async function findBookingStatus(
   tx: TenantTx,
@@ -145,13 +152,16 @@ export type BookingFeeState = {
   status: BookingStatus;
   pitchName: string;
   start: Date;
-  amountDueUsd: Decimal;
-  collectedUsd: Decimal;
+  /** The game's currency; `amountDue`, `collected` and `dueTo` are in it (DR-007 slice 8). */
+  currency: GameCurrency;
+  amountDue: Decimal;
+  /** Dollars from the tenders on a game in dollars, pounds from the settlements on a game in pounds. */
+  collected: Decimal;
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
   dueNote: string | null;
-  dueToUsd: Decimal | null;
+  dueTo: Decimal | null;
 };
 
 type BookingFeeSqlRow = {
@@ -163,6 +173,7 @@ type BookingFeeSqlRow = {
   amountDueUsd: SqlMoney;
   amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
+  settledLbp: SqlMoney;
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
@@ -205,6 +216,7 @@ export async function findBookingFeeState(
       b."amountDueUsd",
       b."amountDueLbp",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
       per.phone AS "requesterPhone",
@@ -243,14 +255,18 @@ export async function findBookingFeeState(
     status: row.status,
     pitchName: row.pitchName,
     start: asDate(row.start),
-    // An LBP game throws booking.lbp_not_supported: the WhatsApp fee text is in dollars (DR-007).
-    amountDueUsd: requireUsd(gameDue(row), "fee-state.amountDueUsd"),
-    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    // The WhatsApp fee texts name amounts in the game's currency (DR-007 slice 8).
+    currency: row.priceCurrency,
+    amountDue: gameDue(row).amount,
+    collected:
+      row.priceCurrency === "LBP"
+        ? new Decimal((row.settledLbp ?? 0).toString())
+        : new Decimal((row.collectedUsd ?? 0).toString()),
     requesterPersonId: row.requesterPersonId,
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
     dueNote: row.dueNote,
-    dueToUsd: row.dueCurrency ? requireUsd(latestDueTo(row, row.dueCurrency), "fee-state.dueToUsd") : null,
+    dueTo: row.dueCurrency ? latestDueTo(row, row.dueCurrency).amount : null,
   };
 }
 

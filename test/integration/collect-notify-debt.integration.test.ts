@@ -126,9 +126,10 @@ describe("loadOutcomeNotify / findBookingFeeState", () => {
 
     const state = await findBookingFeeState(db, bookingId);
     const change = await latestChange(bookingId);
-    expect(state!.dueToUsd!.toFixed(2)).toBe(change.toUsd);
-    expect(state!.amountDueUsd.toFixed(2)).toBe("15.00");
-    expect(state!.collectedUsd.toFixed(2)).toBe("5.00");
+    expect(state!.dueTo!.toFixed(2)).toBe(change.toUsd);
+    expect(state!.currency).toBe("USD");
+    expect(state!.amountDue.toFixed(2)).toBe("15.00");
+    expect(state!.collected.toFixed(2)).toBe("5.00");
     expect(state!.dueNote).toBe("PLAYER");
 
     const notify = await loadOutcomeNotify({ bookingId, kind: "cancelled" });

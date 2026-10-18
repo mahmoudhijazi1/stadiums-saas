@@ -11,22 +11,17 @@ import { seriesRowLine, weeklyWeekdayAndTime } from "@/modules/booking/ui/series
 import { SeriesCreatedSheet } from "@/modules/booking/ui/weekly-confirm";
 import { listExtensionMinutes } from "@/modules/booking/application/list-extension-minutes";
 import { loadExtensionOffers, type ExtensionOffer } from "@/modules/booking/application/load-extension-offers";
-import type { ExtendOfferView } from "@/modules/booking/ui/extend-form";
 import {
   loadOwnerDay,
   sumOwedParts,
   type OwnerDayBooking,
-  type UsdOwnerDayBooking,
 } from "@/modules/booking/application/load-owner-day";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
-import {
-  confirmedFee,
-  ownerInitiatorLowersFee,
-  suggestFee,
-} from "@/modules/booking/domain/suggest-fee";
+import { extendView } from "@/app/owner/(app)/today/_components/extend-view";
+import { gameFeeFields } from "@/app/owner/(app)/today/_components/game-fee-view";
 import { perPlayerViewOf } from "@/app/owner/(app)/today/_components/per-player-view";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
@@ -109,10 +104,21 @@ export async function OwnerToday({
   const mayCancel = can(membership, BOOKINGS_CANCEL);
   const mayNoShow = can(membership, BOOKINGS_NO_SHOW);
   const mayAdjust = can(membership, BOOKINGS_ADJUST_DUE);
-  // "Extend 30 min": a preview per game, empty for a member without bookings.extend. Never on an LBP
-  // game: extending one is refused until DR-007 slice 8.
+  // "Extend 30 min": a preview per game, empty for a member without bookings.extend. A game in
+  // pounds is priced in pounds (DR-007 slice 8).
   const extensionOffers = await loadExtensionOffers(
-    ownerDay.games.filter((row): row is UsdOwnerDayBooking => row.currency === "USD"),
+    ownerDay.games.map((row) => ({
+      id: row.id,
+      status: row.status,
+      pitchId: row.pitchId,
+      start: row.start,
+      end: row.end,
+      price:
+        row.currency === "LBP"
+          ? { currency: "LBP" as const, amount: row.priceLbp }
+          : { currency: "USD" as const, amount: row.priceUsd },
+      collectionMode: row.collectionMode,
+    })),
     now,
   );
   const policy = {
@@ -152,10 +158,8 @@ export async function OwnerToday({
   const repeatable = new Set(
     mayCreate
       ? ownerDay.games
-          // Not an LBP game: "Repeat weekly" reads the source game as money (refused until DR-007 slice 9).
           .filter(
             (row) =>
-              row.currency === "USD" &&
               row.status === "APPROVED" &&
               row.end.getTime() > now.getTime() &&
               !seriesInfo.has(row.id),
@@ -384,6 +388,9 @@ function toUpcomingViews(
         extendedMinutes: extendedMinutes.get(row.id) ?? 0,
         series: seriesInfo.get(row.id),
         splitEnabled,
+        policy,
+        repeatWeekly: repeatable.has(row.id),
+        extend: extendView(row, extensionOffers.get(row.id), hourCycle, locale, mayEditExtension),
       });
     }
     // The pill, the card state and the owed class count the player tabs too; the Collect amounts
@@ -396,10 +403,13 @@ function toUpcomingViews(
       now,
       status: row.status,
     });
-    const booking = { amountDueUsd: row.amountDueUsd, start: row.start };
-    const playerFee = suggestFee(policy, booking, now, "PLAYER");
-    const ownerFee = suggestFee(policy, booking, now, "OWNER");
-    const noShowFee = suggestFee(policy, booking, now, "NO_SHOW");
+    const fees = gameFeeFields({
+      due: { currency: "USD", amount: row.amountDueUsd },
+      collected: row.collectedUsd,
+      start: row.start,
+      now,
+      policy,
+    });
     const due = classifyDue({
       status: row.status,
       start: row.start,
@@ -407,10 +417,6 @@ function toUpcomingViews(
       remaining: row.remaining,
       now,
     });
-    const hoursBefore = Math.max(
-      0,
-      Math.floor((row.start.getTime() - now.getTime()) / 3_600_000),
-    );
     const waDay = messageDayLabel(row.start, locale, dayStartHour);
     const waTime = formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale);
     // The header icon: plain chat, unless the game has ended and money is owed on it (the game due or
@@ -489,63 +495,10 @@ function toUpcomingViews(
       canAdjust:
         row.collectionMode === "WHOLE" &&
         (due === "owed" || due === "expected"),
-      hoursBefore,
-      playerFeeCompact: feeCompact(playerFee.feeUsd, row.collectedUsd),
-      playerFeeExact: formatUsd(playerFee.feeUsd),
-      ownerFeeCompact: feeCompact(ownerFee.feeUsd, row.collectedUsd),
-      ownerFeeExact: formatUsd(ownerFee.feeUsd),
-      ownerCancelLowersFee: ownerInitiatorLowersFee({
-        policy,
-        booking,
-        now,
-        resultingFeeUsd: confirmedFee({
-          suggestion: ownerFee,
-          collectedUsd: row.collectedUsd,
-        }).feeUsd,
-      }),
-      noShowFeeCompact: feeCompact(noShowFee.feeUsd, row.collectedUsd),
-      noShowFeeExact: formatUsd(noShowFee.feeUsd),
-      collectedExact: formatUsd(row.collectedUsd),
-      collectedCompact: formatUsdCompact(row.collectedUsd),
+      ...fees,
       stadiumName,
       waDay,
       waTime,
     };
   });
-}
-
-/**
- * The Extend button's data. The three refusals the owner can act on get a disabled button with
- * the reason; every other case (ended, not confirmed, per player) has no offer at all.
- */
-function extendView(
-  row: UsdOwnerDayBooking,
-  offer: ExtensionOffer | undefined,
-  hourCycle: HourCycle,
-  locale: UiLocale,
-  mayEditPrice: boolean,
-): ExtendOfferView | null {
-  if (!offer) return null;
-  const at = (instant: Date | null) => (instant ? formatLocalClock(instant, hourCycle, locale) : "");
-  let disabledReason: string | null = null;
-  if (!offer.allowed) {
-    if (offer.reason === "next_game") disabledReason = ui("owner.extendNextGame", locale).replace("{time}", at(offer.limit));
-    else if (offer.reason === "closing") disabledReason = ui("owner.extendClosing", locale).replace("{time}", at(offer.limit));
-    else if (offer.reason === "max_duration") disabledReason = ui("owner.extendMax", locale);
-    else return null;
-  }
-  return {
-    allowed: offer.allowed,
-    disabledReason,
-    expectedEndsAt: row.end.toISOString(),
-    newRange: formatLocalClockRange(row.start, offer.newEnd, hourCycle, locale),
-    addedPriceUsd: formatUsd(offer.addedPriceUsd),
-    declineCount: offer.declineCount,
-    mayEditPrice,
-  };
-}
-
-function feeCompact(fee: Decimal, collected: Decimal): string | null {
-  if (fee.isZero() && collected.isZero()) return null;
-  return formatUsdCompact(fee);
 }
