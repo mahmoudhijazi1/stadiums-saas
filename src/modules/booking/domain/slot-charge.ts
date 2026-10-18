@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
+import { planShareCharge, sharePayState, type ShareSlot } from "@/modules/booking/domain/share-charge";
 
-/** One slot as loaded: its due and what its allocations already add up to. */
+/** One slot of a game in dollars, as loaded: its due and what its allocations already add up to. */
 export type ChargeSlot = {
   participantId: string;
   slotNumber: number;
@@ -17,8 +18,18 @@ export type SlotCharge = {
 
 export type ChargeTarget = "ALL_UNPAID" | { participantId: string };
 
+function shareSlots(slots: ChargeSlot[]): ShareSlot[] {
+  return slots.map((slot) => ({
+    participantId: slot.participantId,
+    slotNumber: slot.slotNumber,
+    due: slot.dueUsd,
+    paid: slot.paidUsd,
+  }));
+}
+
 /**
- * What a per-player tap or "Booker pays all remaining" charges (SPEC-15 §3.2, P3).
+ * What a per-player tap or "Booker pays all remaining" charges (SPEC-15 §3.2, P3) on a game in
+ * dollars. The rules live in `share-charge.ts`, shared with games in pounds (DR-007 slice 7).
  *
  * The cap is the booking remaining: amountDueUsd minus everything collected, Unassigned
  * included. A charge never exceeds it, so money paid before the split is never taken
@@ -34,29 +45,15 @@ export function planSlotCharge(input: {
   slots: ChargeSlot[];
   target: ChargeTarget;
 }): SlotCharge {
-  let left = input.amountDueUsd.minus(input.collectedUsd);
-  const allocations: SlotCharge["allocations"] = [];
-  if (left.lte(0)) return { totalUsd: new Decimal(0), allocations };
-
-  const chosen = [...input.slots]
-    .sort((a, b) => a.slotNumber - b.slotNumber)
-    .filter(
-      (slot) =>
-        input.target === "ALL_UNPAID" ||
-        slot.participantId === input.target.participantId,
-    );
-
-  let total = new Decimal(0);
-  for (const slot of chosen) {
-    if (left.lte(0)) break;
-    const remaining = slot.dueUsd.minus(slot.paidUsd);
-    if (remaining.lte(0)) continue;
-    const amount = Decimal.min(remaining, left);
-    allocations.push({ participantId: slot.participantId, amountUsd: amount });
-    total = total.plus(amount);
-    left = left.minus(amount);
-  }
-  return { totalUsd: total, allocations };
+  const plan = planShareCharge({
+    cap: input.amountDueUsd.minus(input.collectedUsd),
+    slots: shareSlots(input.slots),
+    target: input.target,
+  });
+  return {
+    totalUsd: plan.total,
+    allocations: plan.allocations.map((row) => ({ participantId: row.participantId, amountUsd: row.amount })),
+  };
 }
 
 export type SlotPayState =
@@ -74,19 +71,11 @@ export function slotPayState(input: {
   slots: ChargeSlot[];
   participantId: string;
 }): SlotPayState {
-  const slot = input.slots.find((row) => row.participantId === input.participantId);
-  const remaining = slot ? slot.dueUsd.minus(slot.paidUsd) : new Decimal(0);
-  if (remaining.lte(0)) return { kind: "paid" };
-  const charge = planSlotCharge({
-    amountDueUsd: input.amountDueUsd,
-    collectedUsd: input.collectedUsd,
-    slots: input.slots,
-    target: { participantId: input.participantId },
+  const state = sharePayState({
+    due: input.amountDueUsd,
+    collected: input.collectedUsd,
+    slots: shareSlots(input.slots),
+    participantId: input.participantId,
   });
-  if (charge.totalUsd.lte(0)) return { kind: "covered" };
-  return {
-    kind: "pay",
-    chargeUsd: charge.totalUsd,
-    partial: charge.totalUsd.lt(remaining),
-  };
+  return state.kind === "pay" ? { kind: "pay", chargeUsd: state.charge, partial: state.partial } : state;
 }

@@ -282,10 +282,11 @@ export function soldToast(items: number, total: string, locale: UiLocale = "ar")
   return items === 2 ? `بيع صنفان · ${total}` : `بيع ${items} ${word} · ${total}`;
 }
 
+/** `amount` is already written with its currency: "$30.00" or "1,790,000 LBP" (DR-007). */
 export function bookerPaysAllLabel(amount: string, locale: UiLocale = "ar"): string {
   return locale === "en"
-    ? `Booker pays all remaining $${amount}`
-    : `الحاجز يدفع كل المتبقي $${amount}`;
+    ? `Booker pays all remaining ${amount}`
+    : `الحاجز يدفع كل المتبقي ${amount}`;
 }
 
 /** Confirmed card due line. Amounts are already formatUsd (Latin). */

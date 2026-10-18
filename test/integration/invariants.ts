@@ -61,6 +61,29 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
   `;
   expect(overSettled).toHaveLength(0);
 
+  // The shares of a split game add up to its due, in its currency (DR-007 slice 7).
+  const sharesOff = await platformDb.$queryRaw<Array<{ id: string }>>`
+    SELECT b.id
+    FROM "Booking" b
+    JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."tenantId" = b."tenantId"
+    WHERE b."collectionMode" = 'PER_PLAYER'::"CollectionMode" AND bp."slotNumber" IS NOT NULL
+    GROUP BY b.id, b."priceCurrency", b."amountDueUsd", b."amountDueLbp"
+    HAVING (b."priceCurrency" = 'USD' AND SUM(bp."amountDueUsd") IS DISTINCT FROM b."amountDueUsd")
+        OR (b."priceCurrency" = 'LBP' AND SUM(bp."amountDueLbp") IS DISTINCT FROM b."amountDueLbp")
+  `;
+  expect(sharesOff).toHaveLength(0);
+
+  // Every payment's pound allocations add up to its settlement, and none sits on a payment without one.
+  const allocationsOff = await platformDb.$queryRaw<Array<{ paymentId: string }>>`
+    SELECT a."paymentId"
+    FROM "PaymentAllocation" a
+    LEFT JOIN "BookingSettlement" s ON s."paymentId" = a."paymentId" AND s."tenantId" = a."tenantId"
+    WHERE a."amountLbp" IS NOT NULL
+    GROUP BY a."paymentId", s."lbpApplied"
+    HAVING s."lbpApplied" IS NULL OR SUM(a."amountLbp") IS DISTINCT FROM s."lbpApplied"
+  `;
+  expect(allocationsOff).toHaveLength(0);
+
   const overlaps = await platformDb.$queryRaw<Array<{ id: string }>>`
     SELECT a.id
     FROM "Booking" a

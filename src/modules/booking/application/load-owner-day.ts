@@ -42,9 +42,11 @@ export type OwnerSlot = {
   personId: string | null;
   /** Null until the slot is named. */
   name: string | null;
-  dueUsd: Decimal;
-  paidUsd: Decimal;
-  remainingUsd: Decimal;
+  /** The game's currency: `due`, `paid` and `remaining` are dollars on a USD game, pounds on an LBP game. */
+  currency: "USD" | "LBP";
+  due: Decimal;
+  paid: Decimal;
+  remaining: Decimal;
 };
 
 /** What every game on Today has, whatever its currency. */
@@ -68,7 +70,7 @@ type OwnerDayGame = {
   pitchDefaultPlayerCount: number;
   /** Empty on WHOLE. */
   slots: OwnerSlot[];
-  /** Collected minus allocated. Zero on WHOLE. */
+  /** Collected minus allocated, on a USD game. Zero on WHOLE and on an LBP game (see `unassignedLbp`). */
   unassignedUsd: Decimal;
   requesterPersonId: string;
   requesterName: string;
@@ -85,9 +87,9 @@ export type UsdOwnerDayBooking = OwnerDayGame & {
 };
 
 /**
- * A game priced in pounds (DR-007): its due, what its settlements applied (empty until the
- * collecting slice) and what is left, all in pounds. It is shown as one whole game; its money
- * actions are hidden until their slices land.
+ * A game priced in pounds (DR-007): its due, what its settlements applied and what is left, all in
+ * pounds. Collect and the per-player split work on it; fees, extensions and adjust-due are hidden
+ * until their slice lands.
  */
 export type LbpOwnerDayBooking = OwnerDayGame & {
   currency: "LBP";
@@ -96,6 +98,8 @@ export type LbpOwnerDayBooking = OwnerDayGame & {
   settledLbp: Decimal;
   /** Due minus settled. */
   remainingLbp: Decimal;
+  /** Settled minus allocated to slots (money from before the split). Zero on WHOLE. */
+  unassignedLbp: Decimal;
 };
 
 /** What a game owes the stadium overall, per currency: its own remaining plus its player tabs (dollars). */
@@ -168,14 +172,10 @@ export async function loadOwnerDay(
       })),
       now,
     );
-    // Player slots are shown for USD games only: an LBP game is split in DR-007 slice 7, and until
-    // then it is one whole game on the card.
     const slotsByBooking = groupSlots(
       await listSlotsForBookings(
         db,
-        [...gameRows, ...collectRows]
-          .filter((row) => row.collectionMode === "PER_PLAYER" && row.amountDue.currency === "USD")
-          .map((row) => row.id),
+        [...gameRows, ...collectRows].filter((row) => row.collectionMode === "PER_PLAYER").map((row) => row.id),
       ),
     );
 
@@ -201,7 +201,6 @@ export async function loadOwnerDay(
 function groupSlots(rows: SlotRow[]): Map<string, OwnerSlot[]> {
   const byBooking = new Map<string, OwnerSlot[]>();
   for (const row of rows) {
-    if (row.currency !== "USD") continue;
     const list = byBooking.get(row.bookingId) ?? [];
     list.push({
       participantId: row.participantId,
@@ -209,9 +208,10 @@ function groupSlots(rows: SlotRow[]): Map<string, OwnerSlot[]> {
       isRequester: row.isRequester,
       personId: row.personId,
       name: row.name,
-      dueUsd: row.due,
-      paidUsd: row.paid,
-      remainingUsd: participantRemaining(row.due, row.paid),
+      currency: row.currency,
+      due: row.due,
+      paid: row.paid,
+      remaining: participantRemaining(row.due, row.paid),
     });
     byBooking.set(row.bookingId, list);
   }
@@ -224,13 +224,16 @@ function toOwnerDayBooking(
 ): OwnerDayBooking {
   if (row.amountDue.currency === "LBP") {
     const remainingLbp = bookingRemaining(row.amountDue.amount, row.settledLbp);
+    const slots = slotsByBooking.get(row.id) ?? [];
+    const allocated = slots.reduce((sum, slot) => sum.plus(slot.paid), new Decimal(0));
     return {
-      ...gameFields(row, [], row.tabsRemainingUsd, Decimal.max(remainingLbp, 0)),
+      ...gameFields(row, slots, row.tabsRemainingUsd, Decimal.max(remainingLbp, 0)),
       currency: "LBP",
       priceLbp: row.price.amount,
       amountDueLbp: row.amountDue.amount,
       settledLbp: row.settledLbp,
       remainingLbp,
+      unassignedLbp: row.collectionMode === "PER_PLAYER" ? row.settledLbp.minus(allocated) : new Decimal(0),
     };
   }
   return toUsdOwnerDayBooking(row, slotsByBooking);
@@ -258,7 +261,7 @@ function toUsdOwnerDayBooking(
 }
 
 function gameFields(row: DayBookingRow, slots: OwnerSlot[], owedUsd: Decimal, owedLbp: Decimal): OwnerDayGame {
-  const allocated = slots.reduce((sum, slot) => sum.plus(slot.paidUsd), new Decimal(0));
+  const allocated = slots.reduce((sum, slot) => sum.plus(slot.paid), new Decimal(0));
   return {
     id: row.id,
     status: row.status,
@@ -274,7 +277,7 @@ function gameFields(row: DayBookingRow, slots: OwnerSlot[], owedUsd: Decimal, ow
     pitchDefaultPlayerCount: row.pitchDefaultPlayerCount,
     slots,
     unassignedUsd:
-      row.collectionMode === "PER_PLAYER"
+      row.collectionMode === "PER_PLAYER" && row.amountDue.currency === "USD"
         ? unassignedUsd(row.collectedUsd, allocated)
         : new Decimal(0),
     requesterPersonId: row.requesterPersonId,

@@ -57,15 +57,17 @@ While the owner types, the mixed USD + LBP forms (the collect sheet on Today, an
 
 - **Split** (`switch-collection-mode.ts` `switchToPerPlayer`):
   - It is allowed only for an APPROVED, WHOLE booking with no allocations and `amountDueUsd` > 0 (`switch-mode.ts` `assertCanSwitchToPerPlayer`).
-  - `buildSlots` → `split-evenly.ts` `splitEvenly(amountDueUsd, n)` divides the **full due** (not the remaining) into n slots, in cents: the total is exact, the spread is at most 1¢, and the extra cents go on the first slots. `test/modules/booking/domain/split-evenly.test.ts` checks this as a property.
+  - `buildSlots` → `payment/domain/units.ts` `splitInUnits(due, n, currency)` divides the **full due** (not the remaining) into n slots of whole units ($1 or 5,000 LBP, DR-007 decision 7): the leftover units go one by one to the first slots, and the part of the due below one unit goes on slot 1, so the total is exact. $30 over 7 is two of $5 and five of $4. A game in pounds stores the shares in `BookingParticipant.amountDueLbp`. A split made before this rule (exact cents, `split-evenly.ts`) is never recomputed. `test/modules/booking/domain/build-slots.test.ts` and `units.test.ts` check it.
   - Money already collected stays **Unassigned**.
-- **Charge cap** (`slot-charge.ts` `planSlotCharge`):
+- **Charge cap** (`share-charge.ts` `planShareCharge`, through `slot-charge.ts` `planSlotCharge` for dollars):
   - Every slot tap and "pay all remaining" charges at most `amountDueUsd − collected`, Unassigned included.
   - Within that cap it fills unpaid slots in slot order, and the last one may be partial.
   - **Why:** money paid before the split must never be taken twice (audit §3.6).
 - **Pay** (`collect-player-payment.ts` `payRemaining`):
   - It locks the booking, plans the charge, then `assertCanPaySlot` (PER_PLAYER, APPROVED, a positive charge).
-  - One **USD** tender equal to the charge, then `recordPayment`, then `insertAllocations`: one allocation per slot and Σ allocations = the charge.
+  - On a game in dollars: one **USD** tender equal to the charge, then `recordPayment`, then `insertAllocations`: one allocation per slot and Σ allocations = the charge.
+  - On a game in pounds (DR-007 slice 7): the charge is in pounds (`planShareCharge`, capped at the due minus the settlements); the cash typed (none means exactly the charge in pounds) goes through `applyToLbpGameDue` like a whole LBP game; the slots are credited with the pounds actually settled, in slot order (`amountLbp`); one `BookingSettlement` records the same pounds, so a payment's allocations add up to its `lbpApplied`.
+- **Consider it paid on one share** (`consider-share-paid.ts`): see [../per-player-payments.md](../per-player-payments.md) §3.
 - **Back to WHOLE** (`switchToWhole`): only while there are no allocations (`assertCanSwitchToWhole`). **Why:** otherwise who paid what would be lost.
 - **Cancel / no-show on a split booking:**
   - `bookings.ts` `collapseToWhole` **deletes the allocations** and the per-player rows and sets WHOLE, in the same transaction as the cancel.
@@ -130,10 +132,10 @@ What it is not: it is a count of notes for one business day, never a value, neve
 | M9 | A cancel or no-show fee ≤ the due | `assertFeeWithinDue` | — | — |
 | M10 | Collect only on APPROVED / NO_SHOW / CANCELLED, and only while something is due | `assertCanCollect`, `assertHasDue` under the booking lock | — | — |
 | M11 | No whole-game collect on a PER_PLAYER booking | `collectBookingPayment` → `booking.collect_per_player` | — | — |
-| M12 | PER_PLAYER: Σ slot `amountDueUsd` = `Booking.amountDueUsd` | `splitEvenly` (exact); adjust is WHOLE-only; the split needs WHOLE with no allocations | — | Nothing re-checks it later. A future path that changes the due on a PER_PLAYER booking would break it silently. |
+| M12 | PER_PLAYER: Σ slot due = the game's due, in its currency | `splitInUnits` (exact); "Consider it paid" on a share lowers both by the same amount; adjust is WHOLE-only; `assertMoneyInvariants` re-checks it; the split needs WHOLE with no allocations | — | Nothing re-checks it later. A future path that changes the due on a PER_PLAYER booking would break it silently. |
 | M13 | A per-player charge ≤ the booking remaining (Unassigned included); Σ allocations of a payment = its total | `planSlotCharge`; `payRemaining` tenders = `charge.totalUsd` | CHECK `PaymentAllocation_amountUsd_positive`; unique `(paymentId, participantId)` | — |
 | M14 | Allocations to a slot ≤ that slot's due | `planSlotCharge` (`Decimal.min(remaining, left)`) | — | — |
-| M15 | Participant dues ≥ 0; one requester per booking, with a person | `splitEvenly` | CHECKs + partial unique (DATA-MODEL §3 #4, #7, #8) | — |
+| M15 | Participant dues ≥ 0; one requester per booking, with a person | `splitInUnits` | CHECKs + partial unique (DATA-MODEL §3 #4, #7, #8) | — |
 | M16 | WHOLE: the requester participant's `amountDueUsd` mirrors the booking due | Set on create and on `collapseToWhole` | — | **Not maintained** by `writeDueIfChanged`. Harmless because WHOLE reads the booking (`personOwedOnBooking`), but a reader of the participant column in WHOLE would be wrong (the booking audit addendum, "WHOLE requester due drift"). |
 | M17 | No refunds: money only moves OUT as an expense | No refund use case (`adjust-due.ts` comment; `cancel-booking.ts` "No refund") | — | — |
 | M18 | Each money row belongs to the booking's tenant | The Prisma extension stamps `tenantId` (Payment, PaymentTender, PaymentAllocation, LedgerEntry are scoped) | — | Raw SQL must stamp it itself (ARCHITECTURE §3). |

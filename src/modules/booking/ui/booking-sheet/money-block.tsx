@@ -21,10 +21,12 @@ export type CollectActions = {
   submitCollectPayment: (formData: FormData) => Promise<void>;
   submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
   submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
-  submitCollectSlot: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
+  submitCollectSlot: (input: { bookingId: string; participantId: string; usdAmount?: string; lbpAmount?: string }) => Promise<PerPlayerResult>;
   submitCollectAllRemaining: (input: { bookingId: string }) => Promise<PerPlayerResult>;
   /** "Consider it paid" (DR-007 decision 8). Absent: the button is not shown. */
   submitConsiderPaid?: (formData: FormData) => Promise<void>;
+  /** "Consider it paid" on one share of a split game (DR-007 slice 7). Absent: not shown. */
+  submitConsiderSharePaid?: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
 };
 
 type MoneyTone = "paid" | "owed" | "expected";
@@ -104,11 +106,12 @@ export function MoneyBlock({
   collectActions: CollectActions;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
-  const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitSwitchToPerPlayer, submitSwitchToWhole } =
+  const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitSwitchToPerPlayer, submitSwitchToWhole } =
     collectActions;
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
-  // An LBP game (DR-007 slice 6): the due in pounds, Collect and the two-currency form, and
-  // "Consider it paid" under 5,000 LBP. Split, extend, cancel fees and adjust stay hidden (slices 7, 8).
+  // An LBP game (DR-007 slices 6 and 7): the due in pounds, Collect and the two-currency form,
+  // "Consider it paid" under 5,000 LBP, and the per-player split. Extend, cancel fees and adjust stay
+  // hidden (slice 8).
   if (row.lbp) {
     const lbp = row.lbp;
     const tone: MoneyTone = lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected";
@@ -139,6 +142,7 @@ export function MoneyBlock({
           <LbpCollectForm bookingId={row.id} remainingLbp={lbp.remaining} lbpPerUsd={lbpPerUsd} locale={locale} submitCollectPayment={submitCollectPayment} />
         ) : null}
         {forgivable ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
+        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjustOf(row, mayAdjust)} lbpPerUsd={lbpPerUsd} locale={locale} />
       </section>
     );
   }
@@ -168,7 +172,7 @@ export function MoneyBlock({
         {canCollect ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
         {canCollect && mixedOpen ? <MixedCollectForm submitCollectPayment={submitCollectPayment} row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
         {forgivableUsd ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
-        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
+        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} lbpPerUsd={lbpPerUsd} locale={locale} />
       </section>
   );
 }

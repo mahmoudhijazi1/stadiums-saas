@@ -179,7 +179,12 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    tenders are written by `applyToLbpGameDue`, not `paymentTenders`. One `BookingSettlement` row per
    payment. "Consider it paid" (`considerGamePaid`, `payments.collect`) writes one `ROUNDING` due
    change in the game's currency, for USD and LBP games.
-7. Per-player in LBP.
+7. Per-player in LBP. **Done** (progress.md, 2026-10-18): a game in either currency splits with
+   `splitInUnits` (every NEW split, USD included; existing splits are not recomputed), a game in
+   pounds stores its shares in `BookingParticipant.amountDueLbp` and collects them with the whole-game
+   rules (one payment, one allocation per slot with `amountLbp`, one `BookingSettlement`), and
+   "Consider it paid" works on one share in both currencies (`considerSharePaid`). Fees, extensions and
+   adjust-due stay refused.
 8. Fees, extensions and adjust-due in LBP.
 9. Every reader: Today, Owed, the person page, debt warnings, the booking sheet, WhatsApp texts,
    the Money page. **Done, built before 6** (progress.md, 2026-10-18): every owed reader handles both

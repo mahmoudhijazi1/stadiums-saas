@@ -42,6 +42,28 @@ export function assertDueAdjustableStatus(status: string): void {
 }
 
 /**
+ * "Consider it paid" for ONE share of a split game (DR-007 slice 7): how much the share and the
+ * game's due both drop by, which is exactly what is left on that share. The same `isForgivable` as the
+ * whole game. Refused (`booking.not_forgivable`) when the share's remainder is more than the game
+ * still owes: money already collected for it (Unassigned) covers it, so lowering the due by it would
+ * put the due below what was collected.
+ */
+export function forgivenShare(input: {
+  shareRemaining: Decimal;
+  bookingRemaining: Decimal;
+  currency: "USD" | "LBP";
+  rate: Decimal | null;
+}): Decimal {
+  if (
+    !isForgivable(input.shareRemaining, input.currency, input.rate) ||
+    input.shareRemaining.gt(input.bookingRemaining)
+  ) {
+    throw new DomainError("booking.not_forgivable");
+  }
+  return input.shareRemaining;
+}
+
+/**
  * "Consider it paid" (DR-007 decision 8): the due that makes the game paid, which is the due lowered
  * by exactly what is left. Only when what is left is forgivable (`isForgivable`: under 5,000 LBP, or
  * worth under 5,000 LBP at `rate` on a USD game, never without a rate) and the game is collected

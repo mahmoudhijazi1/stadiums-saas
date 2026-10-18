@@ -163,6 +163,7 @@ The new-request alert is composed in `app/(public)/alert-owners.ts` and schedule
 | `reject-booking.ts` `rejectBooking` | B (implicit, `setPendingStatus` UPDATE) | Single row. |
 | `collect-booking-payment.ts` `collectBookingPayment` | B | Then inserts Payment, tenders, ledger and, on an LBP game, its BookingSettlement (new rows). |
 | `consider-game-paid.ts` `considerGamePaid` | B | Then the due and one ROUNDING due change. |
+| `consider-share-paid.ts` `considerSharePaid` | B | Then the share, the due and one ROUNDING due change. |
 | `collect-player-payment.ts` (`payRemaining` → `collectSlotPayment`, `collectAllRemaining`) | B | Then updates participants and allocations of **that** booking. |
 | `adjust-booking-due.ts` `adjustBookingDue` | B | |
 | `switch-collection-mode.ts` `switchToPerPlayer`, `switchToWhole` | B | Then replaces participants of that booking. |

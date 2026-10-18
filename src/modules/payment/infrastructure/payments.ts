@@ -117,18 +117,23 @@ export async function sumCollectedUsdBySourceIds(
 /**
  * Credit part of a payment to participants (SPEC-15). Payment does not know what a
  * participant is — the caller passes ids it already checked. Tenant is stamped by the guard.
+ * Dollars by default; `currency` "LBP" credits whole pounds (`amountLbp`, DR-007 slice 7). Exactly
+ * one of the two columns is written (CHECK PaymentAllocation_one_currency_positive).
  */
 export async function insertAllocations(
   tx: TenantTx,
   paymentId: string,
-  allocations: { participantId: string; amountUsd: Decimal }[],
+  allocations: { participantId: string; amount: Decimal }[],
+  currency: "USD" | "LBP" = "USD",
 ): Promise<void> {
   for (const allocation of allocations) {
     await tx.paymentAllocation.create({
       data: {
         paymentId,
         participantId: allocation.participantId,
-        amountUsd: formatUsd(allocation.amountUsd),
+        ...(currency === "LBP"
+          ? { amountLbp: allocation.amount.toFixed(0) }
+          : { amountUsd: formatUsd(allocation.amount) }),
       } as Parameters<typeof tx.paymentAllocation.create>[0]["data"],
     });
   }

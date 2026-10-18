@@ -42,6 +42,7 @@ const GAME: LbpOwnerDayBooking = {
   amountDueLbp: new Decimal(2000000),
   settledLbp: new Decimal(0),
   remainingLbp: new Decimal(2000000),
+  unassignedLbp: new Decimal(0),
 };
 
 /** The same game with 1,790,000 settled: 210,000 is left. */
@@ -81,6 +82,7 @@ function viewOf(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
     dayStartHour: 6,
     extendedMinutes: 0,
     series: undefined,
+    splitEnabled: true,
   });
 }
 
@@ -147,14 +149,16 @@ describe("an LBP game on Today", () => {
     expect(moneyBlock("en", SETTLED)).not.toContain(ui("owner.collect", "en"));
   });
 
-  it("hides every money action that is refused on an LBP game", () => {
+  it("hides every money action that is still refused on an LBP game", () => {
     const view = viewOf("en");
     expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP", remaining: "2000000" });
     expect(view.showCancel).toBe(false);
     expect(view.showNoShow).toBe(false);
     expect(view.canAdjust).toBe(false);
     expect(view.extend).toBeNull();
-    expect(view.perPlayer.canSplit).toBe(false);
+    // The split is back (DR-007 slice 7): offered on an approved game with something due.
+    expect(view.perPlayer.canSplit).toBe(true);
+    expect(view.perPlayer.currency).toBe("LBP");
     expect(view.mayAddItems).toBe(false);
     expect(view.repeatWeekly).toBe(false);
   });

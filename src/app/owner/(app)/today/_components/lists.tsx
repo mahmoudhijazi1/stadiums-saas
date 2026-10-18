@@ -27,7 +27,7 @@ import {
   ownerInitiatorLowersFee,
   suggestFee,
 } from "@/modules/booking/domain/suggest-fee";
-import { planSlotCharge, slotPayState } from "@/modules/booking/domain/slot-charge";
+import { perPlayerViewOf } from "@/app/owner/(app)/today/_components/per-player-view";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
@@ -69,7 +69,7 @@ import { ClockText } from "@/components/ui/ltr-isolate";
 import { LiveRequestCount } from "@/modules/booking/ui/live-queue";
 import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave } from "@/app/owner/(app)/series/actions";
 import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
-import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
+import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
 import { submitExtendBooking } from "@/app/owner/(app)/today/extend-actions";
 import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
 
@@ -234,6 +234,7 @@ export async function OwnerToday({
         collectActions={{
           submitCollectPayment,
           submitConsiderPaid,
+          submitConsiderSharePaid,
           submitSwitchToPerPlayer,
           submitSwitchToWhole,
           submitCollectSlot,
@@ -382,6 +383,7 @@ function toUpcomingViews(
         dayStartHour,
         extendedMinutes: extendedMinutes.get(row.id) ?? 0,
         series: seriesInfo.get(row.id),
+        splitEnabled,
       });
     }
     // The pill, the card state and the owed class count the player tabs too; the Collect amounts
@@ -472,45 +474,17 @@ function toUpcomingViews(
         !isCancelWindowClosed(row.start, now),
       showNoShow:
         row.status === "APPROVED" && isNoShowWindowEnded(row.end, now),
-      perPlayer: {
+      perPlayer: perPlayerViewOf({
         bookingId: row.id,
+        currency: "USD",
         mode: row.collectionMode,
-        canSplit:
-          splitEnabled &&
-          row.status === "APPROVED" &&
-          row.amountDueUsd.gt(0),
+        canSplit: splitEnabled && row.status === "APPROVED" && row.amountDueUsd.gt(0),
         defaultPlayerCount: row.pitchDefaultPlayerCount,
-        slots: row.slots.map((slot) => {
-          const state = slotPayState({
-            amountDueUsd: row.amountDueUsd,
-            collectedUsd: row.collectedUsd,
-            slots: row.slots,
-            participantId: slot.participantId,
-          });
-          return {
-            participantId: slot.participantId,
-            slotNumber: slot.slotNumber,
-            name: slot.name,
-            dueUsd: formatUsd(slot.dueUsd),
-            remainingUsd: formatUsd(slot.remainingUsd),
-            paid: state.kind === "paid",
-            state: state.kind,
-            chargeUsd: state.kind === "pay" ? formatUsd(state.chargeUsd) : null,
-            partial: state.kind === "pay" && state.partial,
-          };
-        }),
-        unassignedUsd: formatUsd(row.unassignedUsd),
-        hasAllocations: row.slots.some((slot) => slot.paidUsd.gt(0)),
-        // Same function the server charges with: never more than the booking owes.
-        unpaidTotalUsd: formatUsd(
-          planSlotCharge({
-            amountDueUsd: row.amountDueUsd,
-            collectedUsd: row.collectedUsd,
-            slots: row.slots,
-            target: "ALL_UNPAID",
-          }).totalUsd,
-        ),
-      },
+        slots: row.slots,
+        due: row.amountDueUsd,
+        collected: row.collectedUsd,
+        unassigned: row.unassignedUsd,
+      }),
       extend: extendView(row, extensionOffers.get(row.id), hourCycle, locale, mayEditExtension),
       canAdjust:
         row.collectionMode === "WHOLE" &&

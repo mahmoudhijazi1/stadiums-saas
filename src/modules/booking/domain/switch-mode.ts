@@ -9,7 +9,8 @@ import type { CollectionModeName } from "@/modules/booking/domain/person-owed";
 export function assertCanSwitchToPerPlayer(input: {
   status: string;
   collectionMode: CollectionModeName;
-  amountDueUsd: Decimal;
+  /** The due, in the game's currency (DR-007). */
+  due: Decimal;
   allocationCount: number;
 }): void {
   if (input.status === "CANCELLED" || input.status === "NO_SHOW") {
@@ -21,7 +22,7 @@ export function assertCanSwitchToPerPlayer(input: {
   if (input.collectionMode !== "WHOLE" || input.allocationCount > 0) {
     throw new DomainError("booking.switch_not_whole");
   }
-  if (input.amountDueUsd.lte(0)) {
+  if (input.due.lte(0)) {
     throw new DomainError("booking.switch_no_due");
   }
 }
@@ -51,7 +52,8 @@ export function assertCanSwitchToWhole(input: {
 export function assertCanPaySlot(input: {
   status: string;
   collectionMode: CollectionModeName;
-  chargeUsd: Decimal;
+  /** The charge, in the game's currency. */
+  charge: Decimal;
 }): void {
   if (input.collectionMode !== "PER_PLAYER") {
     throw new DomainError("booking.switch_not_per_player");
@@ -59,7 +61,7 @@ export function assertCanPaySlot(input: {
   if (input.status !== "APPROVED") {
     throw new DomainError("payment.collect_unapproved");
   }
-  if (input.chargeUsd.lte(0)) {
+  if (input.charge.lte(0)) {
     throw new DomainError("payment.nothing_due");
   }
 }

@@ -259,6 +259,7 @@ describe("showing an LBP game", () => {
       dayStartHour: 6,
       extendedMinutes: 0,
       series: undefined,
+      splitEnabled: false,
     });
     // Nothing settled yet: the whole due is left (the readers slice added what was paid and whether it is settled).
     expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP", remaining: "2000000" });

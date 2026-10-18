@@ -1,5 +1,6 @@
 "use server";
 
+import Decimal from "decimal.js";
 import { revalidatePath } from "next/cache";
 import { DomainError } from "@/lib/errors";
 import { getUiLocale } from "@/lib/get-ui-locale";
@@ -12,6 +13,7 @@ import { dismissMissedRequests } from "@/modules/booking/application/dismiss-mis
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
 import { considerGamePaid } from "@/modules/booking/application/consider-game-paid";
+import { considerSharePaid } from "@/modules/booking/application/consider-share-paid";
 import {
   collectAllRemaining,
   collectSlotPayment,
@@ -23,6 +25,7 @@ import {
 import {
   collectAllRemainingSchema,
   collectSlotSchema,
+  considerSharePaidSchema,
   switchToPerPlayerSchema,
   switchToWholeSchema,
 } from "@/modules/booking/schemas/per-player";
@@ -33,7 +36,7 @@ import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
 import { parseAdjustDueForm } from "@/modules/booking/schemas/adjust-due-form";
 import { parseBookingDecision } from "@/modules/booking/schemas/booking-decision";
 import type { TenderDraft } from "@/modules/payment/domain/collect";
-import { parseCollectPayment } from "@/modules/payment/schemas/collect-payment";
+import { parseCollectPayment, type CollectPayment } from "@/modules/payment/schemas/collect-payment";
 import { field, redirectOwner } from "@/lib/form-query";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 export type { PerPlayerResult };
@@ -234,6 +237,27 @@ function optionalFee(formData: FormData) {
   return parseUsd(normalizeUsdForm(raw));
 }
 
+/** The cash typed on a collect form, as tenders (USD first, then LBP). */
+function tendersOf(parsed: CollectPayment): TenderDraft[] {
+  const tenders: TenderDraft[] = [];
+  if (parsed.usdAmount) {
+    tenders.push({ currency: "USD", amount: parseUsd(parsed.usdAmount) });
+  }
+  if (parsed.lbpAmount) {
+    tenders.push({ currency: "LBP", amount: parseLbp(parsed.lbpAmount) });
+  }
+  return tenders;
+}
+
+/**
+ * The cash a per-player collect carries (DR-007 slice 7): undefined when nothing was typed, which
+ * means exactly the charge. Validated like the whole-game form.
+ */
+function typedCash(input: { bookingId: string; usdAmount?: string; lbpAmount?: string }): TenderDraft[] | undefined {
+  if (!input.usdAmount?.trim() && !input.lbpAmount?.trim()) return undefined;
+  return tendersOf(parseCollectPayment(input));
+}
+
 export async function submitCollectPayment(formData: FormData) {
   let errorKey: string | undefined;
   let change = { changeUsd: "", changeLbp: "" };
@@ -243,14 +267,7 @@ export async function submitCollectPayment(formData: FormData) {
       usdAmount: field(formData, "usdAmount"),
       lbpAmount: field(formData, "lbpAmount"),
     });
-    const tenders: TenderDraft[] = [];
-    if (parsed.usdAmount) {
-      tenders.push({ currency: "USD", amount: parseUsd(parsed.usdAmount) });
-    }
-    if (parsed.lbpAmount) {
-      tenders.push({ currency: "LBP", amount: parseLbp(parsed.lbpAmount) });
-    }
-    const done = await collectBookingPayment({ bookingId: parsed.bookingId, tenders });
+    const done = await collectBookingPayment({ bookingId: parsed.bookingId, tenders: tendersOf(parsed) });
     // The toast tells the owner what to hand back (DR-007). Empty when there is none.
     change = {
       changeUsd: done.changeUsd.gt(0) ? done.changeUsd.toFixed(2) : "",
@@ -280,17 +297,26 @@ export async function submitConsiderPaid(formData: FormData) {
   redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "considered_paid" });
 }
 
+/** What a per-player action hands back: the change to give, or nothing. */
+type PerPlayerChange = { changeUsd: Decimal; changeLbp: Decimal } | undefined;
+
 async function perPlayer(
   useCase: string,
-  run: () => Promise<void>,
+  run: () => Promise<PerPlayerChange>,
 ): Promise<PerPlayerResult> {
+  let change: PerPlayerChange;
   try {
-    await run();
+    change = await run();
   } catch (error) {
     return { error: await actionErrorKey(error, useCase) };
   }
   revalidatePath("/owner/today");
-  return { ok: true };
+  // What to hand back, so the sheet can say it (empty when there is none).
+  return {
+    ok: true,
+    changeUsd: change && change.changeUsd.gt(0) ? change.changeUsd.toFixed(2) : undefined,
+    changeLbp: change && change.changeLbp.gt(0) ? change.changeLbp.toFixed(0) : undefined,
+  };
 }
 
 export async function submitSwitchToPerPlayer(input: {
@@ -299,6 +325,7 @@ export async function submitSwitchToPerPlayer(input: {
 }): Promise<PerPlayerResult> {
   return perPlayer("submitSwitchToPerPlayer", async () => {
     await switchToPerPlayer(switchToPerPlayerSchema.parse(input));
+    return undefined;
   });
 }
 
@@ -307,22 +334,44 @@ export async function submitSwitchToWhole(input: {
 }): Promise<PerPlayerResult> {
   return perPlayer("submitSwitchToWhole", async () => {
     await switchToWhole(switchToWholeSchema.parse(input));
+    return undefined;
   });
 }
 
 export async function submitCollectSlot(input: {
   bookingId: string;
   participantId: string;
+  usdAmount?: string;
+  lbpAmount?: string;
 }): Promise<PerPlayerResult> {
   return perPlayer("submitCollectSlot", async () => {
-    await collectSlotPayment(collectSlotSchema.parse(input));
+    const parsed = collectSlotSchema.parse(input);
+    return collectSlotPayment({
+      bookingId: parsed.bookingId,
+      participantId: parsed.participantId,
+      tenders: typedCash(parsed),
+    });
   });
 }
 
 export async function submitCollectAllRemaining(input: {
   bookingId: string;
+  usdAmount?: string;
+  lbpAmount?: string;
 }): Promise<PerPlayerResult> {
   return perPlayer("submitCollectAllRemaining", async () => {
-    await collectAllRemaining(collectAllRemainingSchema.parse(input));
+    const parsed = collectAllRemainingSchema.parse(input);
+    return collectAllRemaining({ bookingId: parsed.bookingId, tenders: typedCash(parsed) });
+  });
+}
+
+/** "Consider it paid" on one share (DR-007 slice 7); the use case re-checks under the lock. */
+export async function submitConsiderSharePaid(input: {
+  bookingId: string;
+  participantId: string;
+}): Promise<PerPlayerResult> {
+  return perPlayer("submitConsiderSharePaid", async () => {
+    await considerSharePaid(considerSharePaidSchema.parse(input));
+    return undefined;
   });
 }

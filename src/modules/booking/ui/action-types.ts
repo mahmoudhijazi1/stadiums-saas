@@ -23,7 +23,9 @@ export type ExtendActionResult =
  * Per-player actions (SPEC-15 slice 2). They do not redirect: ten taps in a row must
  * keep the sheet open. The result carries an error key; success revalidates Today.
  */
-export type PerPlayerResult = { ok: true } | { error: string };
+export type PerPlayerResult =
+  | { ok: true; changeUsd?: string; changeLbp?: string }
+  | { error: string };
 
 /**
  * Weekly series actions. They return results instead of redirecting: the sheet stays open and

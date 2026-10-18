@@ -4,9 +4,16 @@ import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/format/money";
 import Decimal from "decimal.js";
-import { requireUsd, type GameCurrency } from "@/modules/booking/domain/game-money";
+import { requireUsd, type GameCurrency, type GameMoney } from "@/modules/booking/domain/game-money";
 import { shareOwing } from "@/modules/booking/domain/game-owing";
 import type { SqlMoney } from "./_shared";
+
+/** A share in the game's currency as the participant row stores it: exactly one column is set (CHECK). */
+function shareColumns(money: GameMoney): { amountDueUsd: string | null; amountDueLbp: string | null } {
+  return money.currency === "LBP"
+    ? { amountDueUsd: null, amountDueLbp: money.amount.toFixed(0) }
+    : { amountDueUsd: formatUsd(money.amount), amountDueLbp: null };
+}
 
 /** How many allocations sit on this booking's participants. Zero allows switching back. */
 export async function countBookingAllocations(
@@ -40,13 +47,14 @@ async function setCollectionMode(
 
 /**
  * WHOLE → PER_PLAYER. The requester row becomes slot 1; slots 2..N are new unnamed rows.
- * Booking.amountDueUsd is untouched: the shares add up to it exactly.
+ * The booking's due is untouched: the shares (in its currency, `currency`) add up to it exactly.
  */
 export async function applyPerPlayerSlots(
   tx: TenantTx,
   input: {
     bookingId: string;
-    slots: { slotNumber: number; amountDueUsd: Decimal; isRequester: boolean }[];
+    currency: GameCurrency;
+    slots: { slotNumber: number; amountDue: Decimal; isRequester: boolean }[];
   },
 ): Promise<void> {
   for (const slot of input.slots) {
@@ -55,7 +63,7 @@ export async function applyPerPlayerSlots(
         where: { bookingId: input.bookingId, isRequester: true },
         data: {
           slotNumber: slot.slotNumber,
-          amountDueUsd: formatUsd(slot.amountDueUsd),
+          ...shareColumns({ currency: input.currency, amount: slot.amountDue }),
         },
       });
       if (updated.count !== 1) {
@@ -69,7 +77,7 @@ export async function applyPerPlayerSlots(
       data: {
         bookingId: input.bookingId,
         personId: null,
-        amountDueUsd: formatUsd(slot.amountDueUsd),
+        ...shareColumns({ currency: input.currency, amount: slot.amountDue }),
         slotNumber: slot.slotNumber,
         isRequester: false,
       } as Parameters<typeof tx.bookingParticipant.create>[0]["data"],
@@ -80,36 +88,54 @@ export async function applyPerPlayerSlots(
 
 /**
  * PER_PLAYER → WHOLE. Callers have checked there are no allocations, so deleting the
- * non-requester rows loses nothing. The requester carries the whole due again.
+ * non-requester rows loses nothing. The requester carries the whole due again, in the game's currency.
  */
 export async function applyWholeMode(
   tx: TenantTx,
-  input: { bookingId: string; amountDueUsd: Decimal },
+  input: { bookingId: string; due: GameMoney },
 ): Promise<void> {
   await tx.bookingParticipant.deleteMany({
     where: { bookingId: input.bookingId, isRequester: false },
   });
   await tx.bookingParticipant.updateMany({
     where: { bookingId: input.bookingId, isRequester: true },
-    data: { slotNumber: null, amountDueUsd: formatUsd(input.amountDueUsd) },
+    data: { slotNumber: null, ...shareColumns(input.due) },
   });
   await setCollectionMode(tx, input.bookingId, "WHOLE");
 }
 
 /**
  * Cancel-with-payments only: drop the per-player structure, allocations included, and
- * put the booking back to WHOLE. The payments, tenders and ledger rows stay; only who
- * paid what (the allocations) is lost. Everything collected keeps counting on the booking.
+ * put the booking back to WHOLE. The payments, tenders, ledger rows and settlements stay; only who
+ * paid what (the allocations) is lost. Everything collected or settled keeps counting on the booking,
+ * so on a game in pounds the remaining is still its due minus its settlements (DR-007 slice 7).
  * Same transaction as the cancel (SPEC-15 slice 2).
  */
 export async function collapseToWhole(
   tx: TenantTx,
-  input: { bookingId: string; amountDueUsd: Decimal },
+  input: { bookingId: string; due: GameMoney },
 ): Promise<void> {
   await tx.paymentAllocation.deleteMany({
     where: { participant: { bookingId: input.bookingId } },
   });
   await applyWholeMode(tx, input);
+}
+
+/**
+ * Lower (or set) one slot's share, in the game's currency. Used by "Consider it paid" on a share,
+ * which lowers the share by exactly what is left on it, in the same transaction as the game's due.
+ */
+export async function setParticipantDue(
+  tx: TenantTx,
+  input: { participantId: string; due: GameMoney },
+): Promise<void> {
+  const updated = await tx.bookingParticipant.updateMany({
+    where: { id: input.participantId },
+    data: shareColumns(input.due),
+  });
+  if (updated.count !== 1) {
+    throw new DomainError("booking.not_found");
+  }
 }
 
 export type SlotRow = {

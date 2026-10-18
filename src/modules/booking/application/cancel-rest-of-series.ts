@@ -57,7 +57,7 @@ export async function cancelRestOfSeries(input: { seriesId: string }): Promise<C
           continue;
         }
         if (booking.collectionMode === "PER_PLAYER") {
-          await collapseToWhole(tx, { bookingId: booking.id, amountDueUsd: booking.amountDueUsd });
+          await collapseToWhole(tx, { bookingId: booking.id, due: { currency: "USD", amount: booking.amountDueUsd } });
         }
         await writeDueIfChanged(tx, {
           bookingId: booking.id,

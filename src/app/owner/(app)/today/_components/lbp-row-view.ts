@@ -3,6 +3,7 @@ import { formatLbpAmount, formatParts, formatUsd, formatUsdCompact } from "@/lib
 import { formatLocalClockRange, formatLocalHm, type HourCycle } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
 import { formatEarlierDayLabel, formatSlotDateLabel } from "@/app/owner/(app)/today/_components/date-label";
+import { perPlayerViewOf } from "@/app/owner/(app)/today/_components/per-player-view";
 import type { LbpOwnerDayBooking } from "@/modules/booking/application/load-owner-day";
 import type { WaitlistGroup } from "@/modules/booking/application/list-open-waitlist";
 import type { SeriesInfo } from "@/modules/booking/application/load-series-info";
@@ -18,10 +19,10 @@ import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import type { BookingItemsView } from "@/modules/shop/application/list-booking-items";
 
 /**
- * An LBP game on Today (DR-007 slice 5): the card, the sheet and the WhatsApp text show its due in
- * pounds, and every money action (collect, fees on cancel and no-show, adjust, split, extend, add
- * items, repeat weekly) is hidden, because each one is refused (booking.lbp_not_supported) until its
- * slice lands. Nothing was collected on it, so the due is what is left.
+ * An LBP game on Today (DR-007): the card, the sheet and the WhatsApp text show its due in pounds.
+ * Collect, "Consider it paid" and the per-player split work on it (slices 6 and 7); the other money
+ * actions (fees on cancel and no-show, adjust, extend, add items, repeat weekly) are hidden, because
+ * each one is refused (booking.lbp_not_supported) until its slice lands.
  */
 export function lbpUpcomingView(
   row: LbpOwnerDayBooking,
@@ -38,6 +39,8 @@ export function lbpUpcomingView(
     dayStartHour: number;
     extendedMinutes: number;
     series: SeriesInfo | undefined;
+    /** The stadium allows splitting a game per player. */
+    splitEnabled: boolean;
   },
 ): UpcomingRowView {
   const { now, locale, hourCycle, dayStartHour } = ctx;
@@ -110,16 +113,17 @@ export function lbpUpcomingView(
     whatsAppHref: whatsApp.href,
     showCancel: false,
     showNoShow: false,
-    perPlayer: {
+    perPlayer: perPlayerViewOf({
       bookingId: row.id,
-      mode: "WHOLE",
-      canSplit: false,
+      currency: "LBP",
+      mode: row.collectionMode,
+      canSplit: ctx.splitEnabled && row.status === "APPROVED" && row.amountDueLbp.gt(0),
       defaultPlayerCount: row.pitchDefaultPlayerCount,
-      slots: [],
-      unassignedUsd: zero,
-      hasAllocations: false,
-      unpaidTotalUsd: zero,
-    },
+      slots: row.slots,
+      due: row.amountDueLbp,
+      collected: row.settledLbp,
+      unassigned: row.unassignedLbp,
+    }),
     extend: null,
     canAdjust: false,
     hoursBefore: Math.max(0, Math.floor((row.start.getTime() - now.getTime()) / 3_600_000)),

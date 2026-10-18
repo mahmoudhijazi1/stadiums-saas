@@ -88,7 +88,7 @@ export async function recordNoShow(input: {
       if (collectionMode === "PER_PLAYER") {
         await collapseToWhole(tx, {
           bookingId: booking.id,
-          amountDueUsd: booking.amountDueUsd,
+          due: { currency: "USD", amount: booking.amountDueUsd },
         });
         collectionMode = "WHOLE";
       }

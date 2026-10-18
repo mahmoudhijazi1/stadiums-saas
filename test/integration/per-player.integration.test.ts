@@ -72,7 +72,8 @@ describe("per-player collection (SPEC-15 slice 2)", () => {
     expect(slots.slice(1).every((slot) => slot.personId === null)).toBe(true);
     const dues = slots.map((slot) => money(slot.amountDueUsd));
     expect(sum(dues).equals("30.00")).toBe(true);
-    expect(dues.filter((due) => due.equals("4.29"))).toHaveLength(4);
+    // Whole dollars (DR-007 decision 7): $30 over 7 is $5, $5 and five of $4, the extra dollars on slots 1 and 2.
+    expect(dues.map((due) => due.toFixed(2))).toEqual(["5.00", "5.00", "4.00", "4.00", "4.00", "4.00", "4.00"]);
     expect(await platformDb.bookingDueChange.count({ where: { bookingId } })).toBe(0);
     await assertMoneyInvariants([]);
   });
