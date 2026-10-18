@@ -12,6 +12,7 @@ const PITCH_KEEP = [
   "slotDurationMinutes",
   "defaultPlayerCount",
   "defaultPriceUsd",
+  "defaultPriceLbp",
   "hoursGroupsJson",
   "priceRulesJson",
 ] as const;
@@ -35,6 +36,7 @@ export async function submitCreatePitch(formData: FormData) {
       slotDurationMinutes: field(formData, "slotDurationMinutes"),
       defaultPlayerCount: field(formData, "defaultPlayerCount"),
       defaultPriceUsd: field(formData, "defaultPriceUsd"),
+      defaultPriceLbp: field(formData, "defaultPriceLbp"),
       hoursGroups: field(formData, "hoursGroupsJson"),
       priceRules: field(formData, "priceRulesJson"),
     });
@@ -66,6 +68,7 @@ export async function submitUpdatePitch(formData: FormData) {
       slotDurationMinutes: field(formData, "slotDurationMinutes"),
       defaultPlayerCount: field(formData, "defaultPlayerCount"),
       defaultPriceUsd: field(formData, "defaultPriceUsd"),
+      defaultPriceLbp: field(formData, "defaultPriceLbp"),
       hoursGroups: field(formData, "hoursGroupsJson"),
       priceRules: field(formData, "priceRulesJson"),
       confirmPending: field(formData, "confirmPending"),

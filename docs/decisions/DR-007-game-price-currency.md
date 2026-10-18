@@ -162,7 +162,9 @@ What the code does today:
 3. The migration and currency-aware types. **Done** (migrations `20261016090000_game_price_currency`
    and `20261016090100_rounding_due_reason`; progress.md, 2026-10-16). **3b done:** every raw SQL
    reader of game money names its currency and refuses an LBP game (progress.md, 2026-10-16).
-4. The setting and LBP pitch prices.
+4. The setting and LBP pitch prices. **Done** (progress.md, 2026-10-16): `gamePriceCurrency` in the
+   tenant settings, `tenants set-game-currency` in the operator CLI, LBP prices in `scheduleConfig`,
+   `priceForSlotIn`, and every pitch price shown in the stadium's currency.
 5. Creating bookings in LBP (owner, public request, weekly series).
 6. Collecting a whole game in LBP, and "Consider it paid".
 7. Per-player in LBP.

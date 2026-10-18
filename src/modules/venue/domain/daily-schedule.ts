@@ -67,6 +67,8 @@ export function scheduleFromHoursGroups(input: {
   groups: HoursGroup[];
   slotDurationMinutes: number;
   defaultPriceUsd: string;
+  /** DR-007: whole pounds; omitted or undefined when the pitch has no price in pounds. */
+  defaultPriceLbp?: string;
   priceRules?: ScheduleConfig["priceRules"];
 }): ScheduleConfig {
   assertUniqueHoursDays(input.groups);
@@ -92,6 +94,7 @@ export function scheduleFromHoursGroups(input: {
     defaultPriceUsd: formatUsd(
       parseUsd(normalizeUsdForm(input.defaultPriceUsd)),
     ),
+    ...(input.defaultPriceLbp !== undefined ? { defaultPriceLbp: input.defaultPriceLbp } : {}),
     priceRules: input.priceRules ?? [],
   });
 }

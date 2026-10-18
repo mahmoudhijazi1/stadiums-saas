@@ -122,6 +122,8 @@ const ARABIC: Record<string, string> = {
   "venue.hours_pending":
     "هناك طلب معلّق في ساعات ستُحذف. أكّد للحفظ دون رفض الطلب.",
   "venue.hours_day_overlap": "لا يمكن وضع نفس اليوم في مجموعتي ساعات.",
+  "venue.lbp_price_required": "الملعب يسعّر المباريات بالليرة: اكتب سعر المباراة بالليرة.",
+  "venue.lbp_price_unit": "السعر بالليرة يجب أن يكون أكثر من صفر ومن مضاعفات 5,000.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -246,6 +248,8 @@ const ENGLISH: Record<string, string> = {
   "venue.hours_pending":
     "A pending request sits in hours you are removing. Confirm to save without rejecting it.",
   "venue.hours_day_overlap": "A day cannot be in two hours groups.",
+  "venue.lbp_price_required": "This stadium prices games in LBP: enter the price per game in pounds.",
+  "venue.lbp_price_unit": "A price in pounds must be above 0 and in steps of 5,000.",
 };
 
 /** Owner-facing copy for a key. Never returns a stack or Prisma dump. */

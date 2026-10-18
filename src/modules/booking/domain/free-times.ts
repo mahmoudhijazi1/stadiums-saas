@@ -3,7 +3,10 @@
  * time that already started never gets here (getDayAvailability drops it). Pure: it works on the day's
  * slots as the venue module hands them over.
  */
-export type TimeSlotLike = { priceUsd: string; available: boolean };
+import type { PriceView } from "@/modules/venue/domain/availability";
+
+/** `price` is in the stadium's currency (DR-007); null when the pitch has no price in it. */
+export type TimeSlotLike = { price: PriceView | null; available: boolean };
 
 /** The slots of one pitch that are free to request, in the order given (chronological). */
 export function freeSlots<T extends TimeSlotLike>(slots: T[]): T[] {
@@ -22,14 +25,20 @@ export function freePitches<T extends { slots: TimeSlotLike[] }>(pitches: T[]): 
 
 /**
  * The price most of the day's free times have (the one the heading states). On a tie the price that
- * appears first, i.e. the earliest time, wins; no free time gives null. Prices stay decimal strings.
+ * appears first, i.e. the earliest time, wins; no free time (or no priced one) gives null. Amounts
+ * stay strings; a slot with no price in the stadium's currency is not counted.
  */
-export function commonPriceUsd(slots: TimeSlotLike[]): string | null {
-  const counts = new Map<string, number>();
-  for (const slot of slots) counts.set(slot.priceUsd, (counts.get(slot.priceUsd) ?? 0) + 1);
-  let best: string | null = null;
+export function commonPrice(slots: TimeSlotLike[]): PriceView | null {
+  const counts = new Map<string, { price: PriceView; count: number }>();
+  for (const slot of slots) {
+    if (!slot.price) continue;
+    const key = `${slot.price.currency} ${slot.price.amount}`;
+    const seen = counts.get(key);
+    counts.set(key, { price: slot.price, count: (seen?.count ?? 0) + 1 });
+  }
+  let best: PriceView | null = null;
   let bestCount = 0;
-  for (const [price, count] of counts) {
+  for (const { price, count } of counts.values()) {
     if (count > bestCount) {
       best = price;
       bestCount = count;

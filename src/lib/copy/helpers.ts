@@ -167,12 +167,23 @@ export function previewSummaryLabel(
   max: string,
   locale: UiLocale = "ar",
 ): string {
-  const price = (value: string) => (value.endsWith(".00") ? value.slice(0, -3) : value);
-  const range = min === max ? price(min) : `${price(min)}–$${price(max)}`;
+  const price = (value: string) => `$${value.endsWith(".00") ? value.slice(0, -3) : value}`;
+  return previewSummaryText(games, price(min), price(max), min === max, locale);
+}
+
+/** The same summary with prices already written in their currency ("2,000,000 ل.ل"), for LBP (DR-007). */
+export function previewSummaryText(
+  games: number,
+  min: string,
+  max: string,
+  same: boolean,
+  locale: UiLocale = "ar",
+): string {
+  const range = same ? min : `${min}–${max}`;
   if (locale === "en") {
-    return `${games} ${games === 1 ? "game" : "games"} · $${range}${min === max ? " each" : ""}`;
+    return `${games} ${games === 1 ? "game" : "games"} · ${range}${same ? " each" : ""}`;
   }
-  return `${games} ${games === 1 ? "مباراة" : "مباريات"} · $${range}${min === max ? " للمباراة" : ""}`;
+  return `${games} ${games === 1 ? "مباراة" : "مباريات"} · ${range}${same ? " للمباراة" : ""}`;
 }
 
 /** Muted note when the end of the opening hours cannot fit another game. */

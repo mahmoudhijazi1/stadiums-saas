@@ -91,6 +91,24 @@ export function formatParts(parts: { lbp: Decimal | string; usd: Decimal | strin
 }
 
 /**
+ * A price in its own currency, the way the rest of the app writes amounts: "$30" / "$22.50", or
+ * "2,000,000 ل.ل" / "2,000,000 LBP". `amount` is "30.00" for USD, whole pounds for LBP. Callers wrap
+ * it in <LtrIsolate>.
+ */
+export function formatPrice(price: { currency: "USD" | "LBP"; amount: Decimal | string }, locale: UiLocale): string {
+  return price.currency === "USD" ? formatUsdAmount(price.amount) : formatLbpAmount(price.amount, locale);
+}
+
+/** Two prices are the same price (same currency and amount). */
+export function samePrice(
+  a: { currency: "USD" | "LBP"; amount: string } | null,
+  b: { currency: "USD" | "LBP"; amount: string } | null,
+): boolean {
+  if (a === null || b === null) return a === b;
+  return a.currency === b.currency && new Decimal(a.amount).equals(b.amount);
+}
+
+/**
  * A USD price string for running text: whole dollars without the cents ("$20"), cents only when
  * present ("$22.50"). Input is the two-decimal string the venue module produces ("20.00").
  */

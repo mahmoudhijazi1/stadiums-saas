@@ -13,7 +13,7 @@ const slot = {
   endIso: "2026-10-16T18:00:00.000Z",
   startLocal: "8:00 PM",
   endLocal: "9:00 PM",
-  priceUsd: "20.00",
+  price: { currency: "USD" as const, amount: "20.00" },
   available: true,
 };
 

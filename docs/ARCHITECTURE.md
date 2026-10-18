@@ -25,13 +25,13 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 | `notification` | `people` |
 | `payment` | `access`, `ledger` |
 | `people` | `access` |
-| `platform` | `access` |
+| `platform` | `access`, `venue` |
 | `push` | `access` |
 | `shop` | `access`, `ledger`, `payment`, `people` |
 | `stadium` | `access`, `people`, `platform` |
-| `venue` | `access` |
+| `venue` | `access`, `payment` |
 
-Why each edge exists: `notification -> people` (the Lebanese phone rule is a people domain rule used to build wa.me links, domain to domain); `booking -> stadium` (`domain/public-page-url`, for WhatsApp links); `stadium -> people` (phone and name rules) and `stadium -> platform` (only `application/tenant-profile`: the audited rename and the brand source). Nothing imports `push` (the new-request alert is composed in `app/`, enforced by `test/modules/push/imports.test.ts`). `platform` is operator-only; only `stadium` and `scripts/platform-cli.ts` import it. **Imports point down:** `booking` is the top business context.
+Why each edge exists: `notification -> people` (the Lebanese phone rule is a people domain rule used to build wa.me links, domain to domain); `booking -> stadium` (`domain/public-page-url`, for WhatsApp links); `stadium -> people` (phone and name rules) and `stadium -> platform` (only `application/tenant-profile`: the audited rename and the brand source); `venue -> payment` (`domain/units`: the 5,000 LBP unit of a pitch price, DR-007) and `platform -> venue` (`domain/schedule-config` `hasPricesIn`: which pitches have prices in a currency before the operator switches a stadium's, DR-007). Nothing imports `push` (the new-request alert is composed in `app/`, enforced by `test/modules/push/imports.test.ts`). `platform` is operator-only; only `stadium` and `scripts/platform-cli.ts` import it. **Imports point down:** `booking` is the top business context.
 
 **Layers inside a module** (rule 2): `domain` imports only domain files and pure libs (no application, infrastructure, `lib/db`, `lib/logger`, the Prisma client); `infrastructure` never imports `application`; `schemas` import only domain, schemas and libs. Application may import its own domain, infrastructure and schemas and other modules' application, infrastructure and schemas along the edge table (the guard does not restrict that yet).
 

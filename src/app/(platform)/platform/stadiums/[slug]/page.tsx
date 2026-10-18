@@ -63,6 +63,7 @@ export default async function PlatformStadiumPage({ params }: { params: Promise<
       <DetailSection title={ui("platform.details", "en")}>
         <dl className="flex flex-col gap-1.5">
           <DetailRow label={ui("platform.created", "en")}>{day(tenant.createdAt)}</DetailRow>
+          <DetailRow label={ui("platform.gameCurrency", "en")}>{tenant.gamePriceCurrency}</DetailRow>
           {tenant.suspendedAt ? (
             <>
               <DetailRow label={ui("platform.suspendedSince", "en")}>{stamp(tenant.suspendedAt)}</DetailRow>

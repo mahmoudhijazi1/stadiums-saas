@@ -7,6 +7,7 @@ import { platformDb } from "@/lib/platform-db";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
 import {
   parseTenantSettings,
+  type GamePriceCurrency,
   type TenantSettings,
   type TimeDisplay,
 } from "@/lib/tenant-settings";
@@ -23,6 +24,8 @@ export type CurrentTenant = {
   perPlayerSplitEnabled: boolean;
   /** Local hour a business day starts (0..6). */
   dayStartHour: number;
+  /** DR-007: the currency pitch prices are shown and (from slice 5) games are priced in. */
+  gamePriceCurrency: GamePriceCurrency;
   /** Suspended by the platform operator (decision 7). Loaded in the same query. */
   suspended: boolean;
   /** What the stadium published about itself. Empty string = not set. */
@@ -75,6 +78,7 @@ async function loadTenant(): Promise<CurrentTenant> {
     noShowFeePercent: settings.noShowFeePercent,
     perPlayerSplitEnabled: settings.perPlayerSplitEnabled,
     dayStartHour: settings.dayStartHour,
+    gamePriceCurrency: settings.gamePriceCurrency,
     suspended: tenant.suspendedAt !== null,
     address: settings.address,
     mapLink: settings.mapLink,

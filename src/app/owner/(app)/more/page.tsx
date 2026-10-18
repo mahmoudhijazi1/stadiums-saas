@@ -24,7 +24,7 @@ export default async function OwnerMorePage() {
   const tenant = await getCurrentTenant();
   const rate = await getCurrentRate();
   const changedAt = await getExchangeRateChangedAt();
-  const pitches = await listPitchSummaries();
+  const pitches = await listPitchSummaries(tenant.gamePriceCurrency);
   const digits = rate ? rate.toFixed(0) : null;
 
   return (

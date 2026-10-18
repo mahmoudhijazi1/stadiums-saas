@@ -1,4 +1,5 @@
 import { platformDb } from "@/lib/platform-db";
+import { parseTenantSettings, type GamePriceCurrency } from "@/lib/tenant-settings";
 
 /**
  * One stadium for the web admin's detail page (DR-006), read only. Select lists name every column
@@ -10,6 +11,8 @@ export type TenantDetailRow = {
   suspendedAt: Date | null;
   suspendedReason: string | null;
   createdAt: Date;
+  /** DR-007: "game prices in USD or LBP", set by the operator CLI. Shown read-only. */
+  gamePriceCurrency: GamePriceCurrency;
   subscriptions: {
     plan: string;
     startsAt: Date;
@@ -36,6 +39,7 @@ export async function findTenantDetailRow(slug: string, since: Date): Promise<Te
       suspendedAt: true,
       suspendedReason: true,
       createdAt: true,
+      settings: true,
       _count: { select: { pitches: true } },
       subscriptions: {
         orderBy: { createdAt: "desc" },
@@ -67,6 +71,7 @@ export async function findTenantDetailRow(slug: string, since: Date): Promise<Te
     suspendedAt: tenant.suspendedAt,
     suspendedReason: tenant.suspendedReason,
     createdAt: tenant.createdAt,
+    gamePriceCurrency: parseTenantSettings(tenant.settings).gamePriceCurrency,
     subscriptions: tenant.subscriptions.map((row) => ({ ...row, amountUsd: row.amountUsd?.toFixed(2) ?? null })),
     ownerIdentifiers: tenant.memberships.map((membership) => membership.user.identifier),
     pitchCount: tenant._count.pitches,

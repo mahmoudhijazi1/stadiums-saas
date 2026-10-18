@@ -64,13 +64,19 @@ export function crossesMidnight(from: string, to: string): boolean {
 
 export type PriceRule = {
   days: Weekday[];
-  priceUsd: string;
+  /** Absent on a rule made in an LBP stadium (DR-007). */
+  priceUsd?: string;
+  /** Whole pounds, a multiple of 5,000 (DR-007). */
+  priceLbp?: string;
   start?: string;
   end?: string;
 };
 
-/** A price for some days, any time of day. Each day is in at most one card. */
-export type DayPriceCard = { days: Weekday[]; priceUsd: string };
+/**
+ * A price for some days, any time of day. Each day is in at most one card. `priceUsd` is "" when
+ * the rule has no USD price; `priceLbp` rides along so editing in one currency keeps the other.
+ */
+export type DayPriceCard = { days: Weekday[]; priceUsd: string; priceLbp?: string };
 
 /**
  * A rule with a time range. The editor has no control for it, so it is kept as it is and
@@ -110,7 +116,13 @@ export function rulesToPriceCards(rules: readonly PriceRule[]): {
       return;
     }
     const days = trimmed.get(index) ?? [];
-    if (days.length > 0) cards.push({ days, priceUsd: rule.priceUsd });
+    if (days.length > 0) {
+      cards.push({
+        days,
+        priceUsd: rule.priceUsd ?? "",
+        ...(rule.priceLbp !== undefined ? { priceLbp: rule.priceLbp } : {}),
+      });
+    }
   });
   return { cards, timed };
 }
@@ -124,7 +136,11 @@ export function priceCardsToRules(
   const pending = [...timed].sort((a, b) => a.at - b.at);
   cards.forEach((card, index) => {
     while (pending.length > 0 && pending[0]!.at <= index) out.push(pending.shift()!.rule);
-    out.push({ days: WEEKDAYS.filter((day) => card.days.includes(day)), priceUsd: card.priceUsd });
+    out.push({
+      days: WEEKDAYS.filter((day) => card.days.includes(day)),
+      ...(card.priceUsd !== "" ? { priceUsd: card.priceUsd } : {}),
+      ...(card.priceLbp ? { priceLbp: card.priceLbp } : {}),
+    });
   });
   for (const item of pending) out.push(item.rule);
   return out;

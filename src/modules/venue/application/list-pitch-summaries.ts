@@ -1,6 +1,7 @@
 import { DomainError, UnexpectedError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { safeTenantId } from "@/lib/tenant-context";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import {
@@ -8,7 +9,9 @@ import {
   type HoursGroup,
 } from "@/modules/venue/domain/daily-schedule";
 import { listPitches } from "@/modules/venue/infrastructure/pitches";
+import { defaultPriceIn, type PriceView } from "@/modules/venue/domain/availability";
 import {
+  hasPricesIn,
   parseScheduleConfig,
   type Weekday,
 } from "@/modules/venue/domain/schedule-config";
@@ -19,13 +22,17 @@ export type PitchSummary = {
   hoursGroups: HoursGroup[];
   closedDays: Weekday[];
   slotDurationMinutes: number;
-  defaultPriceUsd: string;
+  /** The default price in the stadium's currency; null when the pitch has none in it (DR-007). */
+  defaultPrice: PriceView | null;
+  /** False when some price (the default or a rule) is missing in the stadium's currency. */
+  hasPrices: boolean;
 };
 
 /**
- * Settings list. Any membership (staff see names, not the editor).
+ * Settings list. Any membership (staff see names, not the editor). Prices are in `currency`, the
+ * stadium's gamePriceCurrency.
  */
-export async function listPitchSummaries(): Promise<PitchSummary[]> {
+export async function listPitchSummaries(currency: GamePriceCurrency): Promise<PitchSummary[]> {
   const membership = await getCurrentMembership();
   if (!membership) {
     throw new DomainError("access.not_allowed");
@@ -53,7 +60,8 @@ export async function listPitchSummaries(): Promise<PitchSummary[]> {
         hoursGroups: groups,
         closedDays: closed,
         slotDurationMinutes: config.slotDurationMinutes,
-        defaultPriceUsd: config.defaultPriceUsd,
+        defaultPrice: defaultPriceIn(config, currency),
+        hasPrices: hasPricesIn(config, currency),
       };
     });
   } catch (error) {

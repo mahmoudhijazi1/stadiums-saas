@@ -1,16 +1,18 @@
 import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { scheduleFromHoursGroups } from "@/modules/venue/domain/daily-schedule";
+import { assertPitchPrices } from "@/modules/venue/domain/pitch-prices";
 import { insertPitch } from "@/modules/venue/infrastructure/pitches";
 import type { PitchDraft } from "@/modules/venue/schemas/pitch-draft";
 
 /**
  * Create a pitch from hours groups. settings.manage (OWNER passes can()).
  * No hours-cover (there are no live bookings on a new pitch).
+ * Prices are checked against the stadium's own gamePriceCurrency (DR-007), never the form's.
  */
 export async function createPitch(draft: PitchDraft): Promise<{ id: string }> {
   const membership = await getCurrentMembership();
@@ -19,10 +21,13 @@ export async function createPitch(draft: PitchDraft): Promise<{ id: string }> {
   }
 
   try {
+    const { gamePriceCurrency } = await getCurrentTenant();
+    assertPitchPrices(draft, gamePriceCurrency);
     const scheduleConfig = scheduleFromHoursGroups({
       groups: draft.hoursGroups,
       slotDurationMinutes: draft.slotDurationMinutes,
       defaultPriceUsd: draft.defaultPriceUsd,
+      defaultPriceLbp: draft.defaultPriceLbp,
       priceRules: draft.priceRules,
     });
     const row = await insertPitch({

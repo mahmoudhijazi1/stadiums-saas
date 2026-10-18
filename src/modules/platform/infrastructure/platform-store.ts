@@ -37,6 +37,24 @@ export async function updateTenantNameAndSettings(
   await tx.tenant.update({ where: { id: tenantId }, data: { name: data.name, settings: data.settings } });
 }
 
+/** Write the settings of ONE tenant by id (the operator's game currency, DR-007). The name is not touched. */
+export async function updateTenantSettings(
+  tx: PlatformTx,
+  tenantId: string,
+  settings: Record<string, unknown>,
+): Promise<void> {
+  await tx.tenant.update({ where: { id: tenantId }, data: { settings: settings as Prisma.InputJsonObject } });
+}
+
+/** Every pitch of one tenant with its raw schedule (name and scheduleConfig only), oldest first. */
+export async function listTenantPitchConfigs(tx: PlatformTx, tenantId: string) {
+  return tx.pitch.findMany({
+    where: { tenantId },
+    orderBy: { createdAt: "asc" },
+    select: { name: true, scheduleConfig: true },
+  });
+}
+
 /** The inputs of a stadium's generated logo by host slug: name, settings and suspension only. */
 export async function findTenantBrandSource(slug: string) {
   return platformDb.tenant.findUnique({

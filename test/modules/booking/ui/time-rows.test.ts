@@ -10,7 +10,7 @@ const slot = (utcHour: number, priceUsd = "20.00", available = true, marker: "PM
   endIso: `2026-10-16T${String(utcHour + 1).padStart(2, "0")}:00:00.000Z`,
   startLocal: `${utcHour - 9}:00 ${marker}`,
   endLocal: `${utcHour - 8}:00 ${marker}`,
-  priceUsd,
+  price: { currency: "USD" as const, amount: priceUsd },
   available,
 });
 const pitch = (id: string, slots: SlotPickerPitch["slots"]): SlotPickerPitch => ({ id, name: `Pitch ${id}`, slots, emptyKind: null });

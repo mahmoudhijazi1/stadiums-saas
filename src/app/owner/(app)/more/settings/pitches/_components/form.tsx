@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UiLocale } from "@/lib/locale";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
+import { isLbpPriceString } from "@/modules/venue/domain/schedule-config";
 import { errorMessage } from "@/lib/copy/errors";
 import { ui } from "@/lib/copy";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,7 @@ import type { PitchPriceRule } from "@/modules/venue/schemas/pitch-draft";
 import { HoursRows } from "@/app/owner/(app)/more/settings/pitches/_components/hours-rows";
 import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
 import { PreviewCard } from "@/app/owner/(app)/more/settings/pitches/_components/preview-card";
+import { LbpPriceField } from "@/app/owner/(app)/more/settings/pitches/_components/lbp-price-field";
 import { PriceCards, type PriceCard } from "@/app/owner/(app)/more/settings/pitches/_components/price-cards";
 
 export type PitchFormDefaults = {
@@ -27,6 +30,8 @@ export type PitchFormDefaults = {
   slotDurationMinutes: string;
   defaultPlayerCount: string;
   defaultPriceUsd: string;
+  /** Whole pounds, "" when the pitch has no price in pounds (DR-007). */
+  defaultPriceLbp: string;
   priceRules: PitchPriceRule[];
 };
 
@@ -38,6 +43,9 @@ const LENGTHS = ["60", "90", "120"] as const;
  * player would see. It submits the same fields as before (hoursGroupsJson,
  * priceRulesJson, ...), so the server validates exactly what it did.
  * Pending hours-cover still uses a second-submit checkbox.
+ * DR-007: the prices follow the stadium's `currency`. LBP: whole pounds in steps of 5,000; the USD
+ * prices still post unchanged (hidden), and in USD the pounds ride along the same way, so switching
+ * the stadium's currency never loses the other set.
  */
 export function PitchDraftForm({
   locale,
@@ -48,6 +56,7 @@ export function PitchDraftForm({
   splitEnabled,
   hourCycle,
   dayStartHour,
+  currency,
 }: {
   locale: UiLocale;
   action: (formData: FormData) => Promise<void>;
@@ -58,6 +67,8 @@ export function PitchDraftForm({
   splitEnabled: boolean;
   hourCycle: "h12" | "h23";
   dayStartHour: number;
+  /** The stadium's gamePriceCurrency: which prices the owner types. */
+  currency: GamePriceCurrency;
 }) {
   const initial = useMemo(() => rulesToPriceCards(defaults.priceRules), [defaults.priceRules]);
   const [name, setName] = useState(defaults.name);
@@ -68,36 +79,42 @@ export function PitchDraftForm({
   );
   const [players, setPlayers] = useState(defaults.defaultPlayerCount);
   const [price, setPrice] = useState(defaults.defaultPriceUsd);
+  const [priceLbp, setPriceLbp] = useState(defaults.defaultPriceLbp);
+  const inLbp = currency === "LBP";
+  const cardPriced = (card: PriceCard) => (inLbp ? isLbpPriceString(card.priceLbp ?? "") : isValidUsd(card.priceUsd));
+  const defaultPriced = inLbp ? isLbpPriceString(priceLbp) : isValidUsd(price);
   const [cards, setCards] = useState<PriceCard[]>(() =>
     initial.cards.map((card, index) => ({ key: `c${index}`, ...card })),
   );
 
   const groups = rowsToHours(rows);
-  const completeCards = cards.filter((card) => card.days.length > 0 && isValidUsd(card.priceUsd));
+  const completeCards = cards.filter((card) => card.days.length > 0 && cardPriced(card));
   const priceRules = priceCardsToRules(completeCards, initial.timed);
   const durationNumber = /^\d+$/.test(duration) ? Number(duration) : 0;
-  const cardsIncomplete = cards.some((card) => card.days.length > 0 && !isValidUsd(card.priceUsd));
+  const cardsIncomplete = cards.some((card) => card.days.length > 0 && !cardPriced(card));
   const canSave =
-    name.trim().length > 0 && groups.length > 0 && durationNumber > 0 && isValidUsd(price) && !cardsIncomplete;
+    name.trim().length > 0 && groups.length > 0 && durationNumber > 0 && isValidUsd(price) && defaultPriced && !cardsIncomplete;
+  const lbpKept = isLbpPriceString(priceLbp) ? priceLbp : undefined;
 
   const groupsJson = JSON.stringify(groups);
   const rulesJson = JSON.stringify(priceRules);
   const config = useMemo(() => {
-    if (durationNumber <= 0 || !isValidUsd(price)) return null;
+    if (durationNumber <= 0 || !isValidUsd(price) || (inLbp && !lbpKept)) return null;
     try {
       return scheduleFromHoursGroups({
         groups: JSON.parse(groupsJson) as HoursGroup[],
         slotDurationMinutes: durationNumber,
         defaultPriceUsd: price,
+        defaultPriceLbp: lbpKept,
         priceRules: JSON.parse(rulesJson) as PitchPriceRule[],
       });
     } catch {
       return null;
     }
-  }, [groupsJson, durationNumber, price, rulesJson]);
+  }, [groupsJson, durationNumber, price, lbpKept, inLbp, rulesJson]);
 
   // Dirty = anything differs from what the form opened with.
-  const snapshot = JSON.stringify([name, groupsJson, duration, players, price, rulesJson]);
+  const snapshot = JSON.stringify([name, groupsJson, duration, players, price, priceLbp, rulesJson]);
   const [opened] = useState(snapshot);
   const dirty = snapshot !== opened;
   const submitting = useRef(false);
@@ -140,6 +157,7 @@ export function PitchDraftForm({
       <input type="hidden" name="priceRulesJson" value={rulesJson} />
       <input type="hidden" name="slotDurationMinutes" value={duration} />
       <input type="hidden" name="defaultPriceUsd" value={price} />
+      <input type="hidden" name="defaultPriceLbp" value={priceLbp} />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="pitch-name">{ui("owner.pitchName", locale)}</Label>
@@ -227,12 +245,23 @@ export function PitchDraftForm({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="pitch-price">{ui("owner.pitchPrice", locale)}</Label>
-        <MoneyInput id="pitch-price" value={price} onChange={setPrice} invalid={price !== "" && !isValidUsd(price)} />
+        {inLbp ? (
+          <LbpPriceField id="pitch-price" value={priceLbp} onChange={setPriceLbp} locale={locale} />
+        ) : (
+          <MoneyInput id="pitch-price" value={price} onChange={setPrice} invalid={price !== "" && !isValidUsd(price)} />
+        )}
       </div>
 
-      <PriceCards locale={locale} cards={cards} onChange={setCards} timed={initial.timed} hourCycle={hourCycle} />
+      <PriceCards locale={locale} cards={cards} onChange={setCards} timed={initial.timed} hourCycle={hourCycle} currency={currency} />
 
-      <PreviewCard locale={locale} config={config} rows={rows} hourCycle={hourCycle} slotMinutes={durationNumber} />
+      <PreviewCard
+        locale={locale}
+        config={config}
+        rows={rows}
+        hourCycle={hourCycle}
+        slotMinutes={durationNumber}
+        currency={currency}
+      />
 
       {showPending ? (
         <fieldset className="flex flex-col gap-2 rounded-xl border border-border p-3">

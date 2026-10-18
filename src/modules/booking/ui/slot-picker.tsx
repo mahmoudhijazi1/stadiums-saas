@@ -21,7 +21,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ClockRangeText, ClockText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { formatPrice } from "@/lib/format/money";
 import { clockRangeFromLocals } from "@/lib/format/time";
+import type { PriceView } from "@/modules/venue/domain/availability";
 import type { UiLocale } from "@/lib/locale";
 import { hoursEmptyState, ui } from "@/lib/copy";
 import { IsolatedDigits } from "@/components/ui/ltr-isolate";
@@ -32,7 +34,8 @@ export type SlotPickerSlot = {
   endIso: string;
   startLocal: string;
   endLocal: string;
-  priceUsd: string;
+  /** In the stadium's currency (DR-007); null when the pitch has no price in it (none is shown). */
+  price: PriceView | null;
   available: boolean;
 };
 
@@ -124,7 +127,7 @@ function SlotFace({
             selected ? "text-accent-ink" : "text-current",
           )}
         >
-          {`$${slot.priceUsd}`}
+          {slot.price ? formatPrice(slot.price, locale) : null}
         </LtrIsolate>
         {duration ? (
           <span className="inline-flex h-5 items-center rounded-full bg-surface-2 px-2 text-[10px] font-semibold text-ink-muted">

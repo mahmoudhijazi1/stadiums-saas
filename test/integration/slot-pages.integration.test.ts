@@ -107,6 +107,7 @@ async function slotsOn(localDate: CivilDate, now: Date, today: CivilDate) {
     occupied: [],
     hourCycle: "h23",
     locale: "en",
+    currency: "USD",
   });
   if (!pitch) throw new Error("expected one pitch");
   return { clocks: pitch.slots.map((slot) => slot.startLocal), emptyKind: pitch.emptyKind };

@@ -15,6 +15,10 @@ export type TimeDisplay = (typeof TIME_DISPLAY)[number];
 export const DEFAULT_DAY_START_HOUR = 6;
 export const DAY_START_HOURS = [0, 1, 2, 3, 4, 5, 6] as const;
 
+/** The currency a stadium prices its games in (DR-007). New bookings only; USD when never set. */
+export const GAME_PRICE_CURRENCIES = ["USD", "LBP"] as const;
+export type GamePriceCurrency = (typeof GAME_PRICE_CURRENCIES)[number];
+
 /** Integer 0–100. Junk or a missing key falls back so old jsonb rows still parse. */
 function feePercent(fallback: number) {
   return z.number().int().min(0).max(100).catch(fallback);
@@ -44,6 +48,8 @@ const tenantSettingsSchema = z
     whatsapp: z.string().refine(isStoredStadiumPhone).catch(""),
     /** A key of BRAND_PRESETS, never a colour value. */
     brandPreset: z.enum(BRAND_PRESET_KEYS).catch(DEFAULT_BRAND_PRESET),
+    /** DR-007: "game prices in USD or LBP". Missing or junk reads as USD. Set by the operator CLI only. */
+    gamePriceCurrency: z.enum(GAME_PRICE_CURRENCIES).catch("USD"),
   })
   .strip();
 
@@ -109,6 +115,12 @@ export type StadiumInfoSettings = Pick<
 export function mergeStadiumInfo(current: unknown, info: StadiumInfoSettings): TenantSettings {
   const parsed = parseTenantSettings(current);
   return tenantSettingsSchema.parse({ ...parsed, ...info });
+}
+
+/** Merge the game price currency onto current settings and re-parse (write path, operator CLI). */
+export function mergeGamePriceCurrency(current: unknown, gamePriceCurrency: GamePriceCurrency): TenantSettings {
+  const parsed = parseTenantSettings(current);
+  return tenantSettingsSchema.parse({ ...parsed, gamePriceCurrency });
 }
 
 /** Merge one key onto current settings and re-parse (write path). */

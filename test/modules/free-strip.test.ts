@@ -12,12 +12,12 @@ function slot(pitchId: string, startIso: string, priceUsd = "30.00"): FreeStripS
   return {
     pitchId,
     pitchName: `Pitch ${pitchId}`,
-    defaultPriceUsd: "30.00",
+    defaultPrice: { currency: "USD", amount: "30.00" },
     startIso,
     endIso: end,
     startLocal: startIso.slice(11, 16),
     endLocal: end.slice(11, 16),
-    priceUsd,
+    price: { currency: "USD", amount: priceUsd },
   };
 }
 
@@ -82,6 +82,6 @@ describe("buildFreeStrip", () => {
       new Map(),
       NOW,
     );
-    expect(result[0]!.chips.map((c) => c.priceUsd)).toEqual([null, "40.00"]);
+    expect(result[0]!.chips.map((c) => c.price?.amount ?? null)).toEqual([null, "40.00"]);
   });
 });
