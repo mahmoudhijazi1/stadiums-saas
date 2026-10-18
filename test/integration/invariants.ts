@@ -51,6 +51,16 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
   `;
   expect(dueMismatches).toHaveLength(0);
 
+  // An LBP game's settlements never exceed its due (DR-007 decision 6), and only an LBP game has them.
+  const overSettled = await platformDb.$queryRaw<Array<{ id: string }>>`
+    SELECT b.id
+    FROM "Booking" b
+    JOIN "BookingSettlement" s ON s."bookingId" = b.id AND s."tenantId" = b."tenantId"
+    GROUP BY b.id, b."priceCurrency", b."amountDueLbp"
+    HAVING b."priceCurrency" <> 'LBP'::"Currency" OR SUM(s."lbpApplied") > b."amountDueLbp"
+  `;
+  expect(overSettled).toHaveLength(0);
+
   const overlaps = await platformDb.$queryRaw<Array<{ id: string }>>`
     SELECT a.id
     FROM "Booking" a

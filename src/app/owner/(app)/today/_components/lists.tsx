@@ -69,7 +69,7 @@ import { ClockText } from "@/components/ui/ltr-isolate";
 import { LiveRequestCount } from "@/modules/booking/ui/live-queue";
 import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave } from "@/app/owner/(app)/series/actions";
 import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
-import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
+import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
 import { submitExtendBooking } from "@/app/owner/(app)/today/extend-actions";
 import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
 
@@ -233,6 +233,7 @@ export async function OwnerToday({
       <UpcomingPanel
         collectActions={{
           submitCollectPayment,
+          submitConsiderPaid,
           submitSwitchToPerPlayer,
           submitSwitchToWhole,
           submitCollectSlot,

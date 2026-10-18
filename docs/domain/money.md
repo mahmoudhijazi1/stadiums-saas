@@ -32,7 +32,7 @@
 ## 2. Collecting (WHOLE mode)
 
 `booking/application/collect-booking-payment.ts` `collectBookingPayment`, in one transaction:
-1. `findBookingForUpdate` locks the booking row. **Why:** two taps of Collect must not both see "remaining > 0" (progress.md "Booking row lock on every money path").
+1. `findGameForCollect` locks the booking row (either currency). **Why:** two taps of Collect must not both see "remaining > 0" (progress.md "Booking row lock on every money path").
 2. `assertCanCollect(status)`: only APPROVED, NO_SHOW or CANCELLED (a fee).
 3. PER_PLAYER is refused (`booking.collect_per_player`). Cash on a split booking goes through the slots.
 4. `assertHasDue(remaining)`: something must still be due. This stops a double submit.
@@ -40,6 +40,10 @@
 6. `recordPayment` writes the Payment (with `amountDueUsd` = the due at that moment), its tenders, and **one** ledger IN whose amount = Σ `usdEquivalent`.
 
 **A game never records more than it is owed (DR-007 decision 6).** The owner may still type more than is owed (never blocked, RULE-9/10): `booking/domain/game-change.ts` `applyToGameDue` applies the cash like the shop (`applyPayment`, `paymentTenders` with `keepChange` false), so the tenders and the ledger IN hold only what the game used, and `collectBookingPayment` returns the change in the currency it was handed over in. The Today toast says "Give back $20" / "رجّع له $20", and the mixed form shows "Give back" while typing. **Why:** an overpayment used to be income and made the remaining negative; at the counter it is change. Games before this change may still hold an overpayment.
+
+**An LBP game (DR-007 slice 6).** It owes `amountDueLbp` minus the pounds its settlements applied (`sumSettledLbp`, read after the lock). `applyToLbpGameDue` (`game-change.ts`) settles with the shop's `applyPayment`: pounds first, then dollars converted at the current rate against the pounds still left, anything beyond is change in the currency it was handed over in. The kept tenders are valued at **this** payment's rate (`usdEquivalent`, decision 3), not with `paymentTenders`, which values pounds at the frozen value of shop lines a game does not have. A rate is required (`payment.rate_required`). The Payment's due snapshot is in pounds (`dueCurrency` LBP, `amountDueLbp`), the ledger IN is the sum of the tenders' USD values, and one `BookingSettlement` row records `lbpApplied` (pounds settled) and `usdApplied` (dollars kept). The pounds owed never move with the rate; only the ledger value of each payment does.
+
+**"Consider it paid" (DR-007 decision 8).** `booking/application/consider-game-paid.ts` `considerGamePaid` (permission `payments.collect`), on the owner's tap only: under the booking lock it reads what is left again and, when `isForgivable` (under 5,000 LBP, or worth under 5,000 LBP at the current rate on a USD game; no rate, no), writes one due change with reason `ROUNDING` in the game's currency that lowers the due by exactly what is left (`forgivenDue`). Anything else is `booking.not_forgivable`; a split game is `booking.due_whole_only`.
 
 Input formats are checked at the edge, not in the domain:
 - USD: exactly two decimals (`lib/format/parse-money.ts` `parseUsd`).

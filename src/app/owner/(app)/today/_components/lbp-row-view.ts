@@ -100,6 +100,7 @@ export function lbpUpcomingView(
       paid: formatLbpAmount(row.settledLbp, locale),
       settled: remaining.lte(0),
       pill: formatParts(owedParts, locale),
+      remaining: Decimal.max(remaining, 0).toFixed(0),
     },
     interested: row.status === "CANCELLED" ? peopleWaitingOn(ctx.openWaitlist, row, row.requesterPersonId) : [],
     status: upcomingStatus(row.start, row.owedLbp.plus(row.tabsRemainingUsd), now),

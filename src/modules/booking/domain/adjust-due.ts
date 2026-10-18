@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import type { CollectionModeName } from "@/modules/booking/domain/person-owed";
+import { isForgivable } from "@/modules/payment/domain/units";
 
 export type AdjustDueVerdict = "ok" | "noop";
 
@@ -38,4 +39,26 @@ export function assertDueAdjustableStatus(status: string): void {
   if (status !== "APPROVED" && status !== "CANCELLED" && status !== "NO_SHOW") {
     throw new DomainError("booking.due_not_confirmed");
   }
+}
+
+/**
+ * "Consider it paid" (DR-007 decision 8): the due that makes the game paid, which is the due lowered
+ * by exactly what is left. Only when what is left is forgivable (`isForgivable`: under 5,000 LBP, or
+ * worth under 5,000 LBP at `rate` on a USD game, never without a rate) and the game is collected
+ * whole; anything else is refused with `booking.not_forgivable`. Never called without the owner's tap.
+ */
+export function forgivenDue(input: {
+  due: Decimal;
+  remaining: Decimal;
+  currency: "USD" | "LBP";
+  rate: Decimal | null;
+  collectionMode: CollectionModeName;
+}): Decimal {
+  if (input.collectionMode !== "WHOLE") {
+    throw new DomainError("booking.due_whole_only");
+  }
+  if (!isForgivable(input.remaining, input.currency, input.rate)) {
+    throw new DomainError("booking.not_forgivable");
+  }
+  return input.due.minus(input.remaining);
 }

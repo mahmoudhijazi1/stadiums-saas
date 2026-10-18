@@ -173,7 +173,12 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
 5. Creating bookings in LBP (owner, public request, weekly series). **Done** (progress.md, 2026-10-18):
    a new game is priced in the stadium's currency, approve and reject work on LBP games, and Today,
    the booking sheet and the person page show an LBP game in pounds with its money actions hidden.
-6. Collecting a whole game in LBP, and "Consider it paid".
+6. Collecting a whole game in LBP, and "Consider it paid". **Done** (progress.md, 2026-10-18): an LBP
+   game is collected under the booking lock, pounds first and dollars at the current rate, settled
+   with `applyPayment`; each kept tender is valued at this payment's rate (decision 3), so the
+   tenders are written by `applyToLbpGameDue`, not `paymentTenders`. One `BookingSettlement` row per
+   payment. "Consider it paid" (`considerGamePaid`, `payments.collect`) writes one `ROUNDING` due
+   change in the game's currency, for USD and LBP games.
 7. Per-player in LBP.
 8. Fees, extensions and adjust-due in LBP.
 9. Every reader: Today, Owed, the person page, debt warnings, the booking sheet, WhatsApp texts,

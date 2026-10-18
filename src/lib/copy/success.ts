@@ -21,6 +21,7 @@ const ARABIC: Record<string, string> = {
   rules_saved: "حُفظت قواعد الحجز.",
   stadium_saved: "حُفظت معلومات الملعب.",
   due_adjusted: "عُدّل المبلغ.",
+  considered_paid: "اعتُبرت مدفوعة.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -40,6 +41,7 @@ const ENGLISH: Record<string, string> = {
   rules_saved: "Booking rules saved.",
   stadium_saved: "Stadium info saved.",
   due_adjusted: "Amount adjusted.",
+  considered_paid: "Marked as paid.",
 };
 
 const GENERIC_AR = "تم.";

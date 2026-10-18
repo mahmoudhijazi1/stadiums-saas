@@ -11,6 +11,7 @@ import { approveBooking } from "@/modules/booking/application/approve-booking";
 import { dismissMissedRequests } from "@/modules/booking/application/dismiss-missed-requests";
 import { cancelBooking } from "@/modules/booking/application/cancel-booking";
 import { collectBookingPayment } from "@/modules/booking/application/collect-booking-payment";
+import { considerGamePaid } from "@/modules/booking/application/consider-game-paid";
 import {
   collectAllRemaining,
   collectSlotPayment,
@@ -264,6 +265,20 @@ export async function submitCollectPayment(formData: FormData) {
   redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected", ...change });
 }
 
+/** "Consider it paid" (DR-007 decision 8): the use case re-checks under the lock and authorizes. */
+export async function submitConsiderPaid(formData: FormData) {
+  let errorKey: string | undefined;
+  try {
+    const parsed = parseBookingDecision({ bookingId: field(formData, "bookingId") });
+    await considerGamePaid({ bookingId: parsed.bookingId });
+  } catch (error) {
+    errorKey = await actionErrorKey(error, "submitConsiderPaid");
+  }
+  if (errorKey) {
+    redirectOwner("/owner/today", formData, TODAY_KEEP, { error: errorKey });
+  }
+  redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "considered_paid" });
+}
 
 async function perPlayer(
   useCase: string,

@@ -4,6 +4,12 @@ import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/format/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 
+/**
+ * The payment's due snapshot (DR-007 decision 14): dollars, or pounds for a payment on an LBP game.
+ * Exactly one is written (CHECK Payment_due_by_currency).
+ */
+export type DueSnapshot = { amountDueUsd: Decimal } | { amountDueLbp: Decimal };
+
 export type TenderInsert = {
   currency: "USD" | "LBP";
   amount: Decimal;
@@ -20,17 +26,16 @@ export async function insertPaymentWithTenders(
   input: {
     sourceType: PaymentSourceType;
     sourceId: string;
-    amountDueUsd: Decimal;
     tenders: TenderInsert[];
-  },
+  } & DueSnapshot,
 ): Promise<string> {
   const payment = await tx.payment.create({
     data: {
       sourceType: input.sourceType,
       sourceId: input.sourceId,
-      // Every payment's due snapshot is USD until LBP games are collected (DR-007 slice 6).
-      dueCurrency: "USD",
-      amountDueUsd: formatUsd(input.amountDueUsd),
+      ...("amountDueLbp" in input
+        ? { dueCurrency: "LBP", amountDueLbp: input.amountDueLbp.toFixed(0) }
+        : { dueCurrency: "USD", amountDueUsd: formatUsd(input.amountDueUsd) }),
     } as Parameters<typeof tx.payment.create>[0]["data"],
   });
 

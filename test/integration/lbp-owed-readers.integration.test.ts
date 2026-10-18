@@ -128,7 +128,7 @@ describe("an unpaid LBP game next to an old USD game", () => {
       extendedMinutes: 0,
       series: undefined,
     });
-    expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP" });
+    expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP", remaining: "210000" });
   });
 
   it("the person page: games, stats and the debt warning on the Requests tab are in pounds", async () => {

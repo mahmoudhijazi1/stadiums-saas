@@ -114,7 +114,7 @@ Prefer `updateMany({ where: { id } })` (filtered by the extension) inside transa
 2. Put `"tenantId" = ${tenantId}` on the **driving** table of every statement. Add it on joined tables too when a join is not by a tenant-owned id.
 3. Use tagged templates or `Prisma.join` only. Never `$queryRawUnsafe` or `Prisma.raw` with input.
 4. Add a cross-tenant case to `test/integration/isolation.integration.test.ts` (or the suite for that use case).
-5. **Game money (DR-007).** A statement that reads, filters or sums a USD game-money column (`"priceUsd"`, `"amountDueUsd"`, `"fromUsd"`/`"toUsd"`, a `PaymentAllocation` `"amountUsd"`) also selects its currency column (or LBP twin) and maps the row through `booking/domain/game-money.ts` (`requireUsd` where it is used as dollars). A reader that shows what is owed filters on the currency of each game (a USD game on its tenders, an LBP game on `BookingSettlement.lbpApplied`, `SETTLED_LBP_SQL`), reads each row through `game-owing.ts` (`gameOwing`, `shareOwing`) and totals per currency (`Parts`), never one sum across them; so an LBP game is shown in pounds, never refused and never left out. Only the money-writing paths keep `requireUsd` (`toBookingForDecision`, the fee state behind the cancel and no-show WhatsApp texts, `usdSlots`) and `refuseLbpGames` (`setBookingEndAndPrice`). `test/architecture/game-money-sql.test.ts` checks every SQL string under `src`.
+5. **Game money (DR-007).** A statement that reads, filters or sums a USD game-money column (`"priceUsd"`, `"amountDueUsd"`, `"fromUsd"`/`"toUsd"`, a `PaymentAllocation` `"amountUsd"`) also selects its currency column (or LBP twin) and maps the row through `booking/domain/game-money.ts` (`requireUsd` where it is used as dollars). A reader that shows what is owed filters on the currency of each game (a USD game on its tenders, an LBP game on `BookingSettlement.lbpApplied`, `SETTLED_LBP_SQL`), reads each row through `game-owing.ts` (`gameOwing`, `shareOwing`) and totals per currency (`Parts`), never one sum across them; so an LBP game is shown in pounds, never refused and never left out. Collecting a whole game and "Consider it paid" read either currency through `findGameForCollect` (DR-007 slice 6). The other money-writing paths keep `requireUsd` (`toBookingForDecision`, the fee state behind the cancel and no-show WhatsApp texts, `usdSlots`) and `refuseLbpGames` (`setBookingEndAndPrice`). `test/architecture/game-money-sql.test.ts` checks every SQL string under `src`.
 
 ---
 
@@ -161,7 +161,8 @@ The new-request alert is composed in `app/(public)/alert-owners.ts` and schedule
 | `record-no-show.ts` `recordNoShow` | P → B | |
 | `dismiss-missed-requests.ts` `dismissMissedRequests` | B\* (missed pending, id order) | No P. |
 | `reject-booking.ts` `rejectBooking` | B (implicit, `setPendingStatus` UPDATE) | Single row. |
-| `collect-booking-payment.ts` `collectBookingPayment` | B | Then inserts Payment, tenders, ledger (new rows). |
+| `collect-booking-payment.ts` `collectBookingPayment` | B | Then inserts Payment, tenders, ledger and, on an LBP game, its BookingSettlement (new rows). |
+| `consider-game-paid.ts` `considerGamePaid` | B | Then the due and one ROUNDING due change. |
 | `collect-player-payment.ts` (`payRemaining` → `collectSlotPayment`, `collectAllRemaining`) | B | Then updates participants and allocations of **that** booking. |
 | `adjust-booking-due.ts` `adjustBookingDue` | B | |
 | `switch-collection-mode.ts` `switchToPerPlayer`, `switchToWhole` | B | Then replaces participants of that booking. |

@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { useState, type ReactNode } from "react";
 import { ChevronDown, CircleAlert, CircleCheck } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
@@ -9,6 +10,8 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import { TenderBalance } from "@/modules/payment/ui/tender-balance";
+import { isForgivable } from "@/modules/payment/domain/units";
+import { ConsiderPaidButton, LbpCollectForm } from "@/modules/booking/ui/booking-sheet/lbp-collect";
 import { PerPlayerCollect } from "@/modules/booking/ui/per-player-collect";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 import { isPerPlayer, owesCash, splitAdjustOf, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
@@ -20,6 +23,8 @@ export type CollectActions = {
   submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
   submitCollectSlot: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
   submitCollectAllRemaining: (input: { bookingId: string }) => Promise<PerPlayerResult>;
+  /** "Consider it paid" (DR-007 decision 8). Absent: the button is not shown. */
+  submitConsiderPaid?: (formData: FormData) => Promise<void>;
 };
 
 type MoneyTone = "paid" | "owed" | "expected";
@@ -99,24 +104,47 @@ export function MoneyBlock({
   collectActions: CollectActions;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
-  const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitSwitchToPerPlayer, submitSwitchToWhole } =
+  const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitSwitchToPerPlayer, submitSwitchToWhole } =
     collectActions;
-  // An LBP game (DR-007 slice 5): the due in pounds, no Collect and no split until slices 6 and 7.
+  const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
+  // An LBP game (DR-007 slice 6): the due in pounds, Collect and the two-currency form, and
+  // "Consider it paid" under 5,000 LBP. Split, extend, cancel fees and adjust stay hidden (slices 7, 8).
   if (row.lbp) {
+    const lbp = row.lbp;
+    const tone: MoneyTone = lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected";
+    const canCollectLbp = mayCollect && !lbp.settled && !isPerPlayer(row);
+    const forgivable = canCollectLbp && submitConsiderPaid && isForgivable(new Decimal(lbp.remaining), "LBP", rate);
     return (
       <section className="flex flex-col gap-3">
         <DueRemainingFigures
           paidUsd={row.collectedExact}
           remainingUsd={row.remainingUsd}
-          amountText={row.lbp.settled ? row.lbp.paid : row.lbp.due}
-          tone={row.lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected"}
+          amountText={lbp.settled ? lbp.paid : lbp.due}
+          tone={tone}
           locale={locale}
+          action={
+            canCollectLbp && !mixedOpen ? (
+              <form action={submitCollectPayment} className="shrink-0">
+                <input type="hidden" name="bookingId" value={row.id} />
+                <input type="hidden" name="lbpAmount" value={lbp.remaining} />
+                <SubmitButton variant="outline" className={collectButtonClass(tone)}>
+                  {ui("owner.collect", locale)}
+                </SubmitButton>
+              </form>
+            ) : null
+          }
         />
+        {canCollectLbp ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
+        {canCollectLbp && mixedOpen ? (
+          <LbpCollectForm bookingId={row.id} remainingLbp={lbp.remaining} lbpPerUsd={lbpPerUsd} locale={locale} submitCollectPayment={submitCollectPayment} />
+        ) : null}
+        {forgivable ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
       </section>
     );
   }
   const canCollect = mayCollect && owesCash(row) && !isPerPlayer(row);
   const splitAdjust = splitAdjustOf(row, mayAdjust);
+  const forgivableUsd = canCollect && submitConsiderPaid && isForgivable(new Decimal(row.remainingUsd), "USD", rate);
 
   return (
       <section className="flex flex-col gap-3">
@@ -130,38 +158,43 @@ export function MoneyBlock({
               <form action={submitCollectPayment} className="shrink-0">
                 <input type="hidden" name="bookingId" value={row.id} />
                 <input type="hidden" name="usdAmount" value={row.remainingUsd} />
-                <SubmitButton
-                  variant="outline"
-                  className={cn(
-                    "h-11 rounded-full px-5 type-button",
-                    // Amber once owed, bordered ink before. The owed row is already amber-tinted, so
-                    // the button sits on the surface with an amber border to stand out from it (in
-                    // light mode an amber fill merged with the row; dark keeps the outline's own fill).
-                    moneyTone(row) === "owed"
-                      ? "border-owed/40 bg-surface text-owed hover:bg-surface/80"
-                      : "border-line-strong bg-surface-2 text-foreground",
-                  )}
-                >
+                <SubmitButton variant="outline" className={collectButtonClass(moneyTone(row))}>
                   {ui("owner.collect", locale)}
                 </SubmitButton>
               </form>
             ) : null
           }
         />
-        {canCollect ? (
-          <button
-            type="button"
-            aria-expanded={mixedOpen}
-            onClick={() => setMixedOpen((open) => !open)}
-            className="-ms-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-3 type-label text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            {mixedOpen ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
-            <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", mixedOpen && "rotate-180")} />
-          </button>
-        ) : null}
+        {canCollect ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
         {canCollect && mixedOpen ? <MixedCollectForm submitCollectPayment={submitCollectPayment} row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
+        {forgivableUsd ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
         <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} locale={locale} />
       </section>
+  );
+}
+
+/** The Collect button: amber once owed, bordered ink before. */
+function collectButtonClass(tone: MoneyTone): string {
+  return cn(
+    "h-11 rounded-full px-5 type-button",
+    // The owed row is already amber-tinted, so the button sits on the surface with an amber border to
+    // stand out from it (in light mode an amber fill merged with the row; dark keeps the outline's own fill).
+    tone === "owed" ? "border-owed/40 bg-surface text-owed hover:bg-surface/80" : "border-line-strong bg-surface-2 text-foreground",
+  );
+}
+
+/** "Pay another way (LBP, partial)": opens the two-currency form. */
+function PayAnotherWayToggle({ open, onToggle, locale }: { open: boolean; onToggle: () => void; locale: UiLocale }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      className="-ms-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-3 type-label text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      {open ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
+      <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", open && "rotate-180")} />
+    </button>
   );
 }
 

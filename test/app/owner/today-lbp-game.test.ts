@@ -13,7 +13,8 @@ import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
 
 /**
  * DR-007 slice 5: an LBP game on Today shows its due in pounds on the card and in the sheet, and its
- * money actions are hidden. Written, not run when authored.
+ * money actions are hidden. Slice 6: Collect is shown again, and "Consider it paid" under 5,000 LBP.
+ * Written, not run when authored.
  */
 const NOW = new Date("2026-10-16T20:00:00Z");
 
@@ -51,6 +52,14 @@ const PART_PAID: LbpOwnerDayBooking = {
   remainingLbp: new Decimal(210000),
 };
 
+/** The same game with 3,000 left: forgivable. */
+const NEARLY_PAID: LbpOwnerDayBooking = {
+  ...GAME,
+  owedLbp: new Decimal(3000),
+  settledLbp: new Decimal(1997000),
+  remainingLbp: new Decimal(3000),
+};
+
 /** The same game settled in full. */
 const SETTLED: LbpOwnerDayBooking = {
   ...GAME,
@@ -78,6 +87,7 @@ function viewOf(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
 const noop = async () => ({ ok: true as const });
 const COLLECT_ACTIONS = {
   submitCollectPayment: async () => {},
+  submitConsiderPaid: async () => {},
   submitSwitchToPerPlayer: noop,
   submitSwitchToWhole: noop,
   submitCollectSlot: noop,
@@ -118,17 +128,28 @@ describe("an LBP game on Today", () => {
     expect(card("en")).not.toContain("$");
   });
 
-  it("the sheet's money block shows the due in pounds and no Collect", () => {
+  it("the sheet's money block shows the due in pounds, Collect and Pay another way (slice 6)", () => {
     const html = moneyBlock("en");
     expect(html).toContain("2,000,000 LBP");
-    expect(html).not.toContain(ui("owner.collect", "en"));
-    expect(html).not.toContain(ui("owner.payAnotherWay", "en"));
+    expect(html).toContain(ui("owner.collect", "en"));
+    expect(html).toContain(ui("owner.payAnotherWay", "en"));
+    // The quick Collect sends exactly what is left, in pounds.
+    expect(html).toContain('name="lbpAmount" value="2000000"');
+    expect(html).not.toContain(ui("owner.considerPaid", "en"));
     expect(moneyBlock("ar")).toContain("2,000,000 ل.ل");
+  });
+
+  it("offers Consider it paid only under 5,000 LBP, in AR and EN", () => {
+    expect(moneyBlock("en", NEARLY_PAID)).toContain("Consider it paid");
+    expect(moneyBlock("ar", NEARLY_PAID)).toContain("اعتبرها مدفوعة");
+    expect(moneyBlock("en", PART_PAID)).not.toContain("Consider it paid");
+    expect(moneyBlock("en", SETTLED)).not.toContain("Consider it paid");
+    expect(moneyBlock("en", SETTLED)).not.toContain(ui("owner.collect", "en"));
   });
 
   it("hides every money action that is refused on an LBP game", () => {
     const view = viewOf("en");
-    expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP" });
+    expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP", remaining: "2000000" });
     expect(view.showCancel).toBe(false);
     expect(view.showNoShow).toBe(false);
     expect(view.canAdjust).toBe(false);
@@ -145,7 +166,7 @@ describe("an LBP game on Today", () => {
 
   it("shows what is left after a settlement: 2,000,000 minus 1,790,000 is 210,000 LBP", () => {
     const view = viewOf("en", PART_PAID);
-    expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP" });
+    expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP", remaining: "210000" });
     expect(view.display.kind).toBe("partial");
     expect(moneyBlock("en", PART_PAID)).toContain("210,000 LBP");
     expect(moneyBlock("en", PART_PAID)).not.toContain("2,000,000 LBP");

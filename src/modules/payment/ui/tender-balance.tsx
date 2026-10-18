@@ -9,11 +9,23 @@ import type { UiLocale } from "@/lib/locale";
 import { formatUsd } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { previewTenders } from "@/modules/payment/domain/tender-preview";
+import { friendlyLbp } from "@/modules/payment/domain/units";
 
 /** Whole pounds with thousands commas ("895,000 LBP"): long LBP figures are hard to read. */
 function lbpText(amount: Decimal, locale: UiLocale): string {
   const grouped = amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `${grouped} ${ui("owner.lbp", locale)}`;
+}
+
+/**
+ * The exact pounds and, when it differs, the amount rounded UP to the next 5,000 to say out loud
+ * ("537,000 LBP, about 540,000", DR-007 decision 9). Display only: the exact figure is what is recorded.
+ */
+function lbpWithFriendly(amount: Decimal, locale: UiLocale): string {
+  const friendly = friendlyLbp(amount);
+  if (friendly.equals(amount)) return lbpText(amount, locale);
+  const grouped = friendly.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${lbpText(amount, locale)}, ${ui("owner.aboutAmount", locale)} ${grouped}`;
 }
 
 /**
@@ -78,7 +90,7 @@ export function TenderBalance({
               {preview.remainingLbp ? (
                 <>
                   <span aria-hidden> · </span>
-                  <LtrIsolate>{lbpText(preview.remainingLbp, locale)}</LtrIsolate>
+                  <LtrIsolate>{lbpWithFriendly(preview.remainingLbp, locale)}</LtrIsolate>
                 </>
               ) : null}
             </span>

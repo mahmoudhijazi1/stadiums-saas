@@ -37,7 +37,6 @@ import { truncateAll } from "./truncate";
  */
 const TIME_ZONE = "Asia/Beirut";
 const ALL_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-const LBP_REFUSED = { key: "booking.lbp_not_supported" };
 const NO_PRICE = { key: "booking.no_price_in_currency" };
 
 let fixture: TestFixture;
@@ -225,13 +224,14 @@ describe("creating games in an LBP stadium", () => {
     expect(await platformDb.bookingSeries.count()).toBe(0);
   });
 
-  it("collecting on an LBP game is refused with booking.lbp_not_supported", async () => {
+  it("collecting on an LBP game without an exchange rate is refused with payment.rate_required (slice 6)", async () => {
     const slot = await slotAt(2, 0);
     const { bookingId } = await createOwnerBooking({ pitchId: fixture.pitchId, start: slot.startIso, end: slot.endIso, ...PERSON });
     await expect(
       collectBookingPayment({ bookingId, tenders: [{ currency: "LBP", amount: new Decimal("2000000") }] }),
-    ).rejects.toMatchObject(LBP_REFUSED);
+    ).rejects.toMatchObject({ key: "payment.rate_required" });
     expect(await platformDb.payment.count()).toBe(0);
+    expect(await platformDb.bookingSettlement.count()).toBe(0);
     await assertMoneyInvariants([]);
   });
 });
@@ -261,7 +261,7 @@ describe("showing an LBP game", () => {
       series: undefined,
     });
     // Nothing settled yet: the whole due is left (the readers slice added what was paid and whether it is settled).
-    expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP" });
+    expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP", remaining: "2000000" });
     // Money actions stay refused until their slices: hidden, not offered.
     expect([view.showCancel, view.showNoShow, view.canAdjust, view.mayAddItems, view.repeatWeekly]).toEqual([
       false, false, false, false, false,
