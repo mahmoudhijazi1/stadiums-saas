@@ -268,7 +268,10 @@ describe("showing an LBP game", () => {
     expect(view.extend).toBeNull();
     expect(view.perPlayer.canSplit).toBe(false);
 
-    const { rows } = await listPersonBookings((await moneyOf(bookingId)).participant.personId, null);
+    const requesterId = (await moneyOf(bookingId)).participant.personId;
+    expect(requesterId).not.toBeNull();
+    if (requesterId === null) throw new Error("the requester has no person");
+    const { rows } = await listPersonBookings(requesterId, null);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.amountDue).toEqual({ currency: "LBP", amount: new Decimal(2000000) });
     expect(formatPrice(rows[0]!.amountDue, "en")).toBe("2,000,000 LBP");
@@ -284,6 +287,9 @@ describe("a USD stadium books exactly as before", () => {
     const money = await moneyOf(bookingId);
     expect(money.booking).toMatchObject({ priceCurrency: "USD", priceUsd: "30.00", amountDueUsd: "30.00", priceLbp: null, amountDueLbp: null });
     expect(money.participant).toMatchObject({ amountDueUsd: "30", amountDueLbp: null });
-    await assertMoneyInvariants([money.participant.personId]);
+    const requesterId = money.participant.personId;
+    expect(requesterId).not.toBeNull();
+    if (requesterId === null) throw new Error("the requester has no person");
+    await assertMoneyInvariants([requesterId]);
   });
 });
