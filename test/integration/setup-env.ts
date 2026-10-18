@@ -15,7 +15,10 @@ if (!testUrl?.includes("/stadiums_test")) {
   );
 }
 
-process.env.DATABASE_URL = testUrl;
+// Name this run's connections in pg_stat_activity, so a second writer on stadiums_test can be told apart.
+const named = new URL(testUrl);
+named.searchParams.set("application_name", `jest-integration-${process.pid}`);
+process.env.DATABASE_URL = named.toString();
 process.env.STADIUMS_INTEGRATION = "1";
 // Tenant hosts in tests are <slug>.lebstads.test (request-stubs.setTenantSlug).
 process.env.APP_BASE_DOMAIN = "lebstads.test";
