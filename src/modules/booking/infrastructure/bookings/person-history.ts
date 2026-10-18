@@ -2,16 +2,9 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { DomainError } from "@/lib/errors";
-import {
-  gameDue,
-  gamePrice,
-  requireUsd,
-  shareDue,
-  type GameCurrency,
-  type GameMoney,
-} from "@/modules/booking/domain/game-money";
-import { asDate, usdSumOnly, type SqlMoney } from "./_shared";
+import { gameDue, gamePrice, type GameCurrency, type GameMoney } from "@/modules/booking/domain/game-money";
+import { gameOwing, shareOwing } from "@/modules/booking/domain/game-owing";
+import { asDate, SETTLED_LBP_SQL, type SqlMoney } from "./_shared";
 import { DayBookingStatus } from "./day";
 
 export type PersonHistoryRow = {
@@ -20,13 +13,15 @@ export type PersonHistoryRow = {
   pitchName: string;
   start: Date;
   end: Date;
-  priceUsd: Decimal;
-  amountDueUsd: Decimal;
-  collectedUsd: Decimal;
+  /** The game's currency; every amount below is in it (DR-007). */
+  currency: GameCurrency;
+  price: Decimal;
+  amountDue: Decimal;
+  collected: Decimal;
   collectionMode: "WHOLE" | "PER_PLAYER";
   isRequester: boolean;
-  participantDueUsd: Decimal;
-  allocatedUsd: Decimal;
+  participantDue: Decimal;
+  allocated: Decimal;
 };
 
 type PersonHistorySqlRow = {
@@ -41,6 +36,7 @@ type PersonHistorySqlRow = {
   priceLbp: SqlMoney;
   amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
+  settledLbp: SqlMoney;
   collectionMode: "WHOLE" | "PER_PLAYER";
   isRequester: boolean;
   participantDueUsd: SqlMoney;
@@ -50,26 +46,33 @@ type PersonHistorySqlRow = {
 };
 
 /**
- * No money filter in these reads: every participation of the person comes back, and an LBP game
- * throws `booking.lbp_not_supported` here (DR-007) instead of being read as dollars or left out.
+ * No money filter in these reads: every participation of the person comes back, each with its
+ * game's currency and its amounts in it (DR-007), so the person's totals are per currency.
  */
 function mapPersonHistory(row: PersonHistorySqlRow): PersonHistoryRow {
+  const game = gameOwing(row);
+  const share = shareOwing({
+    currency: game.currency,
+    amountDueUsd: row.participantDueUsd,
+    amountDueLbp: row.participantDueLbp,
+    allocatedUsd: row.allocatedUsd,
+    allocatedLbp: row.allocatedLbp,
+    where: "person-history.share",
+  });
   return {
     id: row.id,
     status: row.status,
     pitchName: row.pitchName,
     start: asDate(row.start),
     end: asDate(row.end),
-    priceUsd: requireUsd(gamePrice(row), "person-history.priceUsd"),
-    amountDueUsd: requireUsd(gameDue(row), "person-history.amountDueUsd"),
-    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    currency: game.currency,
+    price: gamePrice(row).amount,
+    amountDue: game.due,
+    collected: game.collected,
     collectionMode: row.collectionMode,
     isRequester: row.isRequester,
-    participantDueUsd: requireUsd(
-      shareDue({ amountDueUsd: row.participantDueUsd, amountDueLbp: row.participantDueLbp }),
-      "person-history.participantDueUsd",
-    ),
-    allocatedUsd: usdSumOnly(row.allocatedUsd, row.allocatedLbp, "person-history.allocatedUsd"),
+    participantDue: share.due,
+    allocated: share.allocated,
   };
 }
 
@@ -90,13 +93,19 @@ export type PersonGameRow = {
   allocated: GameMoney;
 };
 
-/**
- * Slice 5: an LBP game is listed in pounds. Nothing can be collected on it until DR-007 slice 6, so
- * a dollar tender or allocation on one is refused here instead of being shown as pounds.
- */
+/** A game in its own currency: dollars from tenders, pounds from settlements (DR-007). */
 function mapPersonGame(row: PersonHistorySqlRow): PersonGameRow {
-  const amountDue = gameDue(row);
-  const base = {
+  const game = gameOwing(row);
+  const share = shareOwing({
+    currency: game.currency,
+    amountDueUsd: row.participantDueUsd,
+    amountDueLbp: row.participantDueLbp,
+    allocatedUsd: row.allocatedUsd,
+    allocatedLbp: row.allocatedLbp,
+    where: "person-games.share",
+  });
+  const money = (amount: Decimal): GameMoney => ({ currency: game.currency, amount });
+  return {
     id: row.id,
     status: row.status,
     pitchName: row.pitchName,
@@ -105,24 +114,10 @@ function mapPersonGame(row: PersonHistorySqlRow): PersonGameRow {
     collectionMode: row.collectionMode,
     isRequester: row.isRequester,
     price: gamePrice(row),
-    amountDue,
-    participantDue: shareDue({ amountDueUsd: row.participantDueUsd, amountDueLbp: row.participantDueLbp }),
-  };
-  const collectedUsd = new Decimal((row.collectedUsd ?? 0).toString());
-  if (amountDue.currency === "LBP") {
-    if (collectedUsd.gt(0) || new Decimal((row.allocatedUsd ?? 0).toString()).gt(0)) {
-      throw new DomainError("booking.lbp_not_supported", { where: "person-games.collected" });
-    }
-    return {
-      ...base,
-      collected: { currency: "LBP", amount: new Decimal(0) },
-      allocated: { currency: "LBP", amount: new Decimal((row.allocatedLbp ?? 0).toString()) },
-    };
-  }
-  return {
-    ...base,
-    collected: { currency: "USD", amount: collectedUsd },
-    allocated: { currency: "USD", amount: usdSumOnly(row.allocatedUsd, row.allocatedLbp, "person-games.allocatedUsd") },
+    amountDue: gameDue(row),
+    participantDue: money(share.due),
+    collected: money(game.collected),
+    allocated: money(share.allocated),
   };
 }
 
@@ -155,6 +150,7 @@ export async function listPersonBookingRows(
           bp."amountDueUsd" AS "participantDueUsd",
           bp."amountDueLbp" AS "participantDueLbp",
           COALESCE(collected.usd, 0) AS "collectedUsd",
+          ${SETTLED_LBP_SQL} AS "settledLbp",
           COALESCE(alloc.usd, 0) AS "allocatedUsd",
           COALESCE(alloc.lbp, 0) AS "allocatedLbp"
         FROM "BookingParticipant" bp
@@ -205,6 +201,7 @@ export async function listPersonBookingRows(
           bp."amountDueUsd" AS "participantDueUsd",
           bp."amountDueLbp" AS "participantDueLbp",
           COALESCE(collected.usd, 0) AS "collectedUsd",
+          ${SETTLED_LBP_SQL} AS "settledLbp",
           COALESCE(alloc.usd, 0) AS "allocatedUsd",
           COALESCE(alloc.lbp, 0) AS "allocatedLbp"
         FROM "BookingParticipant" bp
@@ -260,6 +257,7 @@ export async function listPersonStatRows(
       bp."amountDueUsd" AS "participantDueUsd",
       bp."amountDueLbp" AS "participantDueLbp",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       COALESCE(alloc.usd, 0) AS "allocatedUsd",
       COALESCE(alloc.lbp, 0) AS "allocatedLbp"
     FROM "BookingParticipant" bp

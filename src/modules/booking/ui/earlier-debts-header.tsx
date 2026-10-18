@@ -16,6 +16,7 @@ const rowClass =
  */
 export function EarlierDebtsHeader({
   total,
+  totalText,
   hasMore,
   locale,
   expandable,
@@ -23,13 +24,15 @@ export function EarlierDebtsHeader({
   onToggle,
 }: {
   total: string;
+  /** The total already written with its currencies (a game in pounds is among them); replaces "$" + total. */
+  totalText?: string;
   hasMore: boolean;
   locale: UiLocale;
   expandable: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const amount = <LtrIsolate>{`$${total}`}</LtrIsolate>;
+  const amount = <LtrIsolate>{totalText ?? `$${total}`}</LtrIsolate>;
   const content = (
     <>
       <CircleAlert aria-hidden className="size-5 shrink-0" />

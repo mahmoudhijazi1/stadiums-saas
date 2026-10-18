@@ -89,10 +89,10 @@ describe("listEndedWithRemaining (To collect)", () => {
     expect(rows.map((row) => row.id)).toEqual([unpaid, partial, noShow, perPlayer, cancelledWithFee]);
     const byId = new Map(rows.map((row) => [row.id, row]));
     expect(byId.get(partial)!.collectedUsd.toFixed(2)).toBe("10.00");
-    expect(byId.get(noShow)!.amountDueUsd.toFixed(2)).toBe("20.00");
+    expect(byId.get(noShow)!.amountDue.amount.toFixed(2)).toBe("20.00");
     expect(byId.get(perPlayer)!.collectionMode).toBe("PER_PLAYER");
     expect(byId.get(perPlayer)!.collectedUsd.toFixed(2)).toBe("10.00");
-    expect(byId.get(cancelledWithFee)!.amountDueUsd.toFixed(2)).toBe("15.00");
+    expect(byId.get(cancelledWithFee)!.amountDue.amount.toFixed(2)).toBe("15.00");
     for (const excluded of [paid, upcoming, otherUnpaid]) expect(byId.has(excluded)).toBe(false);
   });
 
@@ -176,9 +176,9 @@ describe("listDebtWarnings / listDebtParticipations", () => {
     expect(rows).toHaveLength(1); // only the requester's slot; unnamed slots have no person
     expect(rows[0]!.isRequester).toBe(true);
     expect(rows[0]!.collectionMode).toBe("PER_PLAYER");
-    expect(rows[0]!.participantDueUsd.toFixed(2)).toBe("3.00");
-    expect(rows[0]!.allocatedUsd.toFixed(2)).toBe("0.00");
-    expect(rows[0]!.collectedUsd.toFixed(2)).toBe("16.00");
+    expect(rows[0]!.participantDue.toFixed(2)).toBe("3.00");
+    expect(rows[0]!.allocated.toFixed(2)).toBe("0.00");
+    expect(rows[0]!.collected.toFixed(2)).toBe("16.00");
 
     // Booking remaining is $14, but the person owes only slot 1's $3: the $10 paid
     // before the split is Unassigned and counts for no one (audit #6, still open).

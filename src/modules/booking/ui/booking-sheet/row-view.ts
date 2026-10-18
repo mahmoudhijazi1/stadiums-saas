@@ -36,11 +36,11 @@ export type UpcomingRowView = {
   items: BookingItemsPanelView;
   priceUsd: string;
   /**
-   * An LBP game (DR-007 slice 5): its due in pounds ("2,000,000 ل.ل") and the pill text (the due plus
-   * any player tab, each in its own currency). Its money actions are hidden until their slices land.
-   * Absent or null on a USD game.
+   * An LBP game (DR-007): what is left in pounds ("2,000,000 ل.ل"), what its settlements applied,
+   * whether nothing is left, and the pill text (the remaining plus any player tab, each in its own
+   * currency). Its money actions are hidden until their slices land. Absent or null on a USD game.
    */
-  lbp?: { due: string; pill: string } | null;
+  lbp?: { due: string; paid: string; settled: boolean; pill: string } | null;
   interested: NotifyPerson[];
   status: UpcomingStatus;
   display: CardDisplay;

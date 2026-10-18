@@ -3,8 +3,9 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { gameDue, requireUsd, shareDue, type GameCurrency } from "@/modules/booking/domain/game-money";
-import { asDate, usdSumOnly, type SqlMoney } from "./_shared";
+import type { GameCurrency } from "@/modules/booking/domain/game-money";
+import { gameOwing, shareOwing } from "@/modules/booking/domain/game-owing";
+import { asDate, SETTLED_LBP_SQL, type SqlMoney } from "./_shared";
 
 export type DebtParticipationSqlRow = {
   personId: string;
@@ -14,10 +15,12 @@ export type DebtParticipationSqlRow = {
   end: Date;
   collectionMode: "WHOLE" | "PER_PLAYER";
   isRequester: boolean;
-  amountDueUsd: Decimal;
-  collectedUsd: Decimal;
-  participantDueUsd: Decimal;
-  allocatedUsd: Decimal;
+  /** The game's currency; every amount below is in it (DR-007). */
+  currency: GameCurrency;
+  amountDue: Decimal;
+  collected: Decimal;
+  participantDue: Decimal;
+  allocated: Decimal;
   reason: string | null;
 };
 
@@ -33,6 +36,7 @@ type DebtParticipationRaw = {
   amountDueUsd: SqlMoney;
   amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
+  settledLbp: SqlMoney;
   participantDueUsd: SqlMoney;
   participantDueLbp: SqlMoney;
   allocatedUsd: SqlMoney;
@@ -43,8 +47,8 @@ type DebtParticipationRaw = {
 /**
  * Participations for many people, one query. Latest due-change reason rides along.
  * Caller passes the person ids on this screen. Empty list does not hit the database.
- * No money filter: every participation of these people comes back, and an LBP game among them
- * throws `booking.lbp_not_supported` in the mapping (DR-007), never a warning that leaves it out.
+ * No money filter: every participation of these people comes back, each with its game's currency and
+ * its amounts in it (DR-007), so a warning is per currency and never leaves an LBP game out.
  */
 export async function listDebtParticipations(
   tx: TenantTx,
@@ -67,6 +71,7 @@ export async function listDebtParticipations(
       bp."amountDueUsd" AS "participantDueUsd",
       bp."amountDueLbp" AS "participantDueLbp",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       COALESCE(alloc.usd, 0) AS "allocatedUsd",
       COALESCE(alloc.lbp, 0) AS "allocatedLbp",
       latest.reason::text AS reason
@@ -103,21 +108,30 @@ export async function listDebtParticipations(
         'NO_SHOW'::"BookingStatus"
       )
   `;
-  return rows.map((row) => ({
-    personId: row.personId,
-    bookingId: row.bookingId,
-    status: row.status,
-    start: asDate(row.start),
-    end: asDate(row.end),
-    collectionMode: row.collectionMode,
-    isRequester: row.isRequester,
-    amountDueUsd: requireUsd(gameDue(row), "debts.amountDueUsd"),
-    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
-    participantDueUsd: requireUsd(
-      shareDue({ amountDueUsd: row.participantDueUsd, amountDueLbp: row.participantDueLbp }),
-      "debts.participantDueUsd",
-    ),
-    allocatedUsd: usdSumOnly(row.allocatedUsd, row.allocatedLbp, "debts.allocatedUsd"),
-    reason: row.reason,
-  }));
+  return rows.map((row) => {
+    const game = gameOwing(row);
+    const share = shareOwing({
+      currency: game.currency,
+      amountDueUsd: row.participantDueUsd,
+      amountDueLbp: row.participantDueLbp,
+      allocatedUsd: row.allocatedUsd,
+      allocatedLbp: row.allocatedLbp,
+      where: "debts.share",
+    });
+    return {
+      personId: row.personId,
+      bookingId: row.bookingId,
+      status: row.status,
+      start: asDate(row.start),
+      end: asDate(row.end),
+      collectionMode: row.collectionMode,
+      isRequester: row.isRequester,
+      currency: game.currency,
+      amountDue: game.due,
+      collected: game.collected,
+      participantDue: share.due,
+      allocated: share.allocated,
+      reason: row.reason,
+    };
+  });
 }

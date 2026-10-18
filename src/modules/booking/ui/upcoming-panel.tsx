@@ -27,6 +27,7 @@ export function UpcomingPanel({
   toCollect,
   toCollectHasMore,
   toCollectTotal,
+  toCollectText,
   free,
   games,
   locale,
@@ -50,6 +51,8 @@ export function UpcomingPanel({
   toCollectHasMore: boolean;
   /** Compact USD sum of the listed To collect rows. */
   toCollectTotal: string;
+  /** The total already written per currency ("2,000,000 LBP + $30"), when a game in pounds is among them. */
+  toCollectText?: string;
   /** Rendered after the day's games: the available-hours section. */
   free?: ReactNode;
   games: UpcomingRowView[];
@@ -171,6 +174,7 @@ export function UpcomingPanel({
         >
           <EarlierDebtsHeader
             total={toCollectTotal}
+            totalText={toCollectText}
             hasMore={toCollectHasMore}
             locale={locale}
             expandable={toCollect.length > 1}
@@ -188,6 +192,7 @@ export function UpcomingPanel({
                       timeRange: row.timeRange,
                       requesterName: row.requesterName,
                       owedUsd: row.displayAmountUsd,
+                      owedText: row.lbp?.pill,
                       pitchName: row.pitchName,
                     }}
                     mayCollect={mayCollect && owesCash(row)}

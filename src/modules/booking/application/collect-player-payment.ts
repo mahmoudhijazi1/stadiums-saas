@@ -10,6 +10,7 @@ import { assertCanPaySlot } from "@/modules/booking/domain/switch-mode";
 import {
   findBookingForUpdate,
   listSlotsForBookings,
+  usdSlots,
 } from "@/modules/booking/infrastructure/bookings";
 import { recordPayment } from "@/modules/payment/application/record-payment";
 import { freezeTenders } from "@/modules/payment/domain/collect";
@@ -41,7 +42,8 @@ async function payRemaining(input: {
     const booking = await findBookingForUpdate(tx, input.bookingId);
     if (!booking) throw new DomainError("booking.not_found");
 
-    const slots = await listSlotsForBookings(tx, [booking.id]);
+    // Slot charging is dollars only until DR-007 slice 7 (an LBP game was already refused above).
+    const slots = usdSlots(await listSlotsForBookings(tx, [booking.id]));
     const ids = input.participantIds === "ALL_UNPAID" ? null : input.participantIds;
     const chosen = ids ? slots.filter((slot) => ids.includes(slot.participantId)) : slots;
     if (ids && chosen.length !== ids.length) {

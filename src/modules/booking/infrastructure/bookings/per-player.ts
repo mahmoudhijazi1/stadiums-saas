@@ -4,8 +4,9 @@ import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/format/money";
 import Decimal from "decimal.js";
-import { requireUsd, shareDue } from "@/modules/booking/domain/game-money";
-import { usdSumOnly, type SqlMoney } from "./_shared";
+import { requireUsd, type GameCurrency } from "@/modules/booking/domain/game-money";
+import { shareOwing } from "@/modules/booking/domain/game-owing";
+import type { SqlMoney } from "./_shared";
 
 /** How many allocations sit on this booking's participants. Zero allows switching back. */
 export async function countBookingAllocations(
@@ -118,12 +119,18 @@ export type SlotRow = {
   isRequester: boolean;
   personId: string | null;
   name: string | null;
-  dueUsd: Decimal;
-  paidUsd: Decimal;
+  /** The game's currency; `due` and `paid` are in it (DR-007). */
+  currency: GameCurrency;
+  due: Decimal;
+  paid: Decimal;
 };
+
+/** A slot of a USD game, as the dollar slot charging (a money write) reads it. */
+export type UsdSlotRow = Omit<SlotRow, "currency" | "due" | "paid"> & { dueUsd: Decimal; paidUsd: Decimal };
 
 type SlotSqlRow = {
   bookingId: string;
+  priceCurrency: GameCurrency;
   participantId: string;
   slotNumber: number;
   isRequester: boolean;
@@ -137,7 +144,7 @@ type SlotSqlRow = {
 
 /**
  * Slots (participants with a slot number) for these bookings, in slot order,
- * each with what its allocations add up to.
+ * each with what its allocations add up to, in its game's currency (DR-007: pounds for an LBP game).
  */
 export async function listSlotsForBookings(
   tx: TenantTx,
@@ -148,6 +155,7 @@ export async function listSlotsForBookings(
   const rows = await tx.$queryRaw<SlotSqlRow[]>`
     SELECT
       bp."bookingId" AS "bookingId",
+      b."priceCurrency"::text AS "priceCurrency",
       bp.id AS "participantId",
       bp."slotNumber" AS "slotNumber",
       bp."isRequester" AS "isRequester",
@@ -166,21 +174,44 @@ export async function listSlotsForBookings(
         WHERE a."participantId" = bp.id AND a."tenantId" = bp."tenantId"
       ), 0) AS "paidLbp"
     FROM "BookingParticipant" bp
+    JOIN "Booking" b ON b.id = bp."bookingId" AND b."tenantId" = bp."tenantId"
     LEFT JOIN "Person" per ON per.id = bp."personId"
     WHERE bp."tenantId" = ${tenantId}
       AND bp."bookingId" IN (${Prisma.join(bookingIds)})
       AND bp."slotNumber" IS NOT NULL
     ORDER BY bp."bookingId" ASC, bp."slotNumber" ASC
   `;
-  return rows.map((row) => ({
-    bookingId: row.bookingId,
-    participantId: row.participantId,
-    slotNumber: row.slotNumber,
-    isRequester: row.isRequester,
-    personId: row.personId,
-    name: row.name,
-    // An LBP slot throws booking.lbp_not_supported: slot charging is in dollars until DR-007 slice 7.
-    dueUsd: requireUsd(shareDue({ amountDueUsd: row.dueUsd, amountDueLbp: row.dueLbp }), "slots.dueUsd"),
-    paidUsd: usdSumOnly(row.paidUsd, row.paidLbp, "slots.paidUsd"),
+  return rows.map((row) => {
+    const share = shareOwing({
+      currency: row.priceCurrency,
+      amountDueUsd: row.dueUsd,
+      amountDueLbp: row.dueLbp,
+      allocatedUsd: row.paidUsd,
+      allocatedLbp: row.paidLbp,
+      where: "slots",
+    });
+    return {
+      bookingId: row.bookingId,
+      participantId: row.participantId,
+      slotNumber: row.slotNumber,
+      isRequester: row.isRequester,
+      personId: row.personId,
+      name: row.name,
+      currency: share.currency,
+      due: share.due,
+      paid: share.allocated,
+    };
+  });
+}
+
+/**
+ * The same slots as dollars, for slot charging (a money write, USD only until DR-007 slice 7): a slot
+ * of an LBP game is refused with `booking.lbp_not_supported`.
+ */
+export function usdSlots(slots: readonly SlotRow[]): UsdSlotRow[] {
+  return slots.map(({ currency, due, paid, ...rest }) => ({
+    ...rest,
+    dueUsd: requireUsd({ currency, amount: due }, "slots.dueUsd"),
+    paidUsd: requireUsd({ currency, amount: paid }, "slots.paidUsd"),
   }));
 }

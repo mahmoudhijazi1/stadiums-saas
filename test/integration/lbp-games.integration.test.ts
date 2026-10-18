@@ -260,7 +260,8 @@ describe("showing an LBP game", () => {
       extendedMinutes: 0,
       series: undefined,
     });
-    expect(view.lbp).toEqual({ due: "2,000,000 LBP", pill: "2,000,000 LBP" });
+    // Nothing settled yet: the whole due is left (the readers slice added what was paid and whether it is settled).
+    expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP" });
     // Money actions stay refused until their slices: hidden, not offered.
     expect([view.showCancel, view.showNoShow, view.canAdjust, view.mayAddItems, view.repeatWeekly]).toEqual([
       false, false, false, false, false,

@@ -34,9 +34,29 @@ const GAME: LbpOwnerDayBooking = {
   requesterPersonId: "per1",
   requesterName: "هدى",
   requesterPhone: "9613111001",
+  owedUsd: new Decimal(0),
+  owedLbp: new Decimal(2000000),
   currency: "LBP",
   priceLbp: new Decimal(2000000),
   amountDueLbp: new Decimal(2000000),
+  settledLbp: new Decimal(0),
+  remainingLbp: new Decimal(2000000),
+};
+
+/** The same game with 1,790,000 settled: 210,000 is left. */
+const PART_PAID: LbpOwnerDayBooking = {
+  ...GAME,
+  owedLbp: new Decimal(210000),
+  settledLbp: new Decimal(1790000),
+  remainingLbp: new Decimal(210000),
+};
+
+/** The same game settled in full. */
+const SETTLED: LbpOwnerDayBooking = {
+  ...GAME,
+  owedLbp: new Decimal(0),
+  settledLbp: new Decimal(2000000),
+  remainingLbp: new Decimal(0),
 };
 
 function viewOf(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
@@ -77,10 +97,10 @@ function card(locale: UiLocale) {
   );
 }
 
-function moneyBlock(locale: UiLocale) {
+function moneyBlock(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
   return renderToStaticMarkup(
     createElement(MoneyBlock, {
-      row: viewOf(locale),
+      row: viewOf(locale, game),
       lbpPerUsd: "89500",
       locale,
       mayCollect: true,
@@ -108,7 +128,7 @@ describe("an LBP game on Today", () => {
 
   it("hides every money action that is refused on an LBP game", () => {
     const view = viewOf("en");
-    expect(view.lbp).toEqual({ due: "2,000,000 LBP", pill: "2,000,000 LBP" });
+    expect(view.lbp).toEqual({ due: "2,000,000 LBP", paid: "0 LBP", settled: false, pill: "2,000,000 LBP" });
     expect(view.showCancel).toBe(false);
     expect(view.showNoShow).toBe(false);
     expect(view.canAdjust).toBe(false);
@@ -121,6 +141,22 @@ describe("an LBP game on Today", () => {
   it("puts the pounds in the WhatsApp reminder of an ended game", () => {
     const href = viewOf("en").whatsAppHref ?? "";
     expect(decodeURIComponent(href)).toContain("2,000,000 LBP");
+  });
+
+  it("shows what is left after a settlement: 2,000,000 minus 1,790,000 is 210,000 LBP", () => {
+    const view = viewOf("en", PART_PAID);
+    expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP" });
+    expect(view.display.kind).toBe("partial");
+    expect(moneyBlock("en", PART_PAID)).toContain("210,000 LBP");
+    expect(moneyBlock("en", PART_PAID)).not.toContain("2,000,000 LBP");
+  });
+
+  it("a game settled in full reads as paid, in pounds", () => {
+    const view = viewOf("en", SETTLED);
+    expect(view.display.kind).toBe("paid");
+    expect(view.lbp?.settled).toBe(true);
+    expect(view.bookingOwes).toBe(false);
+    expect(moneyBlock("en", SETTLED)).toContain("2,000,000 LBP");
   });
 
   it("a USD pill is unchanged", () => {

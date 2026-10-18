@@ -108,8 +108,8 @@ export function MoneyBlock({
         <DueRemainingFigures
           paidUsd={row.collectedExact}
           remainingUsd={row.remainingUsd}
-          amountText={row.lbp.due}
-          tone={owesCash(row) ? "owed" : "expected"}
+          amountText={row.lbp.settled ? row.lbp.paid : row.lbp.due}
+          tone={row.lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected"}
           locale={locale}
         />
       </section>

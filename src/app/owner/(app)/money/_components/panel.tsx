@@ -13,7 +13,7 @@ import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import Link from "next/link";
 import { CircleAlert, ChevronRight } from "lucide-react";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatOwed } from "@/lib/format/money";
 import { parseLbp } from "@/lib/format/parse-money";
 import { listOwed } from "@/modules/booking/application/list-owed";
 import type { UiLocale } from "@/lib/locale";
@@ -122,7 +122,7 @@ export async function OwnerMoney({
         >
           <CircleAlert aria-hidden className="size-5 shrink-0" />
           <span className="type-strong min-w-0 flex-1">
-            {ui("owner.owedToYou", locale)} <LtrIsolate>{`$${formatUsdCompact(owed.totalUsd)}`}</LtrIsolate>
+            {ui("owner.owedToYou", locale)} <LtrIsolate>{formatOwed({ usd: owed.totalUsd, lbp: owed.totalLbp }, locale)}</LtrIsolate>
             <span aria-hidden> · </span>
             {uiCount("owner.games", owed.games, locale)}
           </span>

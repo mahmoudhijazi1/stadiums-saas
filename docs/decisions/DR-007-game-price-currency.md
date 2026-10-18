@@ -156,6 +156,11 @@ What the code does today:
 
 ## Slices, in order (each reviewed before commit)
 
+The numbers are names, kept so earlier references stay true. **The build order changed after slice 5:
+the readers (9) come before collecting (6)**, so an LBP stadium can be used end to end (create,
+approve, see what is owed, in pounds) before any money can be taken on an LBP game. Order built:
+0 to 5, then 9, then 6, 7, 8, 10.
+
 0. This record.
 1. An overpayment becomes change on USD games.
 2. Pure helpers (units, split, rounding, the friendly amount) with tests.
@@ -172,7 +177,12 @@ What the code does today:
 7. Per-player in LBP.
 8. Fees, extensions and adjust-due in LBP.
 9. Every reader: Today, Owed, the person page, debt warnings, the booking sheet, WhatsApp texts,
-   the Money page.
+   the Money page. **Done, built before 6** (progress.md, 2026-10-18): every owed reader handles both
+   currencies. A USD game is read from its tenders as before; an LBP game from its
+   `BookingSettlement.lbpApplied` (empty until slice 6, so it is owed in full), per participant from
+   `PaymentAllocation.amountLbp`. Totals are per currency and never added (decision 11). `requireUsd`
+   remains only in the money-writing paths (and the fee state behind the cancel and no-show WhatsApp
+   texts, with fees in slice 8).
 10. "Keep it".
 
 ## Not decided here

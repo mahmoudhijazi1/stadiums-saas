@@ -3,8 +3,8 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { gameDue, gamePrice, requireUsd, type GameCurrency, type GameMoney } from "@/modules/booking/domain/game-money";
-import { asDate, refuseLbpGames, type SqlMoney } from "./_shared";
+import { gameDue, gamePrice, type GameCurrency, type GameMoney } from "@/modules/booking/domain/game-money";
+import { asDate, SETTLED_LBP_SQL, type SqlMoney } from "./_shared";
 
 /**
  * What the players of a game still owe the shop: the sum, over its player tabs, of the tab total
@@ -79,6 +79,8 @@ export type DayBookingRow = {
   amountDue: GameMoney;
   /** Booking tenders in dollars (the ledger's unit). */
   collectedUsd: Decimal;
+  /** The pounds the game's settlements applied: what an LBP game has collected (zero on a USD game). */
+  settledLbp: Decimal;
   /** Unpaid player tabs on this game (shop items charged to a player). Never part of the booking due. */
   tabsRemainingUsd: Decimal;
   collectionMode: "WHOLE" | "PER_PLAYER";
@@ -101,6 +103,7 @@ type DayBookingSqlRow = {
   priceLbp: SqlMoney;
   amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
+  settledLbp: Decimal | string | null;
   tabsRemainingUsd: Decimal | string | null;
   collectionMode: "WHOLE" | "PER_PLAYER";
   requesterPersonId: string;
@@ -108,9 +111,6 @@ type DayBookingSqlRow = {
   requesterPhone: string | null;
   pitchDefaultPlayerCount: number;
 };
-
-/** A row of a USD-only read (`listEndedWithRemaining`): its price and due are dollars. */
-export type UsdDayBookingRow = DayBookingRow & { priceUsd: Decimal; amountDueUsd: Decimal };
 
 /** The game money columns of `b`, for every DayBookingSqlRow query. */
 const DAY_MONEY_COLUMNS = Prisma.sql`b."priceCurrency"::text AS "priceCurrency", b."priceUsd", b."amountDueUsd", b."priceLbp", b."amountDueLbp"`;
@@ -127,6 +127,7 @@ function mapDayBooking(row: DayBookingSqlRow): DayBookingRow {
     price: gamePrice(row),
     amountDue: gameDue(row),
     collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
+    settledLbp: new Decimal((row.settledLbp ?? 0).toString()),
     tabsRemainingUsd: new Decimal((row.tabsRemainingUsd ?? 0).toString()),
     collectionMode: row.collectionMode,
     requesterPersonId: row.requesterPersonId,
@@ -167,6 +168,7 @@ export async function listBookingsForStartDay(
           AND pay."sourceType" = 'BOOKING'::"PaymentSourceType"
           AND pay."sourceId" = b.id
       ), 0) AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       ${TABS_REMAINING_SQL} AS "tabsRemainingUsd",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
@@ -197,7 +199,7 @@ export async function listEndedWithRemaining(
   tx: TenantTx,
   now: Date,
   limit: number,
-): Promise<UsdDayBookingRow[]> {
+): Promise<DayBookingRow[]> {
   const tenantId = await getCurrentTenantId();
   const endedOrFee = Prisma.sql`(
         (
@@ -209,9 +211,6 @@ export async function listEndedWithRemaining(
           'CANCELLED'::"BookingStatus"
         )
       )`;
-  // The due comparison is in dollars, so only USD games are kept; an LBP game that would be listed
-  // is refused instead of left out (DR-007).
-  await refuseLbpGames(tx, endedOrFee, "listEndedWithRemaining");
   const rows = await tx.$queryRaw<DayBookingSqlRow[]>`
     SELECT
       b.id,
@@ -224,6 +223,7 @@ export async function listEndedWithRemaining(
       ${DAY_MONEY_COLUMNS},
       b."collectionMode"::text AS "collectionMode",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       tabs.usd AS "tabsRemainingUsd",
       per.id AS "requesterPersonId",
       per.name AS "requesterName",
@@ -242,18 +242,14 @@ export async function listEndedWithRemaining(
     ) collected ON true
     JOIN LATERAL (SELECT ${TABS_REMAINING_SQL} AS usd) tabs ON true
     WHERE b."tenantId" = ${tenantId}
-      AND b."priceCurrency" = 'USD'::"Currency"
-      AND (b."amountDueUsd" > collected.usd OR tabs.usd > 0)
+      AND (
+        (b."priceCurrency" = 'USD'::"Currency" AND b."amountDueUsd" > collected.usd)
+        OR (b."priceCurrency" = 'LBP'::"Currency" AND b."amountDueLbp" > ${SETTLED_LBP_SQL})
+        OR tabs.usd > 0
+      )
       AND ${endedOrFee}
     ORDER BY lower(b.during) ASC, b.id ASC
     LIMIT ${limit}
   `;
-  return rows.map((row) => {
-    const mapped = mapDayBooking(row);
-    return {
-      ...mapped,
-      priceUsd: requireUsd(mapped.price, "ended.priceUsd"),
-      amountDueUsd: requireUsd(mapped.amountDue, "ended.amountDueUsd"),
-    };
-  });
+  return rows.map(mapDayBooking);
 }

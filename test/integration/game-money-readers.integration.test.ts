@@ -15,6 +15,7 @@ import {
   listPersonStatRows,
   listSlotsForBookings,
   setBookingEndAndPrice,
+  usdSlots,
 } from "@/modules/booking/infrastructure/bookings";
 import { findOrCreatePerson } from "@/modules/people/application/find-or-create-person";
 import type { TestFixture } from "./fixtures";
@@ -25,11 +26,11 @@ import { finishIntegrationFile } from "./teardown";
 import { truncateAll } from "./truncate";
 
 /**
- * DR-007 slice 3b: every raw SQL reader of game money is currency-aware. One LBP game is inserted
- * directly (valid under the CHECKs) next to a USD one; every reader that would see it refuses with
- * booking.lbp_not_supported. None returns a dollar figure that silently leaves the LBP game out.
- * Readers that list one person's games are per person by design: for a person with no LBP game
- * they work as before (said next to each such case).
+ * DR-007 slice 3b and the readers slice: every raw SQL reader of game money is currency-aware. One
+ * LBP game is inserted directly (valid under the CHECKs) next to a USD one. The money-writing reads
+ * (the locked single-booking reads, the fee state behind the WhatsApp texts, the dollar slot
+ * charging) still refuse the LBP game with booking.lbp_not_supported; every reader that shows what
+ * is owed returns it in pounds, next to the USD game in dollars, and never leaves it out.
  */
 let fixture: TestFixture;
 let usd: { bookingId: string; personId: string };
@@ -93,22 +94,34 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
     expect(stored.priceLbp?.toFixed(0)).toBe("2000000");
   });
 
-  it("Today's earlier debts (ended games with money left): a USD total never leaves the LBP game out", async () => {
-    await expect(listEndedWithRemaining(db, new Date(), 50)).rejects.toMatchObject(LBP_REFUSED);
+  it("Today's earlier debts (ended games with money left) list the LBP game next to the USD one, each in its currency", async () => {
+    const rows = await listEndedWithRemaining(db, new Date(), 50);
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    expect(byId.size).toBe(2);
+    expect([byId.get(usd.bookingId)!.amountDue.currency, byId.get(usd.bookingId)!.amountDue.amount.toFixed(2)]).toEqual(["USD", "30.00"]);
+    const pounds = byId.get(lbp.bookingId)!;
+    expect([pounds.amountDue.currency, pounds.amountDue.amount.toFixed(0), pounds.settledLbp.toFixed(0)]).toEqual(["LBP", "2000000", "0"]);
   });
 
-  it("the Owed page and Money's owed total", async () => {
-    await expect(listOwedParticipations(db, new Date())).rejects.toMatchObject(LBP_REFUSED);
+  it("the Owed page and Money's owed total read the LBP game in pounds", async () => {
+    const rows = await listOwedParticipations(db, new Date());
+    const requesterOf = (bookingId: string) => rows.find((row) => row.bookingId === bookingId && row.isRequester)!;
+    expect([requesterOf(usd.bookingId).currency, requesterOf(usd.bookingId).amountDue.toFixed(2), requesterOf(usd.bookingId).collected.toFixed(2)]).toEqual(["USD", "30.00", "0.00"]);
+    expect([requesterOf(lbp.bookingId).currency, requesterOf(lbp.bookingId).amountDue.toFixed(0), requesterOf(lbp.bookingId).collected.toFixed(0)]).toEqual(["LBP", "2000000", "0"]);
   });
 
-  it("debt warnings: refused for a person with an LBP game; per person by design otherwise", async () => {
-    await expect(listDebtParticipations(db, [lbp.personId, usd.personId])).rejects.toMatchObject(LBP_REFUSED);
-    // Only this person's games are read, and none of them is in LBP: unchanged.
-    const rows = await listDebtParticipations(db, [usd.personId]);
-    expect(rows.map((row) => row.amountDueUsd.toFixed(2))).toEqual(["30.00"]);
+  it("debt warnings read both people, each in the currency of their game", async () => {
+    const rows = await listDebtParticipations(db, [lbp.personId, usd.personId]);
+    expect(rows.map((row) => [row.personId === lbp.personId ? "lbp-player" : "usd-player", row.currency, row.amountDue.toFixed(2)]).sort()).toEqual([
+      ["lbp-player", "LBP", "2000000.00"],
+      ["usd-player", "USD", "30.00"],
+    ]);
+    // Only this person's games are read: unchanged for the dollar player.
+    const only = await listDebtParticipations(db, [usd.personId]);
+    expect(only.map((row) => row.amountDue.toFixed(2))).toEqual(["30.00"]);
   });
 
-  it("the person page history (both pages) returns the LBP game in pounds (slice 5); stats still refuse it; per person by design otherwise", async () => {
+  it("the person page history (both pages) returns the LBP game in pounds, and the stats rows carry its currency", async () => {
     const first = await listPersonBookingRows(db, lbp.personId, null, 10);
     const cursor = { start: new Date(Date.now() + 86_400_000), id: "zzz" };
     const second = await listPersonBookingRows(db, lbp.personId, cursor, 10);
@@ -120,14 +133,16 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
       expect([row.participantDue.currency, row.participantDue.amount.toFixed(0)]).toEqual(["LBP", "2000000"]);
       expect([row.collected.currency, row.collected.amount.toFixed(0)]).toEqual(["LBP", "0"]);
     }
-    // The stats reader is an owed total: it changes in the next slice.
-    await expect(listPersonStatRows(db, lbp.personId)).rejects.toMatchObject(LBP_REFUSED);
-    // Only this person's games are read, and none of them is in LBP: unchanged.
-    expect((await listPersonStatRows(db, usd.personId)).map((row) => row.amountDueUsd.toFixed(2))).toEqual(["30.00"]);
+    // The stats rows: the LBP player's game in pounds, the USD player's in dollars.
+    const stats = await listPersonStatRows(db, lbp.personId);
+    expect(stats.map((row) => [row.currency, row.amountDue.toFixed(0), row.collected.toFixed(0)])).toEqual([["LBP", "2000000", "0"]]);
+    expect((await listPersonStatRows(db, usd.personId)).map((row) => [row.currency, row.amountDue.toFixed(2)])).toEqual([["USD", "30.00"]]);
   });
 
-  it("the per-player slots of an LBP game", async () => {
-    await expect(listSlotsForBookings(db, [lbp.bookingId])).rejects.toMatchObject(LBP_REFUSED);
+  it("the per-player slots of an LBP game are in pounds; the dollar slot charging refuses them", async () => {
+    const slots = await listSlotsForBookings(db, [lbp.bookingId]);
+    expect(slots.map((slot) => [slot.currency, slot.due.toFixed(0), slot.paid.toFixed(0)])).toEqual([["LBP", "285000", "0"]]);
+    expect(() => usdSlots(slots)).toThrow(expect.objectContaining(LBP_REFUSED));
   });
 
   it("pounds allocated on a USD game's slot are refused, never dropped from the paid total", async () => {
@@ -143,7 +158,7 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
     await expect(listSlotsForBookings(db, [usd.bookingId])).rejects.toMatchObject(LBP_REFUSED);
   });
 
-  it("the fee state behind the WhatsApp texts", async () => {
+  it("the fee state behind the cancel and no-show WhatsApp texts stays dollars (fees in pounds are DR-007 slice 8)", async () => {
     await expect(findBookingFeeState(db, lbp.bookingId)).rejects.toMatchObject(LBP_REFUSED);
     expect((await findBookingFeeState(db, usd.bookingId))?.amountDueUsd.toFixed(2)).toBe("30.00");
   });
@@ -169,8 +184,8 @@ describe("raw SQL readers refuse an LBP game instead of reading it as dollars", 
     await platformDb.bookingParticipant.deleteMany({ where: { bookingId: lbp.bookingId } });
     await platformDb.booking.delete({ where: { id: lbp.bookingId } });
     const ended = await listEndedWithRemaining(db, new Date(), 50);
-    expect(ended.map((row) => [row.id, row.amountDueUsd.toFixed(2)])).toEqual([[usd.bookingId, "30.00"]]);
+    expect(ended.map((row) => [row.id, row.amountDue.amount.toFixed(2)])).toEqual([[usd.bookingId, "30.00"]]);
     const owed = await listOwedParticipations(db, new Date());
-    expect(owed.map((row) => [row.bookingId, row.amountDueUsd.toFixed(2)])).toEqual([[usd.bookingId, "30.00"]]);
+    expect(owed.map((row) => [row.bookingId, row.amountDue.toFixed(2)])).toEqual([[usd.bookingId, "30.00"]]);
   });
 });

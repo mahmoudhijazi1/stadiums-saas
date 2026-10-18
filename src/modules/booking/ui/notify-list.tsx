@@ -16,6 +16,8 @@ import {
 
 export type DebtNotice = {
   totalCompact: string;
+  /** The total already written per currency ("2,000,000 LBP + $30"); replaces "$" + totalCompact (DR-007). */
+  totalText?: string;
   reasonLabel: string | null;
   dateLabel: string;
 };
@@ -145,7 +147,7 @@ export function DebtNoticeLine({
       className="text-sm text-owed underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       {ui("owner.debtLead", locale)}{" "}
-      <LtrIsolate>${notice.totalCompact}</LtrIsolate>
+      <LtrIsolate>{notice.totalText ?? `$${notice.totalCompact}`}</LtrIsolate>
       <span aria-hidden> · </span>
       {notice.reasonLabel ? (
         <>

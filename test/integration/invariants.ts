@@ -75,21 +75,30 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
         status: row.status,
         start: row.start,
         end: row.end,
-        amountDueUsd: row.amountDueUsd,
-        collectedUsd: row.collectedUsd,
+        // A USD game counts in dollars; an LBP game in pounds, from what its settlements applied.
+        collectedUsd: row.currency === "USD" ? row.collected : new Decimal(0),
+        ...(row.currency === "LBP"
+          ? { amountDueLbp: row.amountDue, settledLbp: row.collected }
+          : { amountDueUsd: row.amountDue }),
       });
       byDay.set(key, group);
     }
 
     let owed = new Decimal(0);
     let expected = new Decimal(0);
+    let owedLbp = new Decimal(0);
+    let expectedLbp = new Decimal(0);
     for (const group of byDay.values()) {
       const summary = summarizeDay(group, now);
       owed = owed.plus(summary.owedUsd);
       expected = expected.plus(summary.expectedUsd);
+      owedLbp = owedLbp.plus(summary.owedLbp);
+      expectedLbp = expectedLbp.plus(summary.expectedLbp);
     }
 
     expect(stats.owesNowUsd.equals(owed)).toBe(true);
     expect(stats.expectedUsd.equals(expected)).toBe(true);
+    expect(stats.owesNowLbp.equals(owedLbp)).toBe(true);
+    expect(stats.expectedLbp.equals(expectedLbp)).toBe(true);
   }
 }

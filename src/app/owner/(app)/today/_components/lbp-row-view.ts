@@ -41,8 +41,16 @@ export function lbpUpcomingView(
   },
 ): UpcomingRowView {
   const { now, locale, hourCycle, dayStartHour } = ctx;
-  const due = row.amountDueLbp;
-  const display = deriveCardDisplay({ start: row.start, end: row.end, price: due, remaining: due, now, status: row.status });
+  // What is left in pounds: the due minus what the game's settlements applied (DR-007).
+  const remaining = row.remainingLbp;
+  const display = deriveCardDisplay({
+    start: row.start,
+    end: row.end,
+    price: row.amountDueLbp,
+    remaining,
+    now,
+    status: row.status,
+  });
   const waDay = messageDayLabel(row.start, locale, dayStartHour);
   const waTime = formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale);
   const tabs = ctx.items?.tabs ?? [];
@@ -50,7 +58,7 @@ export function lbpUpcomingView(
   // The game's pounds and any player tab, each in its own currency (never added through a rate).
   const owedParts = {
     usd: tabs.reduce((sum, tab) => sum.plus(tab.remainingUsd), new Decimal(0)),
-    lbp: due.plus(tabsLbp),
+    lbp: row.owedLbp.plus(tabsLbp),
   };
   const whatsApp = notifyLink({
     context: "booking_header",
@@ -82,14 +90,19 @@ export function lbpUpcomingView(
     requesterName: row.requesterName,
     requesterPhone: row.requesterPhone,
     remainingUsd: zero,
-    bookingOwes: due.gt(0),
+    bookingOwes: remaining.gt(0),
     approved: row.status === "APPROVED",
     mayAddItems: false,
     items: ctx.itemsPanel,
     priceUsd: zero,
-    lbp: { due: formatLbpAmount(due, locale), pill: formatParts(owedParts, locale) },
+    lbp: {
+      due: formatLbpAmount(Decimal.max(remaining, 0), locale),
+      paid: formatLbpAmount(row.settledLbp, locale),
+      settled: remaining.lte(0),
+      pill: formatParts(owedParts, locale),
+    },
     interested: row.status === "CANCELLED" ? peopleWaitingOn(ctx.openWaitlist, row, row.requesterPersonId) : [],
-    status: upcomingStatus(row.start, due.plus(row.tabsRemainingUsd), now),
+    status: upcomingStatus(row.start, row.owedLbp.plus(row.tabsRemainingUsd), now),
     display,
     displayAmountUsd: zero,
     tabsRemainingUsd: formatUsd(row.tabsRemainingUsd),

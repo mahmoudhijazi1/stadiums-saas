@@ -15,21 +15,21 @@ export function asDate(value: Date | string): Date {
 export type SqlMoney = Decimal | string | null;
 
 /**
- * A USD sum over allocations (or any rows that may also carry pounds) whose LBP sum came along in
- * the same query. Pounds there mean an LBP game reached a USD-only reader: refuse it (DR-007)
- * instead of returning a dollar total that leaves them out.
+ * The pounds a booking's settlements applied (`BookingSettlement.lbpApplied`, DR-007 decision 4):
+ * what an LBP game has collected. Zero until the collecting slice writes settlements. An expression
+ * over the booking alias `b`; the settlement's own tenant is matched.
  */
-export function usdSumOnly(usd: SqlMoney | undefined, lbp: SqlMoney | undefined, where: string): Decimal {
-  if (lbp !== null && lbp !== undefined && new Decimal(lbp.toString()).gt(0)) {
-    throw new DomainError("booking.lbp_not_supported", { where });
-  }
-  return new Decimal((usd ?? 0).toString());
-}
+export const SETTLED_LBP_SQL = Prisma.sql`COALESCE((
+  SELECT SUM(s."lbpApplied")
+  FROM "BookingSettlement" s
+  WHERE s."tenantId" = b."tenantId" AND s."bookingId" = b.id
+), 0)`;
 
 /**
- * For a USD total whose query keeps only USD games (`b."priceCurrency" = 'USD'`): refuse when an LBP
- * game matches the same condition, so the total never silently leaves it out (DR-007).
- * `match` is a condition on the booking alias `b`; the tenant is stamped here.
+ * For a USD-only statement that keeps only USD games (`b."priceCurrency" = 'USD'`): refuse when an
+ * LBP game matches the same condition, so it never silently leaves one out (DR-007). Only the write
+ * paths that are USD-only on purpose use it now. `match` is a condition on the booking alias `b`; the
+ * tenant is stamped here.
  */
 export async function refuseLbpGames(tx: TenantTx, match: Prisma.Sql, where: string): Promise<void> {
   const tenantId = await getCurrentTenantId();

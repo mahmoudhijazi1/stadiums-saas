@@ -3,6 +3,7 @@ import db from "@/lib/db";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { debtWarnings, type DebtWarning } from "@/modules/booking/domain/debt-warning";
+import { remainingInput } from "@/modules/booking/domain/game-owing";
 import type { DueChangeReason } from "@/modules/booking/domain/suggest-fee";
 import { listDebtParticipations } from "@/modules/booking/infrastructure/bookings";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
@@ -43,10 +44,10 @@ export async function listDebtWarnings(
         end: row.end,
         collectionMode: row.collectionMode,
         isRequester: row.isRequester,
-        bookingRemainingUsd: bookingRemaining(row.amountDueUsd, row.collectedUsd),
-        participantRemainingUsd: participantRemaining(
-          row.participantDueUsd,
-          row.allocatedUsd,
+        ...remainingInput(
+          row.currency,
+          bookingRemaining(row.amountDue, row.collected),
+          participantRemaining(row.participantDue, row.allocated),
         ),
         reason: asReason(row.reason),
       })),

@@ -13,6 +13,8 @@ export type DebtRowView = {
   requesterName: string;
   /** What is still owed, compact USD without the sign ("30"). */
   owedUsd: string;
+  /** The same already written with its currencies ("2,000,000 LBP"), for a game in pounds (DR-007). */
+  owedText?: string;
   pitchName: string | null;
 };
 
@@ -54,7 +56,7 @@ export function DebtRow({
           ) : null}
         </span>
       }
-      pill={mayCollect ? undefined : <OwedPill amountUsd={row.owedUsd} word={ui("owner.dueShort", locale)} />}
+      pill={mayCollect ? undefined : <OwedPill amountUsd={row.owedUsd} text={row.owedText} word={ui("owner.dueShort", locale)} />}
       action={
         mayCollect ? (
           // A tonal button (never the lime fill, which is for the centre + and primary saves):
@@ -65,7 +67,7 @@ export function DebtRow({
             className="inline-flex min-h-11 shrink-0 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
           >
             <span className="inline-flex h-9 items-center gap-1 rounded-full bg-owed-subtle px-4 type-button text-owed whitespace-nowrap">
-              {ui("owner.collect", locale)} <LtrIsolate>${row.owedUsd}</LtrIsolate>
+              {ui("owner.collect", locale)} <LtrIsolate>{row.owedText ?? `$${row.owedUsd}`}</LtrIsolate>
             </span>
           </button>
         ) : undefined

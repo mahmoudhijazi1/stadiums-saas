@@ -106,7 +106,7 @@ describe("listOwed", () => {
     expect(fromDebts.toFixed(2)).toBe("80.00");
 
     const today = await loadOwnerDay(undefined);
-    const toCollect = today.toCollect.reduce((sum, row) => sum.plus(row.remaining), new Decimal(0));
+    const toCollect = today.toCollect.reduce((sum, row) => sum.plus(row.currency === "USD" ? row.remaining : 0), new Decimal(0));
     expect(toCollect.toFixed(2)).toBe(owed.totalUsd.toFixed(2));
     expect(today.toCollect).toHaveLength(owed.games);
   });

@@ -362,7 +362,7 @@ describe("what is owed", () => {
     expect(today.toCollect).toHaveLength(owed.games);
 
     const row = today.toCollect.find((candidate) => candidate.id === paid.bookingId)!;
-    expect([row.remaining.toFixed(2), row.tabsRemainingUsd.toFixed(2), row.owedUsd.toFixed(2)]).toEqual(["0.00", "4.50", "4.50"]);
+    expect([row.currency === "USD" ? row.remaining.toFixed(2) : "n/a", row.tabsRemainingUsd.toFixed(2), row.owedUsd.toFixed(2)]).toEqual(["0.00", "4.50", "4.50"]);
 
     // Paying a tab takes it out of both.
     const view = (await listBookingItems([paid.bookingId])).get(paid.bookingId)!.tabs[0]!;

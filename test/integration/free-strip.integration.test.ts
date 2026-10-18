@@ -277,7 +277,7 @@ describe("Today free strip", () => {
     await insertPastGame(at(past, 19));
     const day = await loadOwnerDay(undefined);
     expect(day.toCollect).toHaveLength(2);
-    const total = day.toCollect.reduce((sum, row) => sum.plus(row.remaining), new Decimal(0));
+    const total = day.toCollect.reduce((sum, row) => sum.plus((row.currency === "USD" ? row.remaining : new Decimal(0))), new Decimal(0));
     expect(total.equals("60")).toBe(true);
     expect(day.toCollectHasMore).toBe(false);
   });
