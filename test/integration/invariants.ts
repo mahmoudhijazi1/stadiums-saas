@@ -31,6 +31,27 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
     true,
   );
 
+  // A ledger row that names its payment (F-2) agrees with it: same stadium, same source, and its dollars
+  // are the sum of that payment's tenders' dollar values. Rows from before the column are null and skipped.
+  const ledgerOff = await platformDb.$queryRaw<Array<{ id: string }>>`
+    SELECT l.id
+    FROM "LedgerEntry" l
+    JOIN "Payment" p ON p.id = l."paymentId"
+    LEFT JOIN (
+      SELECT t."paymentId", SUM(t."usdEquivalent") AS usd
+      FROM "PaymentTender" t
+      GROUP BY t."paymentId"
+    ) sums ON sums."paymentId" = p.id
+    WHERE l."paymentId" IS NOT NULL
+      AND (
+        l."tenantId" <> p."tenantId"
+        OR l."sourceType" <> p."sourceType"
+        OR l."sourceId" <> p."sourceId"
+        OR l."amountUsd" IS DISTINCT FROM COALESCE(sums.usd, 0)
+      )
+  `;
+  expect(ledgerOff).toHaveLength(0);
+
   // The latest due change matches the booking's due, in the game's currency (DR-007): a USD game
   // compares the USD pair as before, an LBP game the LBP pair. A change in the other currency, or a
   // NULL on either side, is a mismatch.

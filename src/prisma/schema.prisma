@@ -351,6 +351,7 @@ model Payment {
   tenant       Tenant              @relation(fields: [tenantId], references: [id])
   tenders      PaymentTender[]
   allocations  PaymentAllocation[]
+  ledgerEntries LedgerEntry[]
 
   @@index([tenantId])
   @@index([sourceType, sourceId])
@@ -402,11 +403,16 @@ model LedgerEntry {
   occurredAt DateTime          @default(now())
   sourceType PaymentSourceType
   sourceId   String
+  /// The payment this row was written for (F-2). Null on rows written before the column existed (no
+  /// backfill). The partial unique (paymentId, sourceType) WHERE paymentId IS NOT NULL is SQL-only.
+  paymentId  String?
   createdAt  DateTime          @default(now())
   tenant     Tenant            @relation(fields: [tenantId], references: [id])
+  payment    Payment?          @relation(fields: [paymentId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@index([tenantId, occurredAt])
+  @@index([tenantId, paymentId])
 }
 
 /// What was spent. No amount — money is a Payment with sourceType EXPENSE (DR-002 §2.22).

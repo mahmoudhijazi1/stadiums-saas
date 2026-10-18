@@ -211,6 +211,11 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    the display rate and the page says how many). The period is the ledger's: an expense by
    `Expense.occurredAt`, a booking or sale payment by `Payment.createdAt`. The USD view still reads the
    ledger. Recent activity rows (both views) show what was kept in the currency it was paid in.
+   **Ledger rows name their payment: done** (progress.md, 2026-10-19; first step of F-2). The Activity pairing
+   of a row with its payment was by source and time; a new ledger row now records `paymentId`
+   (`recordPayment`, same transaction), a partial unique allows one row of each source type per payment,
+   and the list uses `paymentId` directly. Rows written before stay null and are still paired by time,
+   one-to-one. No backfill. Append-only at the database level is still open.
 10. "Keep it".
 
 ## The unit lives in one place

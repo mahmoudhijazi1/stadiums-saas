@@ -8,6 +8,7 @@ import { insertPaymentWithTenders, type DueSnapshot } from "@/modules/payment/in
  * Write payment + tenders + ledger in the *given* tx (DR-002 §2.21).
  * Does not open a transaction. Does not load a Booking or Expense.
  * Optional occurredAt: expense business date. Omit → ledger DB default (now).
+ * The ledger row records the payment it was written for (`paymentId`, F-2).
  * The due snapshot is dollars, or pounds for a payment on an LBP game (DR-007); the ledger is USD
  * either way: the sum of the tenders' USD values.
  */
@@ -39,6 +40,7 @@ export async function recordPayment(
     sourceType: input.sourceType,
     sourceId: input.sourceId,
     occurredAt: input.occurredAt,
+    paymentId,
   });
 
   return paymentId;

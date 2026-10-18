@@ -45,6 +45,7 @@ export async function sumTendersInLbpBySource(
 }
 
 export type PaymentWithTenders = {
+  id: string;
   sourceType: string;
   sourceId: string;
   createdAt: Date;
@@ -60,6 +61,7 @@ export async function listPaymentsOfSources(
   const payments = await tx.payment.findMany({
     where: { OR: sources.map((source) => ({ sourceType: source.sourceType, sourceId: source.sourceId })) },
     select: {
+      id: true,
       sourceType: true,
       sourceId: true,
       createdAt: true,
@@ -67,6 +69,7 @@ export async function listPaymentsOfSources(
     },
   });
   return payments.map((payment) => ({
+    id: payment.id,
     sourceType: payment.sourceType,
     sourceId: payment.sourceId,
     createdAt: payment.createdAt,

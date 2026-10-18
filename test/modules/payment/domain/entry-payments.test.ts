@@ -4,8 +4,10 @@ import { keptByEntry, keptParts, type EntryRef, type PaymentRef } from "@/module
 
 const at = (iso: string) => new Date(iso);
 
+let nextId = 0;
 function payment(over: Partial<PaymentRef> & Pick<PaymentRef, "tenders">): PaymentRef {
-  return { sourceType: "BOOKING", sourceId: "b1", createdAt: at("2026-10-05T10:00:00.000Z"), ...over };
+  nextId += 1;
+  return { id: `p${nextId}`, sourceType: "BOOKING", sourceId: "b1", createdAt: at("2026-10-05T10:00:00.000Z"), ...over };
 }
 const tender = (currency: "USD" | "LBP", amount: string) => ({ currency, amount: new Decimal(amount) });
 const entry = (over: Partial<EntryRef> = {}): EntryRef => ({
@@ -111,5 +113,40 @@ describe("keptByEntry is one-to-one", () => {
     const other = payment({ sourceId: "b2", createdAt: at("2026-10-05T10:00:00.000Z"), tenders: [tender("LBP", "5")] });
     const kept = keptByEntry([entry({ id: "a", sourceId: "b1" })], [other]);
     expect(kept.size).toBe(0);
+  });
+});
+
+describe("a ledger row that names its payment (F-2)", () => {
+  it("uses that payment directly, however far its time is from the row's", () => {
+    const small = payment({ createdAt: at("2026-10-05T10:00:00.000Z"), tenders: [tender("LBP", "700000")] });
+    const large = payment({ createdAt: at("2026-10-05T10:01:00.000Z"), tenders: [tender("LBP", "1300000")] });
+    const kept = keptByEntry(
+      [
+        entry({ id: "first", occurredAt: at("2026-10-20T10:00:00.000Z"), paymentId: large.id }),
+        entry({ id: "second", occurredAt: at("2026-10-21T10:00:00.000Z"), paymentId: small.id }),
+      ],
+      [small, large],
+    );
+    expect(show(kept.get("first"))).toEqual(["LBP:1300000"]);
+    expect(show(kept.get("second"))).toEqual(["LBP:700000"]);
+  });
+
+  it("an old row (no paymentId) is paired by time but never takes a payment a newer row names", () => {
+    const only = payment({ tenders: [tender("LBP", "700000")] });
+    const kept = keptByEntry(
+      [
+        entry({ id: "old", occurredAt: at("2026-10-05T10:00:00.001Z") }),
+        entry({ id: "named", occurredAt: at("2026-10-05T10:00:30.000Z"), paymentId: only.id }),
+      ],
+      [only],
+    );
+    expect(show(kept.get("named"))).toEqual(["LBP:700000"]);
+    expect(kept.has("old")).toBe(false);
+  });
+
+  it("a paymentId that is not among the payments falls back to pairing by time", () => {
+    const near = payment({ tenders: [tender("USD", "10.00")] });
+    const kept = keptByEntry([entry({ id: "a", paymentId: "gone" })], [near]);
+    expect(show(kept.get("a"))).toEqual(["USD:10"]);
   });
 });

@@ -7,4 +7,6 @@ export type LedgerEntryRow = {
   occurredAt: Date;
   sourceType: string;
   sourceId: string;
+  /** The payment the row was written for; null on rows written before F-2 (no backfill). */
+  paymentId?: string | null;
 };
