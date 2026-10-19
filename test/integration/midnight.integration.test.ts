@@ -59,7 +59,7 @@ describe("midnight-crossing windows", () => {
   });
 
   it("books 00:00 and 01:00 from a 22:00–02:00 window through owner-create", async () => {
-    const day = addCalendarDays(civilDateInTimeZone(new Date(), TIME_ZONE), 3);
+    const day = calmDay(3);
     const slots = await useOvernightWindow(day);
     const afterMidnight = slots.slice(2);
     expect(afterMidnight.map((slot) => formatCivilDate(civil(slot.start)))).toEqual([
@@ -84,7 +84,7 @@ describe("midnight-crossing windows", () => {
   });
 
   it("books 00:00 and 01:00 through a public request, then approve", async () => {
-    const day = addCalendarDays(civilDateInTimeZone(new Date(), TIME_ZONE), 4);
+    const day = calmDay(4);
     const slots = await useOvernightWindow(day);
 
     for (const slot of slots.slice(2)) {
@@ -186,9 +186,34 @@ describe("midnight-crossing windows", () => {
   });
 });
 
+/** The UTC offset of the stadium's zone at noon of a civil day, in minutes. */
+function offsetMinutes(day: CivilDate): number {
+  const noon = new Date(Date.UTC(day.year, day.month - 1, day.day, 12));
+  const part = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, timeZoneName: "longOffset" })
+    .formatToParts(noon)
+    .find((item) => item.type === "timeZoneName")!.value;
+  const match = /GMT([+-])(\d{2}):(\d{2})/.exec(part);
+  return match ? (match[1] === "-" ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3])) : 0;
+}
+
+/**
+ * `offset` days ahead, moved a week later when the clocks change that night or the next, so a 22:00–02:00 window
+ * always has its four hours (on the night the clocks go back it would have five).
+ */
+function calmDay(offset: number): CivilDate {
+  let day = addCalendarDays(civilDateInTimeZone(new Date(), TIME_ZONE), offset);
+  while (
+    offsetMinutes(addCalendarDays(day, -1)) !== offsetMinutes(addCalendarDays(day, 1)) ||
+    offsetMinutes(day) !== offsetMinutes(addCalendarDays(day, 1))
+  ) {
+    day = addCalendarDays(day, 7);
+  }
+  return day;
+}
+
 /** The first Friday at least two days ahead, so every slot is still in the future. */
 function nextFriday(): CivilDate {
-  let day = addCalendarDays(civilDateInTimeZone(new Date(), TIME_ZONE), 2);
+  let day = calmDay(2);
   while (new Date(Date.UTC(day.year, day.month - 1, day.day)).getUTCDay() !== 5) {
     day = addCalendarDays(day, 1);
   }

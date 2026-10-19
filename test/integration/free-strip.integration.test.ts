@@ -266,9 +266,13 @@ describe("Today free strip", () => {
           submitCreateOwnerBooking: async () => {},
         }),
       );
-    expect(render(false)).not.toContain("<button");
-    expect(render(false)).toContain("<li");
-    expect(render(true)).toContain("<button");
+    // Collapsed, the only button is the pitch line that opens the hours; no hour can be booked from it.
+    for (const mayBook of [false, true]) {
+      const html = render(mayBook);
+      expect(html.match(/<button/g)).toHaveLength(1);
+      expect(html).toContain('aria-expanded="false"');
+      expect(html).not.toContain('aria-haspopup="dialog"');
+    }
   });
 
   it("To collect: the loader hands over the two unpaid ended games and their $60", async () => {
