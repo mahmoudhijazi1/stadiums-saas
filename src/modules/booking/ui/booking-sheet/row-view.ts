@@ -86,6 +86,20 @@ export function owesCash(row: UpcomingRowView): boolean {
   );
 }
 
+/**
+ * How a game takes money, one rule for both currencies (DR-007): "primary" when it has ended or a fee
+ * is due (Collect is the normal action), "advance" when it has not been played yet and still has money
+ * on it (no primary Collect; a secondary "Collect in advance" asks first), "none" when nothing is left
+ * to collect. It says nothing about permission, and the server accepts early collection either way.
+ */
+export type CollectMode = "primary" | "advance" | "none";
+
+export function collectMode(row: UpcomingRowView): CollectMode {
+  if (row.lbp?.settled || row.status === "paid" || !row.bookingOwes) return "none";
+  if (owesCash(row)) return "primary";
+  return row.display.kind === "before" || row.display.kind === "live" ? "advance" : "none";
+}
+
 /** The game is split per player. */
 export function isPerPlayer(row: UpcomingRowView): boolean {
   return row.perPlayer.mode === "PER_PLAYER";
