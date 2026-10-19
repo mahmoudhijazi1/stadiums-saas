@@ -183,7 +183,7 @@ Add a row here when a module grows a screen. Do not invent a fifth scrolling sec
 | Company / stadium info | Settings — Phase 2+ / `tenant.settings` |
 | Staff permission flags UI | Settings later |
 | **Tournaments** | **More list row** (future; `pitch_blocks` seam) |
-| **Shop** | **More list row** (catalog), **header shop button → Sell** (`/owner/sell`), **booking sheet → Add items / player tabs**; Money shows the Shop card |
+| **Shop** | **More list row** (catalog), **header shop button → Sell** (`/owner/sell`), **booking sheet → Add items (items, then Pay now / On a tab / New) and Tabs on this game**; Money shows the Shop card |
 | **Academy (Phase 3)** | **More list row** |
 | No-show (BR-22 / SPEC-14) | Home — after the hour has ended; unpaid stays for Collect |
 | Public booking request | Not owner — public `/` |

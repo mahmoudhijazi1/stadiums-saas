@@ -3,10 +3,11 @@
 import { actionErrorKey } from "@/lib/use-case-error";
 import { addBookingItems } from "@/modules/booking/application/add-booking-items";
 import { removeBookingItem } from "@/modules/booking/application/remove-booking-item";
-import { searchPeople } from "@/modules/people/application/search-people";
 import { collectTabPayment } from "@/modules/shop/application/collect-tab-payment";
-import type { ItemsResult, PayerHit } from "@/modules/booking/ui/action-types";
-export type { ItemsResult, PayerHit };
+import { recordWalkInSale } from "@/modules/shop/application/record-walk-in-sale";
+import type { WalkInSaleResult } from "@/modules/shop/ui/sell-screen";
+import type { ItemsResult } from "@/modules/booking/ui/action-types";
+export type { ItemsResult };
 
 
 export async function submitAddBookingItems(input: unknown): Promise<ItemsResult> {
@@ -15,6 +16,23 @@ export async function submitAddBookingItems(input: unknown): Promise<ItemsResult
     return { ok: true, itemCount: added.itemCount };
   } catch (error) {
     return { error: await actionErrorKey(error, "submitAddBookingItems") };
+  }
+}
+
+/** "Pay now" from a game: the same walk-in sale as the counter, with no payer. */
+export async function submitWalkInSale(input: unknown): Promise<WalkInSaleResult> {
+  try {
+    const sale = await recordWalkInSale(input);
+    return {
+      ok: true,
+      itemCount: sale.itemCount,
+      totalLbp: sale.totalLbp.toFixed(0),
+      totalUsdPart: sale.totalUsdPart.toFixed(2),
+      changeLbp: sale.changeLbp.toFixed(0),
+      changeUsd: sale.changeUsd.toFixed(2),
+    };
+  } catch (error) {
+    return { error: await actionErrorKey(error, "submitWalkInSale") };
   }
 }
 
@@ -33,16 +51,5 @@ export async function submitCollectTab(input: unknown): Promise<ItemsResult> {
     return { ok: true, changeLbp: change.changeLbp.toFixed(0), changeUsd: change.changeUsd.toFixed(2) };
   } catch (error) {
     return { error: await actionErrorKey(error, "submitCollectTab") };
-  }
-}
-
-
-/** Person search for the payer picker: the same search as the header, five hits. */
-export async function searchPayers(query: string): Promise<{ hits: PayerHit[] } | { error: string }> {
-  try {
-    const hits = await searchPeople(query.slice(0, 80));
-    return { hits: hits.slice(0, 5).map((hit) => ({ id: hit.id, name: hit.name, phone: hit.phone })) };
-  } catch (error) {
-    return { error: await actionErrorKey(error, "searchPayers") };
   }
 }

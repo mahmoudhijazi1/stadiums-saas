@@ -8,8 +8,6 @@ import type { OccurrenceState } from "@/modules/booking/domain/series";
  */
 export type ItemsResult = { ok: true; itemCount?: number; changeLbp?: string; changeUsd?: string } | { error: string };
 
-export type PayerHit = { id: string; name: string; phone: string | null };
-
 /**
  * Extend a game by 30 minutes. Returns a result instead of redirecting: the confirm sheet stays
  * open and shows the new range and the new due. The user and the permission come from the session
