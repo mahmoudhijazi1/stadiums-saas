@@ -42,6 +42,7 @@ export function SettingsRow({
   onClick,
   selected,
   chevron = true,
+  icon,
 }: {
   label: ReactNode;
   strong?: boolean;
@@ -55,6 +56,8 @@ export function SettingsRow({
   /** Picker choice: pressed state and a check mark. */
   selected?: boolean;
   chevron?: boolean;
+  /** A simple 20px line icon before the label (a lucide icon), muted like the chevron. */
+  icon?: ReactNode;
 }) {
   const trailing =
     selected ? (
@@ -64,10 +67,17 @@ export function SettingsRow({
     ) : null;
   const body = (
     <>
-      <span className="flex min-w-0 flex-col">
-        <span className={strong ? "type-strong" : "type-label"}>{label}</span>
-        {detail ? <span className="type-secondary">{detail}</span> : null}
-        {meta ? <span className="type-caption">{meta}</span> : null}
+      <span className="flex min-w-0 items-center gap-3">
+        {icon ? (
+          <span aria-hidden className="shrink-0 text-muted-foreground [&>svg]:size-5">
+            {icon}
+          </span>
+        ) : null}
+        <span className="flex min-w-0 flex-col">
+          <span className={strong ? "type-strong" : "type-label"}>{label}</span>
+          {detail ? <span className="type-secondary">{detail}</span> : null}
+          {meta ? <span className="type-caption">{meta}</span> : null}
+        </span>
       </span>
       {/* Value and chevron are one group pushed to the end, so the value never floats in the middle. */}
       {value !== undefined || trailing ? (

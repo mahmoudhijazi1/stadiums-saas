@@ -1,6 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import {
+  ArrowLeftRight,
+  Bell,
+  Building2,
+  CalendarClock,
+  CircleHelp,
+  ClipboardList,
+  Clock,
+  Coins,
+  Globe,
+  Languages,
+  LayoutGrid,
+  Palette,
+  ShoppingBag,
+  User,
+} from "lucide-react";
 import { useMounted } from "@/lib/use-mounted";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -178,17 +194,36 @@ export function MoreHub({
     <div className="flex flex-col gap-6">
       {mayManage ? (
         <SettingsSection title={ui("owner.groupBusiness", locale)}>
+          <SettingsRow icon={<Building2 />} label={ui("owner.stadiumInfo", locale)} href="/owner/more/stadium" />
           <SettingsRow
+            icon={<Globe />}
+            label={ui("owner.publicPage", locale)}
+            onClick={() => setSheet("public")}
+            value={<LtrIsolate>/</LtrIsolate>}
+          />
+          <SettingsRow
+            icon={<LayoutGrid />}
             label={ui("owner.pitches", locale)}
             href="/owner/more/settings/pitches"
             value={<LtrIsolate>{String(pitchCount)}</LtrIsolate>}
           />
+          <SettingsRow icon={<CalendarClock />} label={ui("owner.weeklyBookings", locale)} href="/owner/more/weekly" />
+          {gameCurrency ? (
+            <SettingsRow
+              icon={<Coins />}
+              label={ui("owner.gamePricesIn", locale)}
+              onClick={() => setSheet("gameCurrency")}
+              value={<LtrIsolate>{currencyName(gameCurrency.current, locale)}</LtrIsolate>}
+            />
+          ) : null}
           <SettingsRow
+            icon={<ArrowLeftRight />}
             label={ui("owner.rate", locale)}
             onClick={() => setSheet("rate")}
             value={rateGrouped ? <LtrIsolate>{rateGrouped}</LtrIsolate> : ui("owner.noRate", locale)}
           />
           <SettingsRow
+            icon={<ClipboardList />}
             label={ui("owner.bookingRules", locale)}
             onClick={() => setSheet("rules")}
             value={
@@ -200,44 +235,34 @@ export function MoreHub({
               </>
             }
           />
-          {gameCurrency ? (
-            <SettingsRow
-              label={ui("owner.gamePricesIn", locale)}
-              onClick={() => setSheet("gameCurrency")}
-              value={<LtrIsolate>{currencyName(gameCurrency.current, locale)}</LtrIsolate>}
-            />
-          ) : null}
           {mayManageShop ? (
-            <SettingsRow label={ui("owner.shop", locale)} href="/owner/more/shop" />
+            <SettingsRow icon={<ShoppingBag />} label={ui("owner.shop", locale)} href="/owner/more/shop" />
           ) : null}
-          <SettingsRow label={ui("owner.weeklyBookings", locale)} href="/owner/more/weekly" />
-          <SettingsRow label={ui("owner.stadiumInfo", locale)} href="/owner/more/stadium" />
-          <SettingsRow
-            label={ui("owner.publicPage", locale)}
-            onClick={() => setSheet("public")}
-            value={<LtrIsolate>/</LtrIsolate>}
-          />
         </SettingsSection>
       ) : null}
 
       <SettingsSection title={ui("owner.groupPreferences", locale)}>
         <SettingsRow
+          icon={<Languages />}
           label={ui("owner.language", locale)}
           onClick={() => setSheet("language")}
           value={ui(locale === "en" ? "public.langEnglish" : "public.langArabic", locale)}
         />
         <SettingsRow
+          icon={<Palette />}
           label={ui("owner.appearance", locale)}
           onClick={() => setSheet("appearance")}
           value={<AppearanceValue locale={locale} />}
         />
         <SettingsRow
+          icon={<Clock />}
           label={ui("owner.timeDisplay", locale)}
           onClick={() => setSheet("time")}
           value={<LtrIsolate>{timeLabel}</LtrIsolate>}
         />
         {pushPublicKey ? (
           <SettingsRow
+            icon={<Bell />}
             label={ui("owner.notifications", locale)}
             onClick={() => setSheet("notifications")}
           />
@@ -246,6 +271,7 @@ export function MoreHub({
 
       <SettingsSection title={ui("owner.account", locale)}>
         <SettingsRow
+          icon={<User />}
           label={ui("owner.identifier", locale)}
           onClick={() => setSheet("account")}
           value={<LtrIsolate>{identifier}</LtrIsolate>}
@@ -253,7 +279,7 @@ export function MoreHub({
       </SettingsSection>
 
       <SettingsSection>
-        <SettingsRow label={ui("owner.help", locale)} href="/owner/more/help" />
+        <SettingsRow icon={<CircleHelp />} label={ui("owner.help", locale)} href="/owner/more/help" />
       </SettingsSection>
 
       <BottomSheet open={sheet !== null} onOpenChange={(next) => { if (!next) setSheet(null); }}>

@@ -112,7 +112,7 @@ export function StadiumForm({
           <span
             className={cn(
               "size-5 rounded-full bg-card shadow-xs transition-transform motion-reduce:transition-none",
-              same && "translate-x-5 rtl:-translate-x-5",
+              same && "translate-x-[18px] rtl:-translate-x-[18px]",
             )}
           />
         </span>
