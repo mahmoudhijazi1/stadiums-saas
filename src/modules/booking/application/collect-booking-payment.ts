@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -11,33 +12,53 @@ import { getCurrentMembership } from "@/modules/access/application/get-current-m
 import {
   assertCanCollect,
   assertHasDue,
-  freezeTenders,
   bookingRemaining,
   type TenderDraft,
 } from "@/modules/payment/domain/collect";
+import { applyToGameDue, applyToLbpGameDue, handedFromTenders } from "@/modules/booking/domain/game-change";
+import { recordKeptChange } from "@/modules/booking/application/record-kept-change";
 import { recordPayment } from "@/modules/payment/application/record-payment";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
-import { findBookingForUpdate } from "@/modules/booking/infrastructure/bookings";
+import {
+  findBookingForUpdate,
+  insertBookingSettlement,
+  sumSettledLbp,
+} from "@/modules/booking/infrastructure/bookings";
 
 /**
  * Collect cash on an APPROVED, NO_SHOW, or CANCELLED booking with remaining > 0.
  * Auth before $transaction. The booking row is locked first and collected is summed
  * after the lock, so a double submit, a cancel, a no-show, an adjust or a split on the
  * same booking runs one at a time (audit §2.6).
+ * Cash beyond what is owed is not recorded: the tenders are reduced to what the game used and the
+ * rest comes back as change, in the currency it was handed over in (DR-007 decision 6), so a game's
+ * collected total never exceeds its due and the remaining never goes negative.
  * recordPayment writes payment + tenders + ledger IN inside this tx (DR-002 §2.21).
+ *
+ * An LBP game (DR-007 slice 6) owes its due in pounds minus the pounds its settlements applied,
+ * summed after the lock. Pounds count first, dollars at the current rate against what is left; each
+ * kept tender is valued at this payment's rate, and one BookingSettlement row records the pounds
+ * settled and the dollars kept. The payment's due snapshot is in pounds.
+ *
+ * With `keepChange` (DR-007 decision 15) the change the player leaves is recorded in this same
+ * transaction as its own KEPT_CHANGE payment (`recordKeptChange`), after the game's payment; the game's
+ * due, settlements and payment are exactly as without the flag. No change: the flag is ignored.
  */
 export async function collectBookingPayment(input: {
   bookingId: string;
   tenders: TenderDraft[];
-}): Promise<void> {
+  keepChange?: boolean;
+}): Promise<{ changeUsd: Decimal; changeLbp: Decimal }> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, PAYMENTS_COLLECT)) {
     throw new DomainError("access.not_allowed");
   }
 
+  const handed = handedFromTenders(input.tenders);
+
   try {
-    const paymentId = await db.$transaction(async (tx) => {
+    const outcome = await db.$transaction(async (tx) => {
       const booking = await findBookingForUpdate(tx, input.bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
@@ -49,26 +70,57 @@ export async function collectBookingPayment(input: {
       }
 
       const rate = await findLatestExchangeRate(tx);
+      if (booking.due.currency === "LBP") {
+        const settled = await sumSettledLbp(tx, booking.id);
+        const remainingLbp = bookingRemaining(booking.due.amount, settled);
+        assertHasDue(remainingLbp);
+
+        const kept = applyToLbpGameDue({ remainingLbp, handed, rate });
+        const paymentId = await recordPayment(tx, {
+          direction: "IN",
+          sourceType: "BOOKING",
+          sourceId: booking.id,
+          amountDueLbp: booking.due.amount,
+          tenders: kept.tenders,
+        });
+        await insertBookingSettlement(tx, {
+          bookingId: booking.id,
+          paymentId,
+          lbpApplied: kept.lbpApplied,
+          usdApplied: kept.usdKept,
+        });
+        if (input.keepChange) {
+          await recordKeptChange(tx, { bookingId: booking.id, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp, rate });
+        }
+        return { paymentId, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp };
+      }
+
+      const amountDueUsd = booking.due.amount;
       const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
-      const remaining = bookingRemaining(booking.amountDueUsd, collected);
+      const remaining = bookingRemaining(amountDueUsd, collected);
       assertHasDue(remaining);
 
-      const frozen = freezeTenders(input.tenders, rate);
+      const kept = applyToGameDue({ remainingUsd: remaining, handed, rate });
 
-      return recordPayment(tx, {
+      const paymentId = await recordPayment(tx, {
         direction: "IN",
         sourceType: "BOOKING",
         sourceId: booking.id,
-        amountDueUsd: booking.amountDueUsd,
-        tenders: frozen,
+        amountDueUsd,
+        tenders: kept.tenders,
       });
+      if (input.keepChange) {
+        await recordKeptChange(tx, { bookingId: booking.id, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp, rate });
+      }
+      return { paymentId, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp };
     });
 
-    logger.info(`Payment collected ${paymentId} booking ${input.bookingId}`, undefined, {
+    logger.info(`Payment collected ${outcome.paymentId} booking ${input.bookingId}`, undefined, {
       useCase: "collectBookingPayment",
       tenantId: await safeTenantId(),
     });
+    return { changeUsd: outcome.changeUsd, changeLbp: outcome.changeLbp };
   } catch (error) {
-    await rethrowUnexpected(error, "Collect payment failed", "collectBookingPayment");
+    return await rethrowUnexpected(error, "Collect payment failed", "collectBookingPayment");
   }
 }

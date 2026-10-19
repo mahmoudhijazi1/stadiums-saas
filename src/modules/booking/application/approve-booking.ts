@@ -16,7 +16,7 @@ import {
 import { isExclusionViolation } from "@/modules/booking/domain/exclusion";
 import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
-  findBookingForDecision,
+  findBookingStatus,
   listApprovedRanges,
   lockPendingRowsInOrder,
   lockPitchForUpdate,
@@ -50,6 +50,8 @@ export type ApproveBookingDeps = {
  * Confirm a PENDING request. Overlapping PENDING on that pitch become REJECTED
  * with a slot_interests row on the approved window (BR-20 / BR-21).
  * Authorize before $transaction — session lives on platformDb (SPEC-03 guard).
+ * Status only: the game is read without its money, so a game in either currency is approved the
+ * same way (DR-007 slice 5); its price stays as it was booked.
  */
 export async function approveBooking(
   bookingId: string,
@@ -65,12 +67,12 @@ export async function approveBooking(
 
   try {
     await db.$transaction(async (tx) => {
-      const loaded = await findBookingForDecision(tx, bookingId);
+      const loaded = await findBookingStatus(tx, bookingId);
       if (!loaded) {
         throw new DomainError("booking.not_found");
       }
       await lockPitchForUpdate(tx, loaded.pitchId);
-      const booking = await findBookingForDecision(tx, bookingId);
+      const booking = await findBookingStatus(tx, bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }

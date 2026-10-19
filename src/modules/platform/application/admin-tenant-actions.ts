@@ -30,10 +30,12 @@ export async function createStadiumAsAdmin(input: {
   name: string;
   slug: string;
   dayStartHour: number | null;
+  /** "USD" or "LBP"; null means USD (DR-007 decision 1). */
+  gamePriceCurrency?: string | null;
   plan: string | null;
   paidUntil: Date | null;
   actor: string;
-}): Promise<{ slug: string; ownerIdentifier: string; ownerPassword: string }> {
+}): Promise<{ slug: string; ownerIdentifier: string; ownerPassword: string; gamePriceCurrency: "USD" | "LBP" }> {
   const actor = requireActor(input.actor);
   const check = validateSlug(input.slug);
   if (!check.ok) throw new DomainError(SLUG_KEYS[check.reason]);
@@ -46,10 +48,16 @@ export async function createStadiumAsAdmin(input: {
     paidUntil: input.paidUntil,
     ownerIdentifier,
     dayStartHour: input.dayStartHour,
+    gamePriceCurrency: input.gamePriceCurrency ?? null,
     ownerPassword,
     actor,
   });
-  return { slug: created.slug, ownerIdentifier: created.ownerIdentifier, ownerPassword };
+  return {
+    slug: created.slug,
+    ownerIdentifier: created.ownerIdentifier,
+    ownerPassword,
+    gamePriceCurrency: created.gamePriceCurrency,
+  };
 }
 
 /** The typed slug must equal the stadium's slug; the server checks again whatever the page did. */

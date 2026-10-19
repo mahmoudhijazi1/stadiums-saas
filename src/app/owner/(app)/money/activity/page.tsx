@@ -8,7 +8,8 @@ import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { ActivityList } from "@/app/owner/(app)/money/_components/activity";
 import { loadActivityPage } from "@/app/owner/(app)/money/_components/activity-load";
 import { periodChipLabel } from "@/modules/ledger/ui/period-label";
-import { readPeriodQuery, resolvePeriod } from "@/app/owner/(app)/money/_components/period-url";
+import { readPeriodQuery, resolvePeriod, withDefaultView, type ResolvedPeriodQuery } from "@/app/owner/(app)/money/_components/period-url";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { moneyHref } from "../query";
 
 /**
@@ -26,7 +27,7 @@ export default async function MoneyActivityPage({ searchParams }: { searchParams
     return <EmptyState title={ui("empty.noReports", locale)} next={ui("empty.noReportsNext", locale)} />;
   }
 
-  const periodQuery = readPeriodQuery(params);
+  const periodQuery = withDefaultView(readPeriodQuery(params), (await getCurrentTenant()).gamePriceCurrency);
   const { kind, range } = resolvePeriod(periodQuery, new Date());
   const backQuery = { period: kind, ...(kind === "custom" ? range : {}), view: periodQuery.view };
 
@@ -49,7 +50,7 @@ async function ActivityBody({
   range,
   locale,
 }: {
-  periodQuery: ReturnType<typeof readPeriodQuery>;
+  periodQuery: ResolvedPeriodQuery;
   kind: ReturnType<typeof resolvePeriod>["kind"];
   range: { from: string; to: string };
   locale: Awaited<ReturnType<typeof getUiLocale>>;

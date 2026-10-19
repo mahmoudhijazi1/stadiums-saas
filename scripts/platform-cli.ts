@@ -2,6 +2,11 @@ import { parseArgs } from "node:util";
 import { DomainError } from "@/lib/errors";
 import { createTenant, validateCreateTenantInput } from "@/modules/platform/application/create-tenant";
 import { listTenants } from "@/modules/platform/application/list-tenants";
+import {
+  parseGameCurrency,
+  previewGameCurrency,
+  setGameCurrency,
+} from "@/modules/platform/application/set-game-currency";
 import { resumeTenant } from "@/modules/platform/application/resume-tenant";
 import { setSubscription } from "@/modules/platform/application/set-subscription";
 import { suspendTenant } from "@/modules/platform/application/suspend-tenant";
@@ -23,9 +28,10 @@ import {
 export const USAGE = [
   "Usage: tsx scripts/platform.ts <command>",
   "  tenants list",
-  "  tenants create --slug <slug> --name <name> [--plan <label>] [--paid-until YYYY-MM-DD] [--owner-identifier <local@slug>] [--day-start-hour <0-6>]",
+  "  tenants create --slug <slug> --name <name> [--plan <label>] [--paid-until YYYY-MM-DD] [--owner-identifier <local@slug>] [--day-start-hour <0-6>] [--game-currency USD|LBP]",
   "  tenants suspend <slug> --reason <text>",
   "  tenants resume <slug>",
+  "  tenants set-game-currency <slug> USD|LBP",
   "  subscriptions set <slug> --plan <label> --paid-until YYYY-MM-DD [--amount <usd>] [--note <text>]",
   "  admins list | create <identifier> | enroll-totp <identifier> | reset-totp <identifier> | set-password <identifier>",
 ].join("\n");
@@ -47,6 +53,7 @@ const OPTIONS = {
   "paid-until": { type: "string" },
   "owner-identifier": { type: "string" },
   "day-start-hour": { type: "string" },
+  "game-currency": { type: "string" },
   reason: { type: "string" },
   amount: { type: "string" },
   note: { type: "string" },
@@ -75,6 +82,8 @@ const MESSAGES: Record<string, string> = {
   "platform.not_suspended": "Refused: the tenant is not suspended.",
   "platform.reason_required": "Refused: --reason is required.",
   "platform.reason_too_long": "Refused: --reason is too long (200 characters max).",
+  "platform.currency_invalid": "Refused: the currency must be USD or LBP.",
+  "platform.currency_unchanged": "Refused: the stadium already prices games in that currency.",
 };
 
 export function describeError(error: unknown): string {
@@ -106,8 +115,10 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
     fail(`${error instanceof Error ? error.message : String(error)}\n${USAGE}`);
   }
   const { values, positionals } = parsed;
-  const [group, command, target, ...extra] = positionals;
-  if (extra.length > 0) fail(USAGE);
+  const [group, command, target, value, ...extra] = positionals;
+  // Only set-game-currency takes a value after the slug.
+  const takesValue = group === "tenants" && command === "set-game-currency";
+  if (extra.length > 0 || (value !== undefined && !takesValue)) fail(USAGE);
   const { io } = ctx;
 
   try {
@@ -140,6 +151,7 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
         paidUntil: paidUntilDate(values["paid-until"], false),
         ownerIdentifier: values["owner-identifier"] ?? null,
         dayStartHour: values["day-start-hour"] ?? null,
+        gamePriceCurrency: values["game-currency"] ?? null,
         actor: ctx.actor,
       };
       // Fail on bad arguments before asking anything.
@@ -147,7 +159,7 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
       await confirmDatabase(io, ctx.databaseUrl);
       const ownerPassword = await askNewPassword(io, { identifier: validated.ownerIdentifier, slug: validated.slug });
       const created = await createTenant({ ...input, ownerPassword });
-      io.print(`created ${created.slug} (owner login: ${created.ownerIdentifier})`);
+      io.print(`created ${created.slug} (owner login: ${created.ownerIdentifier}, game prices in ${created.gamePriceCurrency})`);
       return;
     }
 
@@ -163,6 +175,26 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
         await resumeTenant({ slug: target, actor: ctx.actor });
         io.print(`resumed ${target}`);
       }
+      return;
+    }
+
+    if (takesValue && target) {
+      requireInteractive(ctx.interactive);
+      // Fail on a bad currency before asking anything.
+      const currency = parseGameCurrency(value);
+      await confirmDatabase(io, ctx.databaseUrl);
+      const preview = await previewGameCurrency({ slug: target, currency });
+      io.say(`Game prices for ${target}: ${preview.current} now, ${currency} after this.`);
+      io.say("Existing bookings keep their currency; only new bookings use the new one.");
+      if (preview.pitchesWithoutPrices.length === 0) {
+        io.say(`Every pitch has its prices in ${currency}.`);
+      } else {
+        io.say(`Pitches with no price set in ${currency} (the owner enters them in Settings > Pitches):`);
+        for (const name of preview.pitchesWithoutPrices) io.say(`  - ${name}`);
+      }
+      await confirmTyped(io, "slug", target);
+      await setGameCurrency({ slug: target, currency, actor: ctx.actor });
+      io.print(`game prices for ${target}: ${currency}`);
       return;
     }
 

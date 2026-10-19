@@ -4,6 +4,12 @@ import type { TenantTx } from "@/lib/db";
 import { formatUsd } from "@/lib/format/money";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 
+/**
+ * The payment's due snapshot (DR-007 decision 14): dollars, or pounds for a payment on an LBP game.
+ * Exactly one is written (CHECK Payment_due_by_currency).
+ */
+export type DueSnapshot = { amountDueUsd: Decimal } | { amountDueLbp: Decimal };
+
 export type TenderInsert = {
   currency: "USD" | "LBP";
   amount: Decimal;
@@ -20,15 +26,16 @@ export async function insertPaymentWithTenders(
   input: {
     sourceType: PaymentSourceType;
     sourceId: string;
-    amountDueUsd: Decimal;
     tenders: TenderInsert[];
-  },
+  } & DueSnapshot,
 ): Promise<string> {
   const payment = await tx.payment.create({
     data: {
       sourceType: input.sourceType,
       sourceId: input.sourceId,
-      amountDueUsd: formatUsd(input.amountDueUsd),
+      ...("amountDueLbp" in input
+        ? { dueCurrency: "LBP", amountDueLbp: input.amountDueLbp.toFixed(0) }
+        : { dueCurrency: "USD", amountDueUsd: formatUsd(input.amountDueUsd) }),
     } as Parameters<typeof tx.payment.create>[0]["data"],
   });
 
@@ -110,18 +117,23 @@ export async function sumCollectedUsdBySourceIds(
 /**
  * Credit part of a payment to participants (SPEC-15). Payment does not know what a
  * participant is — the caller passes ids it already checked. Tenant is stamped by the guard.
+ * Dollars by default; `currency` "LBP" credits whole pounds (`amountLbp`, DR-007 slice 7). Exactly
+ * one of the two columns is written (CHECK PaymentAllocation_one_currency_positive).
  */
 export async function insertAllocations(
   tx: TenantTx,
   paymentId: string,
-  allocations: { participantId: string; amountUsd: Decimal }[],
+  allocations: { participantId: string; amount: Decimal }[],
+  currency: "USD" | "LBP" = "USD",
 ): Promise<void> {
   for (const allocation of allocations) {
     await tx.paymentAllocation.create({
       data: {
         paymentId,
         participantId: allocation.participantId,
-        amountUsd: formatUsd(allocation.amountUsd),
+        ...(currency === "LBP"
+          ? { amountLbp: allocation.amount.toFixed(0) }
+          : { amountUsd: formatUsd(allocation.amount) }),
       } as Parameters<typeof tx.paymentAllocation.create>[0]["data"],
     });
   }

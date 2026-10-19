@@ -9,7 +9,7 @@
 | # | Item | Status | Details |
 |---|---|---|---|
 | 1 | Money paid before a per-player split credits nobody. Proposed rule: Unassigned is credited to the booker (Total paid includes it; Owes now = max(own slot remaining − Unassigned, 0); any excess stays Unassigned on the booking until SPEC-15 slice 5 reassigns it). | Open, needs a short decision (amends SPEC-15 §2.3) | [F-1](./audits/logic-findings.md#f-1-money-paid-before-a-split-credits-nobody-audit-punch-list-6), audit #6 |
-| 2 | Ledger hardening: `paymentId` on `LedgerEntry`, DB-level append-only for ledger, payments, tenders and due changes | Deferred: needs a migration and a design decision (DR-002 §2.21) | [F-2](./audits/logic-findings.md#f-2-ledger-hardening-deferred-audit-punch-list-9), audit #9 |
+| 2 | Ledger hardening: `paymentId` on `LedgerEntry`, DB-level append-only for ledger, payments, tenders and due changes | `paymentId` on new ledger rows: done (migration `20261019090000_ledger_payment_id`, no backfill); append-only at the database level: still open | [F-2](./audits/logic-findings.md#f-2-ledger-hardening-deferred-audit-punch-list-9), audit #9 |
 | 3 | Old no-show fee rows labelled `CANCELLATION_NO_FEE` (before `48a3ce8`) | Recorded, not fixed: relabeling needs the suggestion at that time; SQL in progress.md | [F-3](./audits/logic-findings.md#f-3-old-no-show-fee-rows-labelled-cancellation_no_fee) |
 | 4 | Three setState-in-effect lint errors (`fee-forms.tsx` ×2, `upcoming-panel.tsx`) and an unused import in `list-debt-warnings.ts` | Done on `fix/lint-errors` (all 10 `npm run lint` errors and the unused import; see progress.md "Lint errors fixed"). 31 lint warnings remain, mostly unused test variables | [F-4](./audits/logic-findings.md#f-4-lint-errors-left-in-the-owner-today-ui) |
 | 5 | Seed wipes any database, including production, and recreates known passwords | Fixed on `audit/security` (progress.md "Seed refuses production and unknown databases") | [S-1](./audits/security-audit.md#s-1-the-seed-wipes-any-database-it-is-pointed-at-including-production) |
@@ -22,6 +22,7 @@
 | 12a | Pitch editor: show, before saving, how many upcoming bookings fall outside new hours. Today `updatePitch` refuses the save when a future APPROVED booking would be outside (`venue.hours_approved`) and asks for a confirm for PENDING ones, so a non-blocking "they stay booked" note would be wrong. A pre-save count needs `listLivePitchWindows` on the client path (a new query design). | Open, UI-only follow-up (2026-10-08) | `modules/venue/application/update-pitch.ts` |
 | 12 | Low findings: host allowlist, header trust, `X-Powered-By`, scrypt cost, session and log cleanup, env validation, guard gaps | Partly fixed: S-9–S-11 `c13403e`, S-13 `0c69947`, S-14 `2efbfbd`, S-16 `6879627`, S-18 `ed99634`; the rest deferred (see the audit's status addendum) | [S-9 … S-21](./audits/security-audit.md#findings) |
 | 13 | People: no screen to rename a person or change a phone | Done on `feat/person-edit`: owner-only `people.edit`, `people/application/update-person.ts`, an Edit sheet on the person page | [progress.md](./progress.md) |
+| 14 | Game prices in LBP or USD | In progress, see DR-007 | [DR-007](./decisions/DR-007-game-price-currency.md) |
 
 ## Server and schema: open (recorded 2026-10-12)
 

@@ -40,7 +40,8 @@ export const ledgerPeriodQuerySchema = z
     to: z.string().optional().transform(blankToUndefined),
     /** Activity filter, set by tapping In or Out. */
     filter: z.enum(["all", "in", "out"]).optional().default("all"),
-    view: z.enum(["usd", "lbp"]).optional().default("usd"),
+    /** No choice in the URL = the stadium's own currency (DR-007); the page resolves it. */
+    view: z.enum(["usd", "lbp"]).optional(),
     displayRate: z
       .string()
       .optional()

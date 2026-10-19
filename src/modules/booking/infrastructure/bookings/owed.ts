@@ -1,8 +1,11 @@
+import { Prisma } from "@/generated/prisma/client";
 import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { asDate } from "./_shared";
+import type { GameCurrency } from "@/modules/booking/domain/game-money";
+import { gameOwing, shareOwing } from "@/modules/booking/domain/game-owing";
+import { asDate, SETTLED_LBP_SQL, type SqlMoney } from "./_shared";
 
 export type OwedParticipationSqlRow = {
   bookingId: string;
@@ -15,22 +18,31 @@ export type OwedParticipationSqlRow = {
   personName: string | null;
   personPhone: string | null;
   isRequester: boolean;
-  amountDueUsd: Decimal;
-  collectedUsd: Decimal;
-  participantDueUsd: Decimal;
-  allocatedUsd: Decimal;
+  /** The game's currency; every amount below is in it (DR-007). */
+  currency: GameCurrency;
+  amountDue: Decimal;
+  collected: Decimal;
+  participantDue: Decimal;
+  allocated: Decimal;
 };
 
 /**
  * Every participant of every booking with money still due (an ended approved game, any
  * no-show, any cancelled fee), one query and no per-person lookups. Slots with no person
  * come through with a null personId. The caller classifies and groups.
+ * A USD game is owed when its due is above its tenders; an LBP game when its due is above what its
+ * settlements applied (DR-007). Each row carries its game's currency and its amounts in it, so the
+ * caller totals per currency and an LBP game is never left out or read as dollars.
  */
 export async function listOwedParticipations(
   tx: TenantTx,
   now: Date,
 ): Promise<OwedParticipationSqlRow[]> {
   const tenantId = await getCurrentTenantId();
+  const endedOrFee = Prisma.sql`(
+        (b.status = 'APPROVED'::"BookingStatus" AND upper(b.during) <= ${now})
+        OR b.status IN ('NO_SHOW'::"BookingStatus", 'CANCELLED'::"BookingStatus")
+      )`;
   const rows = await tx.$queryRaw<
     {
       bookingId: string;
@@ -43,10 +55,15 @@ export async function listOwedParticipations(
       personName: string | null;
       personPhone: string | null;
       isRequester: boolean;
-      amountDueUsd: { toString(): string };
+      priceCurrency: GameCurrency;
+      amountDueUsd: SqlMoney;
+      amountDueLbp: SqlMoney;
       collectedUsd: { toString(): string } | null;
-      participantDueUsd: { toString(): string };
-      allocatedUsd: { toString(): string } | null;
+      settledLbp: SqlMoney;
+      participantDueUsd: SqlMoney;
+      participantDueLbp: SqlMoney;
+      allocatedUsd: SqlMoney;
+      allocatedLbp: SqlMoney;
     }[]
   >`
     SELECT
@@ -60,10 +77,15 @@ export async function listOwedParticipations(
       per.name AS "personName",
       per.phone AS "personPhone",
       bp."isRequester",
+      b."priceCurrency"::text AS "priceCurrency",
       b."amountDueUsd",
+      b."amountDueLbp",
       collected.usd AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       bp."amountDueUsd" AS "participantDueUsd",
-      alloc.usd AS "allocatedUsd"
+      bp."amountDueLbp" AS "participantDueLbp",
+      alloc.usd AS "allocatedUsd",
+      alloc.lbp AS "allocatedLbp"
     FROM "Booking" b
     JOIN "Pitch" p ON p.id = b."pitchId"
     JOIN LATERAL (
@@ -77,35 +99,47 @@ export async function listOwedParticipations(
     JOIN "BookingParticipant" bp ON bp."bookingId" = b.id AND bp."tenantId" = b."tenantId"
     LEFT JOIN "Person" per ON per.id = bp."personId"
     LEFT JOIN LATERAL (
-      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd, COALESCE(SUM(a."amountLbp"), 0) AS lbp
       FROM "PaymentAllocation" a
       WHERE a."tenantId" = bp."tenantId"
         AND a."participantId" = bp.id
     ) alloc ON true
     WHERE b."tenantId" = ${tenantId}
-      AND b."amountDueUsd" > collected.usd
       AND (
-        (b.status = 'APPROVED'::"BookingStatus" AND upper(b.during) <= ${now})
-        OR b.status IN ('NO_SHOW'::"BookingStatus", 'CANCELLED'::"BookingStatus")
+        (b."priceCurrency" = 'USD'::"Currency" AND b."amountDueUsd" > collected.usd)
+        OR (b."priceCurrency" = 'LBP'::"Currency" AND b."amountDueLbp" > ${SETTLED_LBP_SQL})
       )
+      AND ${endedOrFee}
     ORDER BY lower(b.during) DESC, b.id DESC, bp."slotNumber" ASC NULLS FIRST
   `;
-  return rows.map((row) => ({
-    bookingId: row.bookingId,
-    status: row.status,
-    start: asDate(row.start),
-    end: asDate(row.end),
-    collectionMode: row.collectionMode,
-    pitchName: row.pitchName,
-    personId: row.personId,
-    personName: row.personName,
-    personPhone: row.personPhone,
-    isRequester: row.isRequester,
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
-    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
-    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
-    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
-  }));
+  return rows.map((row) => {
+    const game = gameOwing(row);
+    const share = shareOwing({
+      currency: game.currency,
+      amountDueUsd: row.participantDueUsd,
+      amountDueLbp: row.participantDueLbp,
+      allocatedUsd: row.allocatedUsd,
+      allocatedLbp: row.allocatedLbp,
+      where: "owed.share",
+    });
+    return {
+      bookingId: row.bookingId,
+      status: row.status,
+      start: asDate(row.start),
+      end: asDate(row.end),
+      collectionMode: row.collectionMode,
+      pitchName: row.pitchName,
+      personId: row.personId,
+      personName: row.personName,
+      personPhone: row.personPhone,
+      isRequester: row.isRequester,
+      currency: game.currency,
+      amountDue: game.due,
+      collected: game.collected,
+      participantDue: share.due,
+      allocated: share.allocated,
+    };
+  });
 }
 
 export type OwedTabSqlRow = {

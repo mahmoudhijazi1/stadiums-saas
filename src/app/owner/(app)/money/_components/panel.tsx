@@ -8,14 +8,14 @@ import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-ca
 import { summarizeShopPeriod } from "@/modules/shop/application/summarize-shop-period";
 import { summarizeLedgerPeriod } from "@/modules/ledger/application/summarize-ledger-period";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
-import type { LedgerPeriodQuery } from "@/modules/ledger/schemas/period-query";
+import type { ResolvedPeriodQuery } from "@/app/owner/(app)/money/_components/period-url";
+import { summarizeLbpPeriod } from "@/modules/payment/application/summarize-lbp-period";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import Link from "next/link";
 import { CircleAlert, ChevronRight } from "lucide-react";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatUsdCompact } from "@/lib/format/money";
 import { parseLbp } from "@/lib/format/parse-money";
 import { listOwed } from "@/modules/booking/application/list-owed";
+import { OwedAmounts } from "@/modules/booking/ui/owed-amounts";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
 import { RecordExpenseSheet } from "@/modules/expense/ui/expense-sheet";
@@ -56,7 +56,7 @@ export async function OwnerMoney({
   locale = "ar",
 }: {
   membership: CurrentMembership;
-  periodQuery: LedgerPeriodQuery;
+  periodQuery: ResolvedPeriodQuery;
   kind: PeriodKind;
   range: CivilRange;
   today: string;
@@ -92,6 +92,12 @@ export async function OwnerMoney({
     : [null, null];
   const typedDisplayRate = periodQuery.displayRate ? parseLbp(periodQuery.displayRate) : null;
   const displayRate = typedDisplayRate ?? rate;
+  // The LBP view counts each payment at its own value (DR-007); a USD tender with no stored rate is
+  // counted at the display rate. The USD view reads the ledger exactly as before.
+  const lbp =
+    mayViewReports && periodQuery.view === "lbp"
+      ? await summarizeLbpPeriod({ from: range.from, to: range.to, compare: true, fallbackRate: displayRate })
+      : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -102,7 +108,7 @@ export async function OwnerMoney({
             from={summary.from}
             to={summary.to}
             view={periodQuery.view}
-            rateKnown={displayRate !== null}
+            rateKnown={displayRate !== null || periodQuery.view === "lbp"}
             locale={locale}
           />
           <SummaryCard
@@ -110,6 +116,7 @@ export async function OwnerMoney({
             kind={kind}
             view={periodQuery.view}
             lbpPerUsd={displayRate}
+            lbp={lbp}
             locale={locale}
           />
         </div>
@@ -121,11 +128,11 @@ export async function OwnerMoney({
           className="flex min-h-14 items-center gap-3 rounded-xl border border-owed/60 bg-owed-subtle px-4 py-3 text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <CircleAlert aria-hidden className="size-5 shrink-0" />
-          <span className="type-strong min-w-0 flex-1">
-            {ui("owner.owedToYou", locale)} <LtrIsolate>{`$${formatUsdCompact(owed.totalUsd)}`}</LtrIsolate>
-            <span aria-hidden> · </span>
-            {uiCount("owner.games", owed.games, locale)}
+          <span className="flex min-w-0 flex-1 flex-col leading-snug">
+            <span className="type-strong">{ui("owner.owedToYou", locale)}</span>
+            <span className="text-xs font-medium opacity-80">{uiCount("owner.games", owed.games, locale)}</span>
           </span>
+          <OwedAmounts usd={owed.totalUsd.toFixed(2)} lbp={owed.totalLbp.toFixed(0)} locale={locale} className="type-strong" />
           <ChevronRight aria-hidden className="size-4 shrink-0 rtl:rotate-180" />
         </Link>
       ) : null}
@@ -182,7 +189,7 @@ export async function OwnerMoney({
       ) : null}
 
       {shop && supplies && showsShopRow(shop.items.length, supplies) ? (
-        <ShopRow salesUsd={shop.salesUsd} kind={kind} range={range} view={periodQuery.view} locale={locale} />
+        <ShopRow salesUsd={shop.salesUsd} salesLbp={lbp ? lbp.salesLbp : undefined} kind={kind} range={range} view={periodQuery.view} locale={locale} />
       ) : null}
     </div>
   );

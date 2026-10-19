@@ -1,11 +1,12 @@
 import { DomainError, UnexpectedError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
 import { scheduleFromHoursGroups } from "@/modules/venue/domain/daily-schedule";
+import { assertPitchPrices } from "@/modules/venue/domain/pitch-prices";
 import type { LivePitchWindow } from "@/modules/venue/domain/hours-cover";
 import {
   classifyHoursConflicts,
@@ -21,6 +22,9 @@ const TIME_ZONE = "Asia/Beirut";
  * Update name + hours groups + day priceRules. settings.manage (OWNER passes can()).
  * `liveBookings` come from Booking (`listLivePitchWindows`).
  * Authorize outside `$transaction`; find → classify → update run in one tx.
+ * Prices are checked against the stadium's own gamePriceCurrency (DR-007), read before the
+ * transaction. A USD-stadium draft that carries no LBP default keeps the stored one, so the pounds
+ * are never dropped by an edit in dollars.
  */
 export async function updatePitch(input: {
   pitchId: string;
@@ -34,14 +38,16 @@ export async function updatePitch(input: {
   }
 
   try {
+    const { gamePriceCurrency } = await getCurrentTenant();
     await db.$transaction(async (tx) => {
       const row = await findPitch(tx, input.pitchId);
       if (!row) {
         throw new DomainError("booking.pitch_not_found");
       }
 
+      let current;
       try {
-        parseScheduleConfig(row.scheduleConfig);
+        current = parseScheduleConfig(row.scheduleConfig);
       } catch (error) {
         logger.error(`Invalid schedule_config on pitch ${row.id}`, error, {
           useCase: "updatePitch",
@@ -50,10 +56,14 @@ export async function updatePitch(input: {
         throw new UnexpectedError(error);
       }
 
+      const defaultPriceLbp =
+        input.draft.defaultPriceLbp ?? (gamePriceCurrency === "USD" ? current.defaultPriceLbp : undefined);
+      assertPitchPrices({ defaultPriceLbp, priceRules: input.draft.priceRules }, gamePriceCurrency);
       const next = scheduleFromHoursGroups({
         groups: input.draft.hoursGroups,
         slotDurationMinutes: input.draft.slotDurationMinutes,
         defaultPriceUsd: input.draft.defaultPriceUsd,
+        defaultPriceLbp,
         priceRules: input.draft.priceRules,
       });
       const now = input.now ?? new Date();

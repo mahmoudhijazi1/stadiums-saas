@@ -1,5 +1,7 @@
 import Decimal from "decimal.js";
 import { formatDisplayDate } from "@/lib/format/time";
+import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
+import type { KeptPart } from "@/modules/payment/domain/entry-payments";
 import type { UiLocale } from "@/lib/locale";
 import { shopActivityLabel, ui } from "@/lib/copy";
 import type { BookingLabel } from "@/modules/booking/application/list-booking-labels";
@@ -31,6 +33,8 @@ export type ActivityRowView = {
   id: string;
   direction: "IN" | "OUT";
   amountUsd: string;
+  /** What was kept, in the currency it was paid in: "+$20", "+2,000,000 LBP", "+$20 + 1,500,000 LBP". */
+  amountText: string;
   occurredAt: string;
   /** Beirut calendar day, `YYYY-MM-DD`. */
   day: string;
@@ -49,6 +53,8 @@ export type ActivityContext = {
   bookings: ReadonlyMap<string, BookingLabel>;
   expenses: ReadonlyMap<string, ExpenseDetail>;
   sales: ReadonlyMap<string, SaleDetail>;
+  /** The tenders behind each ledger row (by entry id); a row without them shows the ledger's dollars. */
+  kept?: ReadonlyMap<string, readonly KeptPart[]>;
 };
 
 type Parts = Pick<ActivityRowView, "label" | "secondary" | "icon" | "open">;
@@ -137,13 +143,18 @@ function mapSale(entry: LedgerEntryRow, context: ActivityContext, locale: UiLoca
   };
 }
 
+/** The change a player left on a game: the game's person and link, labelled as kept change. */
+function mapKeptChange(entry: LedgerEntryRow, context: ActivityContext, locale: UiLocale): Parts {
+  return { ...mapBooking(entry, context, locale), secondary: ui("owner.activityKeptChange", locale) };
+}
+
 /** A source type nobody has taught this screen yet (a future shop, say): still shown, never dropped. */
 function mapGeneric(_entry: LedgerEntryRow, _context: ActivityContext, locale: UiLocale): Parts {
   return { label: ui("owner.activityGeneric", locale), secondary: "", icon: "generic", open: null };
 }
 
 /** One mapping keyed by ledger sourceType: label, secondary text, icon and what a tap opens. */
-const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense, SALE: mapSale };
+const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense, SALE: mapSale, KEPT_CHANGE: mapKeptChange };
 
 /**
  * What a source is called in the summary's "Games $175 · Shop $22" line, keyed by ledger sourceType
@@ -153,6 +164,7 @@ const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpen
 const SOURCE_NAME_KEYS: Record<string, string> = {
   BOOKING: "owner.sourceGames",
   SALE: "owner.shop",
+  KEPT_CHANGE: "owner.activityKeptChange",
   EXPENSE: "owner.activityExpense",
 };
 
@@ -166,6 +178,7 @@ export function mapActivityEntry(entry: LedgerEntryRow, context: ActivityContext
     id: entry.id,
     direction: entry.direction,
     amountUsd: entry.amountUsd.toFixed(2),
+    amountText: keptText(entry.direction, context.kept?.get(entry.id), entry.amountUsd.toFixed(2), locale),
     occurredAt: entry.occurredAt.toISOString(),
     day: formatCivilDate(civilDateInTimeZone(entry.occurredAt, TZ)),
     ...mapper(entry, context, locale),
@@ -195,6 +208,23 @@ export function groupByDay(rows: readonly ActivityRowView[]): { day: string; row
     else groups.push({ day: row.day, rows: [row] });
   }
   return groups;
+}
+
+/**
+ * The row's main amount: what the payment kept, each currency as the owner handed it, never added
+ * across currencies; a minus for money out. Without tenders, the ledger's dollars.
+ */
+export function keptText(
+  direction: "IN" | "OUT",
+  parts: readonly KeptPart[] | undefined,
+  amountUsd: string,
+  locale: UiLocale,
+): string {
+  if (!parts || parts.length === 0) return signedAmount(direction, amountUsd);
+  const text = parts
+    .map((part) => (part.currency === "USD" ? formatUsdAmount(part.amount) : formatLbpAmount(part.amount, locale)))
+    .join(" + ");
+  return `${direction === "IN" ? "+" : "−"}${text}`;
 }
 
 export function signedAmount(direction: "IN" | "OUT", amountUsd: string): string {

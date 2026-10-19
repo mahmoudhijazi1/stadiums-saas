@@ -10,13 +10,14 @@ import {
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { assertPendingForDecision } from "@/modules/booking/domain/decision";
 import {
-  findBookingForDecision,
+  findBookingStatus,
   setPendingStatus,
 } from "@/modules/booking/infrastructure/bookings";
 
 /**
  * Manual reject: this row only, PENDING → REJECTED. No slot_interests (BR-21 is
  * automatic on approve). Same permission as approve. Authorize before $transaction.
+ * Status only, so a game in either currency (DR-007 slice 5).
  */
 export async function rejectBooking(bookingId: string): Promise<void> {
   const membership = await getCurrentMembership();
@@ -26,7 +27,7 @@ export async function rejectBooking(bookingId: string): Promise<void> {
 
   try {
     await db.$transaction(async (tx) => {
-      const booking = await findBookingForDecision(tx, bookingId);
+      const booking = await findBookingStatus(tx, bookingId);
       if (!booking) {
         throw new DomainError("booking.not_found");
       }

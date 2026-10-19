@@ -15,9 +15,26 @@ export const switchToPerPlayerSchema = z.strictObject({
 
 export const switchToWholeSchema = z.strictObject({ bookingId });
 
+/**
+ * The cash typed for a game in pounds (DR-007 slice 7): digits as the two-currency form sends them.
+ * Both empty means "exactly what is charged, in pounds". A game in dollars ignores them.
+ */
+const cash = {
+  usdAmount: z.string().trim().max(20).optional(),
+  lbpAmount: z.string().trim().max(20).optional(),
+  /** Keep the change as its own payment instead of giving it back (DR-007 decision 15). */
+  keepChange: z.boolean().optional(),
+};
+
 export const collectSlotSchema = z.strictObject({
   bookingId,
   participantId: z.string().trim().min(1),
+  ...cash,
 });
 
-export const collectAllRemainingSchema = z.strictObject({ bookingId });
+export const collectAllRemainingSchema = z.strictObject({ bookingId, ...cash });
+
+export const considerSharePaidSchema = z.strictObject({
+  bookingId,
+  participantId: z.string().trim().min(1),
+});

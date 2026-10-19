@@ -51,7 +51,9 @@ export default async function NewPitchPage({
             [{ days: [...WEEKDAYS], open: DEFAULT_FROM, close: DEFAULT_TO }],
           slotDurationMinutes: queryString(params.slotDurationMinutes) ?? "60",
           defaultPlayerCount: queryString(params.defaultPlayerCount) ?? "10",
-          defaultPriceUsd: queryString(params.defaultPriceUsd) ?? "20.00",
+          // An LBP stadium types pounds; its USD default stays 0.00 ("never priced", DR-007).
+          defaultPriceUsd: queryString(params.defaultPriceUsd) ?? (tenant.gamePriceCurrency === "LBP" ? "0.00" : "20.00"),
+          defaultPriceLbp: queryString(params.defaultPriceLbp) ?? "",
           priceRules:
             readPriceRulesDraft(queryString(params.priceRulesJson)) ?? [],
         }}
@@ -59,6 +61,7 @@ export default async function NewPitchPage({
         splitEnabled={tenant.perPlayerSplitEnabled}
         hourCycle={tenant.timeDisplay}
         dayStartHour={tenant.dayStartHour}
+        currency={tenant.gamePriceCurrency}
       />
     </section>
   );

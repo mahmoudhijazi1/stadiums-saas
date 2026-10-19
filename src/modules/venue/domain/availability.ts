@@ -1,5 +1,7 @@
 import Decimal from "decimal.js";
-import { parseUsd } from "@/lib/format/parse-money";
+import { formatUsd } from "@/lib/format/money";
+import { parseLbp, parseUsd } from "@/lib/format/parse-money";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import type { ScheduleConfig, Weekday } from "@/modules/venue/domain/schedule-config";
 
 /**
@@ -138,14 +140,69 @@ function priceForSlot(
   let price = parseUsd(config.defaultPriceUsd);
 
   for (const rule of config.priceRules) {
-    if (!rule.days.includes(windowDay)) continue;
-    if (rule.start !== undefined && rule.end !== undefined) {
-      if (!clockLiesInWindow(wall.minutes, rule.start, rule.end)) continue;
-    }
+    // A rule made in an LBP stadium may have no USD price (DR-007): it does not change dollars.
+    if (rule.priceUsd === undefined) continue;
+    if (!ruleMatches(rule, windowDay, wall.minutes)) continue;
     price = parseUsd(rule.priceUsd);
   }
 
   return price;
+}
+
+function ruleMatches(rule: ScheduleConfig["priceRules"][number], windowDay: Weekday, wallMinutes: number): boolean {
+  if (!rule.days.includes(windowDay)) return false;
+  if (rule.start !== undefined && rule.end !== undefined) {
+    return clockLiesInWindow(wallMinutes, rule.start, rule.end);
+  }
+  return true;
+}
+
+/** A slot's price in one currency, or `amount: null` when the pitch has no price for it in that currency. */
+export type SlotPriceIn = { currency: GamePriceCurrency; amount: Decimal | null };
+
+/** A price as a view carries it: USD "30.00", LBP whole pounds "2000000". */
+export type PriceView = { currency: GamePriceCurrency; amount: string };
+
+/**
+ * The price of the slot starting at `slot.start` on `slot.localDate` (the day of the window it came
+ * from, as `generateSlotsForDay` takes it) in `currency` (DR-007). Same order as `priceForSlot`: the
+ * default, then every matching rule in order, the last one winning. A matching rule with no price in
+ * this currency is skipped (the default or an earlier rule applies), exactly as `priceForSlot` skips a
+ * rule with only pounds. No price in this currency at all gives `amount: null` ("no price"): a
+ * screen then shows no price and a booking is refused. USD prices are exactly `priceForSlot`'s.
+ */
+export function priceForSlotIn(
+  config: ScheduleConfig,
+  currency: GamePriceCurrency,
+  slot: { start: Date; localDate: CivilDate; timeZone: string },
+): SlotPriceIn {
+  const windowDay = weekdayOfCivilDate(slot.localDate);
+  const wall = zonedWallClock(slot.start, slot.timeZone);
+  const read = (value: string | undefined): Decimal | null =>
+    value === undefined ? null : currency === "USD" ? parseUsd(value) : parseLbp(value);
+  let amount = read(currency === "USD" ? config.defaultPriceUsd : config.defaultPriceLbp);
+  for (const rule of config.priceRules) {
+    const value = currency === "USD" ? rule.priceUsd : rule.priceLbp;
+    if (value === undefined) continue;
+    if (!ruleMatches(rule, windowDay, wall.minutes)) continue;
+    amount = read(value);
+  }
+  return { currency, amount };
+}
+
+/** The pitch's default price in `currency`, or null when it has none in it. */
+export function defaultPriceIn(config: ScheduleConfig, currency: GamePriceCurrency): PriceView | null {
+  if (currency === "USD") return { currency, amount: formatUsd(parseUsd(config.defaultPriceUsd)) };
+  return config.defaultPriceLbp === undefined ? null : { currency, amount: config.defaultPriceLbp };
+}
+
+/** For views: USD with two decimals, LBP in whole pounds; null when there is no price. */
+export function toPriceView(price: SlotPriceIn): PriceView | null {
+  if (price.amount === null) return null;
+  return {
+    currency: price.currency,
+    amount: price.currency === "USD" ? formatUsd(price.amount) : price.amount.toFixed(0),
+  };
 }
 
 function isOccupied(start: Date, end: Date, occupied: OccupiedRange[]): boolean {

@@ -13,9 +13,11 @@ import {
   assertEndedForNoShow,
 } from "@/modules/booking/domain/decision";
 import {
+  assertFeeInUnit,
   assertFeeWithinDue,
   confirmedFee,
   suggestFee,
+  typedFeeFor,
 } from "@/modules/booking/domain/suggest-fee";
 import {
   collapseToWhole,
@@ -24,17 +26,20 @@ import {
   lockPitchForUpdate,
   setApprovedNoShow,
 } from "@/modules/booking/infrastructure/bookings";
-import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
+import { collectedOn } from "@/modules/booking/application/game-collected";
 import { writeDueIfChanged } from "@/modules/booking/application/write-due-change";
 
 /**
  * APPROVED → NO_SHOW, and set the due to the confirmed fee, in one transaction.
  * Auth before $transaction. Unpaid is allowed (SPEC-14 / BR-49).
+ * The fee is in the game's currency, as for a cancel (DR-007 slice 8).
  */
 export async function recordNoShow(input: {
   bookingId: string;
   /** Omitted: use the suggestion. An edited amount needs bookings.adjust_due. */
   feeUsd?: Decimal;
+  /** The same, for a game priced in pounds. Only the field of the game's currency may be sent. */
+  feeLbp?: Decimal;
 }): Promise<void> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, BOOKINGS_NO_SHOW)) {
@@ -59,44 +64,41 @@ export async function recordNoShow(input: {
       assertApprovedForNoShow(booking.status);
       assertEndedForNoShow({ end: booking.end, now });
 
-      const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
+      const { currency } = booking.due;
+      const collected = await collectedOn(tx, booking);
       const suggestion = suggestFee(
         settings,
-        { amountDueUsd: booking.amountDueUsd, start: booking.start },
+        { due: booking.due, start: booking.start },
         now,
         "NO_SHOW",
       );
-      if (
-        input.feeUsd !== undefined &&
-        !input.feeUsd.equals(suggestion.feeUsd) &&
-        !can(membership, BOOKINGS_ADJUST_DUE)
-      ) {
+      const typedFee = typedFeeFor(currency, input);
+      if (typedFee !== undefined && !typedFee.equals(suggestion.fee) && !can(membership, BOOKINGS_ADJUST_DUE)) {
         throw new DomainError("access.not_allowed");
       }
-      if (input.feeUsd !== undefined) {
-        assertFeeWithinDue(input.feeUsd, booking.amountDueUsd);
+      if (typedFee !== undefined) {
+        assertFeeInUnit(typedFee, currency);
+        assertFeeWithinDue(typedFee, booking.due.amount);
       }
 
       const confirmed = confirmedFee({
         suggestion,
-        collectedUsd: collected,
-        feeUsd: input.feeUsd,
+        collected,
+        fee: typedFee,
       });
       // A per-player booking collapses to WHOLE first, allocations included, so the
       // fee logic runs unchanged on the booking's total collected (same as cancel).
       let collectionMode = booking.collectionMode;
       if (collectionMode === "PER_PLAYER") {
-        await collapseToWhole(tx, {
-          bookingId: booking.id,
-          amountDueUsd: booking.amountDueUsd,
-        });
+        await collapseToWhole(tx, { bookingId: booking.id, due: booking.due });
         collectionMode = "WHOLE";
       }
       await writeDueIfChanged(tx, {
         bookingId: booking.id,
-        fromUsd: booking.amountDueUsd,
-        toUsd: confirmed.feeUsd,
-        collectedUsd: collected,
+        currency,
+        from: booking.due.amount,
+        to: confirmed.fee,
+        collected,
         collectionMode,
         reason: confirmed.reason,
         note: null,

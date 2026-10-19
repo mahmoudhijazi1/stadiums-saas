@@ -34,6 +34,7 @@ export async function OwnerBookSlots({
     occupied: await listApprovedOccupied(),
     hourCycle: tenant.timeDisplay,
     locale,
+    currency: tenant.gamePriceCurrency,
   });
 
   if (pitches.length === 0) {

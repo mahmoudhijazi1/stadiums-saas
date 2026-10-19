@@ -1,13 +1,13 @@
 import { DomainError } from "@/lib/errors";
 import db from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { rejectOverlappingPending } from "@/modules/booking/application/reject-overlapping-pending";
 import { isExclusionViolation } from "@/modules/booking/domain/exclusion";
-import { resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
+import { priceOfferedSlot, resolveOfferedSlot } from "@/modules/booking/domain/offered-slot";
 import {
   insertApprovedOwnerBooking,
   insertRequesterParticipant,
@@ -26,6 +26,8 @@ const TIME_ZONE = "Asia/Beirut";
  * Phone-call booking: APPROVED immediately (BR-14). Auth before $transaction.
  * Price from Venue. Overlapping PUBLIC PENDING rejected like approve.
  * Does not collect. Pitch row lock serializes approved writes (BR-24).
+ * Priced in the stadium's gamePriceCurrency (DR-007), read here (before the transaction), never
+ * from the form; a slot with no price in it is refused (booking.no_price_in_currency).
  */
 export async function createOwnerBooking(
   input: OwnerCreateBooking,
@@ -36,6 +38,7 @@ export async function createOwnerBooking(
   }
 
   try {
+    const { gamePriceCurrency } = await getCurrentTenant();
     const bookingId = await db.$transaction(async (tx) => {
       await lockPitchForUpdate(tx, input.pitchId);
       const pitch = await findPitchById(tx, input.pitchId);
@@ -56,6 +59,7 @@ export async function createOwnerBooking(
         now: new Date(),
         occupied: approved.map((row) => ({ start: row.start, end: row.end })),
       });
+      const price = priceOfferedSlot(config, gamePriceCurrency, slot, TIME_ZONE);
 
       const person = await findOrCreatePerson(tx, {
         name: input.name,
@@ -66,13 +70,13 @@ export async function createOwnerBooking(
         pitchId: pitch.id,
         start: slot.start,
         end: slot.end,
-        priceUsd: slot.priceUsd,
+        price,
       });
 
       await insertRequesterParticipant(tx, {
         bookingId: id,
         personId: person.id,
-        amountDueUsd: slot.priceUsd,
+        amountDue: price,
       });
 
       await rejectOverlappingPending(tx, {

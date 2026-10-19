@@ -142,19 +142,21 @@ npx tsx scripts/platform.ts tenants list
 npx tsx scripts/platform.ts tenants create --slug al-nour --name "Al Nour" [--plan basic] [--paid-until 2026-12-31] [--owner-identifier owner@al-nour]
 npx tsx scripts/platform.ts tenants suspend al-nour --reason "Unpaid since September"
 npx tsx scripts/platform.ts tenants resume al-nour
+npx tsx scripts/platform.ts tenants set-game-currency al-nour LBP
 npx tsx scripts/platform.ts subscriptions set al-nour --plan basic --paid-until 2027-01-31 [--amount 25] [--note "cash"]
 ```
 
 - **`list`** is read-only and needs no confirmation. It shows slug, name, status, plan, paid-until (with `OVERDUE` once that day is over), created, pitch count, and bookings requested in the last 30 days. It never prints hashes, tokens or suspension reasons.
 - **Every mutating command** needs an interactive terminal. It shows the database name from `DATABASE_URL` and refuses until you type it. `suspend` and `resume` also ask you to type the slug.
 - **`create`** asks the owner's first password twice, hidden, at least 12 characters. It never takes it as an argument or env var.
+- **`set-game-currency <slug> USD|LBP`** (DR-007) sets "game prices in USD or LBP" for the stadium. After the database name it shows the current value and the pitches that have no price set in the new currency (the owner enters them in More → Settings → Pitches; until then those pitches show no price), then asks you to type the slug. Only the setting changes: existing bookings keep their currency. One audit row `tenant.set_game_currency`; the web admin's stadium page shows the value read-only. Setting the value it already has is refused.
 - **Audit:** each mutating command writes one row to `PlatformAuditLog` (append-only: action, tenant, actor `cli:<os user>@<host>`, details, never a password).
 - **Password resets** stay in `scripts/set-password.ts` ("Passwords" above).
 - **Plans** are a label only: no limits and no pricing. `paidUntil` never blocks anything. Suspension is manual.
 
 ### Onboarding checklist
 
-1. Ask the owner: **"When does your business day start?"** (the hour after which a late game stops counting as last night's: midnight, or 1 to 6 AM; most answer 6 AM). Then `tenants create --slug <slug> --name "<name>" --paid-until <date> [--day-start-hour <0-6>]` (omit it for the default, 6), and give the owner their login (`owner@<slug>`) and password in person. They can change it later: More → Business → Booking rules.
+1. Ask the owner: **"Do you price games in dollars or pounds?"** (it is set at creation with `--game-currency USD|LBP`, default USD, and the owner can change it later: More → Settings → Game prices in, which refuses while a pitch has no price in the new currency). Then ask: **"When does your business day start?"** (the hour after which a late game stops counting as last night's: midnight, or 1 to 6 AM; most answer 6 AM). Then `tenants create --slug <slug> --name "<name>" --paid-until <date> [--game-currency USD|LBP] [--day-start-hour <0-6>]` (omit the hour for the default, 6; omit the currency for USD), and give the owner their login (`owner@<slug>`) and password in person. They can change it later: More → Business → Booking rules.
 2. The owner opens `https://<slug>.<APP_BASE_DOMAIN>/owner/login` and logs in.
 3. The owner sets the exchange rate: More → Settings.
 4. The owner adds pitches, with hours and prices: More → Settings → Pitches.

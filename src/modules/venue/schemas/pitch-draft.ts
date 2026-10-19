@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
+import { isLbpString, isUsdString, normalizeUsdForm } from "@/lib/format/parse-money";
 import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
 import {
   assertUniqueHoursDays,
@@ -32,21 +32,40 @@ function sortWeekdays(days: Weekday[]): Weekday[] {
   return WEEKDAYS.filter((day) => days.includes(day));
 }
 
+const usdPrice = z
+  .string()
+  .trim()
+  .transform(normalizeUsdForm)
+  .refine((value) => isUsdString(value), {
+    error: 'USD must be like 30.00',
+  });
+
+/**
+ * DR-007: whole pounds as digits. Blank means "no price in pounds". Above 0 and in steps of 5,000 is
+ * checked by the use case (`assertPitchPrices`), so the owner gets a clear message, not a form error.
+ */
+const lbpPrice = z
+  .string()
+  .trim()
+  .transform((value) => (value === "" ? undefined : value))
+  .refine((value) => value === undefined || isLbpString(value), {
+    error: "LBP must be whole pounds",
+  });
+
 const priceRuleDraftSchema = z
   .strictObject({
     days: z.array(z.enum(WEEKDAYS)).min(1).transform(sortWeekdays),
-    priceUsd: z
-      .string()
-      .trim()
-      .transform(normalizeUsdForm)
-      .refine((value) => isUsdString(value), {
-        error: 'USD must be like 30.00',
-      }),
+    /** Absent on a rule made in an LBP stadium (DR-007). */
+    priceUsd: usdPrice.optional(),
+    priceLbp: lbpPrice.optional(),
     start: clockTime.optional(),
     end: clockTime.optional(),
   })
   .refine((rule) => (rule.start === undefined) === (rule.end === undefined), {
     error: "priceRules start and end must both be set or both omitted",
+  })
+  .refine((rule) => rule.priceUsd !== undefined || rule.priceLbp !== undefined, {
+    error: "A price rule needs a price",
   });
 
 export type PitchPriceRule = z.infer<typeof priceRuleDraftSchema>;
@@ -68,11 +87,11 @@ export type HoursGroupDraft = z.infer<typeof hoursGroupDraftSchema>;
 function isBlankRule(row: unknown): boolean {
   if (!row || typeof row !== "object") return false;
   const days = "days" in row && Array.isArray(row.days) ? row.days : [];
-  const price =
-    "priceUsd" in row && typeof row.priceUsd === "string"
-      ? row.priceUsd.trim()
+  const text = (key: "priceUsd" | "priceLbp") =>
+    key in row && typeof (row as Record<string, unknown>)[key] === "string"
+      ? ((row as Record<string, string>)[key] ?? "").trim()
       : "";
-  return days.length === 0 && price.length === 0;
+  return days.length === 0 && text("priceUsd").length === 0 && text("priceLbp").length === 0;
 }
 
 function isBlankHoursGroup(row: unknown): boolean {
@@ -133,13 +152,9 @@ export const pitchDraftSchema = z.strictObject({
   slotDurationMinutes: z.coerce.number().int().positive(),
   /** SPEC-15 P2 / P5: players per game, 1 to 30. */
   defaultPlayerCount: z.coerce.number().int().min(1).max(30).default(10),
-  defaultPriceUsd: z
-    .string()
-    .trim()
-    .transform(normalizeUsdForm)
-    .refine((value) => isUsdString(value), {
-      error: 'USD must be like 30.00',
-    }),
+  defaultPriceUsd: usdPrice,
+  /** DR-007: the price in pounds. Blank or absent: the pitch has none. */
+  defaultPriceLbp: lbpPrice.optional(),
   hoursGroups: z.preprocess(
     coerceHoursGroups,
     z.array(hoursGroupDraftSchema).max(MAX_HOURS_GROUPS),

@@ -51,19 +51,22 @@ export async function cancelRestOfSeries(input: { seriesId: string }): Promise<C
         const booking = await findBookingForUpdate(tx, id);
         if (!booking || booking.status !== "APPROVED" || booking.start.getTime() <= now.getTime()) continue;
 
+        // The USD value of its tenders: any payment on a game in pounds has tenders too.
         const collected = await sumCollectedUsd(tx, "BOOKING", booking.id);
         if (collected.gt(0)) {
           result.kept.push({ bookingId: booking.id, start: booking.start, collectedUsd: collected });
           continue;
         }
         if (booking.collectionMode === "PER_PLAYER") {
-          await collapseToWhole(tx, { bookingId: booking.id, amountDueUsd: booking.amountDueUsd });
+          await collapseToWhole(tx, { bookingId: booking.id, due: booking.due });
         }
+        // Nothing is collected here (a week with money was kept above), in dollars or in pounds.
         await writeDueIfChanged(tx, {
           bookingId: booking.id,
-          fromUsd: booking.amountDueUsd,
-          toUsd: new Decimal(0),
-          collectedUsd: collected,
+          currency: booking.due.currency,
+          from: booking.due.amount,
+          to: new Decimal(0),
+          collected: new Decimal(0),
           collectionMode: "WHOLE",
           reason: "CANCELLATION_NO_FEE",
           note: "OWNER",

@@ -33,7 +33,8 @@ export function moneyHref(
   } else if (query.period && query.period !== "month") {
     params.set("period", query.period);
   }
-  if (query.view && query.view !== "usd") params.set("view", query.view);
+  // Written even for "usd": a stadium that opens on pounds must keep a dollar choice in its links.
+  if (query.view) params.set("view", query.view);
   if (query.displayRate) params.set("displayRate", query.displayRate);
   if (query.filter && query.filter !== "all") params.set("filter", query.filter);
   for (const [key, value] of Object.entries(extra)) params.set(key, value);

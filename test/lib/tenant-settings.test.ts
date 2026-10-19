@@ -14,6 +14,7 @@ const feeDefaults = {
   perPlayerSplitEnabled: false,
   dayStartHour: 6,
   ...stadiumInfoDefaults(),
+  gamePriceCurrency: "USD" as const,
 };
 
 function stadiumInfoDefaults() {
@@ -135,6 +136,7 @@ describe("mergeBookingRules", () => {
       perPlayerSplitEnabled: false,
       dayStartHour: 6,
       ...stadiumInfoDefaults(),
+      gamePriceCurrency: "USD",
     });
   });
 });

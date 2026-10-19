@@ -38,7 +38,7 @@ async function auditRows() {
 describe("createTenant", () => {
   it("creates tenant (default settings), owner user + OWNER membership, first subscription and one audit row", async () => {
     const result = await create("al-nour", { plan: "basic", paidUntil: new Date("2026-12-31T00:00:00Z") });
-    expect(result).toEqual({ tenantId: expect.any(String), slug: "al-nour", ownerIdentifier: "owner@al-nour" });
+    expect(result).toEqual({ tenantId: expect.any(String), slug: "al-nour", ownerIdentifier: "owner@al-nour", gamePriceCurrency: "USD" });
 
     const tenant = await platformDb.tenant.findUniqueOrThrow({ where: { slug: "al-nour" } });
     expect(tenant.name).toBe("Al Nour");

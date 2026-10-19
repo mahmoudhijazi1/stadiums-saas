@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SlotBookSheet } from "@/modules/booking/ui/slot-picker";
 import { WeeklyFields } from "@/modules/booking/ui/weekly-preview";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { formatPrice } from "@/lib/format/money";
 import { shortPeriod, splitDisplayedClock } from "@/lib/format/time";
 import type { FreeChip, FreeStripPitch } from "@/modules/booking/domain/free-strip";
 import type { UiLocale } from "@/lib/locale";
@@ -85,7 +86,7 @@ export function FreeStrip({
                 const face = (
                   <>
                     <ChipTime text={item.startLocal} />
-                    {item.priceUsd ? <LtrIsolate>{`$${item.priceUsd}`}</LtrIsolate> : null}
+                    {item.price ? <LtrIsolate>{formatPrice(item.price, locale)}</LtrIsolate> : null}
                     {item.pending > 0 ? (
                       <span
                         title={uiCount("owner.requests", item.pending, locale)}
@@ -139,7 +140,7 @@ export function FreeStrip({
                     endIso: chip.endIso,
                     startLocal: chip.startLocal,
                     endLocal: chip.endLocal,
-                    priceUsd: chip.fullPriceUsd,
+                    price: chip.fullPrice,
                     available: true,
                   },
                 }

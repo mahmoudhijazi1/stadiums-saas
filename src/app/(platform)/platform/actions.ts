@@ -67,7 +67,7 @@ export async function submitPlatformLogout() {
 
 export type StadiumActionResult = { ok: true } | { ok: false; errorKey: string };
 export type CreateStadiumResult =
-  | { ok: true; slug: string; ownerIdentifier: string; ownerPassword: string }
+  | { ok: true; slug: string; ownerIdentifier: string; ownerPassword: string; gamePriceCurrency: "USD" | "LBP" }
   | { ok: false; errorKey: string };
 
 /**
@@ -86,6 +86,7 @@ export async function submitCreateStadium(input: unknown): Promise<CreateStadium
       name: parsed.name,
       slug: parsed.slug.trim().toLowerCase(),
       dayStartHour: parsed.dayStartHour === 6 ? null : parsed.dayStartHour,
+      gamePriceCurrency: parsed.gamePriceCurrency ?? null,
       plan: parsed.plan?.trim() || null,
       paidUntil,
       actor: `admin:${admin.adminId}`,

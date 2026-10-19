@@ -13,6 +13,7 @@ const ARABIC: Record<string, string> = {
   slot_empty: "لا أحد ينتظر هذه الساعة.",
   no_show: "سُجّل عدم الحضور.",
   rate_set: "تم تعيين السعر.",
+  game_currency_set: "تم تغيير عملة أسعار المباريات.",
   time_display_set: "تم حفظ عرض الوقت.",
   expense_recorded: "سُجّل المصروف.",
   requested: "وصل الطلب.",
@@ -21,6 +22,7 @@ const ARABIC: Record<string, string> = {
   rules_saved: "حُفظت قواعد الحجز.",
   stadium_saved: "حُفظت معلومات الملعب.",
   due_adjusted: "عُدّل المبلغ.",
+  considered_paid: "اعتُبرت مدفوعة.",
 };
 
 const ENGLISH: Record<string, string> = {
@@ -32,6 +34,7 @@ const ENGLISH: Record<string, string> = {
   slot_empty: "No one is waiting for this slot.",
   no_show: "Marked as no-show.",
   rate_set: "Rate set.",
+  game_currency_set: "Game price currency changed.",
   time_display_set: "Time format saved.",
   expense_recorded: "Expense recorded.",
   requested: "Request received.",
@@ -40,6 +43,7 @@ const ENGLISH: Record<string, string> = {
   rules_saved: "Booking rules saved.",
   stadium_saved: "Stadium info saved.",
   due_adjusted: "Amount adjusted.",
+  considered_paid: "Marked as paid.",
 };
 
 const GENERIC_AR = "تم.";

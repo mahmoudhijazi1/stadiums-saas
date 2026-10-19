@@ -189,7 +189,7 @@ async function statusOf(bookingId: string) {
 
 async function dueOf(bookingId: string) {
   const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  return new Decimal(booking.amountDueUsd.toString()).toFixed(2);
+  return new Decimal(booking.amountDueUsd!.toString()).toFixed(2);
 }
 
 /** [reason, from, to] per due change, oldest first. */
@@ -200,7 +200,7 @@ async function changesOf(bookingId: string): Promise<string[][]> {
   });
   return rows.map((row) => [
     row.reason,
-    new Decimal(row.fromUsd.toString()).toFixed(2),
-    new Decimal(row.toUsd.toString()).toFixed(2),
+    new Decimal(row.fromUsd!.toString()).toFixed(2),
+    new Decimal(row.toUsd!.toString()).toFixed(2),
   ]);
 }

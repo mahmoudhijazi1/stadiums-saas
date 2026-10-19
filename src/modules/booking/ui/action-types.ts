@@ -16,14 +16,23 @@ export type PayerHit = { id: string; name: string; phone: string | null };
  * inside the use case; `expectedEndsAt` is the end the owner saw (a double tap adds 30 minutes once).
  */
 export type ExtendActionResult =
-  | { ok: true; amountDueUsd: string; addedPriceUsd: string; declined: number }
+  | {
+      ok: true;
+      /** The game's currency; the two amounts are in it: "45.00" in dollars, "3000000" in whole pounds. */
+      currency: "USD" | "LBP";
+      amountDue: string;
+      addedPrice: string;
+      declined: number;
+    }
   | { error: string };
 
 /**
  * Per-player actions (SPEC-15 slice 2). They do not redirect: ten taps in a row must
  * keep the sheet open. The result carries an error key; success revalidates Today.
  */
-export type PerPlayerResult = { ok: true } | { error: string };
+export type PerPlayerResult =
+  | { ok: true; changeUsd?: string; changeLbp?: string; kept?: boolean }
+  | { error: string };
 
 /**
  * Weekly series actions. They return results instead of redirecting: the sheet stays open and

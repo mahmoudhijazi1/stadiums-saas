@@ -13,8 +13,8 @@ function chip(startLocal: string, pending = 0) {
     endIso: `2026-10-14T${startLocal}:59.000Z`,
     startLocal,
     endLocal: startLocal,
-    priceUsd: null,
-    fullPriceUsd: "30.00",
+    price: null,
+    fullPrice: { currency: "USD" as const, amount: "30.00" },
     pending,
   };
 }

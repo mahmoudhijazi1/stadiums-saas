@@ -10,6 +10,8 @@ const createSchema = z.strictObject({
   name: z.string().max(200),
   slug,
   dayStartHour: z.number().int().min(0).max(6),
+  /** What games are priced in; absent means USD (DR-007 decision 1). */
+  gamePriceCurrency: z.enum(["USD", "LBP"]).optional(),
   plan: z.string().max(200).optional(),
   /** YYYY-MM-DD, or empty/absent. */
   paidUntil: z.string().regex(/^(\d{4}-\d{2}-\d{2})?$/).optional(),

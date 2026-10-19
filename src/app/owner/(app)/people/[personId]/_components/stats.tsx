@@ -3,7 +3,7 @@ import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { getPersonBookingStats } from "@/modules/booking/application/get-person-booking-stats";
 import { notifyLink } from "@/modules/notification/domain/whatsapp-link";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatOwed } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
 import { MessageCircle, Phone } from "lucide-react";
@@ -22,9 +22,10 @@ export async function PersonStats({
   // "Total paid" is a money report: reports.view only.
   const membership = await getCurrentMembership();
   const mayViewTotals = membership !== null && can(membership, REPORTS_VIEW);
-  const owes = stats.owesNowUsd;
-  const owesLabel = formatUsdCompact(owes);
-  const expected = stats.expectedUsd;
+  // Per currency (DR-007): dollars and pounds are shown side by side, never added.
+  const owes = { usd: stats.owesNowUsd, lbp: stats.owesNowLbp };
+  const owesLabel = formatOwed(owes, locale);
+  const expected = { usd: stats.expectedUsd, lbp: stats.expectedLbp };
   // The person page only opens the chat: `messageIntentFor("person_page")` is null, no text.
   const remindHref = notifyLink({ context: "person_page", phone, locale }).href;
 
@@ -46,17 +47,17 @@ export async function PersonStats({
         {mayViewTotals ? (
           <Stat
             label={ui("owner.totalPaid", locale)}
-            value={formatUsdCompact(stats.totalPaidUsd)}
+            value={formatOwed({ usd: stats.totalPaidUsd, lbp: stats.totalPaidLbp }, locale)}
           />
         ) : null}
         <Stat
           label={ui("owner.owesNow", locale)}
           value={owesLabel}
-          alert={owes.gt(0)}
+          alert={owes.usd.gt(0) || owes.lbp.gt(0)}
           expected={
-            expected.gt(0)
+            expected.usd.gt(0) || expected.lbp.gt(0)
               ? {
-                  amount: formatUsdCompact(expected),
+                  amount: formatOwed(expected, locale),
                   label: ui("owner.expectedWord", locale),
                 }
               : null
@@ -106,13 +107,13 @@ function Stat({
       {value ? (
         <dd className="text-sm font-medium">
           <LtrIsolate className={alert ? "text-owed" : undefined}>
-            ${value}
+            {value}
           </LtrIsolate>
           {expected ? (
             <>
               <span aria-hidden> · </span>
               <span className="font-normal text-muted-foreground">
-                <LtrIsolate>${expected.amount}</LtrIsolate>
+                <LtrIsolate>{expected.amount}</LtrIsolate>
                 {" "}
                 {expected.label}
               </span>

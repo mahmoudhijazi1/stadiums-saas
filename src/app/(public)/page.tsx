@@ -52,6 +52,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     occupied,
     hourCycle: tenant.timeDisplay,
     locale,
+    currency: tenant.gamePriceCurrency,
   });
   const levels = Object.fromEntries(days.map((day) => [day.key, availabilityLevel(day.freeCount)]));
 

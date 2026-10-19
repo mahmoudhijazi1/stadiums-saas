@@ -184,7 +184,7 @@ describe("Today free strip", () => {
       },
     });
     const chips = freeOf(await loadFreeStrip(formatCivilDate(day))).pitches[0]!.chips;
-    expect(chips.map((chip) => chip.priceUsd)).toEqual([null, null, null, null, "45.00", "45.00"]);
+    expect(chips.map((chip) => chip.price?.amount ?? null)).toEqual([null, null, null, null, "45.00", "45.00"]);
   });
 
   it("puts Friday's post-midnight slots on Friday's business day, not Saturday's", async () => {
@@ -277,7 +277,7 @@ describe("Today free strip", () => {
     await insertPastGame(at(past, 19));
     const day = await loadOwnerDay(undefined);
     expect(day.toCollect).toHaveLength(2);
-    const total = day.toCollect.reduce((sum, row) => sum.plus(row.remaining), new Decimal(0));
+    const total = day.toCollect.reduce((sum, row) => sum.plus((row.currency === "USD" ? row.remaining : new Decimal(0))), new Decimal(0));
     expect(total.equals("60")).toBe(true);
     expect(day.toCollectHasMore).toBe(false);
   });

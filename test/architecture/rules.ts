@@ -36,13 +36,13 @@ export const MODULE_EDGES: Record<string, string[]> = {
   notification: ["people"], // Lebanese phone rule is a people domain rule used to build wa.me links (domain to domain)
   ledger: ["access"],
   people: ["access"],
-  venue: ["access"],
+  venue: ["access", "payment"], // payment: the money units of DR-007 (payment/domain/units) for LBP pitch prices
   push: ["access"],
   payment: ["access", "ledger"],
   expense: ["access", "ledger", "payment"],
   shop: ["access", "ledger", "payment", "people"],
   booking: ["access", "notification", "payment", "people", "shop", "stadium", "venue"], // stadium: public-page-url for WhatsApp links
-  platform: ["access"],
+  platform: ["access", "venue"], // venue: which pitches have prices in a currency, before the operator switches it (DR-007)
   stadium: ["access", "people", "platform"], // people: phone and name rules; platform: the audited rename and the brand source go through platform/application/tenant-profile
 };
 

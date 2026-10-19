@@ -1,4 +1,5 @@
-import Decimal from "decimal.js";
+import { samePrice } from "@/lib/format/money";
+import type { PriceView } from "@/modules/venue/domain/availability";
 
 /**
  * Today's free-slot strip (UX-01 §3, amended). Pure: no database, no clock.
@@ -10,12 +11,13 @@ export type FreeStripSlot = {
   pitchId: string;
   pitchName: string;
   /** The pitch's default price, to decide whether a chip shows its own price. */
-  defaultPriceUsd: string;
+  defaultPrice: PriceView | null;
   startIso: string;
   endIso: string;
   startLocal: string;
   endLocal: string;
-  priceUsd: string;
+  /** In the stadium's currency (DR-007); null when the pitch has no price in it. */
+  price: PriceView | null;
 };
 
 export type ApprovedRange = { pitchId: string; start: Date; end: Date };
@@ -25,10 +27,10 @@ export type FreeChip = {
   endIso: string;
   startLocal: string;
   endLocal: string;
-  /** Null when it equals the pitch default. */
-  priceUsd: string | null;
-  /** Full price, for the booking sheet. */
-  fullPriceUsd: string;
+  /** Null when it equals the pitch default, or when there is no price in the stadium's currency. */
+  price: PriceView | null;
+  /** Full price, for the booking sheet (null: no price in the stadium's currency). */
+  fullPrice: PriceView | null;
   pending: number;
 };
 
@@ -74,10 +76,8 @@ export function buildFreeStrip(
       endIso: slot.endIso,
       startLocal: slot.startLocal,
       endLocal: slot.endLocal,
-      priceUsd: new Decimal(slot.priceUsd).equals(slot.defaultPriceUsd)
-        ? null
-        : slot.priceUsd,
-      fullPriceUsd: slot.priceUsd,
+      price: samePrice(slot.price, slot.defaultPrice) ? null : slot.price,
+      fullPrice: slot.price,
       pending: pendingCounts.get(pendingKey(slot.pitchId, slot.startIso)) ?? 0,
     });
   }

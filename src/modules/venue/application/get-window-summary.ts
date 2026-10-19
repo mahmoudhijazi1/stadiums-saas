@@ -1,6 +1,6 @@
 import { UnexpectedError } from "@/lib/errors";
 import { formatLocalHm, type ClockLocale, type HourCycle } from "@/lib/format/time";
-import { formatUsd } from "@/lib/format/money";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   addCalendarDays,
@@ -8,7 +8,10 @@ import {
   dropEndedSlots,
   formatCivilDate,
   generateSlotsForDay,
+  priceForSlotIn,
+  toPriceView,
   type CivilDate,
+  type PriceView,
 } from "@/modules/venue/domain/availability";
 import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
 import { listPitches } from "@/modules/venue/infrastructure/pitches";
@@ -27,7 +30,8 @@ export type NextFreeTime = {
   endIso: string;
   startLocal: string;
   endLocal: string;
-  priceUsd: string;
+  /** In the stadium's currency (DR-007); null when the pitch has no price in it. */
+  price: PriceView | null;
   durationMinutes: number;
 };
 
@@ -45,6 +49,8 @@ export async function getWindowSummary(input: {
   occupied: OccupiedWindow[];
   hourCycle?: HourCycle;
   locale?: ClockLocale;
+  /** The stadium's gamePriceCurrency (DR-007). */
+  currency: GamePriceCurrency;
 }): Promise<{ days: WindowDay[]; nextFree: NextFreeTime | null }> {
   try {
     const pitches = (await listPitches()).map((pitch) => {
@@ -59,7 +65,7 @@ export async function getWindowSummary(input: {
 
     for (let day = input.from; compareCivilDate(day, input.lastDay) <= 0; day = addCalendarDays(day, 1)) {
       let freeCount = 0;
-      let earliest: { pitch: (typeof pitches)[number]; start: Date; end: Date; price: string } | null = null;
+      let earliest: { pitch: (typeof pitches)[number]; start: Date; end: Date; price: PriceView | null } | null = null;
       for (const pitch of pitches) {
         const generated = generateSlotsForDay({
           config: pitch.config,
@@ -71,7 +77,10 @@ export async function getWindowSummary(input: {
           if (!slot.available) continue;
           freeCount += 1;
           if (!earliest || slot.start < earliest.start) {
-            earliest = { pitch, start: slot.start, end: slot.end, price: formatUsd(slot.priceUsd) };
+            const price = toPriceView(
+              priceForSlotIn(pitch.config, input.currency, { start: slot.start, localDate: day, timeZone: input.timeZone }),
+            );
+            earliest = { pitch, start: slot.start, end: slot.end, price };
           }
         }
       }
@@ -86,7 +95,7 @@ export async function getWindowSummary(input: {
           endIso: earliest.end.toISOString(),
           startLocal: formatLocalHm(earliest.start, input.timeZone, input.hourCycle, input.locale),
           endLocal: formatLocalHm(earliest.end, input.timeZone, input.hourCycle, input.locale),
-          priceUsd: earliest.price,
+          price: earliest.price,
           durationMinutes: Math.round((earliest.end.getTime() - earliest.start.getTime()) / 60_000),
         };
       }

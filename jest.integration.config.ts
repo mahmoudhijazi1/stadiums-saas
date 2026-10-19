@@ -10,6 +10,9 @@ const custom: Config = {
   testEnvironment: "node",
   testMatch: ["<rootDir>/test/**/*.integration.test.ts"],
   maxWorkers: 1,
+  // One run at a time on stadiums_test: a session advisory lock held for the whole run (run-lock.ts).
+  globalSetup: "<rootDir>/test/integration/global-setup.ts",
+  globalTeardown: "<rootDir>/test/integration/global-teardown.ts",
   setupFiles: ["<rootDir>/test/integration/setup-env.ts"],
   setupFilesAfterEnv: ["<rootDir>/test/integration/setup-mocks.ts"],
   testTimeout: 30_000,

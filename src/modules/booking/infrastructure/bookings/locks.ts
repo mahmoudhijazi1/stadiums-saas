@@ -7,7 +7,7 @@ import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { BookingForDecision } from "./single";
-import { BookingSqlRow, toBookingForDecision } from "./_shared";
+import { BOOKING_MONEY_COLUMNS, BookingSqlRow, toBookingForDecision } from "./_shared";
 
 /**
  * Serialize approved writes on one pitch (BR-24).
@@ -31,7 +31,8 @@ export async function lockPitchForUpdate(
 
 /**
  * Same read, holding the booking row until the transaction ends. A second tap on the
- * same slot waits here, then sees the slot already paid (SPEC-15 slice 2).
+ * same slot waits here, then sees the slot already paid (SPEC-15 slice 2). The price and the due are
+ * in the game's own currency (DR-007), so a cancel, a collect or an extension works on either.
  */
 export async function findBookingForUpdate(
   tx: TenantTx,
@@ -45,8 +46,7 @@ export async function findBookingForUpdate(
       status,
       lower(during) AS start,
       upper(during) AS end,
-      "priceUsd",
-      "amountDueUsd",
+      ${BOOKING_MONEY_COLUMNS},
       "collectionMode"::text AS "collectionMode"
     FROM "Booking"
     WHERE id = ${bookingId} AND "tenantId" = ${tenantId}

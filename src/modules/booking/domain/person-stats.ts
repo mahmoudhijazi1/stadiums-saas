@@ -9,7 +9,10 @@ import {
 
 export type PersonStatStatus = "APPROVED" | "CANCELLED" | "NO_SHOW";
 
-/** One participation already loaded for a person. Not a Prisma type. */
+/**
+ * One participation already loaded for a person. Not a Prisma type. A USD game has its amounts in
+ * dollars; an LBP game (DR-007) has them in pounds, collected meaning what its settlements applied.
+ */
 export type PersonStatRow = {
   status: PersonStatStatus;
   start: Date;
@@ -20,6 +23,12 @@ export type PersonStatRow = {
   collectedUsd: Decimal;
   participantDueUsd: Decimal;
   allocatedUsd: Decimal;
+  /** Set on an LBP game, whose dollar figures above are then zero. */
+  currency?: "USD" | "LBP";
+  amountDueLbp?: Decimal;
+  settledLbp?: Decimal;
+  participantDueLbp?: Decimal;
+  allocatedLbp?: Decimal;
 };
 
 export type PersonStats = {
@@ -29,10 +38,14 @@ export type PersonStats = {
   upcoming: number;
   noShows: number;
   totalPaidUsd: Decimal;
+  /** Paid on LBP games, in pounds (never added to the dollars). */
+  totalPaidLbp: Decimal;
   /** classifyDue "owed" for this person's remaining. */
   owesNowUsd: Decimal;
+  owesNowLbp: Decimal;
   /** classifyDue "expected" for this person's remaining. */
   expectedUsd: Decimal;
+  expectedLbp: Decimal;
   /** Start of the owed booking with the latest start. */
   latestOwedAt: Date | null;
 };
@@ -50,19 +63,38 @@ export function summarizePersonBookings(
   let upcoming = 0;
   let noShows = 0;
   let totalPaidUsd = new Decimal(0);
+  let totalPaidLbp = new Decimal(0);
   let owesNowUsd = new Decimal(0);
+  let owesNowLbp = new Decimal(0);
   let expectedUsd = new Decimal(0);
+  let expectedLbp = new Decimal(0);
   let latestOwedAt: Date | null = null;
 
   for (const row of rows) {
-    totalPaidUsd = totalPaidUsd.plus(
-      personPaidOnBooking({
-        collectionMode: row.collectionMode,
-        isRequester: row.isRequester,
-        collectedUsd: row.collectedUsd,
-        allocatedUsd: row.allocatedUsd,
-      }),
-    );
+    // The row's figures in its game's currency.
+    const lbp = row.currency === "LBP";
+    const zero = new Decimal(0);
+    const figures = lbp
+      ? {
+          due: row.amountDueLbp ?? zero,
+          collected: row.settledLbp ?? zero,
+          participantDue: row.participantDueLbp ?? zero,
+          allocated: row.allocatedLbp ?? zero,
+        }
+      : {
+          due: row.amountDueUsd,
+          collected: row.collectedUsd,
+          participantDue: row.participantDueUsd,
+          allocated: row.allocatedUsd,
+        };
+    const paid = personPaidOnBooking({
+      collectionMode: row.collectionMode,
+      isRequester: row.isRequester,
+      collectedUsd: figures.collected,
+      allocatedUsd: figures.allocated,
+    });
+    if (lbp) totalPaidLbp = totalPaidLbp.plus(paid);
+    else totalPaidUsd = totalPaidUsd.plus(paid);
 
     if (row.status === "NO_SHOW") noShows += 1;
     if (row.status === "APPROVED" && row.start.getTime() < nowMs) {
@@ -76,10 +108,10 @@ export function summarizePersonBookings(
       personOwedOnBooking({
         collectionMode: row.collectionMode,
         isRequester: row.isRequester,
-        bookingRemainingUsd: bookingRemaining(row.amountDueUsd, row.collectedUsd),
+        bookingRemainingUsd: bookingRemaining(figures.due, figures.collected),
         participantRemainingUsd: participantRemaining(
-          row.participantDueUsd,
-          row.allocatedUsd,
+          figures.participantDue,
+          figures.allocated,
         ),
       }),
       0,
@@ -92,7 +124,8 @@ export function summarizePersonBookings(
       now,
     });
     if (kind === "owed") {
-      owesNowUsd = owesNowUsd.plus(remaining);
+      if (lbp) owesNowLbp = owesNowLbp.plus(remaining);
+      else owesNowUsd = owesNowUsd.plus(remaining);
       if (
         latestOwedAt === null ||
         row.start.getTime() > latestOwedAt.getTime()
@@ -100,7 +133,10 @@ export function summarizePersonBookings(
         latestOwedAt = row.start;
       }
     }
-    if (kind === "expected") expectedUsd = expectedUsd.plus(remaining);
+    if (kind === "expected") {
+      if (lbp) expectedLbp = expectedLbp.plus(remaining);
+      else expectedUsd = expectedUsd.plus(remaining);
+    }
   }
 
   return {
@@ -108,8 +144,11 @@ export function summarizePersonBookings(
     upcoming,
     noShows,
     totalPaidUsd,
+    totalPaidLbp,
     owesNowUsd,
+    owesNowLbp,
     expectedUsd,
+    expectedLbp,
     latestOwedAt,
   };
 }

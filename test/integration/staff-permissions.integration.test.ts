@@ -328,5 +328,5 @@ async function modeOf(bookingId: string) {
 
 async function dueOf(bookingId: string) {
   const booking = await platformDb.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  return new Decimal(booking.amountDueUsd.toString()).toFixed(2);
+  return new Decimal(booking.amountDueUsd!.toString()).toFixed(2);
 }

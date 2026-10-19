@@ -27,9 +27,11 @@ async function requireAdjuster() {
 
 /**
  * WHOLE to PER_PLAYER (SPEC-15 §3.1). One transaction: the requester becomes slot 1,
- * slots 2..N are unnamed, dues come from splitEvenly. Payments already taken stay on
+ * slots 2..N are unnamed, shares come from `splitInUnits` in the game's currency (DR-007 slice 7:
+ * whole units of $1 or 5,000 LBP, leftover units to the first slots). Payments already taken stay on
  * the booking as Unassigned (nothing is auto-allocated). The due itself does not
- * change, so no BookingDueChange row is written.
+ * change, so no BookingDueChange row is written. Works on a game in either currency; an existing
+ * split is never recomputed.
  */
 export async function switchToPerPlayer(input: {
   bookingId: string;
@@ -49,15 +51,15 @@ export async function switchToPerPlayer(input: {
       assertCanSwitchToPerPlayer({
         status: booking.status,
         collectionMode: booking.collectionMode,
-        amountDueUsd: booking.amountDueUsd,
+        due: booking.due.amount,
         allocationCount: await countBookingAllocations(tx, booking.id),
       });
 
       const requesterPersonId = await findRequesterPersonId(tx, booking.id);
       if (!requesterPersonId) throw new DomainError("booking.not_found");
 
-      const slots = buildSlots(booking.amountDueUsd, input.count, requesterPersonId);
-      await applyPerPlayerSlots(tx, { bookingId: booking.id, slots });
+      const slots = buildSlots(booking.due, input.count, requesterPersonId);
+      await applyPerPlayerSlots(tx, { bookingId: booking.id, currency: booking.due.currency, slots });
     });
 
     logger.info(`Booking split per player ${input.bookingId}`, undefined, {
@@ -85,10 +87,7 @@ export async function switchToWhole(input: { bookingId: string }): Promise<void>
         allocationCount: await countBookingAllocations(tx, booking.id),
       });
 
-      await applyWholeMode(tx, {
-        bookingId: booking.id,
-        amountDueUsd: booking.amountDueUsd,
-      });
+      await applyWholeMode(tx, { bookingId: booking.id, due: booking.due });
     });
 
     logger.info(`Booking back to whole ${input.bookingId}`, undefined, {

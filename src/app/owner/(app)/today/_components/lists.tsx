@@ -11,7 +11,6 @@ import { seriesRowLine, weeklyWeekdayAndTime } from "@/modules/booking/ui/series
 import { SeriesCreatedSheet } from "@/modules/booking/ui/weekly-confirm";
 import { listExtensionMinutes } from "@/modules/booking/application/list-extension-minutes";
 import { loadExtensionOffers, type ExtensionOffer } from "@/modules/booking/application/load-extension-offers";
-import type { ExtendOfferView } from "@/modules/booking/ui/extend-form";
 import {
   loadOwnerDay,
   type OwnerDayBooking,
@@ -20,12 +19,9 @@ import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitli
 import { listPendingRequests } from "@/modules/booking/application/list-pending-requests";
 import { actionablePending } from "@/modules/booking/domain/expired-request";
 import { classifyDue } from "@/modules/booking/domain/classify-due";
-import {
-  confirmedFee,
-  ownerInitiatorLowersFee,
-  suggestFee,
-} from "@/modules/booking/domain/suggest-fee";
-import { planSlotCharge, slotPayState } from "@/modules/booking/domain/slot-charge";
+import { extendView } from "@/app/owner/(app)/today/_components/extend-view";
+import { gameFeeFields } from "@/app/owner/(app)/today/_components/game-fee-view";
+import { perPlayerViewOf } from "@/app/owner/(app)/today/_components/per-player-view";
 import { hasSeveralPitches } from "@/modules/venue/application/has-several-pitches";
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import { peopleWaitingOn } from "@/modules/booking/domain/waitlist";
@@ -67,8 +63,9 @@ import { ClockText } from "@/components/ui/ltr-isolate";
 import { LiveRequestCount } from "@/modules/booking/ui/live-queue";
 import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave } from "@/app/owner/(app)/series/actions";
 import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
-import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
+import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
 import { submitExtendBooking } from "@/app/owner/(app)/today/extend-actions";
+import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
 
 export async function OwnerToday({
   membership,
@@ -106,8 +103,23 @@ export async function OwnerToday({
   const mayCancel = can(membership, BOOKINGS_CANCEL);
   const mayNoShow = can(membership, BOOKINGS_NO_SHOW);
   const mayAdjust = can(membership, BOOKINGS_ADJUST_DUE);
-  // "Extend 30 min": a preview per game, empty for a member without bookings.extend.
-  const extensionOffers = await loadExtensionOffers(ownerDay.games, now);
+  // "Extend 30 min": a preview per game, empty for a member without bookings.extend. A game in
+  // pounds is priced in pounds (DR-007 slice 8).
+  const extensionOffers = await loadExtensionOffers(
+    ownerDay.games.map((row) => ({
+      id: row.id,
+      status: row.status,
+      pitchId: row.pitchId,
+      start: row.start,
+      end: row.end,
+      price:
+        row.currency === "LBP"
+          ? { currency: "LBP" as const, amount: row.priceLbp }
+          : { currency: "USD" as const, amount: row.priceUsd },
+      collectionMode: row.collectionMode,
+    })),
+    now,
+  );
   const policy = {
     cancellationWindowHours: tenant.cancellationWindowHours,
     lateCancellationFeePercent: tenant.lateCancellationFeePercent,
@@ -120,10 +132,6 @@ export async function OwnerToday({
         (row) => compareCivilDate(businessDate(row.start, tenant.dayStartHour), ownerDay.today) < 0,
       )
     : [];
-  const earlierTotal = earlierDebts.reduce(
-    (sum, row) => sum.plus(row.owedUsd),
-    new Decimal(0),
-  );
   // The shop on these games: items and tabs in one read, the catalog once (only for members who sell).
   const maySell = can(membership, SHOP_SELL);
   const [itemsByBooking, products] = await Promise.all([
@@ -147,7 +155,12 @@ export async function OwnerToday({
   const repeatable = new Set(
     mayCreate
       ? ownerDay.games
-          .filter((row) => row.status === "APPROVED" && row.end.getTime() > now.getTime() && !seriesInfo.has(row.id))
+          .filter(
+            (row) =>
+              row.status === "APPROVED" &&
+              row.end.getTime() > now.getTime() &&
+              !seriesInfo.has(row.id),
+          )
           .map((row) => row.id)
       : [],
   );
@@ -221,6 +234,8 @@ export async function OwnerToday({
       <UpcomingPanel
         collectActions={{
           submitCollectPayment,
+          submitConsiderPaid,
+          submitConsiderSharePaid,
           submitSwitchToPerPlayer,
           submitSwitchToWhole,
           submitCollectSlot,
@@ -253,7 +268,8 @@ export async function OwnerToday({
           extendedMinutes,
         )}
         toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
-        toCollectTotal={formatUsdCompact(earlierTotal)}
+        toCollectUsd={ownerDay.toCollectOwed.usd.toFixed(2)}
+        toCollectLbp={ownerDay.toCollectOwed.lbp.toFixed(0)}
         free={
           <Suspense key="free-strip" fallback={null}>
             <FreeStripSection membership={membership} locale={locale} date={date} />
@@ -355,6 +371,25 @@ function toUpcomingViews(
   seriesInfo: Map<string, SeriesInfo> = new Map(),
 ): UpcomingRowView[] {
   return rows.map((row) => {
+    if (row.currency === "LBP") {
+      return lbpUpcomingView(row, {
+        items: itemsByBooking.get(row.id),
+        itemsPanel: itemsView(row, itemsByBooking.get(row.id), now),
+        now,
+        locale,
+        hourCycle,
+        openWaitlist,
+        stadiumName,
+        showPitch,
+        dayStartHour,
+        extendedMinutes: extendedMinutes.get(row.id) ?? 0,
+        series: seriesInfo.get(row.id),
+        splitEnabled,
+        policy,
+        repeatWeekly: repeatable.has(row.id),
+        extend: extendView(row, extensionOffers.get(row.id), hourCycle, locale, mayEditExtension),
+      });
+    }
     // The pill, the card state and the owed class count the player tabs too; the Collect amounts
     // below (remainingUsd) stay the booking only.
     const display = deriveCardDisplay({
@@ -365,10 +400,13 @@ function toUpcomingViews(
       now,
       status: row.status,
     });
-    const booking = { amountDueUsd: row.amountDueUsd, start: row.start };
-    const playerFee = suggestFee(policy, booking, now, "PLAYER");
-    const ownerFee = suggestFee(policy, booking, now, "OWNER");
-    const noShowFee = suggestFee(policy, booking, now, "NO_SHOW");
+    const fees = gameFeeFields({
+      due: { currency: "USD", amount: row.amountDueUsd },
+      collected: row.collectedUsd,
+      start: row.start,
+      now,
+      policy,
+    });
     const due = classifyDue({
       status: row.status,
       start: row.start,
@@ -376,10 +414,6 @@ function toUpcomingViews(
       remaining: row.remaining,
       now,
     });
-    const hoursBefore = Math.max(
-      0,
-      Math.floor((row.start.getTime() - now.getTime()) / 3_600_000),
-    );
     const waDay = messageDayLabel(row.start, locale, dayStartHour);
     const waTime = formatLocalHm(row.start, "Asia/Beirut", hourCycle, locale);
     // The header icon: plain chat, unless the game has ended and money is owed on it (the game due or
@@ -443,106 +477,25 @@ function toUpcomingViews(
         !isCancelWindowClosed(row.start, now),
       showNoShow:
         row.status === "APPROVED" && isNoShowWindowEnded(row.end, now),
-      perPlayer: {
+      perPlayer: perPlayerViewOf({
         bookingId: row.id,
+        currency: "USD",
         mode: row.collectionMode,
-        canSplit:
-          splitEnabled &&
-          row.status === "APPROVED" &&
-          row.amountDueUsd.gt(0),
+        canSplit: splitEnabled && row.status === "APPROVED" && row.amountDueUsd.gt(0),
         defaultPlayerCount: row.pitchDefaultPlayerCount,
-        slots: row.slots.map((slot) => {
-          const state = slotPayState({
-            amountDueUsd: row.amountDueUsd,
-            collectedUsd: row.collectedUsd,
-            slots: row.slots,
-            participantId: slot.participantId,
-          });
-          return {
-            participantId: slot.participantId,
-            slotNumber: slot.slotNumber,
-            name: slot.name,
-            dueUsd: formatUsd(slot.dueUsd),
-            remainingUsd: formatUsd(slot.remainingUsd),
-            paid: state.kind === "paid",
-            state: state.kind,
-            chargeUsd: state.kind === "pay" ? formatUsd(state.chargeUsd) : null,
-            partial: state.kind === "pay" && state.partial,
-          };
-        }),
-        unassignedUsd: formatUsd(row.unassignedUsd),
-        hasAllocations: row.slots.some((slot) => slot.paidUsd.gt(0)),
-        // Same function the server charges with: never more than the booking owes.
-        unpaidTotalUsd: formatUsd(
-          planSlotCharge({
-            amountDueUsd: row.amountDueUsd,
-            collectedUsd: row.collectedUsd,
-            slots: row.slots,
-            target: "ALL_UNPAID",
-          }).totalUsd,
-        ),
-      },
+        slots: row.slots,
+        due: row.amountDueUsd,
+        collected: row.collectedUsd,
+        unassigned: row.unassignedUsd,
+      }),
       extend: extendView(row, extensionOffers.get(row.id), hourCycle, locale, mayEditExtension),
       canAdjust:
         row.collectionMode === "WHOLE" &&
         (due === "owed" || due === "expected"),
-      hoursBefore,
-      playerFeeCompact: feeCompact(playerFee.feeUsd, row.collectedUsd),
-      playerFeeExact: formatUsd(playerFee.feeUsd),
-      ownerFeeCompact: feeCompact(ownerFee.feeUsd, row.collectedUsd),
-      ownerFeeExact: formatUsd(ownerFee.feeUsd),
-      ownerCancelLowersFee: ownerInitiatorLowersFee({
-        policy,
-        booking,
-        now,
-        resultingFeeUsd: confirmedFee({
-          suggestion: ownerFee,
-          collectedUsd: row.collectedUsd,
-        }).feeUsd,
-      }),
-      noShowFeeCompact: feeCompact(noShowFee.feeUsd, row.collectedUsd),
-      noShowFeeExact: formatUsd(noShowFee.feeUsd),
-      collectedExact: formatUsd(row.collectedUsd),
-      collectedCompact: formatUsdCompact(row.collectedUsd),
+      ...fees,
       stadiumName,
       waDay,
       waTime,
     };
   });
-}
-
-/**
- * The Extend button's data. The three refusals the owner can act on get a disabled button with
- * the reason; every other case (ended, not confirmed, per player) has no offer at all.
- */
-function extendView(
-  row: OwnerDayBooking,
-  offer: ExtensionOffer | undefined,
-  hourCycle: HourCycle,
-  locale: UiLocale,
-  mayEditPrice: boolean,
-): ExtendOfferView | null {
-  if (!offer) return null;
-  const at = (instant: Date | null) => (instant ? formatLocalClock(instant, hourCycle, locale) : "");
-  let disabledReason: string | null = null;
-  if (!offer.allowed) {
-    if (offer.reason === "next_game") disabledReason = ui("owner.extendNextGame", locale).replace("{time}", at(offer.limit));
-    else if (offer.reason === "closing") disabledReason = ui("owner.extendClosing", locale).replace("{time}", at(offer.limit));
-    else if (offer.reason === "max_duration") disabledReason = ui("owner.extendMax", locale);
-    else return null;
-  }
-  return {
-    allowed: offer.allowed,
-    disabledReason,
-    expectedEndsAt: row.end.toISOString(),
-    newRange: formatLocalClockRange(row.start, offer.newEnd, hourCycle, locale),
-    addedPriceUsd: formatUsd(offer.addedPriceUsd),
-    declineCount: offer.declineCount,
-    mayEditPrice,
-  };
-}
-
-function feeCompact(fee: Decimal, collected: Decimal): string | null {
-  if (fee.isZero() && collected.isZero()) return null;
-  return formatUsdCompact(fee);
 }

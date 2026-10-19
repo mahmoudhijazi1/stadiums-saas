@@ -1,7 +1,7 @@
 import db from "@/lib/db";
 import { DomainError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { safeTenantId } from "@/lib/tenant-context";
+import { getCurrentTenant, safeTenantId } from "@/lib/tenant-context";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
@@ -71,6 +71,8 @@ export async function createSeries(input: {
     throw new DomainError("booking.series_none");
   }
   const now = new Date();
+  // Priced in the stadium's currency (DR-007), read before the transaction.
+  const { gamePriceCurrency } = await getCurrentTenant();
 
   try {
     const created = await db.$transaction(async (tx) => {
@@ -102,6 +104,7 @@ export async function createSeries(input: {
         durationMinutes: input.durationMinutes,
         weeks,
         now,
+        currency: gamePriceCurrency,
       });
       if (result.created.length === 0) {
         throw new DomainError("booking.series_none");

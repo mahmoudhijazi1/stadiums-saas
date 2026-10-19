@@ -30,14 +30,17 @@ Slot 1 is always the person who booked (the requester). The other slots have no 
 | **Collected** | Everything paid on the booking, whole-game and slot payments together. |
 | **Allocation** | "This part of that payment belongs to this slot." A `PaymentAllocation` row. |
 | **Unassigned** | Collected minus allocated. Money that was paid before the split (or that no slot claims). |
-| **Remaining (booking)** | Due minus collected. Can go negative when overpaid. |
+| **Remaining (booking)** | Due minus collected. A whole-game collection no longer records more than the due (DR-007); only older overpayments can show a negative remaining. |
 | **Remaining (slot)** | The slot's due minus its allocations. |
 
 ## 3. Numbers
 
-- **Exact cents, no rounding to friendly amounts.** $30 across 7 players is four slots of $4.29 and three of $4.28 (total exactly $30.00). The first slots get the extra cents. (P1)
+- **Whole units (DR-007 decision 7): $1 in dollars, 5,000 LBP in pounds.** A new split gives every slot a whole number of units, the leftover units go one by one to the first slots (slot 1 is the requester), and the part of the due below one unit goes on slot 1, so the shares add up to the due exactly. $30 across 7 players is two slots of $5 and five of $4; $40 across 7 is five of $6 and two of $5; 2,000,000 LBP across 7 is 290,000 on slot 1 and six of 285,000. This replaced the exact-cents split of the first version ($30 across 7 was four slots of $4.29 and three of $4.28); a split made before the change is never recomputed. `booking/domain/build-slots.ts` uses `payment/domain/units.ts` `splitInUnits`. (P1, amended)
 - **Count: 1 to 30.** Default comes from the pitch setting "Players per game" (default 10). (P2, P5)
-- **USD only in this slice.** A slot tap pays the slot's full remaining in USD cash. Mixed currency per player comes in slice 3.
+- **Dollars: one tap pays the slot's full remaining in USD cash.** Unchanged.
+- **Pounds (DR-007 slice 7): a game priced in LBP splits and collects in pounds.** The shares are stored in `BookingParticipant.amountDueLbp`. A slot has Pay (exactly its charge in pounds) and "Pay another way" (pounds and dollars, the pounds the dollars cover, and Give back). The cash is applied like a whole LBP game (`applyToLbpGameDue`: pounds first, dollars at the current rate against what is left, change in the currency handed over, each kept tender valued at this payment's rate). One payment writes its tenders, the ledger IN, one `PaymentAllocation` per slot with `amountLbp`, and one `BookingSettlement`; a payment's allocations add up to its settlement's `lbpApplied`. The charge is capped at the game's due minus its settlements, money from before the split included.
+- **"Consider it paid" on one share** (both currencies, `payments.collect`): when what is left on a share is under 5,000 LBP (or that value in dollars at the current rate), the share and the game's due both drop by exactly that remainder and one `ROUNDING` due change records it. Refused (`booking.not_forgivable`) if the remainder is more than the game still owes (money already collected covers it).
+- Cancel, no-show, extension and adjust-due work on a game in pounds (DR-007 slice 8). Cancelling or marking a no-show on a split game in pounds collapses it first (`collapseToWhole`), which keeps every payment, tender, ledger row and settlement, so the fee is compared with what was settled and the remaining is the fee minus that. Adjust and extend stay whole-game only, as in dollars.
 - Money is always `Decimal`. The ledger is USD only.
 
 ## 4. What the owner can do (and what stops him)
@@ -147,11 +150,12 @@ Slot names: slot 1 shows the requester's name. Other slots show "Player N" until
 
 | Rule | File |
 |---|---|
-| Split into slots, 1–30 | `src/modules/booking/domain/build-slots.ts` (uses `split-evenly.ts`) |
+| Split into slots, 1–30, in whole units | `src/modules/booking/domain/build-slots.ts` (uses `payment/domain/units.ts` `splitInUnits`) |
 | May switch / may pay a slot | `src/modules/booking/domain/switch-mode.ts` |
 | Switch use cases | `src/modules/booking/application/switch-collection-mode.ts` |
 | Slot pay, pay-all | `src/modules/booking/application/collect-player-payment.ts` |
-| Charge cap (pay-all, one tap, button totals, covered state) | `src/modules/booking/domain/slot-charge.ts` (`planSlotCharge`, `slotPayState`) |
+| Charge cap (pay-all, one tap, button totals, covered state), either currency | `src/modules/booking/domain/share-charge.ts` (`planShareCharge`, `sharePayState`); `slot-charge.ts` is its dollar-named face |
+| Consider it paid on one share | `src/modules/booking/application/consider-share-paid.ts`, `forgivenShare` in `domain/adjust-due.ts` |
 | Cancel and no-show (collapse) | `src/modules/booking/application/cancel-booking.ts`, `record-no-show.ts`, `collapseToWhole` in `infrastructure/bookings.ts` |
 | Whole-collect guard | `src/modules/booking/application/collect-booking-payment.ts` |
 | Due-change guard (`due_whole_only`) | `src/modules/booking/domain/adjust-due.ts`, `application/write-due-change.ts` |
@@ -165,7 +169,7 @@ Module rule: Booking may import Payment. Payment never imports Booking, so `inse
 
 ## 8. How it is tested
 
-- Unit: `build-slots`, `switch-mode`, `split-evenly`, `person-owed`, `slot-charge` (the audit case, the cap, partial last slot, covered).
+- Unit: `build-slots`, `switch-mode`, `share-charge`, `person-owed`, `slot-charge` (the audit case, the cap, partial last slot, covered).
 - Integration (`per-player.integration.test.ts`, real Postgres): the split and its refusals, rollback when a slot insert fails, one tap writes one payment/tender/ledger/allocation, the concurrent double tap, pay-all, Unassigned covering the slots (no second charge), pay-all capped at the booking remaining with a partial last slot, a partial single tap, whole-collect refusal, switching back, allocation tenant scoping, cancel with payments, cancel with an edited fee, cancel with nothing paid, no-show at the default fee, no-show with an edited fee, no-show waived.
 - **Not covered by any test:** the sheet itself (there is no browser or React test setup), the 401/refresh behavior, a cancel or no-show racing a slot tap (the row lock is in place but not exercised).
 

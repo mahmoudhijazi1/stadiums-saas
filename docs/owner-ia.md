@@ -40,19 +40,19 @@ Do not grow a destination by stacking another product’s UI on it. If it is not
 
 Money page v2 (2026-10-15), top to bottom:
 
-1. The period chip and the $ / LBP toggle (when a rate is known). Default range is this Beirut calendar month when `from`/`to` are omitted.
-2. **Summary card:** "Profit in October" (or "Loss ...", neutral colour) as the one figure; a comparison line only when the previous period has a ledger row; "In $X · Out $Y" (each opens `/owner/money/activity` filtered); a muted In-by-source line ("Games $175 · Shop $22") when there are two or more sources.
+1. The period chip and the $ / LBP toggle (when a rate is known). Default range is this Beirut calendar month when `from`/`to` are omitted. With no `view` in the URL the page opens on the stadium's own currency (a stadium that prices games in pounds opens on LBP); an explicit `?view=usd` or `?view=lbp` wins, and every Money link carries the choice.
+2. **Summary card:** "Profit in October" (or "Loss ...", neutral colour) as the one figure; a comparison line only when the previous period has a ledger row; "In $X · Out $Y" (each opens `/owner/money/activity` filtered); in the LBP view the figures count each payment at its own value (one line under the headline says so, and how many dollar payments had no stored rate and were counted at today's rate; see [domain/money.md](./domain/money.md)); a muted In-by-source line ("Games $175 · Shop $22") when there are two or more sources.
 3. **Owed** card (unchanged), when something is owed.
 4. **Cash today** line when the period contains today: net cash per currency for the current business day, never converted; a tap opens in / out / net per currency (`reports.view`; see [domain/money.md](./domain/money.md)).
 5. **Actions row:** "+ Expense" (`expenses.record`, the one primary button: the sheet opens with the amount focused, category chips most recent first per member and browser, today, optional note) and "Sell" (`shop.sell`).
-6. **Recent activity:** the 5 latest rows with "All activity ›".
-7. **Shop row** "Shop · sales $X this month ›" (only with shop sales or supplies) to `/owner/money/shop`.
+6. **Recent activity:** the 5 latest rows with "All activity ›". Each row's main amount is what the payment kept, in the currency it was paid in ("+2,000,000 LBP", "+$20", "+$20 + 1,500,000 LBP", "−500,000 LBP"), never added across currencies; the dollar equivalent and the rate stay in the row's details.
+7. **Shop row** "Shop · sales $X this month ›" (in pounds in the LBP view) (only with shop sales or supplies) to `/owner/money/shop`.
 
 Sub-pages: `/owner/money/activity` (day grouping, All/In/Out, keyset "Show more"; period and filter in the URL), `/owner/money/shop` (sales, supplies, items sold, caption) and `/owner/money/owed`. `getCurrentRate()` is a **read** for the LBP display fallback only.
 
 **More** (`/owner/more`) is the settings hub. `/owner/more/settings` redirects here and keeps `ok` / `error`.
 
-- Business rows (pitches, exchange rate, booking rules, public page) require `settings.manage`. `OWNER` passes `can()` with no jsonb flag.
+- Business rows (pitches, exchange rate, booking rules, public page) require `settings.manage`. The **Game prices in** row (USD or LBP; DR-007 decision 1) sits next to booking rules and shows only to an OWNER (`settings.game_currency`, never granted to staff): its sheet confirms the switch ("New bookings will be priced in LBP. Existing games keep their currency."), or, when a pitch has no price in the other currency, lists those pitches with a link to each editor and offers no confirm. `OWNER` passes `can()` with no jsonb flag.
 - Exchange rate sheet reuses `submitSetExchangeRate`. Time format sheet reuses `submitSetTimeDisplay` and saves on tap. Language and appearance save on tap. Booking rules (BR-27) are not stored, so that sheet does not write.
 - Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`. Owner Today / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
 - **Stadium info** row (Business section, `settings.manage`) opens `/owner/more/stadium`: name, address, map link, phone, a "Same number for WhatsApp" switch with an optional separate number, and a colour from 8 presets, with a hint to set the name and colour before installing the app. The owner header avatar and the public header show the generated logo.

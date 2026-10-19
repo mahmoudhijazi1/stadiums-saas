@@ -15,8 +15,13 @@ import {
 import { MAX_PRICE_RULES } from "@/modules/venue/schemas/pitch-draft";
 import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
 import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
+import { formatPrice } from "@/lib/format/money";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
+import { isLbpPriceString } from "@/modules/venue/domain/schedule-config";
+import { LbpPriceField } from "@/app/owner/(app)/more/settings/pitches/_components/lbp-price-field";
 
-export type PriceCard = { key: string; days: Weekday[]; priceUsd: string };
+/** `priceLbp` rides along in a USD stadium, and `priceUsd` in an LBP one (DR-007). */
+export type PriceCard = { key: string; days: Weekday[]; priceUsd: string; priceLbp?: string };
 
 /**
  * "Different price on some days": one card per price, each day in at most one card (a day
@@ -29,14 +34,23 @@ export function PriceCards({
   onChange,
   timed,
   hourCycle,
+  currency,
 }: {
   locale: UiLocale;
   cards: PriceCard[];
   onChange: (cards: PriceCard[]) => void;
   timed: TimedRule[];
   hourCycle: HourCycleChoice;
+  /** The stadium's gamePriceCurrency: which price each card edits. */
+  currency: GamePriceCurrency;
 }) {
+  const inLbp = currency === "LBP";
   const [confirming, setConfirming] = useState<string | null>(null);
+  // A kept timed rule shows its price in the stadium's currency, or says it has none in it.
+  const timedPrice = (rule: TimedRule["rule"]): string | null => {
+    const amount = inLbp ? rule.priceLbp : rule.priceUsd;
+    return amount === undefined ? null : inLbp ? formatPrice({ currency: "LBP", amount }, locale) : `$${amount}`;
+  };
   const used = new Set(cards.flatMap((card) => card.days));
 
   function patch(key: string, change: Partial<PriceCard>) {
@@ -55,8 +69,9 @@ export function PriceCards({
       </legend>
       <ul className="flex flex-col gap-3">
         {cards.map((card) => {
-          const priceInvalid = card.priceUsd !== "" && !isValidUsd(card.priceUsd);
-          const incomplete = card.days.length > 0 && !isValidUsd(card.priceUsd);
+          const priceInvalid = !inLbp && card.priceUsd !== "" && !isValidUsd(card.priceUsd);
+          const priced = inLbp ? isLbpPriceString(card.priceLbp ?? "") : isValidUsd(card.priceUsd);
+          const incomplete = card.days.length > 0 && !priced;
           return (
             <li key={card.key} className="flex flex-col gap-3 rounded-xl border bg-card p-3">
               <div className="flex flex-wrap gap-2">
@@ -86,13 +101,22 @@ export function PriceCards({
                 })}
               </div>
               <div className="flex items-center gap-3">
-                <MoneyInput
-                  className="flex-1"
-                  value={card.priceUsd}
-                  label={ui("owner.pitchPriceRuleAmount", locale)}
-                  invalid={priceInvalid}
-                  onChange={(priceUsd) => patch(card.key, { priceUsd })}
-                />
+                {inLbp ? (
+                  <LbpPriceField
+                    value={card.priceLbp ?? ""}
+                    label={ui("owner.pitchPriceRuleAmount", locale)}
+                    locale={locale}
+                    onChange={(priceLbp) => patch(card.key, { priceLbp })}
+                  />
+                ) : (
+                  <MoneyInput
+                    className="flex-1"
+                    value={card.priceUsd}
+                    label={ui("owner.pitchPriceRuleAmount", locale)}
+                    invalid={priceInvalid}
+                    onChange={(priceUsd) => patch(card.key, { priceUsd })}
+                  />
+                )}
                 {confirming === card.key ? (
                   <span className="flex items-center gap-2">
                     <Button
@@ -143,7 +167,7 @@ export function PriceCards({
                 {formatClock(rule.start ?? "00:00", hourCycle, locale)}–{formatClock(rule.end ?? "00:00", hourCycle, locale)}
               </LtrIsolate>
               {" · "}
-              <LtrIsolate>${rule.priceUsd}</LtrIsolate>
+              {timedPrice(rule) ? <LtrIsolate>{timedPrice(rule)}</LtrIsolate> : ui("owner.pitchSetLbpPrices", locale)}
             </p>
           ))}
         </div>

@@ -4,7 +4,7 @@ import db from "@/lib/db";
 import { messageDayLabel } from "@/modules/booking/application/night-hint";
 import { formatLocalHm } from "@/lib/format/time";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatPrice } from "@/lib/format/money";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/copy";
@@ -23,7 +23,7 @@ const TIME_ZONE = "Asia/Beirut";
 
 /**
  * One send row after cancel, no-show, or adjust. The body is the saved due
- * and status. A mismatched status returns nothing.
+ * and status, with amounts named in the game's currency (DR-007 slice 8). A mismatched status returns nothing.
  */
 export async function loadOutcomeNotify(input: {
   bookingId: string;
@@ -66,7 +66,7 @@ export async function loadOutcomeNotify(input: {
       if (booking.status !== "CANCELLED") return null;
       const initiator =
         booking.dueNote === "PLAYER" || booking.dueNote === "OWNER" ? booking.dueNote : null;
-      const fee = booking.dueToUsd ?? booking.amountDueUsd;
+      const fee = booking.dueTo ?? booking.amountDue;
       return toNotify(
         input,
         person,
@@ -75,7 +75,7 @@ export async function loadOutcomeNotify(input: {
         facts({
           initiator: initiator ?? undefined,
           link: publicPageUrl(tenant.slug),
-          fee: fee.gt(0) ? `$${formatUsdCompact(fee)}` : null,
+          fee: fee.gt(0) ? formatPrice({ currency: booking.currency, amount: fee }, locale) : null,
         }),
         ui("owner.cancelledShort", locale),
         locale,
@@ -84,13 +84,13 @@ export async function loadOutcomeNotify(input: {
 
     if (input.kind === "no_show") {
       if (booking.status !== "NO_SHOW") return null;
-      const fee = booking.amountDueUsd;
+      const fee = booking.amountDue;
       return toNotify(
         input,
         person,
         "after_no_show",
         { feeCharged: fee.gt(0) },
-        facts({ amount: `$${formatUsdCompact(fee)}` }),
+        facts({ amount: formatPrice({ currency: booking.currency, amount: fee }, locale) }),
         ui("owner.noShow", locale),
         locale,
       );
@@ -103,16 +103,13 @@ export async function loadOutcomeNotify(input: {
     ) {
       return null;
     }
-    const owed = Decimal.max(
-      bookingRemaining(booking.amountDueUsd, booking.collectedUsd),
-      0,
-    );
+    const owed = Decimal.max(bookingRemaining(booking.amountDue, booking.collected), 0);
     return toNotify(
       input,
       person,
       "after_adjust",
       { owed: owed.gt(0) },
-      facts({ amount: `$${formatUsdCompact(owed)}` }),
+      facts({ amount: formatPrice({ currency: booking.currency, amount: owed }, locale) }),
       ui("owner.dueShort", locale),
       locale,
     );

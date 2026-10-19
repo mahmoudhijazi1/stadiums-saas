@@ -3,7 +3,9 @@ import type { BookingStatus } from "@/generated/prisma/enums";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import Decimal from "decimal.js";
-import { asDate } from "./_shared";
+import type { GameCurrency } from "@/modules/booking/domain/game-money";
+import { gameOwing, shareOwing } from "@/modules/booking/domain/game-owing";
+import { asDate, SETTLED_LBP_SQL, type SqlMoney } from "./_shared";
 
 export type DebtParticipationSqlRow = {
   personId: string;
@@ -13,10 +15,12 @@ export type DebtParticipationSqlRow = {
   end: Date;
   collectionMode: "WHOLE" | "PER_PLAYER";
   isRequester: boolean;
-  amountDueUsd: Decimal;
-  collectedUsd: Decimal;
-  participantDueUsd: Decimal;
-  allocatedUsd: Decimal;
+  /** The game's currency; every amount below is in it (DR-007). */
+  currency: GameCurrency;
+  amountDue: Decimal;
+  collected: Decimal;
+  participantDue: Decimal;
+  allocated: Decimal;
   reason: string | null;
 };
 
@@ -28,16 +32,23 @@ type DebtParticipationRaw = {
   end: Date | string;
   collectionMode: "WHOLE" | "PER_PLAYER";
   isRequester: boolean;
-  amountDueUsd: Decimal | string;
+  priceCurrency: GameCurrency;
+  amountDueUsd: SqlMoney;
+  amountDueLbp: SqlMoney;
   collectedUsd: Decimal | string | null;
-  participantDueUsd: Decimal | string;
-  allocatedUsd: Decimal | string | null;
+  settledLbp: SqlMoney;
+  participantDueUsd: SqlMoney;
+  participantDueLbp: SqlMoney;
+  allocatedUsd: SqlMoney;
+  allocatedLbp: SqlMoney;
   reason: string | null;
 };
 
 /**
  * Participations for many people, one query. Latest due-change reason rides along.
  * Caller passes the person ids on this screen. Empty list does not hit the database.
+ * No money filter: every participation of these people comes back, each with its game's currency and
+ * its amounts in it (DR-007), so a warning is per currency and never leaves an LBP game out.
  */
 export async function listDebtParticipations(
   tx: TenantTx,
@@ -54,10 +65,15 @@ export async function listDebtParticipations(
       upper(b.during) AS end,
       b."collectionMode"::text AS "collectionMode",
       bp."isRequester",
+      b."priceCurrency"::text AS "priceCurrency",
       b."amountDueUsd",
+      b."amountDueLbp",
       bp."amountDueUsd" AS "participantDueUsd",
+      bp."amountDueLbp" AS "participantDueLbp",
       COALESCE(collected.usd, 0) AS "collectedUsd",
+      ${SETTLED_LBP_SQL} AS "settledLbp",
       COALESCE(alloc.usd, 0) AS "allocatedUsd",
+      COALESCE(alloc.lbp, 0) AS "allocatedLbp",
       latest.reason::text AS reason
     FROM "BookingParticipant" bp
     JOIN "Booking" b ON b.id = bp."bookingId"
@@ -70,7 +86,7 @@ export async function listDebtParticipations(
         AND pay."sourceId" = b.id
     ) collected ON true
     LEFT JOIN LATERAL (
-      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd
+      SELECT COALESCE(SUM(a."amountUsd"), 0) AS usd, COALESCE(SUM(a."amountLbp"), 0) AS lbp
       FROM "PaymentAllocation" a
       WHERE a."tenantId" = bp."tenantId"
         AND a."participantId" = bp.id
@@ -92,18 +108,30 @@ export async function listDebtParticipations(
         'NO_SHOW'::"BookingStatus"
       )
   `;
-  return rows.map((row) => ({
-    personId: row.personId,
-    bookingId: row.bookingId,
-    status: row.status,
-    start: asDate(row.start),
-    end: asDate(row.end),
-    collectionMode: row.collectionMode,
-    isRequester: row.isRequester,
-    amountDueUsd: new Decimal(row.amountDueUsd.toString()),
-    collectedUsd: new Decimal((row.collectedUsd ?? 0).toString()),
-    participantDueUsd: new Decimal(row.participantDueUsd.toString()),
-    allocatedUsd: new Decimal((row.allocatedUsd ?? 0).toString()),
-    reason: row.reason,
-  }));
+  return rows.map((row) => {
+    const game = gameOwing(row);
+    const share = shareOwing({
+      currency: game.currency,
+      amountDueUsd: row.participantDueUsd,
+      amountDueLbp: row.participantDueLbp,
+      allocatedUsd: row.allocatedUsd,
+      allocatedLbp: row.allocatedLbp,
+      where: "debts.share",
+    });
+    return {
+      personId: row.personId,
+      bookingId: row.bookingId,
+      status: row.status,
+      start: asDate(row.start),
+      end: asDate(row.end),
+      collectionMode: row.collectionMode,
+      isRequester: row.isRequester,
+      currency: game.currency,
+      amountDue: game.due,
+      collected: game.collected,
+      participantDue: share.due,
+      allocated: share.allocated,
+      reason: row.reason,
+    };
+  });
 }

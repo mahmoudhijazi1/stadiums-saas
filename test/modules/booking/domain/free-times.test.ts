@@ -1,7 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
-import { commonPriceUsd, freePitches, freeSlots } from "@/modules/booking/domain/free-times";
+import { commonPrice, freePitches, freeSlots } from "@/modules/booking/domain/free-times";
 
-const slot = (priceUsd: string, available = true) => ({ priceUsd, available });
+const slot = (priceUsd: string, available = true) => ({ price: { currency: "USD" as const, amount: priceUsd }, available });
+const commonPriceUsd = (slots: ReturnType<typeof slot>[]) => commonPrice(slots)?.amount ?? null;
 
 describe("commonPriceUsd", () => {
   it("is the price most of the free times have", () => {

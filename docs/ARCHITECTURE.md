@@ -25,13 +25,13 @@ One Next.js app. Business logic lives in `src/modules/<context>/{domain,applicat
 | `notification` | `people` |
 | `payment` | `access`, `ledger` |
 | `people` | `access` |
-| `platform` | `access` |
+| `platform` | `access`, `venue` |
 | `push` | `access` |
 | `shop` | `access`, `ledger`, `payment`, `people` |
 | `stadium` | `access`, `people`, `platform` |
-| `venue` | `access` |
+| `venue` | `access`, `payment` |
 
-Why each edge exists: `notification -> people` (the Lebanese phone rule is a people domain rule used to build wa.me links, domain to domain); `booking -> stadium` (`domain/public-page-url`, for WhatsApp links); `stadium -> people` (phone and name rules) and `stadium -> platform` (only `application/tenant-profile`: the audited rename and the brand source). Nothing imports `push` (the new-request alert is composed in `app/`, enforced by `test/modules/push/imports.test.ts`). `platform` is operator-only; only `stadium` and `scripts/platform-cli.ts` import it. **Imports point down:** `booking` is the top business context.
+Why each edge exists: `notification -> people` (the Lebanese phone rule is a people domain rule used to build wa.me links, domain to domain); `booking -> stadium` (`domain/public-page-url`, for WhatsApp links); `stadium -> people` (phone and name rules) and `stadium -> platform` (only `application/tenant-profile`: the audited rename and the brand source); `venue -> payment` (`domain/units`: the 5,000 LBP unit of a pitch price, DR-007) and `platform -> venue` (`domain/schedule-config` `hasPricesIn`: which pitches have prices in a currency before the operator switches a stadium's, DR-007). Nothing imports `push` (the new-request alert is composed in `app/`, enforced by `test/modules/push/imports.test.ts`). `platform` is operator-only; only `stadium` and `scripts/platform-cli.ts` import it. **Imports point down:** `booking` is the top business context.
 
 **Layers inside a module** (rule 2): `domain` imports only domain files and pure libs (no application, infrastructure, `lib/db`, `lib/logger`, the Prisma client); `infrastructure` never imports `application`; `schemas` import only domain, schemas and libs. Application may import its own domain, infrastructure and schemas and other modules' application, infrastructure and schemas along the edge table (the guard does not restrict that yet).
 
@@ -114,6 +114,7 @@ Prefer `updateMany({ where: { id } })` (filtered by the extension) inside transa
 2. Put `"tenantId" = ${tenantId}` on the **driving** table of every statement. Add it on joined tables too when a join is not by a tenant-owned id.
 3. Use tagged templates or `Prisma.join` only. Never `$queryRawUnsafe` or `Prisma.raw` with input.
 4. Add a cross-tenant case to `test/integration/isolation.integration.test.ts` (or the suite for that use case).
+5. **Game money (DR-007).** A statement that reads, filters or sums a USD game-money column (`"priceUsd"`, `"amountDueUsd"`, `"fromUsd"`/`"toUsd"`, a `PaymentAllocation` `"amountUsd"`) also selects its currency column (or LBP twin) and maps the row through `booking/domain/game-money.ts` (`requireUsd` only where it is used as dollars). A reader that shows what is owed filters on the currency of each game (a USD game on its tenders, an LBP game on `BookingSettlement.lbpApplied`, `SETTLED_LBP_SQL`), reads each row through `game-owing.ts` (`gameOwing`, `shareOwing`) and totals per currency (`Parts`), never one sum across them; so an LBP game is shown in pounds, never refused and never left out. Every use case that decides on a booking reads it through `findBookingForDecision` / `findBookingForUpdate`, which return the price and the due as `GameMoney` in the game's own currency, so cancel, no-show, extend, adjust, collect and split work on either (DR-007 slices 6 to 8). The only `requireUsd` left is `usdSlots` (dollar slot charging of a USD game); `refuseLbpGames` is gone. The LBP money unit is written once, in `lib/format/lbp-unit.ts` (`test/architecture/lbp-unit.test.ts`). `test/architecture/game-money-sql.test.ts` checks every SQL string under `src`.
 
 ---
 
@@ -160,7 +161,9 @@ The new-request alert is composed in `app/(public)/alert-owners.ts` and schedule
 | `record-no-show.ts` `recordNoShow` | P → B | |
 | `dismiss-missed-requests.ts` `dismissMissedRequests` | B\* (missed pending, id order) | No P. |
 | `reject-booking.ts` `rejectBooking` | B (implicit, `setPendingStatus` UPDATE) | Single row. |
-| `collect-booking-payment.ts` `collectBookingPayment` | B | Then inserts Payment, tenders, ledger (new rows). |
+| `collect-booking-payment.ts` `collectBookingPayment` | B | Then inserts Payment, tenders, ledger and, on an LBP game, its BookingSettlement (new rows). |
+| `consider-game-paid.ts` `considerGamePaid` | B | Then the due and one ROUNDING due change. |
+| `consider-share-paid.ts` `considerSharePaid` | B | Then the share, the due and one ROUNDING due change. |
 | `collect-player-payment.ts` (`payRemaining` → `collectSlotPayment`, `collectAllRemaining`) | B | Then updates participants and allocations of **that** booking. |
 | `adjust-booking-due.ts` `adjustBookingDue` | B | |
 | `switch-collection-mode.ts` `switchToPerPlayer`, `switchToWhole` | B | Then replaces participants of that booking. |

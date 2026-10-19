@@ -24,6 +24,7 @@ const base = {
   lastDay: { year: 2026, month: 10, day: 24 },
   timeZone: "Asia/Beirut",
   now: new Date("2026-10-14T09:00:00Z"),
+  currency: "USD" as const,
 };
 const taken = (startUtc: string, endUtc: string) => ({ pitchId: "p1", start: new Date(startUtc), end: new Date(endUtc) });
 
@@ -34,7 +35,7 @@ describe("getWindowSummary", () => {
     expect(days).toHaveLength(11);
     expect(days.find((day) => day.key === "2026-10-16")!.freeCount).toBe(3);
     expect(days.find((day) => day.key === "2026-10-15")!.freeCount).toBe(0);
-    expect(nextFree).toMatchObject({ dateKey: "2026-10-16", priceUsd: "20.00", durationMinutes: 60, pitchName: null });
+    expect(nextFree).toMatchObject({ dateKey: "2026-10-16", price: { currency: "USD", amount: "20.00" }, durationMinutes: 60, pitchName: null });
     expect(nextFree!.startIso).toBe("2026-10-16T15:00:00.000Z"); // 18:00 Beirut (UTC+3)
   });
 

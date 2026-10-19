@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { DomainError } from "@/lib/errors";
+import { getCurrentTenant } from "@/lib/tenant-context";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_CREATE, can } from "@/modules/access/domain/can";
 import { SERIES_TIME_ZONE } from "@/modules/booking/application/series-weeks";
@@ -46,9 +47,10 @@ async function preview(input: {
   if (!pitch) {
     throw new DomainError("booking.pitch_not_found");
   }
-  const [approved, pending] = await Promise.all([
+  const [approved, pending, tenant] = await Promise.all([
     listApprovedRanges(db, input.pitchId, now),
     listPendingBookings(db),
+    getCurrentTenant(),
   ]);
   return {
     pitchId: input.pitchId,
@@ -62,6 +64,8 @@ async function preview(input: {
       pending: pending.filter((row) => row.pitchId === input.pitchId),
       now,
       timeZone: SERIES_TIME_ZONE,
+      // Each week priced the way the use case will book it (DR-007).
+      currency: tenant.gamePriceCurrency,
     }),
   };
 }

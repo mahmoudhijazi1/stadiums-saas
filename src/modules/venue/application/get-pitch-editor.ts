@@ -23,6 +23,8 @@ export type PitchEditor = {
   slotDurationMinutes: number;
   defaultPlayerCount: number;
   defaultPriceUsd: string;
+  /** Whole pounds, "" when the pitch has no price in pounds (DR-007). */
+  defaultPriceLbp: string;
   priceRules: PitchPriceRule[];
 };
 
@@ -62,6 +64,7 @@ export async function getPitchEditor(
       slotDurationMinutes: config.slotDurationMinutes,
       defaultPlayerCount: row.defaultPlayerCount,
       defaultPriceUsd: config.defaultPriceUsd,
+      defaultPriceLbp: config.defaultPriceLbp ?? "",
       priceRules: config.priceRules,
     };
   } catch (error) {

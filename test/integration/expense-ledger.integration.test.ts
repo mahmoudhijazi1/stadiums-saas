@@ -235,7 +235,7 @@ async function moneyOfExpense(expenseId: string) {
   });
   const fix = (value: { toString(): string }) => new Decimal(value.toString()).toFixed(2);
   return {
-    paymentDue: fix(payment.amountDueUsd),
+    paymentDue: fix(payment.amountDueUsd!),
     tenders: payment.tenders.map((tender) => [
       tender.currency,
       fix(tender.amount),

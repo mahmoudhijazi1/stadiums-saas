@@ -1,5 +1,6 @@
 import Decimal from "decimal.js";
 import { classifyDue, type DueStatus } from "@/modules/booking/domain/classify-due";
+import { remainingOf, type Remaining } from "@/modules/booking/domain/game-owing";
 import {
   personOwedOnBooking,
   type CollectionModeName,
@@ -15,15 +16,15 @@ export type DebtParticipation = {
   end: Date;
   collectionMode: CollectionModeName;
   isRequester: boolean;
-  bookingRemainingUsd: Decimal;
-  participantRemainingUsd: Decimal;
   /** Latest due-change reason on this booking, when one exists. */
   reason: DueChangeReason | null;
-};
+} & Remaining;
 
 export type DebtWarning = {
   personId: string;
   totalUsd: Decimal;
+  /** The same total in pounds (LBP games); never added to the dollars (DR-007 decision 11). */
+  totalLbp: Decimal;
   /** Reason on the owed booking with the latest start. */
   reason: DueChangeReason | null;
   /** Start of that booking. */
@@ -41,15 +42,18 @@ export function debtWarnings(
   const byPerson = new Map<string, DebtWarning & { bookingId: string }>();
 
   for (const row of rows) {
+    const figures = remainingOf(row);
     const remaining = Decimal.max(
       personOwedOnBooking({
         collectionMode: row.collectionMode,
         isRequester: row.isRequester,
-        bookingRemainingUsd: row.bookingRemainingUsd,
-        participantRemainingUsd: row.participantRemainingUsd,
+        bookingRemainingUsd: figures.booking,
+        participantRemainingUsd: figures.participant,
       }),
       0,
     );
+    const usd = figures.currency === "LBP" ? new Decimal(0) : remaining;
+    const lbp = figures.currency === "LBP" ? remaining : new Decimal(0);
     if (
       classifyDue({
         status: row.status,
@@ -66,7 +70,8 @@ export function debtWarnings(
     if (!current) {
       byPerson.set(row.personId, {
         personId: row.personId,
-        totalUsd: remaining,
+        totalUsd: usd,
+        totalLbp: lbp,
         reason: row.reason,
         at: row.start,
         bookingId: row.bookingId,
@@ -74,7 +79,8 @@ export function debtWarnings(
       continue;
     }
 
-    current.totalUsd = current.totalUsd.plus(remaining);
+    current.totalUsd = current.totalUsd.plus(usd);
+    current.totalLbp = current.totalLbp.plus(lbp);
     if (isLaterOwed(row, current)) {
       current.reason = row.reason;
       current.at = row.start;
@@ -85,6 +91,7 @@ export function debtWarnings(
   return [...byPerson.values()].map((row) => ({
     personId: row.personId,
     totalUsd: row.totalUsd,
+    totalLbp: row.totalLbp,
     reason: row.reason,
     at: row.at,
   }));

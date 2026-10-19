@@ -69,6 +69,8 @@ export default async function EditPitchPage({
             String(editor.defaultPlayerCount),
           defaultPriceUsd:
             queryString(query.defaultPriceUsd) ?? editor.defaultPriceUsd,
+          defaultPriceLbp:
+            queryString(query.defaultPriceLbp) ?? editor.defaultPriceLbp,
           priceRules:
             readPriceRulesDraft(queryString(query.priceRulesJson)) ??
             editor.priceRules,
@@ -77,6 +79,7 @@ export default async function EditPitchPage({
         splitEnabled={tenant.perPlayerSplitEnabled}
         hourCycle={tenant.timeDisplay}
         dayStartHour={tenant.dayStartHour}
+        currency={tenant.gamePriceCurrency}
       />
     </section>
   );

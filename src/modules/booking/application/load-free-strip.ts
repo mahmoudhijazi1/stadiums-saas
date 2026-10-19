@@ -65,6 +65,7 @@ export async function loadFreeStrip(
         today,
         hourCycle: tenant.timeDisplay,
         locale,
+        currency: tenant.gamePriceCurrency,
       }),
       listApprovedOccupied(),
       countPendingBySlot(db, range.start, range.end),
@@ -82,7 +83,7 @@ export async function loadFreeStrip(
         pitch.slots.map((slot) => ({
           pitchId: pitch.id,
           pitchName: pitch.name,
-          defaultPriceUsd: pitch.defaultPriceUsd,
+          defaultPrice: pitch.defaultPrice,
           ...slot,
         })),
       ),

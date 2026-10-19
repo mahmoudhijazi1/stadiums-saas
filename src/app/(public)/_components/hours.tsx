@@ -56,6 +56,7 @@ export async function PublicHours({
     occupied,
     hourCycle: tenant.timeDisplay,
     locale,
+    currency: tenant.gamePriceCurrency,
   });
 
   if (pitches.length === 0) {

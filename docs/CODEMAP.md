@@ -47,15 +47,15 @@ Layers: `domain/` (pure functions, no await, no db), `application/` (use cases, 
 | `expense` | Expenses and categories | domain application infrastructure schemas ui |
 | `ledger` | Append-only USD ledger entries and period bounds | domain application infrastructure schemas ui |
 | `notification` | WhatsApp link composition | domain |
-| `payment` | Collect, tenders, rates, per-player payments, due adjustments | domain application infrastructure schemas ui |
+| `payment` | Collect, tenders, rates, per-player payments, due adjustments, game settlements and the pounds unit (`units`), the Money page's per-payment pounds read and Activity pairing (`lbp-period`, `entry-payments`) | domain application infrastructure schemas ui |
 | `people` | Persons, phones, names | domain application infrastructure ui |
 | `platform` | Operator-only tenant management; `application/tenant-profile` serves the stadium module | domain application infrastructure |
 | `push` | Web push to owners (new-request alert) | domain application infrastructure |
 | `shop` | Products, sales, tabs, supplies, items on a booking | domain application infrastructure schemas ui |
-| `stadium` | The stadium's own name and info, brand (presets, accent, logo plan), links (map, public URL, QR text), PWA short name | domain application ui |
+| `stadium` | The stadium's own name and info, the owner's game price currency, brand (presets, accent, logo plan), links (map, public URL, QR text), PWA short name | domain application ui |
 | `venue` | Pitches, hours, schedule config, availability | domain application infrastructure schemas ui |
 
-`ui/` contents today: `booking` (booking rows, day sheet, day strip and tabs, free strip, fee forms, extend form, per-player collect, booking items, add-items sheet, the upcoming panel (`upcoming-panel.tsx`, `upcoming-rows.tsx`) and the booking sheet in `booking-sheet/` (header, money block, extend entry, shop tabs, series row, more actions, `booking-sheet.tsx` as the composition; its actions come in as five typed groups: collect, extend, items, series, fee), series components, request and book components, slot picker, `time-rows` for the public page, and the public request sheet (`public-request-sheet.tsx` with the pure `public-request-view.tsx`), `action-types.ts` for the action props), `expense` (expense-sheet), `ledger` (period-label), `payment` (cash-today, tender-balance, tonal-collect), `people` (person-link), `shop` (item-tiles, parts-balance, sell-screen), `stadium` (qr-sheet, share-card, pitch-arc), `venue` (day-chips, day-strip, weekday-label, date-calendar-chip, day-chip-class).
+`ui/` contents today: `booking` (booking rows, day sheet, day strip and tabs, free strip, fee forms, extend form, per-player collect, booking items, add-items sheet, the upcoming panel (`upcoming-panel.tsx`, `upcoming-rows.tsx`) and the booking sheet in `booking-sheet/` (header, money block, extend entry, shop tabs, series row, more actions, `booking-sheet.tsx` as the composition; its actions come in as five typed groups: collect, extend, items, series, fee), series components, request and book components, slot picker, `time-rows` for the public page, and the public request sheet (`public-request-sheet.tsx` with the pure `public-request-view.tsx`), `action-types.ts` for the action props), `expense` (expense-sheet), `ledger` (period-label), `payment` (cash-today, tender-balance, tonal-collect, keep-it), `people` (person-link), `shop` (item-tiles, parts-balance, sell-screen), `stadium` (qr-sheet, share-card, pitch-arc), `venue` (day-chips, day-strip, weekday-label, date-calendar-chip, day-chip-class).
 
 ## Elsewhere
 | Folder | What is in it |

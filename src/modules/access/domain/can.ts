@@ -14,6 +14,11 @@ export const SHOP_SELL = "shop.sell";
 export const SHOP_MANAGE = "shop.manage";
 /** Owner only: rename a person or change their phone. No flag grants it to staff. */
 export const PEOPLE_EDIT = "people.edit";
+/**
+ * Owner only: the currency new games are priced in (DR-007 decision 1). `settings.manage` can be granted
+ * to staff by flag, and this changes every price a stadium shows, so it is its own owner-only permission.
+ */
+export const SETTINGS_GAME_CURRENCY = "settings.game_currency";
 
 export type Permission =
   | typeof BOOKINGS_APPROVE
@@ -28,14 +33,15 @@ export type Permission =
   | typeof SETTINGS_MANAGE
   | typeof SHOP_SELL
   | typeof SHOP_MANAGE
-  | typeof PEOPLE_EDIT;
+  | typeof PEOPLE_EDIT
+  | typeof SETTINGS_GAME_CURRENCY;
 
 export type MembershipLike = {
   role: "OWNER" | "STAFF";
   permissions: unknown;
 };
 
-const OWNER_ONLY: ReadonlySet<Permission> = new Set([SHOP_MANAGE, PEOPLE_EDIT]);
+const OWNER_ONLY: ReadonlySet<Permission> = new Set([SHOP_MANAGE, PEOPLE_EDIT, SETTINGS_GAME_CURRENCY]);
 
 /**
  * May this membership do this action on *this* stadium (DR-003 §5).

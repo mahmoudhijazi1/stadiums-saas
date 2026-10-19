@@ -3,6 +3,7 @@ import { parseTenantSettings } from "@/lib/tenant-settings";
 import { hashPassword } from "@/modules/access/infrastructure/password";
 import {
   optionalDayStartHour,
+  optionalGameCurrency,
   ownerIdentifierFor,
   requireActor,
   requireOwnerPassword,
@@ -27,6 +28,8 @@ export type CreateTenantInput = {
   ownerIdentifier?: string | null;
   /** Local hour a business day starts, 0..6 (a string from the CLI). Absent: 6. */
   dayStartHour?: string | number | null;
+  /** "USD" or "LBP": what games are priced in. Absent: USD (DR-007 decision 1). */
+  gamePriceCurrency?: string | null;
   ownerPassword: string;
   actor: string;
 };
@@ -41,6 +44,7 @@ export function validateCreateTenantInput(input: Omit<CreateTenantInput, "ownerP
     paidUntil: input.paidUntil ?? null,
     ownerIdentifier: ownerIdentifierFor(slug, input.ownerIdentifier),
     dayStartHour: optionalDayStartHour(input.dayStartHour),
+    gamePriceCurrency: optionalGameCurrency(input.gamePriceCurrency),
     actor: requireActor(input.actor),
   };
 }
@@ -54,6 +58,7 @@ export async function createTenant(input: CreateTenantInput): Promise<{
   tenantId: string;
   slug: string;
   ownerIdentifier: string;
+  gamePriceCurrency: "USD" | "LBP";
 }> {
   const checked = validateCreateTenantInput(input);
   // Hash outside the transaction (about 100–200 ms).
@@ -67,7 +72,10 @@ export async function createTenant(input: CreateTenantInput): Promise<{
     return await platformTransaction(async (tx) => {
       const tenant = await tx.tenant.create({
         data: { slug: checked.slug, name: checked.name, settings: parseTenantSettings(
-            checked.dayStartHour === null ? {} : { dayStartHour: checked.dayStartHour },
+            {
+              gamePriceCurrency: checked.gamePriceCurrency,
+              ...(checked.dayStartHour === null ? {} : { dayStartHour: checked.dayStartHour }),
+            },
           ),
         },
         select: { id: true },
@@ -99,9 +107,15 @@ export async function createTenant(input: CreateTenantInput): Promise<{
           paidUntil: checked.paidUntil?.toISOString() ?? null,
           ownerIdentifier: checked.ownerIdentifier,
           dayStartHour: checked.dayStartHour,
+          gamePriceCurrency: checked.gamePriceCurrency,
         },
       });
-      return { tenantId: tenant.id, slug: checked.slug, ownerIdentifier: checked.ownerIdentifier };
+      return {
+        tenantId: tenant.id,
+        slug: checked.slug,
+        ownerIdentifier: checked.ownerIdentifier,
+        gamePriceCurrency: checked.gamePriceCurrency,
+      };
     });
   } catch (error) {
     if (isUniqueViolation(error, "slug")) throw new DomainError("platform.slug_taken");

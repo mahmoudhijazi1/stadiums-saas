@@ -21,6 +21,8 @@ export async function insertLedgerEntry(
     sourceType: PaymentSourceType;
     sourceId: string;
     occurredAt?: Date;
+    /** The payment this row is written for (F-2); rows written before the column existed have none. */
+    paymentId?: string;
   },
 ) {
   return tx.ledgerEntry.create({
@@ -29,6 +31,7 @@ export async function insertLedgerEntry(
       amountUsd: formatUsd(input.amountUsd),
       sourceType: input.sourceType,
       sourceId: input.sourceId,
+      ...(input.paymentId ? { paymentId: input.paymentId } : {}),
       ...(input.occurredAt ? { occurredAt: input.occurredAt } : {}),
     } as Parameters<typeof tx.ledgerEntry.create>[0]["data"],
   });
@@ -138,5 +141,6 @@ export async function listLedgerEntriesPage(
     occurredAt: row.occurredAt,
     sourceType: row.sourceType,
     sourceId: row.sourceId,
+    paymentId: row.paymentId,
   }));
 }

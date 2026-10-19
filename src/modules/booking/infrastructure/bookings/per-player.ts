@@ -4,6 +4,16 @@ import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/format/money";
 import Decimal from "decimal.js";
+import { requireUsd, type GameCurrency, type GameMoney } from "@/modules/booking/domain/game-money";
+import { shareOwing } from "@/modules/booking/domain/game-owing";
+import type { SqlMoney } from "./_shared";
+
+/** A share in the game's currency as the participant row stores it: exactly one column is set (CHECK). */
+function shareColumns(money: GameMoney): { amountDueUsd: string | null; amountDueLbp: string | null } {
+  return money.currency === "LBP"
+    ? { amountDueUsd: null, amountDueLbp: money.amount.toFixed(0) }
+    : { amountDueUsd: formatUsd(money.amount), amountDueLbp: null };
+}
 
 /** How many allocations sit on this booking's participants. Zero allows switching back. */
 export async function countBookingAllocations(
@@ -37,13 +47,14 @@ async function setCollectionMode(
 
 /**
  * WHOLE → PER_PLAYER. The requester row becomes slot 1; slots 2..N are new unnamed rows.
- * Booking.amountDueUsd is untouched: the shares add up to it exactly.
+ * The booking's due is untouched: the shares (in its currency, `currency`) add up to it exactly.
  */
 export async function applyPerPlayerSlots(
   tx: TenantTx,
   input: {
     bookingId: string;
-    slots: { slotNumber: number; amountDueUsd: Decimal; isRequester: boolean }[];
+    currency: GameCurrency;
+    slots: { slotNumber: number; amountDue: Decimal; isRequester: boolean }[];
   },
 ): Promise<void> {
   for (const slot of input.slots) {
@@ -52,7 +63,7 @@ export async function applyPerPlayerSlots(
         where: { bookingId: input.bookingId, isRequester: true },
         data: {
           slotNumber: slot.slotNumber,
-          amountDueUsd: formatUsd(slot.amountDueUsd),
+          ...shareColumns({ currency: input.currency, amount: slot.amountDue }),
         },
       });
       if (updated.count !== 1) {
@@ -66,7 +77,7 @@ export async function applyPerPlayerSlots(
       data: {
         bookingId: input.bookingId,
         personId: null,
-        amountDueUsd: formatUsd(slot.amountDueUsd),
+        ...shareColumns({ currency: input.currency, amount: slot.amountDue }),
         slotNumber: slot.slotNumber,
         isRequester: false,
       } as Parameters<typeof tx.bookingParticipant.create>[0]["data"],
@@ -77,36 +88,54 @@ export async function applyPerPlayerSlots(
 
 /**
  * PER_PLAYER → WHOLE. Callers have checked there are no allocations, so deleting the
- * non-requester rows loses nothing. The requester carries the whole due again.
+ * non-requester rows loses nothing. The requester carries the whole due again, in the game's currency.
  */
 export async function applyWholeMode(
   tx: TenantTx,
-  input: { bookingId: string; amountDueUsd: Decimal },
+  input: { bookingId: string; due: GameMoney },
 ): Promise<void> {
   await tx.bookingParticipant.deleteMany({
     where: { bookingId: input.bookingId, isRequester: false },
   });
   await tx.bookingParticipant.updateMany({
     where: { bookingId: input.bookingId, isRequester: true },
-    data: { slotNumber: null, amountDueUsd: formatUsd(input.amountDueUsd) },
+    data: { slotNumber: null, ...shareColumns(input.due) },
   });
   await setCollectionMode(tx, input.bookingId, "WHOLE");
 }
 
 /**
  * Cancel-with-payments only: drop the per-player structure, allocations included, and
- * put the booking back to WHOLE. The payments, tenders and ledger rows stay; only who
- * paid what (the allocations) is lost. Everything collected keeps counting on the booking.
+ * put the booking back to WHOLE. The payments, tenders, ledger rows and settlements stay; only who
+ * paid what (the allocations) is lost. Everything collected or settled keeps counting on the booking,
+ * so on a game in pounds the remaining is still its due minus its settlements (DR-007 slice 7).
  * Same transaction as the cancel (SPEC-15 slice 2).
  */
 export async function collapseToWhole(
   tx: TenantTx,
-  input: { bookingId: string; amountDueUsd: Decimal },
+  input: { bookingId: string; due: GameMoney },
 ): Promise<void> {
   await tx.paymentAllocation.deleteMany({
     where: { participant: { bookingId: input.bookingId } },
   });
   await applyWholeMode(tx, input);
+}
+
+/**
+ * Lower (or set) one slot's share, in the game's currency. Used by "Consider it paid" on a share,
+ * which lowers the share by exactly what is left on it, in the same transaction as the game's due.
+ */
+export async function setParticipantDue(
+  tx: TenantTx,
+  input: { participantId: string; due: GameMoney },
+): Promise<void> {
+  const updated = await tx.bookingParticipant.updateMany({
+    where: { id: input.participantId },
+    data: shareColumns(input.due),
+  });
+  if (updated.count !== 1) {
+    throw new DomainError("booking.not_found");
+  }
 }
 
 export type SlotRow = {
@@ -116,24 +145,32 @@ export type SlotRow = {
   isRequester: boolean;
   personId: string | null;
   name: string | null;
-  dueUsd: Decimal;
-  paidUsd: Decimal;
+  /** The game's currency; `due` and `paid` are in it (DR-007). */
+  currency: GameCurrency;
+  due: Decimal;
+  paid: Decimal;
 };
+
+/** A slot of a USD game, as the dollar slot charging (a money write) reads it. */
+export type UsdSlotRow = Omit<SlotRow, "currency" | "due" | "paid"> & { dueUsd: Decimal; paidUsd: Decimal };
 
 type SlotSqlRow = {
   bookingId: string;
+  priceCurrency: GameCurrency;
   participantId: string;
   slotNumber: number;
   isRequester: boolean;
   personId: string | null;
   name: string | null;
-  dueUsd: Decimal | string;
-  paidUsd: Decimal | string | null;
+  dueUsd: SqlMoney;
+  dueLbp: SqlMoney;
+  paidUsd: SqlMoney;
+  paidLbp: SqlMoney;
 };
 
 /**
  * Slots (participants with a slot number) for these bookings, in slot order,
- * each with what its allocations add up to.
+ * each with what its allocations add up to, in its game's currency (DR-007: pounds for an LBP game).
  */
 export async function listSlotsForBookings(
   tx: TenantTx,
@@ -144,32 +181,64 @@ export async function listSlotsForBookings(
   const rows = await tx.$queryRaw<SlotSqlRow[]>`
     SELECT
       bp."bookingId" AS "bookingId",
+      b."priceCurrency"::text AS "priceCurrency",
       bp.id AS "participantId",
       bp."slotNumber" AS "slotNumber",
       bp."isRequester" AS "isRequester",
       bp."personId" AS "personId",
       per.name AS name,
       bp."amountDueUsd" AS "dueUsd",
+      bp."amountDueLbp" AS "dueLbp",
       COALESCE((
         SELECT SUM(a."amountUsd")
         FROM "PaymentAllocation" a
         WHERE a."participantId" = bp.id AND a."tenantId" = bp."tenantId"
-      ), 0) AS "paidUsd"
+      ), 0) AS "paidUsd",
+      COALESCE((
+        SELECT SUM(a."amountLbp")
+        FROM "PaymentAllocation" a
+        WHERE a."participantId" = bp.id AND a."tenantId" = bp."tenantId"
+      ), 0) AS "paidLbp"
     FROM "BookingParticipant" bp
+    JOIN "Booking" b ON b.id = bp."bookingId" AND b."tenantId" = bp."tenantId"
     LEFT JOIN "Person" per ON per.id = bp."personId"
     WHERE bp."tenantId" = ${tenantId}
       AND bp."bookingId" IN (${Prisma.join(bookingIds)})
       AND bp."slotNumber" IS NOT NULL
     ORDER BY bp."bookingId" ASC, bp."slotNumber" ASC
   `;
-  return rows.map((row) => ({
-    bookingId: row.bookingId,
-    participantId: row.participantId,
-    slotNumber: row.slotNumber,
-    isRequester: row.isRequester,
-    personId: row.personId,
-    name: row.name,
-    dueUsd: new Decimal(row.dueUsd.toString()),
-    paidUsd: new Decimal((row.paidUsd ?? 0).toString()),
+  return rows.map((row) => {
+    const share = shareOwing({
+      currency: row.priceCurrency,
+      amountDueUsd: row.dueUsd,
+      amountDueLbp: row.dueLbp,
+      allocatedUsd: row.paidUsd,
+      allocatedLbp: row.paidLbp,
+      where: "slots",
+    });
+    return {
+      bookingId: row.bookingId,
+      participantId: row.participantId,
+      slotNumber: row.slotNumber,
+      isRequester: row.isRequester,
+      personId: row.personId,
+      name: row.name,
+      currency: share.currency,
+      due: share.due,
+      paid: share.allocated,
+    };
+  });
+}
+
+/**
+ * The same slots as dollars, for the dollar slot charge of a USD game (an LBP game is charged by
+ * `planShareCharge` and never reaches this): a slot of an LBP game is refused with
+ * `booking.lbp_not_supported`.
+ */
+export function usdSlots(slots: readonly SlotRow[]): UsdSlotRow[] {
+  return slots.map(({ currency, due, paid, ...rest }) => ({
+    ...rest,
+    dueUsd: requireUsd({ currency, amount: due }, "slots.dueUsd"),
+    paidUsd: requireUsd({ currency, amount: paid }, "slots.paidUsd"),
   }));
 }

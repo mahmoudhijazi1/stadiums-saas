@@ -1,3 +1,4 @@
+import { OwedAmounts } from "@/modules/booking/ui/owed-amounts";
 import { OwnerBackLink } from "@/components/shell/back-link";
 import { formatLocalClockRange } from "@/lib/format/time";
 import { requireOwnerMembership } from "@/app/owner/require-owner";
@@ -5,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Figure } from "@/components/ui/figure";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { formatDisplayDate } from "@/lib/format/time";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatOwed, formatUsdCompact } from "@/lib/format/money";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { ui } from "@/lib/copy";
 import { PAYMENTS_COLLECT, REPORTS_VIEW, can } from "@/modules/access/domain/can";
@@ -53,14 +54,14 @@ export default async function OwedPage() {
         ? notifyLink({
             context: "owed_page",
             phone: group.phone,
-            facts: { name, stadiumName: tenant.name, day: since, time: "", since, amount: `$${formatUsdCompact(group.totalUsd)}` },
+            facts: { name, stadiumName: tenant.name, day: since, time: "", since, amount: formatOwed({ usd: group.totalUsd, lbp: group.totalLbp }, locale) },
             locale,
           }).href
         : null;
     return {
       key: group.personId ?? (name ? `name:${name.toLowerCase()}` : "unnamed"),
       name,
-      totalLabel: `$${formatUsdCompact(group.totalUsd)}`,
+      totalLabel: formatOwed({ usd: group.totalUsd, lbp: group.totalLbp }, locale),
       games: group.games,
       reminderHref,
       debts: group.debts.map((debt, index) => ({
@@ -72,6 +73,8 @@ export default async function OwedPage() {
           timeRange: formatLocalClockRange(debt.start, debt.end, tenant.timeDisplay, locale),
           requesterName: name ?? ui("owner.unnamedPlayer", locale),
           owedUsd: formatUsdCompact(debt.owedUsd),
+          // A debt in pounds (an LBP game): its amount already written in its currency.
+          owedText: debt.owedLbp.gt(0) ? formatOwed({ usd: debt.owedUsd, lbp: debt.owedLbp }, locale) : undefined,
           // A player's shop tab is marked "Shop" where the pitch name would go.
           pitchName:
             debt.kind === "tab"
@@ -92,7 +95,9 @@ export default async function OwedPage() {
       <div className="flex flex-col gap-1">
         <h2 className="type-title">{ui("owner.owedTitle", locale)}</h2>
         {groups.length > 0 ? (
-          <Figure className="block text-4xl text-owed">{`$${formatUsdCompact(owed.totalUsd)}`}</Figure>
+          <Figure className="block text-4xl text-owed">
+            <OwedAmounts usd={owed.totalUsd.toFixed(2)} lbp={owed.totalLbp.toFixed(0)} locale={locale} className="items-start" />
+          </Figure>
         ) : null}
       </div>
       {groups.length === 0 ? (

@@ -1,4 +1,6 @@
 import Decimal from "decimal.js";
+import type { GameCurrency, GameMoney } from "@/modules/booking/domain/game-money";
+import { roundToUnit } from "@/modules/payment/domain/units";
 import { bookingFitsOpenHours, openWindowEnd } from "@/modules/venue/domain/availability";
 import type { ScheduleConfig } from "@/modules/venue/domain/schedule-config";
 
@@ -22,8 +24,9 @@ export type ExtensionPlan = {
   reason: ExtensionRefusal | null;
   /** end + 30 minutes, whether or not it is allowed (the UI shows what it would be). */
   newEnd: Date;
-  /** The suggested added price: the agreed price per minute x 30, half up to cents. */
-  addedPriceUsd: Decimal;
+  /** The suggested added price, in the game's currency: the agreed price per minute x 30, rounded to the money unit. */
+  addedPrice: Decimal;
+  currency: GameCurrency;
   /** For the message: when the next game starts (next_game) or when the pitch closes (closing). */
   limit: Date | null;
 };
@@ -33,14 +36,18 @@ export type ExtensibleBooking = {
   collectionMode: "WHOLE" | "PER_PLAYER";
   start: Date;
   end: Date;
-  priceUsd: Decimal;
+  /** The agreed price, in the game's currency (DR-007). */
+  price: GameMoney;
 };
 
-/** Proportional to the agreed price: priceUsd / current minutes x 30, rounded half up to cents. */
-export function addedPriceForExtension(priceUsd: Decimal, start: Date, end: Date): Decimal {
+/**
+ * Proportional to the agreed price: price / current minutes x 30, rounded half up to the money unit of
+ * the game's currency (DR-007 decision 7): $1 on a game in dollars, 5,000 LBP on a game in pounds.
+ */
+export function addedPriceForExtension(price: GameMoney, start: Date, end: Date): Decimal {
   const minutes = (end.getTime() - start.getTime()) / MINUTE_MS;
   if (minutes <= 0) return new Decimal(0);
-  return priceUsd.div(minutes).times(EXTENSION_STEP_MINUTES).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  return roundToUnit(price.amount.div(minutes).times(EXTENSION_STEP_MINUTES), price.currency);
 }
 
 /**
@@ -57,12 +64,14 @@ export function extensionPlan(
   timeZone = "Asia/Beirut",
 ): ExtensionPlan {
   const newEnd = new Date(booking.end.getTime() + EXTENSION_STEP_MINUTES * MINUTE_MS);
-  const addedPriceUsd = addedPriceForExtension(booking.priceUsd, booking.start, booking.end);
+  const addedPrice = addedPriceForExtension(booking.price, booking.start, booking.end);
+  const currency = booking.price.currency;
   const refuse = (reason: ExtensionRefusal, limit: Date | null = null): ExtensionPlan => ({
     allowed: false,
     reason,
     newEnd,
-    addedPriceUsd,
+    addedPrice,
+    currency,
     limit,
   });
 
@@ -78,7 +87,7 @@ export function extensionPlan(
   if (!bookingFitsOpenHours(pitchConfig, { start: booking.start, end: newEnd }, timeZone)) {
     return refuse("closing", openWindowEnd(pitchConfig, booking.start, timeZone));
   }
-  return { allowed: true, reason: null, newEnd, addedPriceUsd, limit: null };
+  return { allowed: true, reason: null, newEnd, addedPrice, currency, limit: null };
 }
 
 /** "18:00-19:00 → 18:00-19:30" in the stadium's clock, for the due-change note. */

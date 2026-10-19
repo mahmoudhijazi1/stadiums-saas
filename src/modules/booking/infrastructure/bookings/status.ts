@@ -3,7 +3,7 @@ import { DomainError } from "@/lib/errors";
 import type { TenantTx } from "@/lib/db";
 import { getCurrentTenantId } from "@/lib/tenant-context";
 import { formatUsd } from "@/lib/format/money";
-import Decimal from "decimal.js";
+import type { GameMoney } from "@/modules/booking/domain/game-money";
 
 /**
  * PENDING → APPROVED or REJECTED. 0 rows means gone or already decided.
@@ -60,23 +60,36 @@ export async function setApprovedNoShow(
  * or participant dues must call this in the same transaction (SPEC-15).
  */
 /**
- * Move the END of an APPROVED game and raise its agreed price, in one statement. The start and the
+ * Move the END of an APPROVED game and set its agreed price (in the game's currency), in one statement. The start and the
  * [) bounds are kept; tenantId is in the SQL (the extension does not stamp raw SQL). The caller
  * holds the pitch and booking locks. The exclusion constraint is the backstop: an overlap with
  * another APPROVED game raises 23P01 here.
  */
 export async function setBookingEndAndPrice(
   tx: TenantTx,
-  input: { bookingId: string; newEnd: Date; priceUsd: Decimal },
+  input: { bookingId: string; newEnd: Date; price: GameMoney },
 ): Promise<void> {
   const tenantId = await getCurrentTenantId();
-  const count = await tx.$executeRaw`
+  // One statement per currency: the price column and the currency it must be in go together.
+  const count =
+    input.price.currency === "LBP"
+      ? await tx.$executeRaw`
     UPDATE "Booking"
     SET during = tstzrange(lower(during), ${input.newEnd}, '[)'),
-        "priceUsd" = ${formatUsd(input.priceUsd)}::numeric
+        "priceLbp" = ${input.price.amount.toFixed(0)}::numeric
     WHERE id = ${input.bookingId}
       AND "tenantId" = ${tenantId}
       AND status = 'APPROVED'::"BookingStatus"
+      AND "priceCurrency" = 'LBP'::"Currency"
+  `
+      : await tx.$executeRaw`
+    UPDATE "Booking"
+    SET during = tstzrange(lower(during), ${input.newEnd}, '[)'),
+        "priceUsd" = ${formatUsd(input.price.amount)}::numeric
+    WHERE id = ${input.bookingId}
+      AND "tenantId" = ${tenantId}
+      AND status = 'APPROVED'::"BookingStatus"
+      AND "priceCurrency" = 'USD'::"Currency"
   `;
   if (count !== 1) {
     throw new DomainError("booking.not_found");

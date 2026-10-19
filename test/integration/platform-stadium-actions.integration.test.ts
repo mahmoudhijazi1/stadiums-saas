@@ -169,3 +169,21 @@ describe("without a session or off the bare host", () => {
     expect(await platformDb.tenant.count()).toBe(0);
   });
 });
+
+describe("submitCreateStadium: the game price currency (DR-007 decision 1)", () => {
+  it("stores LBP when the form asks for it and says so in the result; without it the stadium prices in USD", async () => {
+    const { submitCreateStadium } = await actions();
+    const pounds = await submitCreateStadium({ ...NEW, gamePriceCurrency: "LBP" });
+    expect(pounds).toMatchObject({ ok: true, slug: "al-nour", gamePriceCurrency: "LBP" });
+    const lbpTenant = await platformDb.tenant.findUniqueOrThrow({ where: { slug: "al-nour" } });
+    expect((lbpTenant.settings as { gamePriceCurrency?: string }).gamePriceCurrency).toBe("LBP");
+
+    const dollars = await submitCreateStadium({ ...NEW, name: "Al Amal", slug: "al-amal" });
+    expect(dollars).toMatchObject({ ok: true, slug: "al-amal", gamePriceCurrency: "USD" });
+    const usdTenant = await platformDb.tenant.findUniqueOrThrow({ where: { slug: "al-amal" } });
+    expect((usdTenant.settings as { gamePriceCurrency?: string }).gamePriceCurrency).toBe("USD");
+
+    const created = await audits("tenant.create");
+    expect(created.map((row) => (row.detail as { gamePriceCurrency?: string }).gamePriceCurrency).sort()).toEqual(["LBP", "USD"]);
+  });
+});

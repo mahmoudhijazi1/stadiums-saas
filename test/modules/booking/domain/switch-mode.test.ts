@@ -9,7 +9,7 @@ import {
 const ok = {
   status: "APPROVED",
   collectionMode: "WHOLE" as const,
-  amountDueUsd: new Decimal("30.00"),
+  due: new Decimal("30.00"),
   allocationCount: 0,
 };
 
@@ -40,7 +40,7 @@ describe("assertCanSwitchToPerPlayer", () => {
       "booking.switch_not_approved",
     );
     expect(
-      key(() => assertCanSwitchToPerPlayer({ ...ok, amountDueUsd: new Decimal(0) })),
+      key(() => assertCanSwitchToPerPlayer({ ...ok, due: new Decimal(0) })),
     ).toBe("booking.switch_no_due");
     expect(
       key(() => assertCanSwitchToPerPlayer({ ...ok, collectionMode: "PER_PLAYER" })),
@@ -66,7 +66,7 @@ describe("assertCanPaySlot", () => {
   const slot = {
     status: "APPROVED",
     collectionMode: "PER_PLAYER" as const,
-    chargeUsd: new Decimal("3.00"),
+    charge: new Decimal("3.00"),
   };
 
   it("allows a positive capped charge on an approved per-player booking", () => {
@@ -83,7 +83,7 @@ describe("assertCanPaySlot", () => {
 
   it("refuses a zero charge (paid or covered slot, double tap) and a booking that is not approved", () => {
     expect(
-      key(() => assertCanPaySlot({ ...slot, chargeUsd: new Decimal(0) })),
+      key(() => assertCanPaySlot({ ...slot, charge: new Decimal(0) })),
     ).toBe("payment.nothing_due");
     expect(key(() => assertCanPaySlot({ ...slot, status: "PENDING" }))).toBe(
       "payment.collect_unapproved",

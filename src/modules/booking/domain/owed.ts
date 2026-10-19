@@ -1,11 +1,16 @@
 import Decimal from "decimal.js";
 import { classifyDue, type DueStatus } from "@/modules/booking/domain/classify-due";
+import { remainingOf, type Remaining } from "@/modules/booking/domain/game-owing";
 import {
   personOwedOnBooking,
   type CollectionModeName,
 } from "@/modules/booking/domain/person-owed";
 
-/** One participant of a booking that has money still due, already loaded. Not a Prisma type. */
+/**
+ * One participant of a booking that has money still due, already loaded. Not a Prisma type. The
+ * remaining is in the game's currency (`Remaining`): dollars under the USD names, pounds under the
+ * LBP names (DR-007).
+ */
 export type OwedParticipation = {
   bookingId: string;
   status: DueStatus;
@@ -18,9 +23,7 @@ export type OwedParticipation = {
   personName: string | null;
   personPhone: string | null;
   isRequester: boolean;
-  bookingRemainingUsd: Decimal;
-  participantRemainingUsd: Decimal;
-};
+} & Remaining;
 
 /** An unpaid player tab on a game that is owed. */
 export type OwedTab = {
@@ -45,7 +48,10 @@ export type OwedDebt = {
   start: Date;
   end: Date;
   pitchName: string;
+  /** What is owed, in dollars; zero on a debt in pounds. */
   owedUsd: Decimal;
+  /** What is owed, in pounds (an LBP game); zero on a debt in dollars. Never converted (DR-007). */
+  owedLbp: Decimal;
 };
 
 export type OwedGroup = {
@@ -54,6 +60,7 @@ export type OwedGroup = {
   name: string | null;
   phone: string | null;
   totalUsd: Decimal;
+  totalLbp: Decimal;
   /** Distinct games. */
   games: number;
   /** Newest first. */
@@ -62,6 +69,8 @@ export type OwedGroup = {
 
 export type OwedSummary = {
   totalUsd: Decimal;
+  /** The same total in pounds: LBP games are never added to dollars (DR-007 decision 11). */
+  totalLbp: Decimal;
   /** Distinct games with money owed. */
   games: number;
   /** Newest debt first. */
@@ -82,24 +91,28 @@ export function summarizeOwed(
   const groups = new Map<string, OwedGroup>();
   const games = new Set<string>();
   let totalUsd = new Decimal(0);
+  let totalLbp = new Decimal(0);
 
   for (const row of rows) {
+    const remaining = remainingOf(row);
     const owed = Decimal.max(
       personOwedOnBooking({
         collectionMode: row.collectionMode,
         isRequester: row.isRequester,
-        bookingRemainingUsd: row.bookingRemainingUsd,
-        participantRemainingUsd: row.participantRemainingUsd,
+        bookingRemainingUsd: remaining.booking,
+        participantRemainingUsd: remaining.participant,
       }),
       0,
     );
+    const lbp = remaining.currency === "LBP";
     if (
       classifyDue({ status: row.status, start: row.start, end: row.end, remaining: owed, now }) !== "owed"
     ) {
       continue;
     }
 
-    totalUsd = totalUsd.plus(owed);
+    if (lbp) totalLbp = totalLbp.plus(owed);
+    else totalUsd = totalUsd.plus(owed);
     games.add(row.bookingId);
     const key = row.personId ?? "";
     const group =
@@ -109,10 +122,12 @@ export function summarizeOwed(
         name: row.personName,
         phone: row.personPhone,
         totalUsd: new Decimal(0),
+        totalLbp: new Decimal(0),
         games: 0,
         debts: [],
       } satisfies OwedGroup);
-    group.totalUsd = group.totalUsd.plus(owed);
+    if (lbp) group.totalLbp = group.totalLbp.plus(owed);
+    else group.totalUsd = group.totalUsd.plus(owed);
     group.debts.push({
       kind: "game",
       bookingId: row.bookingId,
@@ -120,7 +135,8 @@ export function summarizeOwed(
       start: row.start,
       end: row.end,
       pitchName: row.pitchName,
-      owedUsd: owed,
+      owedUsd: lbp ? new Decimal(0) : owed,
+      owedLbp: lbp ? owed : new Decimal(0),
     });
     groups.set(key, group);
   }
@@ -141,6 +157,7 @@ export function summarizeOwed(
         name: tab.name,
         phone: tab.phone,
         totalUsd: new Decimal(0),
+        totalLbp: new Decimal(0),
         games: 0,
         debts: [],
       } satisfies OwedGroup);
@@ -153,6 +170,7 @@ export function summarizeOwed(
       end: tab.end,
       pitchName: tab.pitchName,
       owedUsd: owed,
+      owedLbp: new Decimal(0),
     });
     groups.set(key, group);
   }
@@ -171,5 +189,5 @@ export function summarizeOwed(
     if (b.name === null) return -1;
     return a.name.localeCompare(b.name);
   });
-  return { totalUsd, games: games.size, groups: ordered };
+  return { totalUsd, totalLbp, games: games.size, groups: ordered };
 }

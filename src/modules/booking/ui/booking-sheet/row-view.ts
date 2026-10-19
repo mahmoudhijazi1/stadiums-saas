@@ -24,6 +24,12 @@ export type UpcomingRowView = {
   requesterPersonId: string;
   requesterName: string;
   requesterPhone: string | null;
+  /**
+   * The game's currency (DR-007 slice 8); absent means USD. The fee, collected and due strings below
+   * (`priceUsd` as the due, `playerFeeExact`, `ownerFeeCompact`, `noShowFeeExact`, `collectedExact` ...) are in it:
+   * dollars with cents on a USD game, whole pounds on an LBP game.
+   */
+  currency?: "USD" | "LBP";
   remainingUsd: string;
   /** Unpaid player tabs on this game; shown in the pill, never collected with the booking. */
   tabsRemainingUsd: string;
@@ -35,6 +41,13 @@ export type UpcomingRowView = {
   mayAddItems: boolean;
   items: BookingItemsPanelView;
   priceUsd: string;
+  /**
+   * An LBP game (DR-007): what is left in pounds ("2,000,000 ل.ل"), what its settlements applied,
+   * whether nothing is left, and the pill text (the remaining plus any player tab, each in its own
+   * currency), and `remaining`, what is left in whole pounds for the collect form ("210000"). Absent or null
+   * on a USD game.
+   */
+  lbp?: { due: string; paid: string; settled: boolean; pill: string; remaining: string } | null;
   interested: NotifyPerson[];
   status: UpcomingStatus;
   display: CardDisplay;

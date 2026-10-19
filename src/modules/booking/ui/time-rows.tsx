@@ -3,10 +3,10 @@
 import { ChevronRight } from "lucide-react";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { splitDisplayedClock } from "@/lib/format/time";
-import { commonPriceUsd } from "@/modules/booking/domain/free-times";
+import { commonPrice } from "@/modules/booking/domain/free-times";
 import { compactRange } from "@/modules/booking/domain/compact-range";
 import type { SlotPickerPitch, SlotPickerSlot } from "@/modules/booking/ui/slot-picker";
-import { compactUsd } from "@/lib/format/money";
+import { formatPrice, samePrice } from "@/lib/format/money";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
@@ -35,7 +35,7 @@ export function TimeRows({
   onPick: (pitchId: string, slot: SlotPickerSlot) => void;
 }) {
   const free = pitches.flatMap((pitch) => pitch.slots.filter((slot) => slot.available));
-  const common = commonPriceUsd(free);
+  const common = commonPrice(free);
   const nearest = free.reduce<SlotPickerSlot | null>((best, slot) => (!best || slot.startIso < best.startIso ? slot : best), null);
   const minutes = free[0] ? Math.round((new Date(free[0].endIso).getTime() - new Date(free[0].startIso).getTime()) / 60_000) : 0;
   const [beforeN = "", afterN = ""] = ui("public.minutes", locale).split("{n}");
@@ -47,7 +47,7 @@ export function TimeRows({
         <div className="flex flex-col gap-0.5">
           <h2 className="type-title">{ui("public.availableTimes", locale)}</h2>
           <p className="type-secondary">
-            <LtrIsolate>{compactUsd(common)}</LtrIsolate> {ui("public.perGame", locale)}
+            <LtrIsolate>{formatPrice(common, locale)}</LtrIsolate> {ui("public.perGame", locale)}
             {minutes > 0 ? (
               <>
                 {" · "}
@@ -69,7 +69,7 @@ export function TimeRows({
                 slot={slot}
                 locale={locale}
                 isNearest={slot === nearest}
-                showPrice={slot.priceUsd !== common}
+                showPrice={slot.price !== null && !samePrice(slot.price, common)}
                 onPick={() => onPick(pitch.id, slot)}
               />
             ))}
@@ -109,7 +109,10 @@ function TimeRow({
       ) : null}
     </span>
   );
-  const price = showPrice ? <LtrIsolate className="type-secondary tabular-nums">{compactUsd(slot.priceUsd)}</LtrIsolate> : null;
+  const price =
+    showPrice && slot.price ? (
+      <LtrIsolate className="type-secondary tabular-nums">{formatPrice(slot.price, locale)}</LtrIsolate>
+    ) : null;
 
   if (!slot.available) {
     return (

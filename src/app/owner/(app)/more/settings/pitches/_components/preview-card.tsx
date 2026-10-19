@@ -7,15 +7,19 @@ import type { UiLocale } from "@/lib/locale";
 import {
   gameLongerLabel,
   previewSummaryLabel,
+  previewSummaryText,
   ui,
   unusedTimeLabel,
 } from "@/lib/copy";
+import { formatPrice } from "@/lib/format/money";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { cn } from "cn";
 import {
   civilDateInTimeZone,
   addCalendarDays,
   generateSlotsForDay,
   localWallClock,
+  priceForSlotIn,
 } from "@/modules/venue/domain/availability";
 import {
   formatClock,
@@ -42,7 +46,7 @@ function windowMinutes(row: DayRow): number {
 /**
  * What a player would see on the next date of the chosen weekday: the real slots from
  * `generateSlotsForDay` (same function the booking pages use), computed here from the
- * form's current state. No query.
+ * form's current state. No query. Prices are in the stadium's `currency` (`priceForSlotIn`, DR-007).
  */
 export function PreviewCard({
   locale,
@@ -50,6 +54,7 @@ export function PreviewCard({
   rows,
   hourCycle,
   slotMinutes,
+  currency,
 }: {
   locale: UiLocale;
   /** Null while the form is not valid yet (blank price, zero length). */
@@ -57,6 +62,7 @@ export function PreviewCard({
   rows: DayRow[];
   hourCycle: HourCycleChoice;
   slotMinutes: number;
+  currency: GamePriceCurrency;
 }) {
   const [today] = useState(() => civilDateInTimeZone(new Date(), TIME_ZONE));
   const [picked, setPicked] = useState<Weekday | null>(null);
@@ -72,10 +78,22 @@ export function PreviewCard({
   const date = addCalendarDays(today, offset);
   const slots = generateSlotsForDay({ config, localDate: date, timeZone: TIME_ZONE, occupied: [] });
   const row = rows.find((item) => item.day === selected)!;
-  const prices = slots.map((slot) => slot.priceUsd);
-  const fallback = new Decimal(config.defaultPriceUsd);
+  const priceOf = (start: Date) =>
+    priceForSlotIn(config, currency, { start, localDate: date, timeZone: TIME_ZONE }).amount ?? new Decimal(0);
+  const prices = slots.map((slot) => priceOf(slot.start));
+  const fallback = new Decimal(currency === "USD" ? config.defaultPriceUsd : (config.defaultPriceLbp ?? "0"));
   const min = prices.reduce((a, b) => (b.lt(a) ? b : a), prices[0] ?? fallback);
   const max = prices.reduce((a, b) => (b.gt(a) ? b : a), prices[0] ?? fallback);
+  const summary =
+    currency === "USD"
+      ? previewSummaryLabel(slots.length, min.toFixed(2), max.toFixed(2), locale)
+      : previewSummaryText(
+          slots.length,
+          formatPrice({ currency, amount: min }, locale),
+          formatPrice({ currency, amount: max }, locale),
+          min.eq(max),
+          locale,
+        );
   const leftover = windowMinutes(row) - slots.length * slotMinutes;
 
   return (
@@ -106,9 +124,7 @@ export function PreviewCard({
 
       {slots.length > 0 ? (
         <>
-          <p className="type-label">
-            {previewSummaryLabel(slots.length, min.toFixed(2), max.toFixed(2), locale)}
-          </p>
+          <p className="type-label">{summary}</p>
           <ul className="flex flex-wrap gap-2">
             {slots.map((slot) => {
               const wall = localWallClock(slot.start, TIME_ZONE);
@@ -119,7 +135,13 @@ export function PreviewCard({
                   className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 type-label text-muted-foreground"
                 >
                   <LtrIsolate>{formatClock(hhmm, hourCycle, locale)}</LtrIsolate>
-                  {min.eq(max) ? null : <LtrIsolate>${slot.priceUsd.toFixed(0)}</LtrIsolate>}
+                  {min.eq(max) ? null : (
+                    <LtrIsolate>
+                      {currency === "USD"
+                        ? `$${priceOf(slot.start).toFixed(0)}`
+                        : formatPrice({ currency, amount: priceOf(slot.start) }, locale)}
+                    </LtrIsolate>
+                  )}
                 </li>
               );
             })}

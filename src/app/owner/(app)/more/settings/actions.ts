@@ -6,6 +6,7 @@ import { actionErrorKey } from "@/lib/use-case-error";
 import { setBookingRules } from "@/modules/access/application/set-booking-rules";
 import { setTimeDisplay } from "@/modules/access/application/set-time-display";
 import { setExchangeRate } from "@/modules/payment/application/set-exchange-rate";
+import { setOwnGameCurrency } from "@/modules/stadium/application/game-currency";
 import { parseExchangeRate } from "@/modules/payment/schemas/exchange-rate";
 import { field, redirectOwner } from "@/lib/form-query";
 
@@ -79,4 +80,18 @@ export async function submitSetTimeDisplay(formData: FormData) {
   redirectOwner("/owner/more/settings", formData, SETTINGS_KEEP, {
     ok: "time_display_set",
   });
+}
+
+/** Thin action. Owner only (the use case checks). The use case refuses a pitch without a price. */
+export async function submitSetGameCurrency(formData: FormData) {
+  let errorKey: string | undefined;
+  try {
+    await setOwnGameCurrency({ currency: field(formData, "currency") });
+  } catch (error) {
+    errorKey = await actionErrorKey(error, "submitSetGameCurrency");
+  }
+  if (errorKey) {
+    redirectOwner("/owner/more/settings", formData, SETTINGS_KEEP, { error: errorKey });
+  }
+  redirectOwner("/owner/more/settings", formData, SETTINGS_KEEP, { ok: "game_currency_set" });
 }

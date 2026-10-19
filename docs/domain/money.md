@@ -4,7 +4,33 @@
 **Read when:** you touch payments, the ledger or any amount on screen.
 **Last verified:** `f01c9bf` (main, after refactor step 6c).
 
+**Game money in two currencies** (a game priced in USD or LBP) is one section below, "Game money in USD or LBP (DR-007)"; the numbered sections describe the mechanics it builds on.
+
 **Living.** Written 2026-10-01 from the code on `main` at `f3c3f93`. Every claim cites a file and function. **UNVERIFIED** marks a claim not traced to code. The per-player user guide is [../per-player-payments.md](../per-player-payments.md), the tables are in [../DATA-MODEL.md](../DATA-MODEL.md), and the locks are in [../ARCHITECTURE.md](../ARCHITECTURE.md) §6. Background decisions: DR-002 §2.14–2.21, SPEC-06, SPEC-15, SPEC-16.
+
+---
+
+## Game money in USD or LBP (DR-007)
+
+Written for a reader who never saw DR-007; the reasons for each rule are in [DR-007](../decisions/DR-007-game-price-currency.md).
+
+**A game's currency.** The stadium has one setting, `gamePriceCurrency` (USD or LBP; More → Settings → "Game prices in", owner only; chosen when the stadium is created; the switch is refused while a pitch has no price in the new currency). It decides what a **new** booking is priced in. Every booking stores its own `priceCurrency`, so a game keeps its currency for life and changing the setting touches no existing game. Game money is a `GameMoney` (`booking/domain/game-money.ts`: a currency and an amount), so a reader has to say what it does with each currency. `requireUsd` stays in one place, `usdSlots` (`infrastructure/bookings/per-player.ts`), where a dollar slot charge is only ever fed a USD game; it throws `booking.lbp_not_supported` if that ever stops being true.
+
+**What is stored.** A booking has `priceCurrency` and exactly one of `priceUsd` / `priceLbp`, and exactly one of `amountDueUsd` / `amountDueLbp` (USD `Decimal(12,2)`, LBP `Decimal(18,0)`; CHECK `Booking_money_by_currency`). Its shares (`BookingParticipant.amountDueUsd/Lbp`) and its due changes (`BookingDueChange.currency` with `fromUsd/toUsd` or `fromLbp/toLbp`) follow the same rule. A `Payment` has `dueCurrency` with `amountDueUsd` or `amountDueLbp` (LBP only on a BOOKING payment) and its `PaymentTender` rows, each in its own currency with `rateAtTime` and `usdEquivalent`. An LBP game also has one `BookingSettlement` per payment (`lbpApplied`, `usdApplied`), and a split LBP game's `PaymentAllocation` rows are whole pounds (`amountLbp`). The **ledger stays USD** and append-only; a new ledger row also records the `paymentId` it came from.
+
+**How owed is computed.** A USD game owes its due minus the sum of its tenders' `usdEquivalent`. An LBP game owes its `amountDueLbp` minus the pounds its settlements applied (`sumSettledLbp`, `SETTLED_LBP_SQL`), read after the booking lock. A debt is in the game's currency and is **never converted or added across currencies**: totals are per currency (`formatOwed`, "$30 + 2,000,000 LBP"), and a rate change never moves the pounds a game owes (only the ledger value of each payment depends on the rate it was taken at).
+
+**Collecting a whole game** (`collectBookingPayment`, under the booking lock). The owner may type any cash (never blocked, RULE-9/10) in dollars, pounds or both. A USD game applies it with `applyToGameDue`: up to the remaining, the excess is change. An LBP game applies it with `applyToLbpGameDue` (`booking/domain/game-change.ts`, the shop's `applyPayment`): the pounds count first, then the dollars converted at the current rate against the pounds still left, anything beyond is change in the currency it was handed over in. Each kept tender is valued at **this** payment's rate; a rate is required when dollars are used on an LBP game (`payment.rate_required`). The ledger IN is the sum of the kept tenders' USD values, and an LBP game also writes its `BookingSettlement`. **Per player** (`collect-player-payment.ts`): a game splits with `splitInUnits` in its own currency (whole units, the leftover units to the first slots, slot 1 the requester); a USD slot is charged in dollars, a pound share can take pounds and dollars ("Pay another way") with the same rule as the whole game, and its allocations add up to the payment's settlement.
+
+**Change, and "Keep it".** A game never records more than it is owed: the tenders and the ledger hold only what the game used, and the screen says "Give back $20 / 100,000 LBP" in the currency handed over. On a game's collect screens a small "Keep it" (AR: خلّيها) beside "Give back" records the change as the stadium's instead: with `keepChange`, `recordKeptChange` writes, in the same transaction under the same booking lock and after the game's payment, a second payment with source type **KEPT_CHANGE** (`sourceId` the booking), its tenders the change in the currency handed over at this payment's rate, its ledger IN through `recordPayment` (so it has a `paymentId`), with no settlement and no allocation. The game's due, settlements and own payment are exactly as without the flag; no change means the flag is ignored. It is cash in the drawer, so Money counts it in In and Cash today counts it; its Activity row says "Kept change" (AR: فراطة متروكة) in its real currency; Owed, Today and the person page read BOOKING payments only. The shop does not have this.
+
+**The rounding unit.** Amounts are rounded to a money unit: $1 in dollars and one LBP unit in pounds (`moneyUnit(currency)` in `payment/domain/units.ts`). The LBP number is written once, as `LBP_UNIT_VALUE` in `lib/format/lbp-unit.ts`; code and on-screen text ask for it, and `test/architecture/lbp-unit.test.ts` fails on a second copy in money code (how to change it: the DR-007 section "The unit lives in one place"). It is used by `splitInUnits` (splits), `roundToUnit` (half up: suggested cancel and no-show fees, the 30-minute extension price), the check on a fee typed in pounds (`booking.fee_unit`) and on a pitch price, and "Consider it paid".
+
+**Fees, extension and adjust-due** work in the game's currency: the fee is suggested and rounded in it, compared with what the game collected in it (settlements for pounds, tenders for dollars), and written as a due change in it; the extension adds half the price in it; an adjust cannot go below what was collected in it. Cancelling a split game collapses it to WHOLE first and keeps every payment, tender, ledger row and settlement.
+
+**"Consider it paid".** `considerGamePaid` (permission `payments.collect`), on the owner's tap only: under the booking lock it reads what is left again and, when `isForgivable` (under one LBP unit, or worth under one unit at the current rate on a USD game; no rate, no), writes one due change with reason `ROUNDING` in the game's currency that lowers the due by exactly what is left. Anything else is `booking.not_forgivable`; a split game uses `considerSharePaid` on one share.
+
+**The Money page's two views.** The $ / LBP toggle is not one conversion of the dollar ledger. With no `view` in the URL the page opens on the stadium's currency; an explicit `?view=` wins. The **USD view** reads the ledger as it always did. The **LBP view** counts each payment at its own value (`summarizeLbpPeriod`, `payment/domain/lbp-period.ts`): an LBP tender counts its amount; a USD tender counts amount × the `rateAtTime` stored on it; a USD tender with no stored rate is counted at the display rate and reported (the page says "n converted at today's rate"). In is BOOKING, SALE and KEPT_CHANGE payments, Out is EXPENSE payments, Profit is In minus Out, the comparison uses the same method for the previous period, and the shop card shows the SALE payments in pounds. The period is the ledger's: a payment by `Payment.createdAt` (its ledger row is written in the same transaction), an expense by `Expense.occurredAt` (the business date its ledger row carries; an expense has one payment), so a back-dated expense counts in the month its ledger row is in. Recent activity (both views) shows what each payment kept, in the currency it was paid in ("+$20", "+2,000,000 LBP", "+$20 + 1,500,000 LBP", "−500,000 LBP"), never added across currencies: a ledger row that names its payment uses it directly, an older row (no `paymentId`, no backfill) is paired with the payment of its source closest in time, one-to-one (`payment/domain/entry-payments.ts`).
 
 ---
 
@@ -22,7 +48,7 @@
 | **priceUsd** | `Booking.priceUsd`, set at request time from the pitch price rules | The price snapshot. It changes only when the game is extended (§4, "Extend"): it rises by the added price, so the next extension is still priced per minute from the agreed total. |
 | **amountDueUsd** | `Booking.amountDueUsd` | What is collectible **now**. Starts equal to `priceUsd`; changed only through due changes (§4). Every collect and cap reads it, not `priceUsd`. |
 | **Collected** | `sumCollectedUsd(tx, "BOOKING", id)` = Σ tender `usdEquivalent` over the booking's payments | Derived, never stored. |
-| **Remaining** | `collect.ts` `bookingRemaining(amountDueUsd, collected)`, **not clamped** | Negative = overpaid. It stays visible rather than hidden (RULE-9/10: warn, never block). |
+| **Remaining** | `collect.ts` `bookingRemaining(amountDueUsd, collected)`, **not clamped** | Never negative on a new collection: a game records at most what it owes (§2, DR-007). Old rows from before that change may still be negative. |
 | **Unassigned** | `collect.ts` `unassignedUsd(collected, allocated)` | Money on a PER_PLAYER booking that no slot claims, usually paid before the split. Still counts as collected (F-1). |
 
 ---
@@ -30,14 +56,14 @@
 ## 2. Collecting (WHOLE mode)
 
 `booking/application/collect-booking-payment.ts` `collectBookingPayment`, in one transaction:
-1. `findBookingForUpdate` locks the booking row. **Why:** two taps of Collect must not both see "remaining > 0" (progress.md "Booking row lock on every money path").
+1. `findBookingForUpdate` locks the booking row and reads its price and due in its own currency. **Why:** two taps of Collect must not both see "remaining > 0" (progress.md "Booking row lock on every money path").
 2. `assertCanCollect(status)`: only APPROVED, NO_SHOW or CANCELLED (a fee).
 3. PER_PLAYER is refused (`booking.collect_per_player`). Cash on a split booking goes through the slots.
 4. `assertHasDue(remaining)`: something must still be due. This stops a double submit.
 5. `freezeTenders(tenders, latestRate)` drops zero parts, rejects negatives, requires at least one part, and freezes the rate.
 6. `recordPayment` writes the Payment (with `amountDueUsd` = the due at that moment), its tenders, and **one** ledger IN whose amount = Σ `usdEquivalent`.
 
-**By design, the tenders are not capped at the remaining.** An owner may take more than is owed; remaining goes negative and shows as overpaid. **Why:** RULE-9/10, the owner is never blocked from taking money.
+**A game never records more than it is owed (DR-007 decision 6).** The excess of cash is change, not income; see "Game money in USD or LBP" above for the rule, `booking/domain/game-change.ts` `applyToGameDue` for the code. Games before this change may still hold an overpayment.
 
 Input formats are checked at the edge, not in the domain:
 - USD: exactly two decimals (`lib/format/parse-money.ts` `parseUsd`).
@@ -51,15 +77,17 @@ While the owner types, the mixed USD + LBP forms (the collect sheet on Today, an
 
 - **Split** (`switch-collection-mode.ts` `switchToPerPlayer`):
   - It is allowed only for an APPROVED, WHOLE booking with no allocations and `amountDueUsd` > 0 (`switch-mode.ts` `assertCanSwitchToPerPlayer`).
-  - `buildSlots` → `split-evenly.ts` `splitEvenly(amountDueUsd, n)` divides the **full due** (not the remaining) into n slots, in cents: the total is exact, the spread is at most 1¢, and the extra cents go on the first slots. `test/modules/booking/domain/split-evenly.test.ts` checks this as a property.
+  - `buildSlots` → `payment/domain/units.ts` `splitInUnits(due, n, currency)` divides the **full due** (not the remaining) into n slots of whole units ($1 or 5,000 LBP, DR-007 decision 7): the leftover units go one by one to the first slots, and the part of the due below one unit goes on slot 1, so the total is exact. $30 over 7 is two of $5 and five of $4. A game in pounds stores the shares in `BookingParticipant.amountDueLbp`. A split made before this rule (exact cents, the old `splitEvenly`, removed) is never recomputed. `test/modules/booking/domain/build-slots.test.ts` and `units.test.ts` check it.
   - Money already collected stays **Unassigned**.
-- **Charge cap** (`slot-charge.ts` `planSlotCharge`):
+- **Charge cap** (`share-charge.ts` `planShareCharge`, through `slot-charge.ts` `planSlotCharge` for dollars):
   - Every slot tap and "pay all remaining" charges at most `amountDueUsd − collected`, Unassigned included.
   - Within that cap it fills unpaid slots in slot order, and the last one may be partial.
   - **Why:** money paid before the split must never be taken twice (audit §3.6).
 - **Pay** (`collect-player-payment.ts` `payRemaining`):
   - It locks the booking, plans the charge, then `assertCanPaySlot` (PER_PLAYER, APPROVED, a positive charge).
-  - One **USD** tender equal to the charge, then `recordPayment`, then `insertAllocations`: one allocation per slot and Σ allocations = the charge.
+  - On a game in dollars: one **USD** tender equal to the charge, then `recordPayment`, then `insertAllocations`: one allocation per slot and Σ allocations = the charge.
+  - On a game in pounds (DR-007 slice 7): the charge is in pounds (`planShareCharge`, capped at the due minus the settlements); the cash typed (none means exactly the charge in pounds) goes through `applyToLbpGameDue` like a whole LBP game; the slots are credited with the pounds actually settled, in slot order (`amountLbp`); one `BookingSettlement` records the same pounds, so a payment's allocations add up to its `lbpApplied`.
+- **Consider it paid on one share** (`consider-share-paid.ts`): see [../per-player-payments.md](../per-player-payments.md) §3.
 - **Back to WHOLE** (`switchToWhole`): only while there are no allocations (`assertCanSwitchToWhole`). **Why:** otherwise who paid what would be lost.
 - **Cancel / no-show on a split booking:**
   - `bookings.ts` `collapseToWhole` **deletes the allocations** and the per-player rows and sets WHOLE, in the same transaction as the cancel.
@@ -71,14 +99,14 @@ While the owner types, the mixed USD + LBP forms (the collect sheet on Today, an
 
 ## 4. Due changes
 
-Every change of `Booking.amountDueUsd` goes through `booking/application/write-due-change.ts` `writeDueIfChanged`: `assertAdjustDue` → `setBookingAmountDue` → `insertBookingDueChange`, in the caller's transaction and under the booking row lock.
+Every change of `Booking.amountDueUsd` (or `amountDueLbp` on a game in pounds, DR-007 slice 8; the amounts below are in the game's currency) goes through `booking/application/write-due-change.ts` `writeDueIfChanged`: `assertAdjustDue` → `setBookingAmountDue` / `setBookingAmountDueLbp` → `appendDueChange`, in the caller's transaction and under the booking row lock.
 
 | Path | Rule (code) |
 |---|---|
-| Adjust (`adjust-booking-due.ts` `adjustBookingDue`) | The status must be APPROVED, CANCELLED or NO_SHOW (`assertDueAdjustableStatus`). The new due must be ≥ 0 and ≥ collected (`assertAdjustDue`: `booking.due_negative`, `booking.due_below_collected`; going below collected would be a refund, which is out of scope). **WHOLE only** (`booking.due_whole_only`). |
-| Cancel (`cancel-booking.ts`) / no-show (`record-no-show.ts`) | The fee comes from the tenant policy (`suggest-fee.ts`). It must be ≤ the due (`assertFeeWithinDue` → `booking.fee_above_due`). If it would be below collected, it is clamped up to collected, and the logged reason then follows `clampedReason`: `CANCELLATION_NO_FEE` for a cancel, `WAIVER` or `NO_SHOW_FEE` for a no-show. |
-| Extend (`extend-booking.ts` `extendBooking`) | 30 minutes added to an APPROVED, whole-pay game that has not ended (repeatable, 180 minutes in total). The suggested added price is `priceUsd / current minutes x 30`, rounded half up to cents (`extension-plan.ts` `addedPriceForExtension`): $30 for 60 minutes adds $15; $10 for 90 minutes adds $3.33. `Booking.priceUsd` and `amountDueUsd` both rise by the added amount; the due goes through `writeDueIfChanged` with reason `EXTENSION`, so it is never below collected and what was collected is untouched. A member with `bookings.adjust_due` may send a different amount (0 to 100,000); anyone else gets the suggestion or `access.not_allowed`. Shop tabs, the ledger and the start time are not touched. |
-| No-op | The same value (after rounding to cents) writes nothing (`assertAdjustDue` → `"noop"`). |
+| Adjust (`adjust-booking-due.ts` `adjustBookingDue`) | The status must be APPROVED, CANCELLED or NO_SHOW (`assertDueAdjustableStatus`). The new due must be ≥ 0 and ≥ collected (`assertAdjustDue`: `booking.due_negative`, `booking.due_below_collected`; going below collected would be a refund, which is out of scope). **WHOLE only** (`booking.due_whole_only`). The amount is typed in the game's currency (`toUsd`, or `toLbp` in whole pounds; the other is `form.invalid`) and compared with what the game collected in that currency (tenders in dollars, settlements in pounds). |
+| Cancel (`cancel-booking.ts`) / no-show (`record-no-show.ts`) | The fee comes from the tenant policy (`suggest-fee.ts`), **in the game's currency and rounded half up to its money unit** ($1, or the LBP unit; DR-007 slice 8): 50% of $25 is $13, 50% of 2,000,000 LBP is 1,000,000 LBP. It must be ≤ the due (`assertFeeWithinDue` → `booking.fee_above_due`). A fee the owner types for a game in pounds must be a whole multiple of the unit (`assertFeeInUnit` → `booking.fee_unit`) and is sent in its own field (`feeLbp`; `feeUsd` for a game in dollars, the other is `form.invalid`). If it would be below collected (tenders in dollars, settlements in pounds), it is clamped up to collected, and the logged reason then follows `clampedReason`: `CANCELLATION_NO_FEE` for a cancel, `WAIVER` or `NO_SHOW_FEE` for a no-show. The due change is written in the game's currency. Cancelling a split game collapses it first (`collapseToWhole`), keeping every payment, tender, ledger row and settlement. |
+| Extend (`extend-booking.ts` `extendBooking`) | 30 minutes added to an APPROVED, whole-pay game that has not ended (repeatable, 180 minutes in total). The suggested added price is the agreed price (in the game's currency) `/ current minutes x 30`, rounded half up to the money unit (`extension-plan.ts` `addedPriceForExtension`, DR-007 slice 8): $30 for 60 minutes adds $15; $10 for 90 minutes adds $3 (it was $3.33); 2,000,000 LBP for 60 minutes adds 1,000,000 LBP. `Booking.priceUsd` and `amountDueUsd` (or `priceLbp` and `amountDueLbp`) both rise by the added amount; the due goes through `writeDueIfChanged` with reason `EXTENSION`, so it is never below collected and what was collected is untouched. A member with `bookings.adjust_due` may send a different amount in the game's currency (0 to 100,000 dollars, `MAX_ADDED_PRICE_USD`, or 0 to `MAX_ADDED_PRICE_LBP` whole pounds); anyone else gets the suggestion or `access.not_allowed`. Shop tabs, the ledger and the start time are not touched. |
+| No-op | The same value (after rounding to cents, or to whole pounds) writes nothing (`assertAdjustDue` → `"noop"`). |
 
 `fromUsd`/`toUsd` are recorded exactly, and `actorMembershipId` says who changed it.
 
@@ -96,7 +124,7 @@ USD stays the unit of account; **LBP is the price tag and the payment**.
 
 ### Change at the counter (walk-in sales and tab collections)
 
-When the cash handed over exceeds what is owed, the excess is **not** recorded: the last tender is reduced to what the sale or tab used and the rest is change for the customer, shown as "Change: X" / "الباقي للزبون: X" in the currency it was handed over in (pounds whole). So $10 for a $4.50 item records $4.50 with $5.50 change; 100,000 ل.ل for 60,000 ل.ل records 60,000 with 40,000 ل.ل change. Excess pounds first settle any dollar part at the current rate (and excess dollars any pound part); only what is beyond both parts is change. The sheets show the change live, computed by the same `applyPayment` the server runs. **Booking collection is unchanged**: it still accepts an overpay and records it in full (RULE-9/10, M8).
+When the cash handed over exceeds what is owed, the excess is **not** recorded: the last tender is reduced to what the sale or tab used and the rest is change for the customer, shown as "Change: X" / "الباقي للزبون: X" in the currency it was handed over in (pounds whole). So $10 for a $4.50 item records $4.50 with $5.50 change; 100,000 ل.ل for 60,000 ل.ل records 60,000 with 40,000 ل.ل change. Excess pounds first settle any dollar part at the current rate (and excess dollars any pound part); only what is beyond both parts is change. The sheets show the change live, computed by the same `applyPayment` the server runs. A booking collection now works the same way (see above).
 
 ### Cash today (a deliberate exception to "everything in USD")
 
@@ -113,21 +141,21 @@ What it is not: it is a count of notes for one business day, never a value, neve
 
 | # | Invariant | Code | Database | Nowhere / notes |
 |---|---|---|---|---|
-| M1 | Money is `Decimal`, never a JS float | `decimal.js` everywhere in `collect.ts`, `slot-charge.ts`, `split-evenly.ts`; `lib/format/parse-money.ts` parsers | `DECIMAL(12,2)` / `(18,2)` / `(18,0)` columns | — |
+| M1 | Money is `Decimal`, never a JS float | `decimal.js` everywhere in `collect.ts`, `slot-charge.ts`, `units.ts`; `lib/format/parse-money.ts` parsers | `DECIMAL(12,2)` / `(18,2)` / `(18,0)` columns | — |
 | M2 | Every payment writes exactly one ledger row, in the same transaction, for Σ tender `usdEquivalent` | `record-payment.ts` `recordPayment` (the only writer of both) | — | **No FK** from ledger to payment (F-2). Checkable per source only by count and sum. |
 | M3 | Ledger, payments, tenders, due changes and rates are never updated or deleted | No `update`/`delete` on them in `src/modules` | — | Convention only (F-2). The seed deletes them; dev only (`seed-guard.ts`). |
 | M4 | A payment has ≥ 1 tender, each with `amount` > 0 | `freezeTenders`, `usdEquivalent` | — | No CHECK on `PaymentTender.amount`. |
 | M5 | An LBP tender has a positive frozen rate | `usdEquivalent` → `payment.rate_required` | — | No CHECK (`rateAtTime` is nullable for USD). |
 | M6 | A frozen rate never changes | Tenders are insert-only (`payments.ts` `insertPaymentWithTenders`) | — | Convention (M3). |
 | M7 | `Booking.amountDueUsd` ≥ 0 | `assertAdjustDue` | CHECK `Booking_amountDueUsd_nonneg` | — |
-| M8 | After any **due change**, due ≥ collected | `assertAdjustDue` (`due_below_collected`), `suggest-fee.ts` clamp | — | Not an invariant of the booking itself: a collect may overpay (§2). |
+| M8 | After any **due change**, due ≥ collected, in the game's currency | `assertAdjustDue` (`due_below_collected`), `suggest-fee.ts` clamp | — | Not an invariant of the booking itself: a collect no longer overpays (§2, DR-007). |
 | M9 | A cancel or no-show fee ≤ the due | `assertFeeWithinDue` | — | — |
 | M10 | Collect only on APPROVED / NO_SHOW / CANCELLED, and only while something is due | `assertCanCollect`, `assertHasDue` under the booking lock | — | — |
 | M11 | No whole-game collect on a PER_PLAYER booking | `collectBookingPayment` → `booking.collect_per_player` | — | — |
-| M12 | PER_PLAYER: Σ slot `amountDueUsd` = `Booking.amountDueUsd` | `splitEvenly` (exact); adjust is WHOLE-only; the split needs WHOLE with no allocations | — | Nothing re-checks it later. A future path that changes the due on a PER_PLAYER booking would break it silently. |
+| M12 | PER_PLAYER: Σ slot due = the game's due, in its currency | `splitInUnits` (exact); "Consider it paid" on a share lowers both by the same amount; adjust is WHOLE-only; `assertMoneyInvariants` re-checks it; the split needs WHOLE with no allocations | — | Nothing re-checks it later. A future path that changes the due on a PER_PLAYER booking would break it silently. |
 | M13 | A per-player charge ≤ the booking remaining (Unassigned included); Σ allocations of a payment = its total | `planSlotCharge`; `payRemaining` tenders = `charge.totalUsd` | CHECK `PaymentAllocation_amountUsd_positive`; unique `(paymentId, participantId)` | — |
 | M14 | Allocations to a slot ≤ that slot's due | `planSlotCharge` (`Decimal.min(remaining, left)`) | — | — |
-| M15 | Participant dues ≥ 0; one requester per booking, with a person | `splitEvenly` | CHECKs + partial unique (DATA-MODEL §3 #4, #7, #8) | — |
+| M15 | Participant dues ≥ 0; one requester per booking, with a person | `splitInUnits` | CHECKs + partial unique (DATA-MODEL §3 #4, #7, #8) | — |
 | M16 | WHOLE: the requester participant's `amountDueUsd` mirrors the booking due | Set on create and on `collapseToWhole` | — | **Not maintained** by `writeDueIfChanged`. Harmless because WHOLE reads the booking (`personOwedOnBooking`), but a reader of the participant column in WHOLE would be wrong (the booking audit addendum, "WHOLE requester due drift"). |
 | M17 | No refunds: money only moves OUT as an expense | No refund use case (`adjust-due.ts` comment; `cancel-booking.ts` "No refund") | — | — |
 | M18 | Each money row belongs to the booking's tenant | The Prisma extension stamps `tenantId` (Payment, PaymentTender, PaymentAllocation, LedgerEntry are scoped) | — | Raw SQL must stamp it itself (ARCHITECTURE §3). |
@@ -140,5 +168,5 @@ What it is not: it is a count of notes for one business day, never a value, neve
 2. **Lock first.** Any path that reads "collected" or "due" and then writes money must hold the booking lock (`findBookingForUpdate`) and re-read after it.
 3. **Change the due only through `writeDueIfChanged`.** It is the single place that keeps M7, M8 and the audit trail. If you allow a due change on PER_PLAYER, you must also rewrite the slot dues so that M12 holds, in the same transaction.
 4. **Never recompute an old tender.** Rates are frozen (M6). Report totals from the ledger, not from tenders times today's rate.
-5. **Round once, half-up, to cents** (`usdEquivalent`, `splitEvenly`). Never round a sum of already-rounded parts again.
+5. **Round once, half-up, to cents** (`usdEquivalent`, `splitInUnits`). Never round a sum of already-rounded parts again.
 6. **Test with real Decimals** and run `npm run test:integration` (the money-races, per-player, booking-money and fees suites). Add a reconciliation assertion (Σ ledger = Σ tenders per source; see `test/integration/invariants.ts`).

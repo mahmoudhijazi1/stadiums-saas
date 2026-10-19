@@ -193,24 +193,33 @@ describe("rolling 30-day session", () => {
 
 describe("hash upgrade on login", () => {
   it("rehashes an old-format hash with the current cost after a successful login, once", async () => {
-    const salt = randomBytes(16).toString("hex");
-    const legacy = `${salt}:${scryptSync(PASSWORD, salt, 64).toString("hex")}`;
-    await platformDb.user.update({
-      where: { id: fixture.ownerUserId },
-      data: { passwordHash: legacy },
-    });
+    // The legacy format is cost 14, which is also the cost the integration setup uses (setup-env.ts):
+    // the current cost must be higher for the legacy hash to count as outdated.
+    const previousCost = process.env.PASSWORD_HASH_COST;
+    process.env.PASSWORD_HASH_COST = "15";
+    try {
+      const salt = randomBytes(16).toString("hex");
+      const legacy = `${salt}:${scryptSync(PASSWORD, salt, 64).toString("hex")}`;
+      await platformDb.user.update({
+        where: { id: fixture.ownerUserId },
+        data: { passwordHash: legacy },
+      });
 
-    await loginAndReadCookie();
-    const upgraded = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
-      .passwordHash;
-    expect(upgraded).not.toBe(legacy);
-    expect(passwordNeedsRehash(upgraded)).toBe(false);
-    expect(await verifyPassword(PASSWORD, upgraded)).toBe(true);
+      await loginAndReadCookie();
+      const upgraded = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
+        .passwordHash;
+      expect(upgraded).not.toBe(legacy);
+      expect(passwordNeedsRehash(upgraded)).toBe(false);
+      expect(await verifyPassword(PASSWORD, upgraded)).toBe(true);
 
-    await loginAndReadCookie();
-    const again = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
-      .passwordHash;
-    expect(again).toBe(upgraded);
+      await loginAndReadCookie();
+      const again = (await platformDb.user.findUniqueOrThrow({ where: { id: fixture.ownerUserId } }))
+        .passwordHash;
+      expect(again).toBe(upgraded);
+    } finally {
+      if (previousCost === undefined) delete process.env.PASSWORD_HASH_COST;
+      else process.env.PASSWORD_HASH_COST = previousCost;
+    }
   });
 
   it("does not touch the hash on a failed login", async () => {

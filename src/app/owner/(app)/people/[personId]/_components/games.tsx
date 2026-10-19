@@ -13,7 +13,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ClockRangeText, LtrIsolate } from "@/components/ui/ltr-isolate";
 import { CircleAlert, CircleCheck } from "lucide-react";
 import { getCurrentTenant } from "@/lib/tenant-context";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatPrice } from "@/lib/format/money";
+import type { GameCurrency } from "@/modules/booking/domain/game-money";
 import Decimal from "decimal.js";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
@@ -46,15 +47,17 @@ export async function PersonGames({
       ) : (
         <ul className="flex flex-col gap-2">
           {page.rows.map((row) => {
-            const remaining = bookingRemaining(row.amountDueUsd, row.collectedUsd);
+            // Every figure below is in the game's own currency (DR-007): dollars, or pounds for an LBP game.
+            const currency = row.amountDue.currency;
+            const remaining = bookingRemaining(row.amountDue.amount, row.collected.amount);
             const personRemaining = Decimal.max(
               personOwedOnBooking({
                 collectionMode: row.collectionMode,
                 isRequester: row.isRequester,
                 bookingRemainingUsd: remaining,
                 participantRemainingUsd: participantRemaining(
-                  row.participantDueUsd,
-                  row.allocatedUsd,
+                  row.participantDue.amount,
+                  row.allocated.amount,
                 ),
               }),
               0,
@@ -71,31 +74,32 @@ export async function PersonGames({
             const personPaid = personPaidOnBooking({
               collectionMode: row.collectionMode,
               isRequester: row.isRequester,
-              collectedUsd: row.collectedUsd,
-              allocatedUsd: row.allocatedUsd,
+              collectedUsd: row.collected.amount,
+              allocatedUsd: row.allocated.amount,
             });
             // This person's own figure, with its label (ui-rules 1 and 2).
-            const shareUsd = perPlayer
-              ? row.participantDueUsd
+            const share = perPlayer
+              ? row.participantDue.amount
               : row.isRequester
-                ? row.amountDueUsd
+                ? row.amountDue.amount
                 : new Decimal(0);
             const figure: Figure =
               row.status !== "APPROVED"
-                ? { tone: "neutral", label: "owner.gameWord", usd: row.priceUsd }
+                ? { tone: "neutral", label: "owner.gameWord", currency, amount: row.price.amount }
                 : owed
-                  ? { tone: "owed", label: "owner.owedLabel", usd: personRemaining }
+                  ? { tone: "owed", label: "owner.owedLabel", currency, amount: personRemaining }
                   : ended && personRemaining.isZero()
-                    ? { tone: "paid", label: "owner.paid", usd: personPaid }
+                    ? { tone: "paid", label: "owner.paid", currency, amount: personPaid }
                     : {
                         tone: "expected",
                         label: perPlayer ? "owner.shareWord" : "owner.expectedLabel",
-                        usd: shareUsd,
+                        currency,
+                        amount: share,
                       };
             const display = deriveCardDisplay({
               start: row.start,
               end: row.end,
-              price: row.amountDueUsd,
+              price: row.amountDue.amount,
               remaining,
               now,
               status: row.status,
@@ -131,10 +135,10 @@ export async function PersonGames({
                     perPlayer ? (
                       <p className="text-sm text-muted-foreground">
                         {ui("owner.shareWord", locale)}{" "}
-                        <LtrIsolate>${formatUsdCompact(row.participantDueUsd)}</LtrIsolate>
+                        <LtrIsolate>{formatPrice({ currency, amount: row.participantDue.amount }, locale)}</LtrIsolate>
                         <span aria-hidden> · </span>
                         {ui("owner.gameWord", locale)}{" "}
-                        <LtrIsolate>${formatUsdCompact(row.amountDueUsd)}</LtrIsolate>
+                        <LtrIsolate>{formatPrice({ currency, amount: row.amountDue.amount }, locale)}</LtrIsolate>
                       </p>
                     ) : undefined
                   }
@@ -177,7 +181,8 @@ function paymentLabel(
 type Figure = {
   tone: "owed" | "paid" | "expected" | "neutral";
   label: "owner.owedLabel" | "owner.paid" | "owner.expectedLabel" | "owner.shareWord" | "owner.gameWord";
-  usd: Decimal;
+  currency: GameCurrency;
+  amount: Decimal;
 };
 
 const FIGURE_TEXT: Record<Figure["tone"], string> = {
@@ -196,7 +201,8 @@ function PersonFigure({ figure, locale }: { figure: Figure; locale: UiLocale }) 
       {figure.tone === "owed" ? <CircleAlert aria-hidden className="size-4 shrink-0" /> : null}
       {figure.tone === "paid" ? <CircleCheck aria-hidden className="size-4 shrink-0" /> : null}
       <span>{ui(figure.label, locale)}</span>
-      <LtrIsolate>${formatUsdCompact(figure.usd)}</LtrIsolate>
+      {/* "$30" as before, or "2,000,000 ل.ل" for an LBP game (DR-007). */}
+      <LtrIsolate>{formatPrice({ currency: figure.currency, amount: figure.amount }, locale)}</LtrIsolate>
     </span>
   );
 }

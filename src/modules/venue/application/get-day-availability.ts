@@ -1,17 +1,20 @@
 import { UnexpectedError } from "@/lib/errors";
 import { formatLocalHm, type ClockLocale, type HourCycle } from "@/lib/format/time";
 import { logger } from "@/lib/logger";
-import { formatUsd } from "@/lib/format/money";
-import { parseUsd } from "@/lib/format/parse-money";
 import { safeTenantId } from "@/lib/tenant-context";
+import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import {
   civilDateInTimeZone,
   dayHoursEmptyKind,
+  defaultPriceIn,
   dropEndedSlots,
   generateSlotsForDay,
+  priceForSlotIn,
+  toPriceView,
   type CivilDate,
   type HoursEmptyKind,
+  type PriceView,
 } from "@/modules/venue/domain/availability";
 import { listPitches } from "@/modules/venue/infrastructure/pitches";
 import { parseScheduleConfig } from "@/modules/venue/domain/schedule-config";
@@ -21,15 +24,16 @@ export type DaySlotView = {
   endIso: string;
   startLocal: string;
   endLocal: string;
-  priceUsd: string;
+  /** In the stadium's currency (DR-007). Null: the pitch has no price in it, so none is shown. */
+  price: PriceView | null;
   available: boolean;
 };
 
 export type PitchDayAvailability = {
   id: string;
   name: string;
-  /** The pitch's base price; a slot priced differently is a rule price. */
-  defaultPriceUsd: string;
+  /** The pitch's base price in the stadium's currency; a slot priced differently is a rule price. */
+  defaultPrice: PriceView | null;
   slots: DaySlotView[];
   emptyKind: HoursEmptyKind | null;
 };
@@ -58,6 +62,8 @@ export async function getDayAvailability(input: {
   /** Owner Book, public hours, and WhatsApp share this clock. */
   hourCycle?: HourCycle;
   locale?: ClockLocale;
+  /** The stadium's gamePriceCurrency: every price is shown in it (DR-007). */
+  currency: GamePriceCurrency;
 }): Promise<PitchDayAvailability[]> {
   try {
     const pitches = await listPitches();
@@ -89,7 +95,7 @@ export async function getDayAvailability(input: {
       return {
         id: pitch.id,
         name: pitch.name,
-        defaultPriceUsd: formatUsd(parseUsd(config.defaultPriceUsd)),
+        defaultPrice: defaultPriceIn(config, input.currency),
         emptyKind: dayHoursEmptyKind({
           generatedCount: generated.length,
           remainingCount: slots.length,
@@ -111,7 +117,13 @@ export async function getDayAvailability(input: {
             input.hourCycle,
             input.locale,
           ),
-          priceUsd: formatUsd(slot.priceUsd),
+          price: toPriceView(
+            priceForSlotIn(config, input.currency, {
+              start: slot.start,
+              localDate: input.localDate,
+              timeZone: input.timeZone,
+            }),
+          ),
           available: slot.available,
         })),
       };

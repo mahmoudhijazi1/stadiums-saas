@@ -19,7 +19,6 @@ import { cn } from "cn";
 import {
   dayHeading,
   groupByDay,
-  signedAmount,
   type ActivityRowView,
   type ExpenseDetailView,
   type SaleDetailView,
@@ -197,7 +196,7 @@ function ActivityRow({
         {row.secondary ? <span className="type-caption">{row.secondary}</span> : null}
       </span>
       <span className={cn("type-strong shrink-0", row.direction === "IN" && "text-paid")}>
-        <LtrIsolate>{signedAmount(row.direction, row.amountUsd)}</LtrIsolate>
+        <LtrIsolate>{row.amountText}</LtrIsolate>
       </span>
     </>
   );

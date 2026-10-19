@@ -10,7 +10,7 @@ import {
 import type { DebtNotice } from "@/modules/booking/ui/notify-list";
 import { formatDisplayDate } from "@/lib/format/time";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatOwed, formatUsdCompact } from "@/lib/format/money";
 import { ui, uiCount } from "@/lib/copy";
 import { countHiddenRequests } from "@/modules/booking/application/count-hidden-requests";
 import { getCurrentTenant } from "@/lib/tenant-context";
@@ -132,6 +132,7 @@ function siblingPersonIds(raw: string | undefined): string[] {
 function toNotice(warning: DebtWarning, locale: UiLocale): DebtNotice {
   return {
     totalCompact: formatUsdCompact(warning.totalUsd),
+    totalText: formatOwed({ usd: warning.totalUsd, lbp: warning.totalLbp }, locale),
     reasonLabel: warning.reason
       ? ui(`owner.debtReason.${warning.reason}`, locale)
       : null,

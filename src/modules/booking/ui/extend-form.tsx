@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
+import { formatLbpAmount } from "@/lib/format/money";
 import { normalizeUsdForm } from "@/lib/format/parse-money";
 import { ui } from "@/lib/copy";
 import type { ExtendActionResult } from "@/modules/booking/ui/action-types";
@@ -30,8 +31,10 @@ export type ExtendOfferView = {
   expectedEndsAt: string;
   /** The range after the extension, formatted. */
   newRange: string;
-  /** The suggested added price, "15.00". */
-  addedPriceUsd: string;
+  /** The game's currency: `addedPrice` is in it (dollars with cents, or whole pounds). */
+  currency: "USD" | "LBP";
+  /** The suggested added price: "15.00" in dollars, "1000000" in pounds. */
+  addedPrice: string;
   /** Pending requests inside the added time. */
   declineCount: number;
   /** bookings.adjust_due: may change the added amount. */
@@ -57,6 +60,13 @@ export function ExtendedMark({ minutes, locale }: { minutes: number; locale: UiL
   );
 }
 
+const POUNDS = /^(?:0|[1-9][0-9]*)$/;
+
+/** An amount of the game's currency, written for a screen: "$15.00" or "1,000,000 LBP". */
+function moneyText(currency: "USD" | "LBP", amount: string, locale: UiLocale): string {
+  return currency === "LBP" ? formatLbpAmount(amount, locale) : `$${amount}`;
+}
+
 const MONEY = /^(?:0|[1-9]\d*)\.\d{2}$/;
 
 /**
@@ -80,14 +90,15 @@ export function ExtendForm({
   submitExtendBooking: (input: unknown) => Promise<ExtendActionResult>;
 }) {
   const router = useRouter();
-  const [price, setPrice] = useState(offer.addedPriceUsd);
+  const inPounds = offer.currency === "LBP";
+  const [price, setPrice] = useState(offer.addedPrice);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ amountDueUsd: string; newRange: string } | null>(null);
+  const [done, setDone] = useState<{ amountDue: string; currency: "USD" | "LBP"; newRange: string } | null>(null);
 
   async function confirm() {
-    const normalized = normalizeUsdForm(price.trim());
-    if (offer.mayEditPrice && !MONEY.test(normalized)) {
+    const normalized = inPounds ? price.trim() : normalizeUsdForm(price.trim());
+    if (offer.mayEditPrice && !(inPounds ? POUNDS : MONEY).test(normalized)) {
       setError(errorMessage("form.invalid", locale));
       return;
     }
@@ -97,7 +108,7 @@ export function ExtendForm({
       const result = await submitExtendBooking({
         bookingId,
         expectedEndsAt: offer.expectedEndsAt,
-        ...(offer.mayEditPrice ? { addedPriceUsd: normalized } : {}),
+        ...(offer.mayEditPrice ? (inPounds ? { addedPriceLbp: normalized } : { addedPriceUsd: normalized }) : {}),
       });
       if ("error" in result) {
         setError(errorMessage(result.error, locale));
@@ -106,7 +117,7 @@ export function ExtendForm({
         return;
       }
       // Keep the range of THIS extension: the refresh below hands the form the next offer.
-      setDone({ amountDueUsd: result.amountDueUsd, newRange: offer.newRange });
+      setDone({ amountDue: result.amountDue, currency: result.currency, newRange: offer.newRange });
       router.refresh();
     } catch {
       setError(errorMessage("error.generic", locale));
@@ -127,7 +138,7 @@ export function ExtendForm({
         </div>
         <div className="flex flex-col gap-1">
           <span className="type-caption">{ui("owner.newDue", locale)}</span>
-          <LtrIsolate className="type-body">${done.amountDueUsd}</LtrIsolate>
+          <LtrIsolate className="type-body">{moneyText(done.currency, done.amountDue, locale)}</LtrIsolate>
         </div>
         <Button type="button" ref={confirmRef} className="w-full" onClick={onBack}>
           {ui("dialog.close", locale)}
@@ -149,14 +160,14 @@ export function ExtendForm({
             id={`extend-${bookingId}`}
             dir="ltr"
             type="text"
-            inputMode="decimal"
+            inputMode={inPounds ? "numeric" : "decimal"}
             autoComplete="off"
             value={price}
             onChange={(event) => setPrice(event.target.value)}
             className="font-mono"
           />
         ) : (
-          <LtrIsolate className="type-body">${offer.addedPriceUsd}</LtrIsolate>
+          <LtrIsolate className="type-body">{moneyText(offer.currency, offer.addedPrice, locale)}</LtrIsolate>
         )}
       </div>
       {offer.declineCount > 0 ? (

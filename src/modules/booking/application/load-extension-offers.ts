@@ -1,4 +1,3 @@
-import type Decimal from "decimal.js";
 import db from "@/lib/db";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { BOOKINGS_EXTEND, can } from "@/modules/access/domain/can";
@@ -6,6 +5,7 @@ import {
   extensionPlan,
   type ExtensionPlan,
 } from "@/modules/booking/domain/extension-plan";
+import type { GameMoney } from "@/modules/booking/domain/game-money";
 import { overlappingPendingIds } from "@/modules/booking/domain/offered-slot";
 import { listApprovedRanges, listPendingBookings } from "@/modules/booking/infrastructure/bookings";
 import { findPitchById } from "@/modules/venue/infrastructure/pitches";
@@ -24,7 +24,8 @@ type OfferInput = {
   pitchId: string;
   start: Date;
   end: Date;
-  priceUsd: Decimal;
+  /** The agreed price, in the game's currency. */
+  price: GameMoney;
   collectionMode: "WHOLE" | "PER_PLAYER";
 };
 

@@ -3,6 +3,7 @@ import db from "@/lib/db";
 import { rethrowUnexpected } from "@/lib/use-case-error";
 import { getCurrentMembership } from "@/modules/access/application/get-current-membership";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
+import { remainingInput } from "@/modules/booking/domain/game-owing";
 import { summarizeOwed, type OwedSummary } from "@/modules/booking/domain/owed";
 import { listOwedParticipations, listOwedTabs } from "@/modules/booking/infrastructure/bookings";
 import { bookingRemaining, participantRemaining } from "@/modules/payment/domain/collect";
@@ -10,6 +11,7 @@ import { bookingRemaining, participantRemaining } from "@/modules/payment/domain
 /**
  * Everything owed to this stadium, grouped by person: one query, then `classifyDue` and
  * `personOwedOnBooking` (the same owed rules as Today and the person page). reports.view.
+ * Totals are per currency (DR-007): dollars from USD games, pounds from LBP games, never added.
  */
 export async function listOwed(now: Date = new Date()): Promise<OwedSummary> {
   const membership = await getCurrentMembership();
@@ -31,8 +33,11 @@ export async function listOwed(now: Date = new Date()): Promise<OwedSummary> {
         personName: row.personName,
         personPhone: row.personPhone,
         isRequester: row.isRequester,
-        bookingRemainingUsd: bookingRemaining(row.amountDueUsd, row.collectedUsd),
-        participantRemainingUsd: participantRemaining(row.participantDueUsd, row.allocatedUsd),
+        ...remainingInput(
+          row.currency,
+          bookingRemaining(row.amountDue, row.collected),
+          participantRemaining(row.participantDue, row.allocated),
+        ),
       })),
       now,
       tabs.map((tab) => ({ ...tab, status: tab.status as "APPROVED" | "CANCELLED" | "NO_SHOW" })),
