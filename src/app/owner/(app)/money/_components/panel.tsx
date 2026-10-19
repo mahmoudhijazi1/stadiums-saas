@@ -13,10 +13,9 @@ import { summarizeLbpPeriod } from "@/modules/payment/application/summarize-lbp-
 import { getCurrentRate } from "@/modules/payment/application/get-current-rate";
 import Link from "next/link";
 import { CircleAlert, ChevronRight } from "lucide-react";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatOwed } from "@/lib/format/money";
 import { parseLbp } from "@/lib/format/parse-money";
 import { listOwed } from "@/modules/booking/application/list-owed";
+import { OwedAmounts } from "@/modules/booking/ui/owed-amounts";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
 import { RecordExpenseSheet } from "@/modules/expense/ui/expense-sheet";
@@ -129,11 +128,11 @@ export async function OwnerMoney({
           className="flex min-h-14 items-center gap-3 rounded-xl border border-owed/60 bg-owed-subtle px-4 py-3 text-owed outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <CircleAlert aria-hidden className="size-5 shrink-0" />
-          <span className="type-strong min-w-0 flex-1">
-            {ui("owner.owedToYou", locale)} <LtrIsolate>{formatOwed({ usd: owed.totalUsd, lbp: owed.totalLbp }, locale)}</LtrIsolate>
-            <span aria-hidden> · </span>
-            {uiCount("owner.games", owed.games, locale)}
+          <span className="flex min-w-0 flex-1 flex-col leading-snug">
+            <span className="type-strong">{ui("owner.owedToYou", locale)}</span>
+            <span className="text-xs font-medium opacity-80">{uiCount("owner.games", owed.games, locale)}</span>
           </span>
+          <OwedAmounts usd={owed.totalUsd.toFixed(2)} lbp={owed.totalLbp.toFixed(0)} locale={locale} className="type-strong" />
           <ChevronRight aria-hidden className="size-4 shrink-0 rtl:rotate-180" />
         </Link>
       ) : null}

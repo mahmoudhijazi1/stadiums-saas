@@ -127,6 +127,11 @@ export type OwnerDay = {
   /** Games from earlier days still owed, in either currency. */
   toCollect: OwnerDayBooking[];
   toCollectHasMore: boolean;
+  /**
+   * The exact total owed by ALL games from earlier days, per currency, not the sum of the capped
+   * `toCollect` page. Zero on a day that is not today.
+   */
+  toCollectOwed: Parts;
 };
 
 /**
@@ -155,7 +160,7 @@ export async function loadOwnerDay(
     const [gameRows, collectRows] = await Promise.all([
       listBookingsForStartDay(db, range.start, range.end),
       isToday
-        ? listEndedWithRemaining(db, now, TO_COLLECT_LIMIT + 1)
+        ? listEndedWithRemaining(db, now)
         : Promise.resolve([]),
     ]);
     // Per currency: dollars from USD games, pounds from LBP games, never added together.
@@ -192,6 +197,11 @@ export async function loadOwnerDay(
         .slice(0, TO_COLLECT_LIMIT)
         .map((row) => toOwnerDayBooking(row, slotsByBooking)),
       toCollectHasMore: collectRows.length > TO_COLLECT_LIMIT,
+      toCollectOwed: sumOwedParts(
+        collectRows
+          .filter((row) => compareCivilDate(businessDate(row.start, tenant.dayStartHour, TIME_ZONE), today) < 0)
+          .map((row) => toOwnerDayBooking(row, slotsByBooking)),
+      ),
     };
   } catch (error) {
     return await rethrowUnexpected(error, "Load owner day failed", "loadOwnerDay");

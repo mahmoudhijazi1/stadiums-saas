@@ -13,7 +13,6 @@ import { listExtensionMinutes } from "@/modules/booking/application/list-extensi
 import { loadExtensionOffers, type ExtensionOffer } from "@/modules/booking/application/load-extension-offers";
 import {
   loadOwnerDay,
-  sumOwedParts,
   type OwnerDayBooking,
 } from "@/modules/booking/application/load-owner-day";
 import { listOpenWaitlist } from "@/modules/booking/application/list-open-waitlist";
@@ -133,8 +132,6 @@ export async function OwnerToday({
         (row) => compareCivilDate(businessDate(row.start, tenant.dayStartHour), ownerDay.today) < 0,
       )
     : [];
-  // Per currency: dollars from USD games, pounds from LBP games, never added together (DR-007).
-  const earlierTotal = sumOwedParts(earlierDebts);
   // The shop on these games: items and tabs in one read, the catalog once (only for members who sell).
   const maySell = can(membership, SHOP_SELL);
   const [itemsByBooking, products] = await Promise.all([
@@ -271,8 +268,8 @@ export async function OwnerToday({
           extendedMinutes,
         )}
         toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
-        toCollectTotal={formatUsdCompact(earlierTotal.usd)}
-        toCollectText={earlierTotal.lbp.gt(0) ? formatParts(earlierTotal, locale) : undefined}
+        toCollectUsd={ownerDay.toCollectOwed.usd.toFixed(2)}
+        toCollectLbp={ownerDay.toCollectOwed.lbp.toFixed(0)}
         free={
           <Suspense key="free-strip" fallback={null}>
             <FreeStripSection membership={membership} locale={locale} date={date} />

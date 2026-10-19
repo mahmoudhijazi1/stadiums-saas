@@ -1,3 +1,4 @@
+import { OwedAmounts } from "@/modules/booking/ui/owed-amounts";
 import { OwnerBackLink } from "@/components/shell/back-link";
 import { formatLocalClockRange } from "@/lib/format/time";
 import { requireOwnerMembership } from "@/app/owner/require-owner";
@@ -94,7 +95,9 @@ export default async function OwedPage() {
       <div className="flex flex-col gap-1">
         <h2 className="type-title">{ui("owner.owedTitle", locale)}</h2>
         {groups.length > 0 ? (
-          <Figure className="block text-4xl text-owed">{formatOwed({ usd: owed.totalUsd, lbp: owed.totalLbp }, locale)}</Figure>
+          <Figure className="block text-4xl text-owed">
+            <OwedAmounts usd={owed.totalUsd.toFixed(2)} lbp={owed.totalLbp.toFixed(0)} locale={locale} className="items-start" />
+          </Figure>
         ) : null}
       </div>
       {groups.length === 0 ? (

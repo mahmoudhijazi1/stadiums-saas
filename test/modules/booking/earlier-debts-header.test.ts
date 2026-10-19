@@ -9,8 +9,8 @@ import { EarlierDebtsHeader } from "@/modules/booking/ui/earlier-debts-header";
 function render(props: Partial<Parameters<typeof EarlierDebtsHeader>[0]> = {}, locale: "ar" | "en" = "en") {
   return renderToStaticMarkup(
     createElement(EarlierDebtsHeader, {
-      total: "120",
-      hasMore: false,
+      usd: "120.00",
+      lbp: "0",
       locale,
       expandable: false,
       expanded: false,
@@ -23,30 +23,42 @@ function render(props: Partial<Parameters<typeof EarlierDebtsHeader>[0]> = {}, l
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
 describe("EarlierDebtsHeader", () => {
-  it("reads: To collect, the total, from earlier days, with the alert icon and the owed tokens", () => {
+  it("reads: To collect over from earlier days, then the exact total, with the alert icon and the owed tokens", () => {
     const html = render();
-    expect(text(html)).toBe("To collect $120 from earlier days");
+    expect(text(html)).toBe("To collect from earlier days $120");
     expect(html).toContain("text-owed");
     expect(html).toContain("bg-owed-subtle");
     expect(html).not.toContain("amber");
     expect(html).toContain('id="earlier-debts-heading"');
   });
 
-  it("wraps by parts: three nowrap parts in a wrapping row", () => {
-    const html = render({}, "ar");
-    expect(html).toContain("flex-wrap");
-    expect(html.match(/whitespace-nowrap/g)).toHaveLength(3);
+  it("always shows the exact total: never 'at least', never a +", () => {
+    for (const locale of ["en", "ar"] as const) {
+      const shown = text(render({ usd: "120.50" }, locale));
+      expect(shown).toContain("$120.50");
+      expect(shown).not.toContain("+");
+      expect(shown).not.toContain("at least");
+      expect(shown).not.toContain("على الأقل");
+    }
   });
 
-  it("shows the exact total, without a +", () => {
-    expect(text(render({ hasMore: false }))).not.toContain("+");
+  it("splits the two currencies: pounds on one line, dollars on the next, each an LTR isolate, never added", () => {
+    const html = render({ usd: "30.00", lbp: "2000000" });
+    expect(text(html)).toBe("To collect from earlier days 2,000,000 LBP $30");
+    expect(html.match(/<bdi dir="ltr"/g)).toHaveLength(2);
+    expect(html).toContain("flex-col items-end");
   });
 
-  it("shows 'at least $X' when more rows are behind the capped total", () => {
-    expect(text(render({ hasMore: true }))).toBe("To collect at least $120 from earlier days");
-    expect(text(render({ hasMore: true }, "ar"))).toContain("$120 +");
-    expect(text(render({ hasMore: true }, "ar"))).not.toContain("على الأقل");
-    expect(text(render({ hasMore: true }))).not.toContain("+");
+  it("shows only the currency that is owed", () => {
+    expect(text(render({ usd: "0.00", lbp: "210000" }))).toBe("To collect from earlier days 210,000 LBP");
+    expect(text(render({ usd: "30.00", lbp: "0" }))).toBe("To collect from earlier days $30");
+  });
+
+  it("the Arabic screen writes the same figures, digits then the unit, not a mirrored order", () => {
+    const shown = text(render({ usd: "30.00", lbp: "2000000" }, "ar"));
+    expect(shown).toContain("2,000,000");
+    expect(shown.indexOf("2,000,000")).toBeLessThan(shown.indexOf("$30"));
+    expect(shown).toMatch(/2,000,000 \S+ \$30/);
   });
 
   it("is a plain row for one debt and a toggle with a chevron for several", () => {

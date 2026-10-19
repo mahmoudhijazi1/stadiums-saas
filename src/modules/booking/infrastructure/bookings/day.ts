@@ -193,12 +193,13 @@ export async function listBookingsForStartDay(
 /**
  * Owed bookings, oldest start first. Same split as classifyDue:
  * ended APPROVED, any NO_SHOW, any CANCELLED, each with due above collected or an unpaid player tab.
- * `limit` includes one extra row so the caller can tell there is more.
+ * `limit` includes one extra row so the caller can tell there is more; without it every owed game is
+ * returned (the Today header needs the exact total, not the sum of a capped page).
  */
 export async function listEndedWithRemaining(
   tx: TenantTx,
   now: Date,
-  limit: number,
+  limit?: number,
 ): Promise<DayBookingRow[]> {
   const tenantId = await getCurrentTenantId();
   const endedOrFee = Prisma.sql`(
@@ -249,7 +250,7 @@ export async function listEndedWithRemaining(
       )
       AND ${endedOrFee}
     ORDER BY lower(b.during) ASC, b.id ASC
-    LIMIT ${limit}
+    ${limit === undefined ? Prisma.empty : Prisma.sql`LIMIT ${limit}`}
   `;
   return rows.map(mapDayBooking);
 }

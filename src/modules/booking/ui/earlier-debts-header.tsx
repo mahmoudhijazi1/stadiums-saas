@@ -2,57 +2,44 @@ import { ChevronDown, CircleAlert } from "lucide-react";
 import { cn } from "cn";
 import { ui } from "@/lib/copy";
 import type { UiLocale } from "@/lib/locale";
-import { LtrIsolate } from "@/components/ui/ltr-isolate";
+import { OwedAmounts } from "@/modules/booking/ui/owed-amounts";
 
 const rowClass =
   "flex min-h-11 w-full items-center gap-3 rounded-lg border border-owed/60 bg-owed-subtle px-3 py-2 text-start text-sm font-semibold text-owed";
 
 /**
- * The one place Today shows money owed from earlier days: alert icon, "To collect", the total, "from
- * earlier days". The total is the capped list's sum, so with more rows behind it the amount reads
- * "at least $X" rather than a bare "+". The three parts wrap as units, so a long Arabic line
- * takes a second line instead of breaking inside a phrase. With several rows the header is the toggle (chevron); with
- * one the row is shown and the header is plain.
+ * The one place Today shows money owed from earlier days: alert icon, "To collect" over "from earlier
+ * days", and the EXACT amount owed by all of them, never "at least". Each currency has its own line,
+ * pounds then dollars, never added together (DR-007); a currency that owes nothing is not shown. Every
+ * amount is an LTR isolate written the same way in both languages (digits, then the unit), so the
+ * Arabic screen shows the same figures, not a mirrored order. With several rows the header is the
+ * toggle (chevron); with one the row is shown and the header is plain.
  */
 export function EarlierDebtsHeader({
-  total,
-  totalText,
-  hasMore,
+  usd,
+  lbp,
   locale,
   expandable,
   expanded,
   onToggle,
 }: {
-  total: string;
-  /** The total already written with its currencies (a game in pounds is among them); replaces "$" + total. */
-  totalText?: string;
-  hasMore: boolean;
+  /** Dollars owed by all earlier-day games, exact ("30.00"). */
+  usd: string;
+  /** Pounds owed by all earlier-day games, exact ("2000000"). */
+  lbp: string;
   locale: UiLocale;
   expandable: boolean;
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const amount = <LtrIsolate>{totalText ?? `$${total}`}</LtrIsolate>;
   const content = (
     <>
       <CircleAlert aria-hidden className="size-5 shrink-0" />
-      <span className="flex min-w-0 flex-1 flex-wrap gap-x-2 leading-snug">
-        <span id="earlier-debts-heading" className="whitespace-nowrap">
-          {ui("owner.toCollect", locale)}
-        </span>
-        <span className="whitespace-nowrap">
-          {hasMore ? (
-            <>
-              {ui("owner.owedAtLeast", locale).split("{amount}")[0]}
-              {amount}
-              {ui("owner.owedAtLeast", locale).split("{amount}")[1]}
-            </>
-          ) : (
-            amount
-          )}
-        </span>
-        <span className="whitespace-nowrap">{ui("owner.owedFromEarlier", locale)}</span>
+      <span className="flex min-w-0 flex-1 flex-col leading-snug">
+        <span id="earlier-debts-heading">{ui("owner.toCollect", locale)}</span>
+        <span className="text-xs font-medium opacity-80">{ui("owner.owedFromEarlier", locale)}</span>
       </span>
+      <OwedAmounts usd={usd} lbp={lbp} locale={locale} />
     </>
   );
   if (!expandable) return <div className={rowClass}>{content}</div>;

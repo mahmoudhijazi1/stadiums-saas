@@ -51,8 +51,8 @@ describe("the debt screens in pounds", () => {
       text(
         renderToStaticMarkup(
           createElement(EarlierDebtsHeader, {
-            total: "30",
-            hasMore: false,
+            usd: "30.00",
+            lbp: "0",
             locale: "en",
             expandable: false,
             expanded: false,
@@ -61,8 +61,9 @@ describe("the debt screens in pounds", () => {
           }),
         ),
       );
-    expect(header({})).toBe("To collect $30 from earlier days");
-    expect(header({ totalText: "2,000,000 LBP + $30" })).toBe("To collect 2,000,000 LBP + $30 from earlier days");
+    expect(header({})).toBe("To collect from earlier days $30");
+    expect(header({ lbp: "2000000" })).toBe("To collect from earlier days 2,000,000 LBP $30");
+    expect(header({ usd: "0.00", lbp: "2000000" })).toBe("To collect from earlier days 2,000,000 LBP");
   });
 
   it("the debt warning on a request card names the pounds", () => {
