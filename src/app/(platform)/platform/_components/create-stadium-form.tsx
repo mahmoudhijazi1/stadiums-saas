@@ -38,6 +38,7 @@ export function CreateStadiumForm({ action }: { action: (input: unknown) => Prom
       name: String(data.get("name") ?? ""),
       slug,
       dayStartHour: Number(data.get("dayStartHour") ?? 6),
+      gamePriceCurrency: data.get("gamePriceCurrency") === "LBP" ? ("LBP" as const) : ("USD" as const),
       plan: String(data.get("plan") ?? ""),
       paidUntil: String(data.get("paidUntil") ?? ""),
     };
@@ -66,6 +67,9 @@ export function CreateStadiumForm({ action }: { action: (input: unknown) => Prom
       <section className="flex flex-col gap-4 rounded-xl border bg-card px-4 py-4">
         <p dir="ltr" className="text-start text-sm text-muted-foreground">
           {created.ownerIdentifier}
+        </p>
+        <p dir="ltr" className="text-start text-sm text-muted-foreground">
+          {ui("platform.gameCurrency", "en")}: {created.gamePriceCurrency}
         </p>
         <h2 className="text-sm font-semibold text-muted-foreground">{ui("platform.ownerPassword", "en")}</h2>
         <div className="flex items-center gap-2">
@@ -131,6 +135,19 @@ export function CreateStadiumForm({ action }: { action: (input: unknown) => Prom
         <Label htmlFor="stadium-hour">{ui("platform.dayStartHour", "en")}</Label>
         <Input id="stadium-hour" name="dayStartHour" type="number" inputMode="numeric" min={0} max={6} step={1} defaultValue={6} aria-invalid={hourError !== null} />
         {hourError ? <p role="alert" className="text-sm text-destructive">{hourError}</p> : null}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="stadium-currency">{ui("platform.gameCurrency", "en")}</Label>
+        <select
+          id="stadium-currency"
+          name="gamePriceCurrency"
+          defaultValue="USD"
+          className="h-11 w-full rounded-md border bg-background px-3 text-sm"
+        >
+          <option value="USD">USD</option>
+          <option value="LBP">LBP</option>
+        </select>
       </div>
 
       <div className="flex flex-col gap-2">

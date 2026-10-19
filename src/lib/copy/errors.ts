@@ -111,6 +111,8 @@ const ARABIC: Record<string, string> = {
   "booking.lbp_not_supported": "الحجوزات بالليرة غير مدعومة هنا بعد.",
   "booking.not_forgivable": "المتبقي {unit} أو أكثر، لا يمكن اعتباره مدفوعاً.",
   "booking.fee_unit": "الرسوم بالليرة يجب أن تكون من مضاعفات {unit}.",
+  "settings.game_currency_missing_prices": "لا يمكن التبديل: لبعض الملاعب لا يوجد سعر بالعملة الجديدة.",
+  "settings.game_currency_unchanged": "الملعب يسعّر مبارياته بهذه العملة أصلاً.",
   "booking.no_price_in_currency": "لا يوجد سعر لهذا الوقت بعملة الملعب. أضف السعر في إعدادات الملعب.",
   "booking.due_not_confirmed": "تعديل المبلغ متاح لحجز مؤكد أو ملغى أو لم يحضر فقط.",
   "payment.collect_unapproved": "يمكن التحصيل من حجز مؤكد أو لم يحضر أو ملغى فقط.",
@@ -239,6 +241,8 @@ const ENGLISH: Record<string, string> = {
   "booking.lbp_not_supported": "LBP games are not supported here yet.",
   "booking.not_forgivable": "What is left is {unit} or more, so it can't be considered paid.",
   "booking.fee_unit": "A fee in pounds must be a multiple of {unit}.",
+  "settings.game_currency_missing_prices": "Can't switch: some pitches have no price in the new currency.",
+  "settings.game_currency_unchanged": "The stadium already prices games in this currency.",
   "booking.no_price_in_currency": "This time has no price in the stadium's currency. Add the price in the pitch settings.",
   "booking.due_not_confirmed":
     "Only a confirmed, cancelled, or no-show booking can have its due adjusted.",

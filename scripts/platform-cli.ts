@@ -28,7 +28,7 @@ import {
 export const USAGE = [
   "Usage: tsx scripts/platform.ts <command>",
   "  tenants list",
-  "  tenants create --slug <slug> --name <name> [--plan <label>] [--paid-until YYYY-MM-DD] [--owner-identifier <local@slug>] [--day-start-hour <0-6>]",
+  "  tenants create --slug <slug> --name <name> [--plan <label>] [--paid-until YYYY-MM-DD] [--owner-identifier <local@slug>] [--day-start-hour <0-6>] [--game-currency USD|LBP]",
   "  tenants suspend <slug> --reason <text>",
   "  tenants resume <slug>",
   "  tenants set-game-currency <slug> USD|LBP",
@@ -53,6 +53,7 @@ const OPTIONS = {
   "paid-until": { type: "string" },
   "owner-identifier": { type: "string" },
   "day-start-hour": { type: "string" },
+  "game-currency": { type: "string" },
   reason: { type: "string" },
   amount: { type: "string" },
   note: { type: "string" },
@@ -150,6 +151,7 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
         paidUntil: paidUntilDate(values["paid-until"], false),
         ownerIdentifier: values["owner-identifier"] ?? null,
         dayStartHour: values["day-start-hour"] ?? null,
+        gamePriceCurrency: values["game-currency"] ?? null,
         actor: ctx.actor,
       };
       // Fail on bad arguments before asking anything.
@@ -157,7 +159,7 @@ export async function runPlatformCommand(argv: string[], ctx: CliContext): Promi
       await confirmDatabase(io, ctx.databaseUrl);
       const ownerPassword = await askNewPassword(io, { identifier: validated.ownerIdentifier, slug: validated.slug });
       const created = await createTenant({ ...input, ownerPassword });
-      io.print(`created ${created.slug} (owner login: ${created.ownerIdentifier})`);
+      io.print(`created ${created.slug} (owner login: ${created.ownerIdentifier}, game prices in ${created.gamePriceCurrency})`);
       return;
     }
 

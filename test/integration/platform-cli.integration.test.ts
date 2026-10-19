@@ -199,3 +199,34 @@ describe("usage", () => {
     await expect(run(["tenants", "list", "--password", "x"]).promise).rejects.toThrow();
   });
 });
+
+describe("tenants create --game-currency (DR-007 decision 1)", () => {
+  it("stores LBP and prints it in the summary", async () => {
+    const { promise, printed } = run(
+      ["tenants", "create", "--slug", "al-nour", "--name", "Al Nour", "--game-currency", "LBP"],
+      ["stadiums_test", PASSWORD, PASSWORD],
+    );
+    await promise;
+    expect(printed.join("\n")).toContain("game prices in LBP");
+    const tenant = await platformDb.tenant.findUniqueOrThrow({ where: { slug: "al-nour" } });
+    expect((tenant.settings as { gamePriceCurrency?: string }).gamePriceCurrency).toBe("LBP");
+  });
+
+  it("without it the stadium prices in USD", async () => {
+    const { promise, printed } = run(
+      ["tenants", "create", "--slug", "al-nour", "--name", "Al Nour"],
+      ["stadiums_test", PASSWORD, PASSWORD],
+    );
+    await promise;
+    expect(printed.join("\n")).toContain("game prices in USD");
+    const tenant = await platformDb.tenant.findUniqueOrThrow({ where: { slug: "al-nour" } });
+    expect((tenant.settings as { gamePriceCurrency?: string }).gamePriceCurrency).toBe("USD");
+  });
+
+  it("refuses a currency other than USD or LBP before any prompt", async () => {
+    const { promise, asked } = run(["tenants", "create", "--slug", "al-nour", "--name", "Al Nour", "--game-currency", "EUR"]);
+    await expect(promise).rejects.toThrow(/USD or LBP/);
+    expect(asked).toEqual([]);
+    expect(await platformDb.tenant.count()).toBe(0);
+  });
+});

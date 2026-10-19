@@ -34,7 +34,7 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 
 ### 5. `src/modules/access/domain/can.ts`
 - **Does:** answers "may this member do this action on this stadium" (`can(membership, permission)`).
-- **Why:** one place decides permissions: owner always yes, staff only on flags that are exactly `true`, and never for owner-only actions (`shop.manage`).
+- **Why:** one place decides permissions: owner always yes, staff only on flags that are exactly `true`, and never for owner-only actions (`shop.manage`, `people.edit`, `settings.game_currency`).
 - **Used by:** about 60 files (use cases check it before the transaction; pages hide what a member may not do).
 - **Never change without:** a staff flag must be strictly `true`, and an owner-only permission is never granted to staff. Tests: `modules/access/domain/can.test.ts`, `integration/staff-permissions.integration.test.ts`, `integration/staff-money-gating.integration.test.ts`.
 

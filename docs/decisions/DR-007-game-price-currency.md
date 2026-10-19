@@ -44,6 +44,16 @@ What the code does today:
    booking keeps its currency.
    *Why:* one switch is the cheapest thing for an owner to understand, and old games must not
    change under their feet.
+   **Done** (progress.md, 2026-10-19): the owner changes it in More > Settings > "Game prices in"
+   (AR: أسعار المباريات بـ), a confirm sheet ("New bookings will be priced in LBP. Existing games keep
+   their currency."). Owner only: `settings.game_currency` is in `OWNER_ONLY` like `shop.manage`,
+   because `settings.manage` can be granted to staff and this changes every price a stadium shows.
+   `setOwnGameCurrency` (stadium module) refuses the switch in the use case when any pitch has no full
+   set of prices in the new currency (`settings.game_currency_missing_prices`; the sheet lists those
+   pitches with a link to each editor instead of a confirm button), and writes one audit row
+   `tenant.game_currency` (from, to, the acting membership) in the same transaction. The operator CLI
+   `set-game-currency` stays (audit `tenant.set_game_currency`). A stadium is created with its currency:
+   the admin "New stadium" form and `tenants create --game-currency USD|LBP` (default USD).
 
 2. **A game's debt lives in its price currency.** The booking stores `priceCurrency` and exactly
    one of a USD amount or an LBP amount, for its price and for its due, with a database CHECK
@@ -224,6 +234,8 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    and the list uses `paymentId` directly. Rows written before stay null and are still paired by time,
    one-to-one. No backfill. Append-only at the database level is still open.
 10. "Keep it". **Done** (decision 15 above; progress.md, 2026-10-19).
+11. The owner's own "Game prices in" setting and the currency choice when a stadium is created.
+    **Done** (decision 1 above; progress.md, 2026-10-19).
 
 ## The unit lives in one place
 

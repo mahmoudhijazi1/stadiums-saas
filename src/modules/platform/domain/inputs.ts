@@ -39,6 +39,13 @@ export function requirePlan(plan: string): string {
   return trimmed;
 }
 
+/** `--game-currency`: "USD" or "LBP" exactly; absent means USD (DR-007 decision 1). */
+export function optionalGameCurrency(value: string | null | undefined): "USD" | "LBP" {
+  if (value === null || value === undefined || value === "") return "USD";
+  if (value === "USD" || value === "LBP") return value;
+  throw new DomainError("platform.currency_invalid");
+}
+
 /** `--day-start-hour`: a whole hour 0..6, or null to keep the default (6). */
 export function optionalDayStartHour(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined || value === "") return null;

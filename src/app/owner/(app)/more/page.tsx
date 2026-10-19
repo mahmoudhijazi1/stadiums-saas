@@ -1,6 +1,7 @@
 import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { MoreHub } from "@/app/owner/(app)/more/_components/hub";
-import { SETTINGS_MANAGE, SHOP_MANAGE, can } from "@/modules/access/domain/can";
+import { SETTINGS_GAME_CURRENCY, SETTINGS_MANAGE, SHOP_MANAGE, can } from "@/modules/access/domain/can";
+import { loadGameCurrencySetting } from "@/modules/stadium/application/game-currency";
 import {
   getCurrentRate,
   getExchangeRateChangedAt,
@@ -26,12 +27,15 @@ export default async function OwnerMorePage() {
   const changedAt = await getExchangeRateChangedAt();
   const pitches = await listPitchSummaries(tenant.gamePriceCurrency);
   const digits = rate ? rate.toFixed(0) : null;
+  // Owner only: staff can hold settings.manage but never settings.game_currency.
+  const gameCurrency = can(membership, SETTINGS_GAME_CURRENCY) ? await loadGameCurrencySetting() : null;
 
   return (
     <MoreHub
       locale={locale}
       mayManage={can(membership, SETTINGS_MANAGE)}
       pitchCount={pitches.length}
+      gameCurrency={gameCurrency}
       rateDigits={digits}
       rateGrouped={digits ? groupedDigits(digits) : null}
       changedLabel={

@@ -9,6 +9,7 @@ import {
   PAYMENTS_COLLECT,
   PEOPLE_EDIT,
   REPORTS_VIEW,
+  SETTINGS_GAME_CURRENCY,
   SETTINGS_MANAGE,
   can,
 } from "@/modules/access/domain/can";
@@ -174,6 +175,12 @@ describe("can", () => {
     expect(
       can({ role: "STAFF", permissions: { "settings.manage": true } }, SETTINGS_MANAGE),
     ).toBe(true);
+  });
+
+  it("lets OWNER change the game price currency and never STAFF, even with settings.manage or the flag true", () => {
+    expect(can({ role: "OWNER", permissions: {} }, SETTINGS_GAME_CURRENCY)).toBe(true);
+    expect(can({ role: "STAFF", permissions: { "settings.manage": true } }, SETTINGS_GAME_CURRENCY)).toBe(false);
+    expect(can({ role: "STAFF", permissions: { "settings.game_currency": true } }, SETTINGS_GAME_CURRENCY)).toBe(false);
   });
 
   it("lets OWNER edit people and never STAFF, even with the flag true", () => {

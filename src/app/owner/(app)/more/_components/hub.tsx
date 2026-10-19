@@ -36,11 +36,14 @@ import { SelectField } from "@/components/ui/select-field";
 import { Figure } from "@/components/ui/figure";
 import { SettingsRow, SettingsSection } from "@/components/ui/settings-list";
 import { AccountSheetContent } from "@/app/owner/(app)/more/account/_components/account-sheet";
+import { GameCurrencySheetContent, currencyName } from "@/app/owner/(app)/more/_components/game-currency-sheet";
+import type { GameCurrencySetting } from "@/modules/stadium/application/game-currency";
 import { NotificationsSheetContent } from "@/app/owner/(app)/more/notifications/_components/notifications-sheet";
 
 type SheetId =
   | "rate"
   | "rules"
+  | "gameCurrency"
   | "public"
   | "language"
   | "appearance"
@@ -101,6 +104,7 @@ export function MoreHub({
   locale,
   mayManage,
   pitchCount,
+  gameCurrency,
   rateDigits,
   rateGrouped,
   changedLabel,
@@ -121,6 +125,8 @@ export function MoreHub({
   locale: UiLocale;
   mayManage: boolean;
   pitchCount: number;
+  /** Owner only: the "Game prices in" row and sheet; null hides them (staff, even with settings.manage). */
+  gameCurrency: GameCurrencySetting | null;
   rateDigits: string | null;
   rateGrouped: string | null;
   changedLabel: string | null;
@@ -194,6 +200,13 @@ export function MoreHub({
               </>
             }
           />
+          {gameCurrency ? (
+            <SettingsRow
+              label={ui("owner.gamePricesIn", locale)}
+              onClick={() => setSheet("gameCurrency")}
+              value={<LtrIsolate>{currencyName(gameCurrency.current, locale)}</LtrIsolate>}
+            />
+          ) : null}
           {mayManageShop ? (
             <SettingsRow label={ui("owner.shop", locale)} href="/owner/more/shop" />
           ) : null}
@@ -276,6 +289,10 @@ export function MoreHub({
                 </form>
               </BottomSheetBody>
             </>
+          ) : null}
+
+          {sheet === "gameCurrency" && gameCurrency ? (
+            <GameCurrencySheetContent setting={gameCurrency} locale={locale} />
           ) : null}
 
           {sheet === "rules" ? (

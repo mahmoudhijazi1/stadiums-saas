@@ -52,7 +52,7 @@ Sub-pages: `/owner/money/activity` (day grouping, All/In/Out, keyset "Show more"
 
 **More** (`/owner/more`) is the settings hub. `/owner/more/settings` redirects here and keeps `ok` / `error`.
 
-- Business rows (pitches, exchange rate, booking rules, public page) require `settings.manage`. `OWNER` passes `can()` with no jsonb flag.
+- Business rows (pitches, exchange rate, booking rules, public page) require `settings.manage`. The **Game prices in** row (USD or LBP; DR-007 decision 1) sits next to booking rules and shows only to an OWNER (`settings.game_currency`, never granted to staff): its sheet confirms the switch ("New bookings will be priced in LBP. Existing games keep their currency."), or, when a pitch has no price in the other currency, lists those pitches with a link to each editor and offers no confirm. `OWNER` passes `can()` with no jsonb flag.
 - Exchange rate sheet reuses `submitSetExchangeRate`. Time format sheet reuses `submitSetTimeDisplay` and saves on tap. Language and appearance save on tap. Booking rules (BR-27) are not stored, so that sheet does not write.
 - Time format (12h / 24h): tenant-level on `Tenant.settings.timeDisplay`. Owner Today / Book / Waitlist **and public** slot clocks follow it. WhatsApp message bodies stay 24h (Arabic AM/PM risk).
 - **Stadium info** row (Business section, `settings.manage`) opens `/owner/more/stadium`: name, address, map link, phone, a "Same number for WhatsApp" switch with an optional separate number, and a colour from 8 presets, with a hint to set the name and colour before installing the app. The owner header avatar and the public header show the generated logo.

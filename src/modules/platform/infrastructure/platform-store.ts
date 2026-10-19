@@ -51,7 +51,7 @@ export async function listTenantPitchConfigs(tx: PlatformTx, tenantId: string) {
   return tx.pitch.findMany({
     where: { tenantId },
     orderBy: { createdAt: "asc" },
-    select: { name: true, scheduleConfig: true },
+    select: { id: true, name: true, scheduleConfig: true },
   });
 }
 
