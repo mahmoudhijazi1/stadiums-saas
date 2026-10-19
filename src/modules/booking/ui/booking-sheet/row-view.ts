@@ -10,6 +10,8 @@ export type UpcomingRowView = {
   /** Null when the stadium has one pitch: the name would say nothing. */
   pitchName: string | null;
   timeRange: string;
+  /** The start instant (ms), for ordering and grouping the day's games. */
+  startMs: number;
   /** Minutes added by extensions (30 each); 0 = never extended. Shown as a mark by the time. */
   extendedMinutes: number;
   /** "Repeat weekly" is offered: confirmed, not over, not in a series, and the member may create. */

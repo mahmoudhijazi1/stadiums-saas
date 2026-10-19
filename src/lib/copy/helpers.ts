@@ -348,3 +348,10 @@ export function seriesGamesCount(count: number, locale: UiLocale = "ar"): string
     other: "{n} مباراة",
   });
 }
+
+/** The badge on an extended game, in words: "Extended 30 min", "Extended 1 hour"; other lengths in minutes. */
+export function extendedBadge(minutes: number, locale: UiLocale = "ar"): string {
+  if (minutes === 30) return ui("owner.extendedHalfHour", locale);
+  if (minutes === 60) return ui("owner.extendedHour", locale);
+  return ui("owner.extendedMinutes", locale).replace("{n}", String(minutes));
+}

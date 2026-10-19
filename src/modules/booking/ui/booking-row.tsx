@@ -99,10 +99,8 @@ export function StatusPill({
     case "no_show_paid":
       return (
         <span className={cn(PILL, "bg-expected-subtle text-muted-foreground")}>
-          <span>{ui("owner.noShow", locale)}</span>
-          <span aria-hidden>·</span>
           <CircleCheck aria-hidden className="size-4 shrink-0 text-paid" />
-          <span>{ui("owner.paid", locale)}</span>
+          <span>{ui("owner.noShowFeePaid", locale)}</span>
         </span>
       );
     case "cancelled":

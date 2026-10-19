@@ -2,16 +2,10 @@
 
 import * as React from "react"
 import { CalendarIcon } from "lucide-react"
-import { enGB } from "react-day-picker/locale"
 
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { CalendarSheet } from "@/components/ui/calendar-sheet"
 import { LtrIsolate } from "@/components/ui/ltr-isolate"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 
 function parseYyyyMmDd(value: string): Date | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -55,36 +49,25 @@ function DateField({
   return (
     <>
       <input type="hidden" name={name} value={value} required={required} />
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            className="h-11 w-full justify-between px-3 font-mono font-normal"
-            aria-required={required}
-          >
-            <span>
-              {value ? <LtrIsolate>{value}</LtrIsolate> : "Pick a date"}
-            </span>
-            <CalendarIcon className="size-4 text-muted-foreground" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            required
-            selected={selected}
-            defaultMonth={selected}
-            onSelect={(date) => {
-              setValue(formatYyyyMmDd(date))
-              setOpen(false)
-            }}
-            locale={enGB}
-            numerals="latn"
-          />
-        </PopoverContent>
-      </Popover>
+      <Button
+        id={id}
+        type="button"
+        variant="outline"
+        className="h-11 w-full justify-between px-3 font-mono font-normal"
+        aria-required={required}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+      >
+        <span>{value ? <LtrIsolate>{value}</LtrIsolate> : "Pick a date"}</span>
+        <CalendarIcon className="size-4 text-muted-foreground" />
+      </Button>
+      <CalendarSheet
+        open={open}
+        onOpenChange={setOpen}
+        title="Pick a date"
+        selected={selected}
+        onSelect={(date) => setValue(formatYyyyMmDd(date))}
+      />
     </>
   )
 }

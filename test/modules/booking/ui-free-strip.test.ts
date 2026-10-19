@@ -6,7 +6,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { FreeStripPitch } from "@/modules/booking/domain/free-strip";
 import { FreeStrip } from "@/modules/booking/ui/free-strip";
 
-/** Written, not run. Every pitch is a wrapping block of equal-width soft chips; there are no filter chips. */
+/**
+ * Every pitch is one line of free ranges that opens its equal-width soft chips; there are no filter chips.
+ * The chips are drawn only once a line is open, so their classes are checked in the source.
+ */
+const source = readFileSync(join(process.cwd(), "src", "modules", "booking", "ui", "free-strip.tsx"), "utf8");
+
 function chip(startLocal: string, pending = 0) {
   return {
     startIso: `2026-10-14T${startLocal}:00.000Z`,
@@ -49,38 +54,41 @@ describe("FreeStrip", () => {
     expect(html).not.toContain(">All<");
   });
 
-  it("names a pitch with type-section, only when names are shown", () => {
-    expect(html).toContain('class="type-section"');
-    expect(render(PITCHES.slice(0, 1), false)).not.toContain("type-section");
+  it("names a pitch with type-strong, only when names are shown", () => {
+    expect(html).toContain('class="type-strong"');
+    expect(render(PITCHES.slice(0, 1), false)).not.toContain("type-strong");
   });
 
-  it("wraps each pitch's hours onto more lines as equal-width chips, with no sideways scroll", () => {
-    expect(html.match(/grid-cols-\[repeat\(auto-fill,minmax\(5\.5rem,1fr\)\)\]/g)).toHaveLength(3);
-    expect(html).toContain("w-full");
+  it("is one collapsed line per pitch with its free range, and the ranges wrap with no sideways scroll", () => {
+    expect(html.match(/aria-expanded="false"/g)).toHaveLength(3);
+    expect(html).toContain("flex-wrap");
     expect(html).not.toContain("overflow-x-auto");
     expect(html).not.toContain("flex-nowrap");
+  });
+
+  it("opens the hours as equal-width chips that wrap", () => {
+    expect(source).toContain("grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]");
+    expect(source).toContain("w-full");
   });
 
   it("sits a little lower than what is above it", () => {
     expect(html).toContain("mt-3");
   });
 
-  it("makes soft filled chips: surface token, no border, type-label, tabular, 40px", () => {
-    expect(html).toContain("bg-surface-2");
-    expect(html).toContain("type-label");
-    expect(html).toContain("tabular-nums");
-    expect(html).toContain("min-h-10");
-    expect(html).not.toContain("border-control-border");
-    expect(html).not.toContain("h-9");
+  it("makes soft filled chips: surface token, no border, type-label, tabular, 48px", () => {
+    expect(source).toContain("bg-surface-2");
+    expect(source).toContain("type-label");
+    expect(source).toContain("tabular-nums");
+    expect(source).toContain("min-h-12");
+    expect(source).not.toContain("border-control-border");
   });
 
   it("keeps the badge for pending requests and the total in the heading", () => {
-    expect(html).toContain("bg-action-ink");
+    expect(source).toContain("bg-action-ink");
     expect(html).toContain("(6)");
   });
 
   it("keeps the pressed and picked states, and uses no physical side classes", () => {
-    const source = readFileSync(join(process.cwd(), "src", "modules", "booking", "ui", "free-strip.tsx"), "utf8");
     expect(source).toContain("active:bg-accent-brand");
     expect(source).toContain('pickedClass = "bg-accent-brand text-accent-ink"');
     expect(source).not.toMatch(/\b(?:ml|mr|pl|pr|left|right|text-left|text-right)-/);

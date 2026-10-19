@@ -40,6 +40,26 @@ export type FreeStripPitch = {
   chips: FreeChip[];
 };
 
+export type FreeRange = { startIso: string; endIso: string; startLocal: string; endLocal: string };
+
+/**
+ * A pitch's free hours as ranges: consecutive free slots (one ends exactly when the next starts, also
+ * across midnight) become one range; a gap starts a new one. Chips are in time order, as `buildFreeStrip` returns them.
+ */
+export function freeRanges(chips: readonly FreeChip[]): FreeRange[] {
+  const ranges: FreeRange[] = [];
+  for (const chip of chips) {
+    const last = ranges[ranges.length - 1];
+    if (last && new Date(last.endIso).getTime() === new Date(chip.startIso).getTime()) {
+      last.endIso = chip.endIso;
+      last.endLocal = chip.endLocal;
+    } else {
+      ranges.push({ startIso: chip.startIso, endIso: chip.endIso, startLocal: chip.startLocal, endLocal: chip.endLocal });
+    }
+  }
+  return ranges;
+}
+
 /** Key for `pendingCounts`: pitch id + slot start instant. */
 export function pendingKey(pitchId: string, start: Date | string): string {
   const iso = typeof start === "string" ? start : start.toISOString();

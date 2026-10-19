@@ -20,10 +20,13 @@ import { owesCash, type UpcomingRowView } from "@/modules/booking/ui/booking-she
 import type { SheetStep } from "@/modules/booking/ui/booking-sheet/sheet-header";
 import { EarlierDebtsHeader } from "@/modules/booking/ui/earlier-debts-header";
 import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
+import { CancelledToggle, GroupHeading, NowCard } from "@/modules/booking/ui/day-groups";
+import { groupDayGames } from "@/modules/booking/domain/today-groups";
 
 export type { UpcomingRowView };
 
 export function UpcomingPanel({
+  isToday,
   toCollect,
   toCollectHasMore,
   toCollectUsd,
@@ -47,6 +50,8 @@ export function UpcomingPanel({
   seriesActions,
   feeActions,
 }: {
+  /** The selected day is today: games are grouped Now, Ended, Upcoming, Cancelled; another day is one list. */
+  isToday: boolean;
   toCollect: UpcomingRowView[];
   toCollectHasMore: boolean;
   /** The exact dollars owed by ALL games from earlier days ("30.00"), not just the listed rows. */
@@ -82,6 +87,8 @@ export function UpcomingPanel({
   const [sheetStep, setSheetStep] = useState<SheetStep>("details");
   const [interestOpen, setInterestOpen] = useState(false);
   const [collectOpen, setCollectOpen] = useState(false);
+  const [cancelledOpen, setCancelledOpen] = useState(false);
+  const groups = groupDayGames(games, isToday);
   const openRow =
     [...toCollect, ...games].find((row) => row.id === openId) ?? null;
   // The open booking left both lists: an ended game from an earlier day leaves "To
@@ -98,6 +105,8 @@ export function UpcomingPanel({
   const collectShown =
     collectOpen ||
     toCollect.some((row) => row.id === openId || row.id === highlight);
+  const cancelledShown =
+    cancelledOpen || games.some((row) => row.display.kind === "cancelled" && (row.id === openId || row.id === highlight));
   const confirmSubmitRef = useRef<HTMLButtonElement>(null);
   const cancelBookingRef = useRef<HTMLButtonElement>(null);
   const pendingFocusRef = useRef<"confirm" | "cancel" | null>(null);
@@ -216,19 +225,43 @@ export function UpcomingPanel({
       ) : null}
 
       {games.length > 0 ? (
-        <section aria-labelledby="today-games-heading" className="flex flex-col gap-2">
-          <h2 id="today-games-heading" className="text-sm font-semibold text-muted-foreground">
+        <section aria-labelledby="today-games-heading" className="flex flex-col gap-4">
+          <h2 id="today-games-heading" className="sr-only">
             {ui("owner.gamesHeading", locale)} (<LtrIsolate>{games.length}</LtrIsolate>)
           </h2>
-          <UpcomingRows
-            rows={games}
-            openId={openId}
-            onOpen={openRowSheet}
-            onOpenInterests={openInterestSheet}
-            locale={locale}
-            highlight={highlight}
-            rowKeyPrefix="day"
-          />
+          {groups.map((group) => {
+            const rows = (
+              <UpcomingRows
+                rows={group.items}
+                openId={openId}
+                onOpen={openRowSheet}
+                onOpenInterests={openInterestSheet}
+                locale={locale}
+                highlight={highlight}
+                rowKeyPrefix="day"
+              />
+            );
+            if (group.kind === "cancelled") {
+              return (
+                <div key={group.kind} className="flex flex-col gap-2">
+                  <CancelledToggle
+                    count={group.items.length}
+                    expanded={cancelledShown}
+                    onToggle={() => setCancelledOpen((open) => !open)}
+                    locale={locale}
+                  />
+                  {cancelledShown ? <div id="cancelled-list">{rows}</div> : null}
+                </div>
+              );
+            }
+            if (group.kind === "now") return <NowCard key={group.kind}>{rows}</NowCard>;
+            return (
+              <div key={group.kind} className="flex flex-col gap-2">
+                {group.showHeading ? <GroupHeading kind={group.kind} count={group.items.length} locale={locale} /> : null}
+                {rows}
+              </div>
+            );
+          })}
         </section>
       ) : (
         <EmptyState title={ui("empty.games", locale)} next={ui("empty.gamesNext", locale)} compact />

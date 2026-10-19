@@ -267,6 +267,7 @@ export async function OwnerToday({
           false,
           extendedMinutes,
         )}
+        isToday={ownerDay.isToday}
         toCollectHasMore={ownerDay.isToday && ownerDay.toCollectHasMore}
         toCollectUsd={ownerDay.toCollectOwed.usd.toFixed(2)}
         toCollectLbp={ownerDay.toCollectOwed.lbp.toFixed(0)}
@@ -437,6 +438,7 @@ function toUpcomingViews(
       id: row.id,
       pitchName: showPitch ? row.pitchName : null,
       timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
+      startMs: row.start.getTime(),
       extendedMinutes: extendedMinutes.get(row.id) ?? 0,
       repeatWeekly: repeatable.has(row.id),
       series: (() => {

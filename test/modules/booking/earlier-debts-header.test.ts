@@ -27,7 +27,8 @@ describe("EarlierDebtsHeader", () => {
     const html = render();
     expect(text(html)).toBe("To collect from earlier days $120");
     expect(html).toContain("text-owed");
-    expect(html).toContain("bg-owed-subtle");
+    expect(html).toContain("bg-card");
+    expect(html).not.toContain("bg-owed-subtle");
     expect(html).not.toContain("amber");
     expect(html).toContain('id="earlier-debts-heading"');
   });
