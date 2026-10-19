@@ -228,3 +228,11 @@ export function formatHoursSummary(
   }
   return parts.join(" · ");
 }
+
+/**
+ * `?currency=LBP|USD` on the pitch editor (DR-007): true when it names the stadium's OTHER currency, so
+ * the section for that currency opens expanded. Anything that is not exactly "USD" or "LBP" is ignored.
+ */
+export function opensOtherCurrency(requested: string | undefined, stadiumCurrency: "USD" | "LBP"): boolean {
+  return (requested === "USD" || requested === "LBP") && requested !== stadiumCurrency;
+}

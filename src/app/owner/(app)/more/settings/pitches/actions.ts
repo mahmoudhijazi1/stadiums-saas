@@ -15,7 +15,17 @@ const PITCH_KEEP = [
   "defaultPriceLbp",
   "hoursGroupsJson",
   "priceRulesJson",
+  "returnTo",
+  "currency",
 ] as const;
+
+/** After a save: the game-currency switch sheet when the owner came from it, else the pitch list. */
+function afterSave(formData: FormData, ok: string): never {
+  if (field(formData, "returnTo") === "game-currency") {
+    return redirectOwner("/owner/more", formData, [], { ok, sheet: "gameCurrency" });
+  }
+  return redirectOwner("/owner/more/settings/pitches", formData, [], { ok });
+}
 
 function confirmQuery(errorKey: string): Record<string, string> {
   if (errorKey === "venue.hours_pending") {
@@ -49,9 +59,7 @@ export async function submitCreatePitch(formData: FormData) {
       error: errorKey,
     });
   }
-  redirectOwner("/owner/more/settings/pitches", formData, [], {
-    ok: "pitch_created",
-  });
+  afterSave(formData, "pitch_created");
 }
 
 /**
@@ -85,7 +93,5 @@ export async function submitUpdatePitch(formData: FormData) {
       ...confirmQuery(errorKey),
     });
   }
-  redirectOwner("/owner/more/settings/pitches", formData, [], {
-    ok: "pitch_updated",
-  });
+  afterSave(formData, "pitch_updated");
 }

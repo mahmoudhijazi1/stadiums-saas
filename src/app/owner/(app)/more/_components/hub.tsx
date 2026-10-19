@@ -121,6 +121,7 @@ export function MoreHub({
   mayManage,
   pitchCount,
   gameCurrency,
+  initialSheet = null,
   rateDigits,
   rateGrouped,
   changedLabel,
@@ -143,6 +144,8 @@ export function MoreHub({
   pitchCount: number;
   /** Owner only: the "Game prices in" row and sheet; null hides them (staff, even with settings.manage). */
   gameCurrency: GameCurrencySetting | null;
+  /** A sheet to open on arrival (the pitch editor returns to the game-currency sheet). */
+  initialSheet?: "gameCurrency" | null;
   rateDigits: string | null;
   rateGrouped: string | null;
   changedLabel: string | null;
@@ -166,7 +169,7 @@ export function MoreHub({
   pushPublicKey: string | null;
 }) {
   const router = useRouter();
-  const [sheet, setSheet] = useState<SheetId | null>(null);
+  const [sheet, setSheet] = useState<SheetId | null>(initialSheet);
   const [dayStart, setDayStart] = useState(String(dayStartHour));
   const timeLabel =
     timeDisplay === "h12"

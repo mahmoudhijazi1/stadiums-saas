@@ -23,6 +23,10 @@ import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
 import { PreviewCard } from "@/app/owner/(app)/more/settings/pitches/_components/preview-card";
 import { LbpPriceField } from "@/app/owner/(app)/more/settings/pitches/_components/lbp-price-field";
 import { PriceCards, type PriceCard } from "@/app/owner/(app)/more/settings/pitches/_components/price-cards";
+import {
+  OtherCurrencyPrices,
+  otherPriceOk,
+} from "@/app/owner/(app)/more/settings/pitches/_components/other-currency-prices";
 
 export type PitchFormDefaults = {
   name: string;
@@ -43,9 +47,9 @@ const LENGTHS = ["60", "90", "120"] as const;
  * player would see. It submits the same fields as before (hoursGroupsJson,
  * priceRulesJson, ...), so the server validates exactly what it did.
  * Pending hours-cover still uses a second-submit checkbox.
- * DR-007: the prices follow the stadium's `currency`. LBP: whole pounds in steps of 5,000; the USD
- * prices still post unchanged (hidden), and in USD the pounds ride along the same way, so switching
- * the stadium's currency never loses the other set.
+ * DR-007: the main prices follow the stadium's `currency`. Below them a collapsed, optional section edits
+ * the OTHER currency's prices (the default and each price card), so a stadium can set the prices it
+ * needs before it switches currency; whatever is stored is shown and posts unchanged.
  */
 export function PitchDraftForm({
   locale,
@@ -57,6 +61,9 @@ export function PitchDraftForm({
   hourCycle,
   dayStartHour,
   currency,
+  otherOpen = false,
+  returnTo,
+  requestedCurrency,
 }: {
   locale: UiLocale;
   action: (formData: FormData) => Promise<void>;
@@ -69,7 +76,15 @@ export function PitchDraftForm({
   dayStartHour: number;
   /** The stadium's gamePriceCurrency: which prices the owner types. */
   currency: GamePriceCurrency;
+  /** `?currency=` named the other currency: its section opens expanded. */
+  otherOpen?: boolean;
+  /** Where to land after saving: the game-currency switch sheet (default: the pitch list). */
+  returnTo?: "game-currency";
+  /** The `?currency=` that was asked for; posted back so a failed save keeps the section open. */
+  requestedCurrency?: GamePriceCurrency;
 }) {
+  const inLbp = currency === "LBP";
+  const other: GamePriceCurrency = inLbp ? "USD" : "LBP";
   const initial = useMemo(() => rulesToPriceCards(defaults.priceRules), [defaults.priceRules]);
   const [name, setName] = useState(defaults.name);
   const [rows, setRows] = useState(() => hoursToRows(defaults.hoursGroups));
@@ -78,9 +93,10 @@ export function PitchDraftForm({
     !(LENGTHS as readonly string[]).includes(defaults.slotDurationMinutes),
   );
   const [players, setPlayers] = useState(defaults.defaultPlayerCount);
-  const [price, setPrice] = useState(defaults.defaultPriceUsd);
+  // In a pounds stadium "0.00" means "never priced in dollars": the other-currency field shows it empty.
+  const [price, setPrice] = useState(inLbp && defaults.defaultPriceUsd === "0.00" ? "" : defaults.defaultPriceUsd);
   const [priceLbp, setPriceLbp] = useState(defaults.defaultPriceLbp);
-  const inLbp = currency === "LBP";
+  const usdPosted = price === "" && inLbp ? "0.00" : price;
   const cardPriced = (card: PriceCard) => (inLbp ? isLbpPriceString(card.priceLbp ?? "") : isValidUsd(card.priceUsd));
   const defaultPriced = inLbp ? isLbpPriceString(priceLbp) : isValidUsd(price);
   const [cards, setCards] = useState<PriceCard[]>(() =>
@@ -92,26 +108,36 @@ export function PitchDraftForm({
   const priceRules = priceCardsToRules(completeCards, initial.timed);
   const durationNumber = /^\d+$/.test(duration) ? Number(duration) : 0;
   const cardsIncomplete = cards.some((card) => card.days.length > 0 && !cardPriced(card));
+  // The other currency's prices are optional, but a typed one must be valid for its currency.
+  const otherOk =
+    otherPriceOk(other === "LBP" ? priceLbp : price, other, isLbpPriceString) &&
+    cards.every((card) => otherPriceOk((other === "LBP" ? card.priceLbp : card.priceUsd) ?? "", other, isLbpPriceString));
   const canSave =
-    name.trim().length > 0 && groups.length > 0 && durationNumber > 0 && isValidUsd(price) && defaultPriced && !cardsIncomplete;
+    name.trim().length > 0 &&
+    groups.length > 0 &&
+    durationNumber > 0 &&
+    isValidUsd(usdPosted) &&
+    defaultPriced &&
+    !cardsIncomplete &&
+    otherOk;
   const lbpKept = isLbpPriceString(priceLbp) ? priceLbp : undefined;
 
   const groupsJson = JSON.stringify(groups);
   const rulesJson = JSON.stringify(priceRules);
   const config = useMemo(() => {
-    if (durationNumber <= 0 || !isValidUsd(price) || (inLbp && !lbpKept)) return null;
+    if (durationNumber <= 0 || !isValidUsd(usdPosted) || (inLbp && !lbpKept)) return null;
     try {
       return scheduleFromHoursGroups({
         groups: JSON.parse(groupsJson) as HoursGroup[],
         slotDurationMinutes: durationNumber,
-        defaultPriceUsd: price,
+        defaultPriceUsd: usdPosted,
         defaultPriceLbp: lbpKept,
         priceRules: JSON.parse(rulesJson) as PitchPriceRule[],
       });
     } catch {
       return null;
     }
-  }, [groupsJson, durationNumber, price, lbpKept, inLbp, rulesJson]);
+  }, [groupsJson, durationNumber, usdPosted, lbpKept, inLbp, rulesJson]);
 
   // Dirty = anything differs from what the form opened with.
   const snapshot = JSON.stringify([name, groupsJson, duration, players, price, priceLbp, rulesJson]);
@@ -156,7 +182,9 @@ export function PitchDraftForm({
       <input type="hidden" name="hoursGroupsJson" value={groupsJson} />
       <input type="hidden" name="priceRulesJson" value={rulesJson} />
       <input type="hidden" name="slotDurationMinutes" value={duration} />
-      <input type="hidden" name="defaultPriceUsd" value={price} />
+      <input type="hidden" name="defaultPriceUsd" value={usdPosted} />
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+      {requestedCurrency ? <input type="hidden" name="currency" value={requestedCurrency} /> : null}
       <input type="hidden" name="defaultPriceLbp" value={priceLbp} />
 
       <div className="flex flex-col gap-2">
@@ -253,6 +281,16 @@ export function PitchDraftForm({
       </div>
 
       <PriceCards locale={locale} cards={cards} onChange={setCards} timed={initial.timed} hourCycle={hourCycle} currency={currency} />
+
+      <OtherCurrencyPrices
+        locale={locale}
+        other={other}
+        defaultPrice={other === "LBP" ? priceLbp : price}
+        onDefaultPrice={other === "LBP" ? setPriceLbp : setPrice}
+        cards={cards}
+        onCards={setCards}
+        defaultOpen={otherOpen}
+      />
 
       <PreviewCard
         locale={locale}
