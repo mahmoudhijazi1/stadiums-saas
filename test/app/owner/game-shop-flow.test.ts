@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
-import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import { AddItemsSheet, type TabPayer } from "@/modules/booking/ui/add-items-sheet";
 import { BookingItems, type BookingItemsPanelView, type ItemsActions } from "@/modules/booking/ui/booking-items";
 import type { SellItem } from "@/modules/shop/ui/item-tiles";
@@ -70,8 +70,7 @@ describe("step 1: items", () => {
     fireEvent.click(tile("Cola"));
     fireEvent.click(tile("Water"));
     expect(next.disabled).toBe(false);
-    expect(document.body.textContent).toContain("$3.00");
-    expect(document.body.textContent).toContain("20,000");
+    expect(document.body.textContent).toContain("20,000 LBP + $3");
     expect(screen.queryByText(t("owner.itemsPayNow"))).toBeNull();
   });
 });
@@ -253,7 +252,7 @@ describe("Tabs on this game", () => {
     expect(document.body.textContent).toContain("Water ×1");
     const collects = screen.getAllByRole("button", { name: new RegExp(`^${t("owner.collect")}`) });
     expect(collects).toHaveLength(2);
-    expect(collects[0]!.textContent).toContain("$3.00");
+    expect(collects[0]!.textContent).toContain("$3");
     expect(collects[0]!.textContent).toContain("20,000");
     expect(collects[1]!.textContent).toContain("$1.50");
     expect(screen.queryByText(t("owner.shop"))).toBeNull();
