@@ -14,7 +14,8 @@ import { isForgivable } from "@/modules/payment/domain/units";
 import { ConsiderPaidButton, LbpCollectForm } from "@/modules/booking/ui/booking-sheet/lbp-collect";
 import { PerPlayerCollect } from "@/modules/booking/ui/per-player-collect";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
-import { isPerPlayer, owesCash, splitAdjustOf, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
+import { CollectAdvance, type AdvanceStep } from "@/modules/booking/ui/booking-sheet/collect-advance";
+import { collectMode, isPerPlayer, owesCash, splitAdjustOf, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
 
 /** The collect actions of the sheet: whole collect, two-currency, per-player switches and slot collects. */
 export type CollectActions = {
@@ -106,6 +107,12 @@ export function MoneyBlock({
   collectActions: CollectActions;
 }) {
   const [mixedOpen, setMixedOpen] = useState(false);
+  const [advance, setAdvance] = useState<AdvanceStep>("idle");
+  // One rule for both currencies (collectMode): Collect is primary on an ended game or a fee; before the
+  // game it is hidden behind "Collect in advance", which asks first. Forgiving needs an ended game.
+  const mode = collectMode(row);
+  const showCollect = mode === "primary" || (mode === "advance" && advance === "open");
+  const gate = mayCollect && mode === "advance" && advance !== "open" && !isPerPlayer(row);
   const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitSwitchToPerPlayer, submitSwitchToWhole } =
     collectActions;
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
@@ -114,8 +121,8 @@ export function MoneyBlock({
   if (row.lbp) {
     const lbp = row.lbp;
     const tone: MoneyTone = lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected";
-    const canCollectLbp = mayCollect && !lbp.settled && !isPerPlayer(row);
-    const forgivable = canCollectLbp && submitConsiderPaid && isForgivable(new Decimal(lbp.remaining), "LBP", rate);
+    const canCollectLbp = mayCollect && showCollect && !isPerPlayer(row);
+    const forgivable = canCollectLbp && mode === "primary" && submitConsiderPaid && isForgivable(new Decimal(lbp.remaining), "LBP", rate);
     return (
       <section className="flex flex-col gap-3">
         <DueRemainingFigures
@@ -136,18 +143,19 @@ export function MoneyBlock({
             ) : null
           }
         />
+        {gate ? <CollectAdvance step={advance} onStep={setAdvance} locale={locale} /> : null}
         {canCollectLbp ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
         {canCollectLbp && mixedOpen ? (
           <LbpCollectForm bookingId={row.id} remainingLbp={lbp.remaining} lbpPerUsd={lbpPerUsd} locale={locale} submitCollectPayment={submitCollectPayment} />
         ) : null}
         {forgivable ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
-        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjustOf(row, mayAdjust)} lbpPerUsd={lbpPerUsd} locale={locale} />
+        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} advanceNeeded={mode === "advance"} mayAdjust={splitAdjustOf(row, mayAdjust)} lbpPerUsd={lbpPerUsd} locale={locale} />
       </section>
     );
   }
-  const canCollect = mayCollect && owesCash(row) && !isPerPlayer(row);
+  const canCollect = mayCollect && showCollect && !isPerPlayer(row);
   const splitAdjust = splitAdjustOf(row, mayAdjust);
-  const forgivableUsd = canCollect && submitConsiderPaid && isForgivable(new Decimal(row.remainingUsd), "USD", rate);
+  const forgivableUsd = canCollect && mode === "primary" && submitConsiderPaid && isForgivable(new Decimal(row.remainingUsd), "USD", rate);
 
   return (
       <section className="flex flex-col gap-3">
@@ -168,10 +176,11 @@ export function MoneyBlock({
             ) : null
           }
         />
+        {gate ? <CollectAdvance step={advance} onStep={setAdvance} locale={locale} /> : null}
         {canCollect ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
         {canCollect && mixedOpen ? <MixedCollectForm submitCollectPayment={submitCollectPayment} row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
         {forgivableUsd ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
-        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} mayAdjust={splitAdjust} lbpPerUsd={lbpPerUsd} locale={locale} />
+        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} advanceNeeded={mode === "advance"} mayAdjust={splitAdjust} lbpPerUsd={lbpPerUsd} locale={locale} />
       </section>
   );
 }

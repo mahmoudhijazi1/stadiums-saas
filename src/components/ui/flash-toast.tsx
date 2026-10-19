@@ -51,6 +51,7 @@ function FlashToast({ locale = "ar" }: { locale?: UiLocale }) {
     next.delete("changeUsd")
     next.delete("changeLbp")
     next.delete("kept")
+    next.delete("sheet")
     const qs = next.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }, [searchParams, pathname, router, locale])

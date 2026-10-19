@@ -24,6 +24,7 @@ import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
 import { isForgivable } from "@/modules/payment/domain/units";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 import { LbpGameBalance } from "@/modules/booking/ui/booking-sheet/lbp-collect";
+import { CollectAdvance, type AdvanceStep } from "@/modules/booking/ui/booking-sheet/collect-advance";
 import { giveBackText } from "@/lib/copy/helpers";
 
 export type SlotView = {
@@ -129,6 +130,7 @@ export function PerPlayerCollect({
   view,
   part,
   mayCollect,
+  advanceNeeded = false,
   mayAdjust,
   locale,
   lbpPerUsd = null,
@@ -142,6 +144,8 @@ export function PerPlayerCollect({
   /** "slots": the players and their Pay buttons (the money block). "mode": the Whole / Per player switch (More actions). */
   part: "slots" | "mode";
   mayCollect: boolean;
+  /** The game has not been played yet: the shares are paid only after "Collect in advance" is confirmed, and none is forgiven. */
+  advanceNeeded?: boolean;
   mayAdjust: boolean;
   locale: UiLocale;
   /** The current exchange rate, to tell which leftover is small enough to forgive and to show Give back. */
@@ -159,6 +163,7 @@ export function PerPlayerCollect({
   submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
   submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
 }) {
+  const [advance, setAdvance] = useState<AdvanceStep>("idle");
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
@@ -166,6 +171,9 @@ export function PerPlayerCollect({
   const [count, setCount] = useState(String(view.defaultPlayerCount));
 
   const perPlayer = view.mode === "PER_PLAYER";
+  const gated = advanceNeeded && advance !== "open";
+  // Paying a share before the game is played goes through "Collect in advance"; forgiving never does.
+  const mayPay = mayCollect && !gated;
   const inPounds = view.currency === "LBP";
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
   /** An amount of this view, written with its currency. */
@@ -292,15 +300,17 @@ export function PerPlayerCollect({
               <LtrIsolate>{money(view.unassignedUsd)}</LtrIsolate>
             </p>
           ) : null}
+          {mayCollect && gated ? <CollectAdvance step={advance} onStep={setAdvance} locale={locale} /> : null}
           <ul className="flex flex-col gap-2">
             {view.slots.map((slot) => {
               const mayForgive =
                 mayCollect &&
+                !advanceNeeded &&
                 !!submitConsiderSharePaid &&
                 slot.state === "pay" &&
                 !slot.partial &&
                 isForgivable(new Decimal(slot.remainingUsd), inPounds ? "LBP" : "USD", rate);
-              const mayPayOtherWay = inPounds && mayCollect && slot.state === "pay";
+              const mayPayOtherWay = inPounds && mayPay && slot.state === "pay";
               return (
                 <li key={slot.participantId} className="rounded-lg bg-muted px-3 py-1">
                   <div className="flex items-center gap-3">
@@ -324,7 +334,7 @@ export function PerPlayerCollect({
                       <span className="inline-flex min-h-11 min-w-20 items-center justify-center text-center text-xs text-muted-foreground">
                         {ui("owner.slotCovered", locale)}
                       </span>
-                    ) : mayCollect ? (
+                    ) : mayPay ? (
                       <TonalCollectButton
                         disabled={busy.has(slot.participantId)}
                         onClick={() =>
@@ -393,7 +403,7 @@ export function PerPlayerCollect({
               );
             })}
           </ul>
-          {mayCollect && payAllOpen ? (
+          {mayPay && payAllOpen ? (
             <Button
               type="button"
               variant="outline"

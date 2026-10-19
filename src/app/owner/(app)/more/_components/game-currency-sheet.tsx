@@ -33,7 +33,7 @@ export function GameCurrencySheetContent({ setting, locale }: { setting: GameCur
               {setting.missing.map((pitch) => (
                 <li key={pitch.id}>
                   <Link
-                    href={`/owner/more/settings/pitches/${pitch.id}`}
+                    href={`/owner/more/settings/pitches/${pitch.id}?currency=${setting.target}&returnTo=game-currency`}
                     className="flex min-h-11 items-center rounded-lg bg-muted px-3 type-strong outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
                   >
                     {pitch.name}

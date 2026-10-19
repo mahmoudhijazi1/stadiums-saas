@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { getCurrentTenant } from "@/lib/tenant-context";
+import { opensOtherCurrency } from "@/modules/venue/domain/pitch-form-model";
 import { submitCreatePitch } from "../actions";
 import { PitchDraftForm } from "@/app/owner/(app)/more/settings/pitches/_components/form";
 import {
@@ -62,6 +63,9 @@ export default async function NewPitchPage({
         hourCycle={tenant.timeDisplay}
         dayStartHour={tenant.dayStartHour}
         currency={tenant.gamePriceCurrency}
+        otherOpen={opensOtherCurrency(queryString(params.currency), tenant.gamePriceCurrency)}
+        returnTo={queryString(params.returnTo) === "game-currency" ? "game-currency" : undefined}
+        requestedCurrency={queryString(params.currency) === "USD" || queryString(params.currency) === "LBP" ? (queryString(params.currency) as "USD" | "LBP") : undefined}
       />
     </section>
   );

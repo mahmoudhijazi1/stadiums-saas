@@ -9,6 +9,7 @@ import {
 import { listPitchSummaries } from "@/modules/venue/application/list-pitch-summaries";
 import { startHoursInsideWindows } from "@/modules/booking/domain/business-day";
 import { getUiLocale } from "@/lib/get-ui-locale";
+import { queryString } from "@/lib/search-params";
 import { getCurrentTenant } from "@/lib/tenant-context";
 import { publicPageUrl } from "@/modules/stadium/domain/public-page-url";
 import { formatRelativeTime } from "@/lib/format/time";
@@ -17,9 +18,15 @@ import { getPushPublicKey } from "@/modules/push/application/push-status";
 
 /**
  * More hub. Old /owner/more/settings redirects here.
- * Local Next page.md: this page has no searchParams.
+ * Local Next page.md: searchParams is a Promise. `?sheet=gameCurrency` opens the "Game prices in" sheet
+ * (where the pitch editor returns to after saving a price for the switch).
  */
-export default async function OwnerMorePage() {
+export default async function OwnerMorePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
   const membership = await requireOwnerMembership();
   const locale = await getUiLocale();
   const tenant = await getCurrentTenant();
@@ -36,6 +43,7 @@ export default async function OwnerMorePage() {
       mayManage={can(membership, SETTINGS_MANAGE)}
       pitchCount={pitches.length}
       gameCurrency={gameCurrency}
+      initialSheet={gameCurrency && queryString(params.sheet) === "gameCurrency" ? "gameCurrency" : null}
       rateDigits={digits}
       rateGrouped={digits ? groupedDigits(digits) : null}
       changedLabel={
