@@ -169,7 +169,7 @@ Module rule: Booking may import Payment. Payment never imports Booking, so `inse
 
 ## 8. How it is tested
 
-- Unit: `build-slots`, `switch-mode`, `share-charge`, `split-evenly` (the old cents split, no longer used by the split), `person-owed`, `slot-charge` (the audit case, the cap, partial last slot, covered).
+- Unit: `build-slots`, `switch-mode`, `share-charge`, `person-owed`, `slot-charge` (the audit case, the cap, partial last slot, covered).
 - Integration (`per-player.integration.test.ts`, real Postgres): the split and its refusals, rollback when a slot insert fails, one tap writes one payment/tender/ledger/allocation, the concurrent double tap, pay-all, Unassigned covering the slots (no second charge), pay-all capped at the booking remaining with a partial last slot, a partial single tap, whole-collect refusal, switching back, allocation tenant scoping, cancel with payments, cancel with an edited fee, cancel with nothing paid, no-show at the default fee, no-show with an edited fee, no-show waived.
 - **Not covered by any test:** the sheet itself (there is no browser or React test setup), the 401/refresh behavior, a cancel or no-show racing a slot tap (the row lock is in place but not exercised).
 

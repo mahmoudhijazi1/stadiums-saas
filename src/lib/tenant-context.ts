@@ -24,7 +24,7 @@ export type CurrentTenant = {
   perPlayerSplitEnabled: boolean;
   /** Local hour a business day starts (0..6). */
   dayStartHour: number;
-  /** DR-007: the currency pitch prices are shown and (from slice 5) games are priced in. */
+  /** DR-007: the currency pitch prices are shown in and new games are priced in. */
   gamePriceCurrency: GamePriceCurrency;
   /** Suspended by the platform operator (decision 7). Loaded in the same query. */
   suspended: boolean;

@@ -45,7 +45,7 @@ export async function insertBookingDueChange(
   await tx.bookingDueChange.create({
     data: {
       bookingId: input.bookingId,
-      // USD only until LBP games exist (DR-007 slice 6).
+      // The dollar change; a game in pounds writes `insertBookingDueChangeLbp`.
       currency: "USD",
       fromUsd: formatUsd(input.fromUsd),
       toUsd: formatUsd(input.toUsd),

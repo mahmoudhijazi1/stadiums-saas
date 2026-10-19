@@ -231,8 +231,9 @@ export async function listSlotsForBookings(
 }
 
 /**
- * The same slots as dollars, for slot charging (a money write, USD only until DR-007 slice 7): a slot
- * of an LBP game is refused with `booking.lbp_not_supported`.
+ * The same slots as dollars, for the dollar slot charge of a USD game (an LBP game is charged by
+ * `planShareCharge` and never reaches this): a slot of an LBP game is refused with
+ * `booking.lbp_not_supported`.
  */
 export function usdSlots(slots: readonly SlotRow[]): UsdSlotRow[] {
   return slots.map(({ currency, due, paid, ...rest }) => ({

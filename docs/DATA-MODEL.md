@@ -88,7 +88,7 @@
 | 5 | **Partial unique** `BookingParticipant_bookingId_slotNumber_not_null_key` on `(bookingId, slotNumber) WHERE slotNumber IS NOT NULL` | `…060000_per_player_foundation` | `bookings.ts` `applyPerPlayerSlots` (slot numbers 1…n), `planSlotCharge` (slot order). | Duplicate slot numbers; charge order undefined. |
 | 6 | **CHECK** `Booking_amountDueUsd_nonneg` (`amountDueUsd >= 0`) | `…060000_per_player_foundation` | `booking/domain/adjust-due.ts` `assertAdjustDue` also refuses negatives; the DB is the backstop. | — |
 | 7 | **CHECK** `BookingParticipant_requester_has_person` (`isRequester = false OR personId IS NOT NULL`) | `…060000_per_player_foundation` | Every reader of the requester. | Requester without a person: debt warnings break. |
-| 8 | **CHECK** `BookingParticipant_amountDueUsd_nonneg` | `…060000_per_player_foundation` | `split-evenly.ts` `splitEvenly` never produces negatives; the DB backstops. | — |
+| 8 | **CHECK** `BookingParticipant_amountDueUsd_nonneg` | `…060000_per_player_foundation` | `payment/domain/units.ts` `splitInUnits` never produces negatives; the DB backstops. | — |
 | 9 | **CHECK** `PaymentAllocation_amountUsd_positive` (`amountUsd > 0`) and unique `(paymentId, participantId)` | `…060000_per_player_foundation` | `slot-charge.ts` `planSlotCharge` (never emits a zero allocation); `payment/infrastructure/payments.ts` `insertAllocations`. | Zero or duplicate credits. |
 | 10 | **CHECK** `BookingDueChange_usd_nonneg`, plus a backfill of CANCELLED dues | `20260924080000_booking_due_change` | `write-due-change.ts` `writeDueIfChanged`. | — |
 | 11 | **CHECK** `Pitch_defaultPlayerCount_range` (1–30) | `20260929120000_pitch_default_player_count` | `venue/schemas/pitch-draft.ts` (the form), `switchToPerPlayer` default count. | — |

@@ -65,9 +65,10 @@ export function dueChangeAmounts(change: {
 }
 
 /**
- * The USD amount, for code that only handles USD games today. An LBP game is refused with
- * `booking.lbp_not_supported` ("LBP games are not supported here yet"); `where` names the reader
- * for the log. Until LBP games can be created (DR-007 slice 5) this never throws.
+ * The USD amount, for code that can only be given a USD game. An LBP game is refused with
+ * `booking.lbp_not_supported` ("unexpected currency"); `where` names the reader
+ * for the log. A guard: the code that calls it (dollar slot charging of a USD game) is never handed an
+ * LBP game, so it throws only if that stops being true.
  */
 export function requireUsd(money: GameMoney, where: string): Decimal {
   if (money.currency !== "USD") {

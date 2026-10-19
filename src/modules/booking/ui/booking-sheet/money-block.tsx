@@ -109,9 +109,8 @@ export function MoneyBlock({
   const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitSwitchToPerPlayer, submitSwitchToWhole } =
     collectActions;
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
-  // An LBP game (DR-007 slices 6 and 7): the due in pounds, Collect and the two-currency form,
-  // "Consider it paid" under 5,000 LBP, and the per-player split. Extend, cancel fees and adjust stay
-  // hidden (slice 8).
+  // An LBP game (DR-007): the due in pounds, Collect and the two-currency form, "Consider it paid"
+  // under one money unit, and the per-player split. Its other actions are in the sheet's own sections.
   if (row.lbp) {
     const lbp = row.lbp;
     const tone: MoneyTone = lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected";

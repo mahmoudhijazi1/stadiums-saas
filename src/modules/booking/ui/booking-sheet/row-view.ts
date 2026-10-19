@@ -44,8 +44,7 @@ export type UpcomingRowView = {
   /**
    * An LBP game (DR-007): what is left in pounds ("2,000,000 ل.ل"), what its settlements applied,
    * whether nothing is left, and the pill text (the remaining plus any player tab, each in its own
-   * currency), and `remaining`, what is left in whole pounds for the collect form ("210000"). Collect
-   * works (DR-007 slice 6); its other money actions are hidden until their slices land. Absent or null
+   * currency), and `remaining`, what is left in whole pounds for the collect form ("210000"). Absent or null
    * on a USD game.
    */
   lbp?: { due: string; paid: string; settled: boolean; pill: string; remaining: string } | null;

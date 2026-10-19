@@ -78,8 +78,9 @@ export type ShareOwing = {
 /**
  * One participant's share, what its allocations add up to, and what is left, in the game's
  * currency. A share or an allocation in the other currency than its game's means a USD-only reader
- * would have dropped money: it is refused (`booking.lbp_not_supported`) rather than left out, as
- * the slice 3b readers did. `where` names the reader for the log.
+ * would have dropped money: it is refused (`booking.lbp_not_supported`) rather than left out. The
+ * CHECKs and the writers never produce such a row; this guards a hand-edited one. `where` names the
+ * reader for the log.
  */
 export function shareOwing(input: {
   currency: GameCurrency;

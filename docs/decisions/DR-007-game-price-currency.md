@@ -1,6 +1,6 @@
 # DR-007 — Game prices in LBP or USD
 
-**Status:** Accepted
+**Status:** Done (all slices built on `feat/lbp-pricing`; see progress.md, 2026-10-16 to 2026-10-19)
 **Date:** 2026-10-16
 **Depends on:** DR-002 (data model; §2.14 payments, §2.17 exchange rate, §2.21 ledger), the shop's
 LBP pricing (`src/modules/shop/domain/pricing.ts`, migration `20261010150000_shop_lbp_prices`),
@@ -92,7 +92,7 @@ What the code does today:
    bookings are not changed.
    *Why:* nobody hands over 285,714 pounds. Whole units keep the total exact without a
    leftover. (The USD split already gives the first slots the extra cent,
-   `src/modules/booking/domain/split-evenly.ts:13-22`, and slot 1 is the requester,
+   `split-evenly.ts:13-22` (removed once `splitInUnits` replaced it), and slot 1 is the requester,
    `build-slots.ts:28-33`; the new rule keeps that order with a bigger unit.)
 
 8. **"Consider it paid".** When what is left is under 5,000 LBP (or that amount in USD at the
@@ -178,9 +178,9 @@ the readers (9) come before collecting (6)**, so an LBP stadium can be used end 
 approve, see what is owed, in pounds) before any money can be taken on an LBP game. Order built:
 0 to 5, then 9, then 6, 7, 8, 10.
 
-0. This record.
-1. An overpayment becomes change on USD games.
-2. Pure helpers (units, split, rounding, the friendly amount) with tests.
+0. This record. **Done.**
+1. An overpayment becomes change on USD games. **Done** (progress.md, 2026-10-16).
+2. Pure helpers (units, split, rounding, the friendly amount) with tests. **Done** (progress.md, 2026-10-16).
 3. The migration and currency-aware types. **Done** (migrations `20261016090000_game_price_currency`
    and `20261016090100_rounding_due_reason`; progress.md, 2026-10-16). **3b done:** every raw SQL
    reader of game money names its currency and refuses an LBP game (progress.md, 2026-10-16).
@@ -189,7 +189,8 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    `priceForSlotIn`, and every pitch price shown in the stadium's currency.
 5. Creating bookings in LBP (owner, public request, weekly series). **Done** (progress.md, 2026-10-18):
    a new game is priced in the stadium's currency, approve and reject work on LBP games, and Today,
-   the booking sheet and the person page show an LBP game in pounds with its money actions hidden.
+   the booking sheet and the person page show an LBP game in pounds (its money actions were hidden
+   until slices 6 to 8 enabled them).
 6. Collecting a whole game in LBP, and "Consider it paid". **Done** (progress.md, 2026-10-18): an LBP
    game is collected under the booking lock, pounds first and dollars at the current rate, settled
    with `applyPayment`; each kept tender is valued at this payment's rate (decision 3), so the
@@ -245,7 +246,7 @@ Code never uses the number: it asks `moneyUnit("LBP")` (`src/modules/payment/dom
 screen writes `{unit}` in the copy tables; `ui()` and `errorMessage()` fill it with the unit and the money
 formatter (`lib/copy/unit-text.ts`), so no sentence has the amount typed in it.
 `test/architecture/lbp-unit.test.ts` fails, with file:line, on a literal 5000 or 5_000, or a quoted
-"5,000", anywhere else in `src`.
+"5,000", anywhere else in money code (the booking, payment, shop and venue modules and `src/lib/format`).
 
 To change the unit: change `LBP_UNIT_VALUE`, run `npx jest test/architecture`, and read the effects:
 new splits, rounded fees and extension prices, the forgiveness threshold, the check on a pitch price

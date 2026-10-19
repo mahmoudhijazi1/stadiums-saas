@@ -1,6 +1,6 @@
 # Key files
 
-**Purpose:** the 16 files where a mistake would break money, bookings, tenant isolation or login, each explained in plain language with the invariant it protects and the tests that prove it.
+**Purpose:** the 17 files where a mistake would break money, bookings, tenant isolation or login, each explained in plain language with the invariant it protects and the tests that prove it.
 **Read when:** you are about to change one of these files, or want to know what must never break.
 **Last verified:** `f01c9bf` (code on main; this file adds no code).
 
@@ -91,13 +91,13 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 ## Money
 
 ### 14. `src/modules/payment/application/record-payment.ts`
-- **Does:** writes one payment, its tenders (what was handed over, in each currency) and its ledger row in the transaction it is given.
-- **Why:** the ledger must never disagree with the payments: both are written together or not at all.
-- **Used by:** `collect-booking-payment.ts`, `collect-player-payment.ts`, `record-expense.ts` and the shop use cases `record-walk-in-sale.ts` and `collect-tab-payment.ts`; freezing tenders to USD is `payment/domain/collect.ts`.
-- **Never change without:** it never opens a transaction; payments, tenders and ledger entries are append-only, amounts are `Decimal`, the ledger is USD, and LBP is converted at the rate frozen when taken. Tests: `modules/payment/domain/collect.test.ts`, `integration/booking-money.integration.test.ts`, `integration/money-races.integration.test.ts`, `integration/expense-ledger.integration.test.ts` (shared checks in `integration/invariants.ts`).
+- **Does:** writes one payment, its tenders (what was handed over, in each currency) and its ledger row in the transaction it is given. The ledger row records the `paymentId` it was written for (F-2). A game's kept change (DR-007 decision 15) goes through it too, as a second payment with source `KEPT_CHANGE` (`booking/application/record-kept-change.ts`).
+- **Why:** the ledger must never disagree with the payments: both are written together or not at all, and a ledger row can always be traced to its payment.
+- **Used by:** `collect-booking-payment.ts`, `collect-player-payment.ts`, `record-kept-change.ts`, `record-expense.ts` and the shop use cases `record-walk-in-sale.ts` and `collect-tab-payment.ts`; freezing tenders to USD is `payment/domain/collect.ts`.
+- **Never change without:** it never opens a transaction; payments, tenders and ledger entries are append-only, amounts are `Decimal`, the ledger is USD, and LBP is converted at the rate frozen when taken; it is the only writer of payment ledger rows, one ledger row of each source type per payment (partial unique), and `assertMoneyInvariants` checks a row against its payment's tenders (`integration/ledger-payment-id.integration.test.ts` and `integration/kept-change.integration.test.ts` cover it). Tests: `modules/payment/domain/collect.test.ts`, `integration/booking-money.integration.test.ts`, `integration/money-races.integration.test.ts`, `integration/expense-ledger.integration.test.ts` (shared checks in `integration/invariants.ts`).
 
 ### 15. `src/modules/shop/domain/pricing.ts`
-- **Does:** prices shop items in USD or LBP, freezes each line's USD value when it is added, and settles a sale or tab with `applyPayment`: pounds against pound lines first, dollars against dollar lines, the rest is change.
+- **Does:** prices shop items in USD or LBP, freezes each line's USD value when it is added, and settles a sale or tab with `applyPayment`: pounds against pound lines first, dollars against dollar lines, the rest is change. A game in pounds settles with the same `applyPayment` (see entry 17).
 - **Why:** a two-currency counter must never record more or less than is owed, and a later rate change must not change what was owed.
 - **Used by:** the shop and booking-item use cases (`record-walk-in-sale`, `collect-tab-payment`, `add-booking-items`, `remove-booking-item`, `list-booking-items`, `sale-state`); pure, no database.
 - **Never change without:** a fully paid sale records exactly its frozen USD; an LBP line needs the rate when added and a removal reverses at the rate it was added at. Tests: `modules/shop/pricing.test.ts`, `integration/shop-lbp.integration.test.ts`, `integration/shop-money.integration.test.ts`, `integration/shop-change.integration.test.ts`.
@@ -107,3 +107,9 @@ How to read an entry: **Does** (what), **Why** (the problem it prevents), **Used
 - **Why:** the web admin can suspend every stadium and create owners. A wrong password, a wrong or replayed code, or a tenant host must never open it, and nothing may say which factor failed.
 - **Used by:** `src/app/(platform)/platform/` (`actions.ts` and the pages), `lib/tenant-slug.ts` (`platformServed`, the rule shared with `src/proxy.ts`), `platform/application/platform-session.ts`.
 - **Never change without:** one error key (`platform.login_failed`) for every failure; 5 failures in 15 minutes block, counted for unknown identifiers too; limits outside any transaction; the proxy and the guard use the same `platformServed`; the cookie is `__Host-` over https; the admin tables stay out of the tenant client. Tests: `integration/platform-login.integration.test.ts`, `integration/platform-admin.integration.test.ts`, `integration/platform-stadium-actions.integration.test.ts`, `integration/platform-pages.integration.test.ts`, `lib/platform-host.test.ts`, `proxy.test.ts`, `modules/platform/domain/totp.test.ts`, `modules/platform/domain/admin-session.test.ts`. Review: `audits/platform-admin-review.md`.
+
+### 17. `src/modules/booking/domain/game-change.ts` (with `booking/application/collect-booking-payment.ts`)
+- **Does:** settles the cash handed over for a game: `applyToGameDue` for a USD game (up to the remaining; the excess is change) and `applyToLbpGameDue` for a game in pounds (pounds first, then dollars converted at the current rate against the pounds still left, the rest is change in the currency it was handed over in). Each kept tender is valued at this payment's rate; `collectBookingPayment` writes one `BookingSettlement` (pounds settled, dollars kept) for a game in pounds.
+- **Why:** a game must never record more than it is owed, a pound debt must never move with the rate, and what a game owes is its due minus its settlements, so the settlement and the payment have to agree to the pound.
+- **Used by:** `collect-booking-payment.ts`, `collect-player-payment.ts` (a pound share), `sumSettledLbp` and `SETTLED_LBP_SQL` in the owed readers; the live line under the collect forms (`LbpGameBalance`) runs the same `applyPayment`.
+- **Never change without:** the tenders and the ledger hold only what the game used; the settlements of a game never exceed its due; a split payment's allocations add up to its settlement; the pound rounding unit comes from `moneyUnit` and is written once (`lib/format/lbp-unit.ts`). Tests: `modules/booking/domain/game-change.test.ts`, `integration/lbp-collect.integration.test.ts`, `integration/lbp-per-player.integration.test.ts`, `integration/kept-change.integration.test.ts`, `architecture/lbp-unit.test.ts` (shared checks in `integration/invariants.ts`).
