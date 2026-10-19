@@ -16,6 +16,7 @@ import {
   type TenderDraft,
 } from "@/modules/payment/domain/collect";
 import { applyToGameDue, applyToLbpGameDue, handedFromTenders } from "@/modules/booking/domain/game-change";
+import { recordKeptChange } from "@/modules/booking/application/record-kept-change";
 import { recordPayment } from "@/modules/payment/application/record-payment";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
 import { sumCollectedUsd } from "@/modules/payment/infrastructure/payments";
@@ -39,10 +40,15 @@ import {
  * summed after the lock. Pounds count first, dollars at the current rate against what is left; each
  * kept tender is valued at this payment's rate, and one BookingSettlement row records the pounds
  * settled and the dollars kept. The payment's due snapshot is in pounds.
+ *
+ * With `keepChange` (DR-007 decision 15) the change the player leaves is recorded in this same
+ * transaction as its own KEPT_CHANGE payment (`recordKeptChange`), after the game's payment; the game's
+ * due, settlements and payment are exactly as without the flag. No change: the flag is ignored.
  */
 export async function collectBookingPayment(input: {
   bookingId: string;
   tenders: TenderDraft[];
+  keepChange?: boolean;
 }): Promise<{ changeUsd: Decimal; changeLbp: Decimal }> {
   const membership = await getCurrentMembership();
   if (!membership || !can(membership, PAYMENTS_COLLECT)) {
@@ -83,6 +89,9 @@ export async function collectBookingPayment(input: {
           lbpApplied: kept.lbpApplied,
           usdApplied: kept.usdKept,
         });
+        if (input.keepChange) {
+          await recordKeptChange(tx, { bookingId: booking.id, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp, rate });
+        }
         return { paymentId, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp };
       }
 
@@ -100,6 +109,9 @@ export async function collectBookingPayment(input: {
         amountDueUsd,
         tenders: kept.tenders,
       });
+      if (input.keepChange) {
+        await recordKeptChange(tx, { bookingId: booking.id, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp, rate });
+      }
       return { paymentId, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp };
     });
 

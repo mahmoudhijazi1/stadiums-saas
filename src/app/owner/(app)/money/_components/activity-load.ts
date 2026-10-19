@@ -21,7 +21,7 @@ export async function loadActivityPage(
   const idsOf = (sourceType: string) =>
     page.entries.filter((entry) => entry.sourceType === sourceType).map((entry) => entry.sourceId);
   const [bookings, expenses, sales, kept] = await Promise.all([
-    listBookingLabels(idsOf("BOOKING")),
+    listBookingLabels([...idsOf("BOOKING"), ...idsOf("KEPT_CHANGE")]),
     listExpenseDetails(idsOf("EXPENSE")),
     listSaleDetails(idsOf("SALE")),
     listKeptByEntry(page.entries),

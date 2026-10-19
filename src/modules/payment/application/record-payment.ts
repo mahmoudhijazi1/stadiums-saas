@@ -16,7 +16,7 @@ export async function recordPayment(
   tx: TenantTx,
   input: {
     direction: "IN" | "OUT";
-    sourceType: "BOOKING" | "EXPENSE" | "SALE";
+    sourceType: "BOOKING" | "EXPENSE" | "SALE" | "KEPT_CHANGE";
     sourceId: string;
     tenders: FrozenTender[];
     occurredAt?: Date;

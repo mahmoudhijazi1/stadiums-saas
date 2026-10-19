@@ -12,6 +12,7 @@ import { errorMessage } from "@/lib/copy/errors";
 import { displayChange, formatChange, formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
 import { isLbpString, isUsdString, normalizeUsdForm, parseLbp, parseUsd } from "@/lib/format/parse-money";
 import type { UiLocale } from "@/lib/locale";
+import { KeepItButton } from "@/modules/payment/ui/keep-it";
 import { applyPayment } from "@/modules/shop/domain/pricing";
 
 /** A typed amount, or zero while it is empty or not a valid amount yet. */
@@ -34,12 +35,18 @@ export function LbpGameBalance({
   lbpText,
   lbpPerUsd,
   locale,
+  kept,
+  onKeptChange,
 }: {
   remainingLbp: Decimal;
   usdText: string;
   lbpText: string;
   lbpPerUsd: string | null;
   locale: UiLocale;
+  /** "Keep it" is on: the change is the stadium's and the line says "Kept". */
+  kept?: boolean;
+  /** Present on a game's collect form: offers the "Keep it" control next to "Give back". */
+  onKeptChange?: (kept: boolean) => void;
 }) {
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
   const handed = { lbp: typed(lbpText, "LBP"), usd: typed(usdText, "USD") };
@@ -74,9 +81,13 @@ export function LbpGameBalance({
         )}
       </p>
       {change.lbp.gt(0) || change.usd.gt(0) ? (
-        <p className="type-strong text-owed">
-          {ui("owner.giveBack", locale)} <LtrIsolate>{formatChange(displayChange(change, rate), locale)}</LtrIsolate>
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="type-strong text-owed">
+            {ui(kept ? "owner.kept" : "owner.giveBack", locale)}{" "}
+            <LtrIsolate>{formatChange(displayChange(change, rate), locale)}</LtrIsolate>
+          </p>
+          {onKeptChange ? <KeepItButton kept={kept ?? false} onChange={onKeptChange} locale={locale} /> : null}
+        </div>
       ) : null}
     </div>
   );
@@ -102,10 +113,12 @@ export function LbpCollectForm({
 }) {
   const [lbp, setLbp] = useState(remainingLbp);
   const [usd, setUsd] = useState("");
+  const [kept, setKept] = useState(false);
 
   return (
     <form action={submitCollectPayment} className="flex flex-col gap-4">
       <input type="hidden" name="bookingId" value={bookingId} />
+      <input type="hidden" name="keepChange" value={kept ? "1" : ""} />
       <div className="flex flex-col gap-2">
         <Label htmlFor={`lbp-${bookingId}`}>{ui("owner.lbp", locale)}</Label>
         <LbpInput id={`lbp-${bookingId}`} name="lbpAmount" value={lbp} onValueChange={setLbp} className="font-mono" />
@@ -123,7 +136,15 @@ export function LbpCollectForm({
           className="font-mono"
         />
       </div>
-      <LbpGameBalance remainingLbp={new Decimal(remainingLbp)} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />
+      <LbpGameBalance
+        remainingLbp={new Decimal(remainingLbp)}
+        usdText={usd}
+        lbpText={lbp}
+        lbpPerUsd={lbpPerUsd}
+        locale={locale}
+        kept={kept}
+        onKeptChange={setKept}
+      />
       <SubmitButton className="w-full">{ui("owner.collect", locale)}</SubmitButton>
     </form>
   );

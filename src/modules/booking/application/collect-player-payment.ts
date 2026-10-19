@@ -20,6 +20,7 @@ import {
   type BookingForDecision,
   type SlotRow,
 } from "@/modules/booking/infrastructure/bookings";
+import { recordKeptChange } from "@/modules/booking/application/record-kept-change";
 import { recordPayment } from "@/modules/payment/application/record-payment";
 import { bookingRemaining, freezeTenders, type TenderDraft } from "@/modules/payment/domain/collect";
 import { findLatestExchangeRate } from "@/modules/payment/infrastructure/rates";
@@ -57,6 +58,7 @@ async function payRemaining(input: {
   bookingId: string;
   participantIds: "ALL_UNPAID" | string[];
   tenders?: TenderDraft[];
+  keepChange?: boolean;
 }): Promise<Paid> {
   return db.$transaction(async (tx) => {
     const booking = await findBookingForUpdate(tx, input.bookingId);
@@ -70,7 +72,7 @@ async function payRemaining(input: {
     }
 
     return booking.due.currency === "LBP"
-      ? payInPounds(tx, booking, chosen, input.tenders)
+      ? payInPounds(tx, booking, chosen, input.tenders, input.keepChange)
       : payInDollars(tx, booking, chosen);
   });
 }
@@ -112,6 +114,7 @@ async function payInPounds(
   booking: BookingForDecision,
   chosen: SlotRow[],
   tenders: TenderDraft[] | undefined,
+  keepChange: boolean | undefined,
 ): Promise<Paid> {
   const slots: ShareSlot[] = chosen.map((slot) => ({
     participantId: slot.participantId,
@@ -152,6 +155,11 @@ async function payInPounds(
     lbpApplied: kept.lbpApplied,
     usdApplied: kept.usdKept,
   });
+  // The change the player leaves is its own KEPT_CHANGE payment (DR-007 decision 15); the share's
+  // payment, allocations and settlement are as without it. No change: nothing is written.
+  if (keepChange) {
+    await recordKeptChange(tx, { bookingId: booking.id, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp, rate });
+  }
   return { paymentId, changeUsd: kept.changeUsd, changeLbp: kept.changeLbp };
 }
 
@@ -163,6 +171,7 @@ export async function collectSlotPayment(input: {
   bookingId: string;
   participantId: string;
   tenders?: TenderDraft[];
+  keepChange?: boolean;
 }): Promise<SlotChange> {
   await requireCollector();
   try {
@@ -170,6 +179,7 @@ export async function collectSlotPayment(input: {
       bookingId: input.bookingId,
       participantIds: [input.participantId],
       tenders: input.tenders,
+      keepChange: input.keepChange,
     });
     logger.info(`Slot payment ${paid.paymentId} booking ${input.bookingId}`, undefined, {
       useCase: "collectSlotPayment",
@@ -185,6 +195,7 @@ export async function collectSlotPayment(input: {
 export async function collectAllRemaining(input: {
   bookingId: string;
   tenders?: TenderDraft[];
+  keepChange?: boolean;
 }): Promise<SlotChange> {
   await requireCollector();
   try {
@@ -192,6 +203,7 @@ export async function collectAllRemaining(input: {
       bookingId: input.bookingId,
       participantIds: "ALL_UNPAID",
       tenders: input.tenders,
+      keepChange: input.keepChange,
     });
     logger.info(`Pay-all payment ${paid.paymentId} booking ${input.bookingId}`, undefined, {
       useCase: "collectAllRemaining",

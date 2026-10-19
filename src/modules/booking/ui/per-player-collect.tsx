@@ -24,6 +24,7 @@ import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
 import { isForgivable } from "@/modules/payment/domain/units";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 import { LbpGameBalance } from "@/modules/booking/ui/booking-sheet/lbp-collect";
+import { giveBackText } from "@/lib/copy/helpers";
 
 export type SlotView = {
   participantId: string;
@@ -77,11 +78,12 @@ function SlotCashForm({
   lbpPerUsd: string | null;
   locale: UiLocale;
   busy: boolean;
-  onPay: (cash: { lbpAmount: string; usdAmount: string }) => void;
+  onPay: (cash: { lbpAmount: string; usdAmount: string; keepChange: boolean }) => void;
 }) {
   const charge = slot.chargeUsd ?? "0";
   const [lbp, setLbp] = useState(charge);
   const [usd, setUsd] = useState("");
+  const [kept, setKept] = useState(false);
   return (
     <div className="flex flex-col gap-3 pb-3">
       <div className="flex flex-col gap-2">
@@ -100,8 +102,16 @@ function SlotCashForm({
           className="font-mono"
         />
       </div>
-      <LbpGameBalance remainingLbp={new Decimal(charge)} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />
-      <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => onPay({ lbpAmount: lbp, usdAmount: usd })}>
+      <LbpGameBalance
+        remainingLbp={new Decimal(charge)}
+        usdText={usd}
+        lbpText={lbp}
+        lbpPerUsd={lbpPerUsd}
+        locale={locale}
+        kept={kept}
+        onKeptChange={setKept}
+      />
+      <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => onPay({ lbpAmount: lbp, usdAmount: usd, keepChange: kept })}>
         {ui("owner.collect", locale)}
       </Button>
     </div>
@@ -142,6 +152,7 @@ export function PerPlayerCollect({
     participantId: string;
     usdAmount?: string;
     lbpAmount?: string;
+    keepChange?: boolean;
   }) => Promise<PerPlayerResult>;
   /** Absent: "Consider it paid" is not offered on a share. */
   submitConsiderSharePaid?: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
@@ -172,7 +183,9 @@ export function PerPlayerCollect({
       else {
         setSplitOpen(false);
         setCashOpen(null);
-        const change = changeDescription({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale, lbpPerUsd);
+        const change = result.kept
+          ? giveBackText({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale, true)
+          : changeDescription({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale, lbpPerUsd);
         if (change) toast.success(change, { duration: 8000 });
       }
     } catch {
@@ -354,6 +367,7 @@ export function PerPlayerCollect({
                             participantId: slot.participantId,
                             lbpAmount: cash.lbpAmount,
                             usdAmount: cash.usdAmount,
+                            keepChange: cash.keepChange,
                           }),
                         )
                       }

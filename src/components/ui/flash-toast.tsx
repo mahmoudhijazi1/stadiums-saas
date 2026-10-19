@@ -40,6 +40,7 @@ function FlashToast({ locale = "ar" }: { locale?: UiLocale }) {
       const description = giveBackText(
         { usd: searchParams.get("changeUsd") ?? "0", lbp: searchParams.get("changeLbp") ?? "0" },
         locale,
+        searchParams.get("kept") === "1",
       )
       toast.success(successMessage(ok, locale), description ? { description } : undefined)
     }
@@ -49,6 +50,7 @@ function FlashToast({ locale = "ar" }: { locale?: UiLocale }) {
     next.delete("received")
     next.delete("changeUsd")
     next.delete("changeLbp")
+    next.delete("kept")
     const qs = next.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }, [searchParams, pathname, router, locale])

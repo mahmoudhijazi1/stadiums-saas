@@ -9,6 +9,7 @@ import type { UiLocale } from "@/lib/locale";
 import { formatUsd } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { previewTenders } from "@/modules/payment/domain/tender-preview";
+import { KeepItButton } from "@/modules/payment/ui/keep-it";
 import { friendlyLbp } from "@/modules/payment/domain/units";
 
 /** Whole pounds with thousands commas ("895,000 LBP"): long LBP figures are hard to read. */
@@ -42,6 +43,8 @@ export function TenderBalance({
   targetUsd,
   locale,
   onFillLbp,
+  kept,
+  onKeptChange,
 }: {
   usdText: string;
   lbpText: string;
@@ -50,6 +53,10 @@ export function TenderBalance({
   targetUsd: string | null;
   locale: UiLocale;
   onFillLbp?: (lbp: string) => void;
+  /** "Keep it" is on: the change is the stadium's and the line says "Kept" (a game's collect form only). */
+  kept?: boolean;
+  /** Present on a game's collect form: offers the "Keep it" control next to "Give back". */
+  onKeptChange?: (kept: boolean) => void;
 }) {
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
   const target = targetUsd ? new Decimal(targetUsd) : null;
@@ -101,8 +108,9 @@ export function TenderBalance({
             {ui("owner.tenderPaidInFull", locale)}
           </p>
         ) : (
+          <div className="flex items-center justify-between gap-3">
           <p className="flex items-baseline justify-between gap-3 text-sm font-medium text-owed">
-            <span>{ui("owner.giveBack", locale)}</span>
+            <span>{ui(kept ? "owner.kept" : "owner.giveBack", locale)}</span>
             <span>
               <LtrIsolate>${formatUsd(remaining.abs())}</LtrIsolate>
               {preview.remainingLbp ? (
@@ -113,6 +121,8 @@ export function TenderBalance({
               ) : null}
             </span>
           </p>
+          {onKeptChange ? <KeepItButton kept={kept ?? false} onChange={onKeptChange} locale={locale} /> : null}
+          </div>
         )}
       </>
     );

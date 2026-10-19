@@ -130,6 +130,13 @@ What the code does today:
     for games.
     *Why:* the kept extra is not part of the game, so it must not be counted with the game's
     money; a separate source type keeps the existing invariant and the game's totals exact.
+    **Done** (progress.md, 2026-10-19): migration `20261019100000_kept_change_source` adds
+    `KEPT_CHANGE` to `PaymentSourceType` (the one enum `Payment.sourceType` and `LedgerEntry.sourceType`
+    share). `collectBookingPayment`, `collectSlotPayment` and `collectAllRemaining` take `keepChange`; when
+    it is set and there is change, `recordKeptChange` writes, in the same transaction and under the same
+    booking lock, a second Payment (source `KEPT_CHANGE`, `sourceId` the booking) whose tenders are the
+    change in the currency it was handed over in at this payment's rate, through `recordPayment` (so its
+    ledger IN has a paymentId), with no settlement and no allocation. The shop does not change.
 
 16. **The `ROUNDING` value added to `BookingDueReason` is permanent.** Postgres cannot drop an
     enum value, so once the slice 3 migration adds it, it stays.
@@ -216,7 +223,7 @@ approve, see what is owed, in pounds) before any money can be taken on an LBP ga
    (`recordPayment`, same transaction), a partial unique allows one row of each source type per payment,
    and the list uses `paymentId` directly. Rows written before stay null and are still paired by time,
    one-to-one. No backfill. Append-only at the database level is still open.
-10. "Keep it".
+10. "Keep it". **Done** (decision 15 above; progress.md, 2026-10-19).
 
 ## The unit lives in one place
 

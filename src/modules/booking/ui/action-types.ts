@@ -31,7 +31,7 @@ export type ExtendActionResult =
  * keep the sheet open. The result carries an error key; success revalidates Today.
  */
 export type PerPlayerResult =
-  | { ok: true; changeUsd?: string; changeLbp?: string }
+  | { ok: true; changeUsd?: string; changeLbp?: string; kept?: boolean }
   | { error: string };
 
 /**

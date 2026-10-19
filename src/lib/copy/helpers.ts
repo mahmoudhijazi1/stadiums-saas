@@ -258,9 +258,13 @@ export function changeDescription(
  * "Give back $20" / "رجّع له $20": the change after a game collection, in the currency it was handed
  * over in (dollars stay dollars, pounds stay pounds). Empty when there is none.
  */
-export function giveBackText(change: { lbp: string; usd: string }, locale: UiLocale = "ar"): string | undefined {
+export function giveBackText(
+  change: { lbp: string; usd: string },
+  locale: UiLocale = "ar",
+  kept = false,
+): string | undefined {
   const text = formatChange(change, locale);
-  return text === "0" ? undefined : `${ui("owner.giveBack", locale)} ${text}`;
+  return text === "0" ? undefined : `${ui(kept ? "owner.kept" : "owner.giveBack", locale)} ${text}`;
 }
 
 /** The last suggestion of the payer search: add the typed text as a new person. */

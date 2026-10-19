@@ -22,6 +22,8 @@ export const switchToWholeSchema = z.strictObject({ bookingId });
 const cash = {
   usdAmount: z.string().trim().max(20).optional(),
   lbpAmount: z.string().trim().max(20).optional(),
+  /** Keep the change as its own payment instead of giving it back (DR-007 decision 15). */
+  keepChange: z.boolean().optional(),
 };
 
 export const collectSlotSchema = z.strictObject({

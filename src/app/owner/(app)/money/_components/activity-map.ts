@@ -143,13 +143,18 @@ function mapSale(entry: LedgerEntryRow, context: ActivityContext, locale: UiLoca
   };
 }
 
+/** The change a player left on a game: the game's person and link, labelled as kept change. */
+function mapKeptChange(entry: LedgerEntryRow, context: ActivityContext, locale: UiLocale): Parts {
+  return { ...mapBooking(entry, context, locale), secondary: ui("owner.activityKeptChange", locale) };
+}
+
 /** A source type nobody has taught this screen yet (a future shop, say): still shown, never dropped. */
 function mapGeneric(_entry: LedgerEntryRow, _context: ActivityContext, locale: UiLocale): Parts {
   return { label: ui("owner.activityGeneric", locale), secondary: "", icon: "generic", open: null };
 }
 
 /** One mapping keyed by ledger sourceType: label, secondary text, icon and what a tap opens. */
-const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense, SALE: mapSale };
+const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpense, SALE: mapSale, KEPT_CHANGE: mapKeptChange };
 
 /**
  * What a source is called in the summary's "Games $175 · Shop $22" line, keyed by ledger sourceType
@@ -159,6 +164,7 @@ const MAPPERS: Record<string, Mapper> = { BOOKING: mapBooking, EXPENSE: mapExpen
 const SOURCE_NAME_KEYS: Record<string, string> = {
   BOOKING: "owner.sourceGames",
   SALE: "owner.shop",
+  KEPT_CHANGE: "owner.activityKeptChange",
   EXPENSE: "owner.activityExpense",
 };
 

@@ -55,7 +55,7 @@ export type PaymentWithTenders = {
 /** The payments (with their tenders) of some sources, one query: the money behind Activity rows. */
 export async function listPaymentsOfSources(
   tx: TenantTx,
-  sources: readonly { sourceType: "BOOKING" | "EXPENSE" | "SALE"; sourceId: string }[],
+  sources: readonly { sourceType: "BOOKING" | "EXPENSE" | "SALE" | "KEPT_CHANGE"; sourceId: string }[],
 ): Promise<PaymentWithTenders[]> {
   if (sources.length === 0) return [];
   const payments = await tx.payment.findMany({

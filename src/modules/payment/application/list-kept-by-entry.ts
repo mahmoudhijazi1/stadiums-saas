@@ -6,7 +6,7 @@ import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { keptByEntry, type EntryRef, type KeptPart } from "@/modules/payment/domain/entry-payments";
 import { listPaymentsOfSources } from "@/modules/payment/infrastructure/lbp-period";
 
-const SOURCE_TYPES = new Set(["BOOKING", "EXPENSE", "SALE"]);
+const SOURCE_TYPES = new Set(["BOOKING", "EXPENSE", "SALE", "KEPT_CHANGE"]);
 
 /**
  * What each ledger row kept, in the currency it was paid in: the tenders of the payment behind the
@@ -18,11 +18,11 @@ export async function listKeptByEntry(entries: readonly EntryRef[]): Promise<Map
   if (!membership || !can(membership, REPORTS_VIEW)) {
     throw new DomainError("access.not_allowed");
   }
-  const sources = new Map<string, { sourceType: "BOOKING" | "EXPENSE" | "SALE"; sourceId: string }>();
+  const sources = new Map<string, { sourceType: "BOOKING" | "EXPENSE" | "SALE" | "KEPT_CHANGE"; sourceId: string }>();
   for (const entry of entries) {
     if (!SOURCE_TYPES.has(entry.sourceType)) continue;
     sources.set(`${entry.sourceType}:${entry.sourceId}`, {
-      sourceType: entry.sourceType as "BOOKING" | "EXPENSE" | "SALE",
+      sourceType: entry.sourceType as "BOOKING" | "EXPENSE" | "SALE" | "KEPT_CHANGE",
       sourceId: entry.sourceId,
     });
   }

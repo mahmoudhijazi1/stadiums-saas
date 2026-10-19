@@ -52,6 +52,32 @@ export async function assertMoneyInvariants(personIds: string[]): Promise<void> 
   `;
   expect(ledgerOff).toHaveLength(0);
 
+  // Kept change (DR-007 decision 15) is a separate source: its ledger row names its payment and equals
+  // its tenders (the check above), it settles nothing and credits nobody, and it always comes with a
+  // game payment of the same booking written in the same transaction (within a minute of it).
+  const keptNoPayment = await platformDb.$queryRaw<Array<{ id: string }>>`
+    SELECT l.id FROM "LedgerEntry" l
+    WHERE l."sourceType" = 'KEPT_CHANGE'::"PaymentSourceType" AND l."paymentId" IS NULL
+  `;
+  expect(keptNoPayment).toHaveLength(0);
+  const keptOff = await platformDb.$queryRaw<Array<{ id: string }>>`
+    SELECT k.id
+    FROM "Payment" k
+    WHERE k."sourceType" = 'KEPT_CHANGE'::"PaymentSourceType"
+      AND (
+        EXISTS (SELECT 1 FROM "BookingSettlement" s WHERE s."paymentId" = k.id)
+        OR EXISTS (SELECT 1 FROM "PaymentAllocation" a WHERE a."paymentId" = k.id)
+        OR NOT EXISTS (
+          SELECT 1 FROM "Payment" g
+          WHERE g."sourceType" = 'BOOKING'::"PaymentSourceType"
+            AND g."sourceId" = k."sourceId"
+            AND g."tenantId" = k."tenantId"
+            AND ABS(EXTRACT(EPOCH FROM (g."createdAt" - k."createdAt"))) <= 60
+        )
+      )
+  `;
+  expect(keptOff).toHaveLength(0);
+
   // The latest due change matches the booking's due, in the game's currency (DR-007): a USD game
   // compares the USD pair as before, an LBP game the LBP pair. A change in the other currency, or a
   // NULL on either side, is a mismatch.

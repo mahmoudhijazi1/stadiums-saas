@@ -219,10 +219,12 @@ function MixedCollectForm({
 }) {
   const [usd, setUsd] = useState(row.remainingUsd);
   const [lbp, setLbp] = useState("");
+  const [kept, setKept] = useState(false);
 
   return (
     <form action={submitCollectPayment} className="flex flex-col gap-4">
       <input type="hidden" name="bookingId" value={row.id} />
+      <input type="hidden" name="keepChange" value={kept ? "1" : ""} />
       <div className="flex flex-col gap-2">
         <Label htmlFor={`usd-${row.id}`}>{ui("owner.usdRemaining", locale)}</Label>
         <Input
@@ -247,6 +249,8 @@ function MixedCollectForm({
         targetUsd={row.remainingUsd}
         locale={locale}
         onFillLbp={setLbp}
+        kept={kept}
+        onKeptChange={setKept}
       />
       <SubmitButton className="w-full">{ui("owner.moneyGroup", locale)}</SubmitButton>
     </form>

@@ -273,25 +273,29 @@ function typedCash(input: { bookingId: string; usdAmount?: string; lbpAmount?: s
 export async function submitCollectPayment(formData: FormData) {
   let errorKey: string | undefined;
   let change = { changeUsd: "", changeLbp: "" };
+  const keepChange = field(formData, "keepChange") === "1";
+  let kept = "";
   try {
     const parsed = parseCollectPayment({
       bookingId: field(formData, "bookingId"),
       usdAmount: field(formData, "usdAmount"),
       lbpAmount: field(formData, "lbpAmount"),
     });
-    const done = await collectBookingPayment({ bookingId: parsed.bookingId, tenders: tendersOf(parsed) });
+    const done = await collectBookingPayment({ bookingId: parsed.bookingId, tenders: tendersOf(parsed), keepChange });
     // The toast tells the owner what to hand back (DR-007). Empty when there is none.
     change = {
       changeUsd: done.changeUsd.gt(0) ? done.changeUsd.toFixed(2) : "",
       changeLbp: done.changeLbp.gt(0) ? done.changeLbp.toFixed(0) : "",
     };
+    // "Kept X" instead of "Give back X": only when there was change to keep.
+    kept = keepChange && (done.changeUsd.gt(0) || done.changeLbp.gt(0)) ? "1" : "";
   } catch (error) {
     errorKey = await actionErrorKey(error, "submitCollectPayment");
   }
   if (errorKey) {
     redirectOwner("/owner/today", formData, TODAY_KEEP, { error: errorKey });
   }
-  redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected", ...change });
+  redirectOwner("/owner/today", formData, TODAY_KEEP, { ok: "collected", ...change, kept });
 }
 
 /** "Consider it paid" (DR-007 decision 8): the use case re-checks under the lock and authorizes. */
@@ -310,7 +314,7 @@ export async function submitConsiderPaid(formData: FormData) {
 }
 
 /** What a per-player action hands back: the change to give, or nothing. */
-type PerPlayerChange = { changeUsd: Decimal; changeLbp: Decimal } | undefined;
+type PerPlayerChange = { changeUsd: Decimal; changeLbp: Decimal; kept?: boolean } | undefined;
 
 async function perPlayer(
   useCase: string,
@@ -328,6 +332,7 @@ async function perPlayer(
     ok: true,
     changeUsd: change && change.changeUsd.gt(0) ? change.changeUsd.toFixed(2) : undefined,
     changeLbp: change && change.changeLbp.gt(0) ? change.changeLbp.toFixed(0) : undefined,
+    kept: change?.kept && (change.changeUsd.gt(0) || change.changeLbp.gt(0)) ? true : undefined,
   };
 }
 
@@ -355,14 +360,17 @@ export async function submitCollectSlot(input: {
   participantId: string;
   usdAmount?: string;
   lbpAmount?: string;
+  keepChange?: boolean;
 }): Promise<PerPlayerResult> {
   return perPlayer("submitCollectSlot", async () => {
     const parsed = collectSlotSchema.parse(input);
-    return collectSlotPayment({
+    const done = await collectSlotPayment({
       bookingId: parsed.bookingId,
       participantId: parsed.participantId,
       tenders: typedCash(parsed),
+      keepChange: parsed.keepChange,
     });
+    return { ...done, kept: parsed.keepChange };
   });
 }
 
