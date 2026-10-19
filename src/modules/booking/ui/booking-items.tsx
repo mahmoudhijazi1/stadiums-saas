@@ -19,13 +19,13 @@ import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/format/mone
 import { changeDescription, ui } from "@/lib/copy";
 import { cn } from "cn";
 import { AddItemsSheet } from "@/modules/booking/ui/add-items-sheet";
+import type { WalkInSaleInput, WalkInSaleResult } from "@/modules/shop/ui/sell-screen";
 import type { ItemsResult } from "@/modules/booking/ui/action-types";
-import type { PayerHit } from "@/modules/booking/ui/action-types";
 
-/** The shop-tab actions of the booking sheet: search payers, add items, collect a tab, remove an item. */
+/** The shop actions of the booking sheet: add items to a tab, sell on the spot, collect a tab, remove an item. */
 export type ItemsActions = {
-  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
   submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
+  submitWalkInSale: (input: WalkInSaleInput) => Promise<WalkInSaleResult>;
   submitCollectTab: (input: unknown) => Promise<ItemsResult>;
   submitRemoveBookingItem: (input: unknown) => Promise<ItemsResult>;
 };
@@ -73,8 +73,8 @@ export function BookingItems({
   view,
   lbpPerUsd,
   locale,
-  searchPayers,
   submitAddBookingItems,
+  submitWalkInSale,
   submitCollectTab,
   submitRemoveBookingItem,
 }: {
@@ -87,8 +87,8 @@ export function BookingItems({
   view: BookingItemsPanelView;
   lbpPerUsd: string | null;
   locale: UiLocale;
-  searchPayers: (query: string) => Promise<{ hits: PayerHit[] } | { error: string }>;
   submitAddBookingItems: (input: unknown) => Promise<ItemsResult>;
+  submitWalkInSale: (input: WalkInSaleInput) => Promise<WalkInSaleResult>;
   submitCollectTab: (input: unknown) => Promise<ItemsResult>;
   submitRemoveBookingItem: (input: unknown) => Promise<ItemsResult>;
 }) {
@@ -114,7 +114,7 @@ export function BookingItems({
       <div className="flex items-baseline justify-between gap-3">
         <h4 className="type-strong flex items-center gap-2">
           <ShoppingBag aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          {ui("owner.shop", locale)}
+          {ui("owner.tabsOnGame", locale)}
         </h4>
         {mayAdd ? (
           <button
@@ -123,7 +123,7 @@ export function BookingItems({
             className="-my-1.5 inline-flex min-h-11 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
           >
             <span className="inline-flex h-9 items-center rounded-full px-3 type-label text-action-ink hover:bg-muted">
-              {ui("owner.shopAddShort", locale)}
+              {ui("owner.addItems", locale)}
             </span>
           </button>
         ) : null}
@@ -151,7 +151,7 @@ export function BookingItems({
       ) : null}
 
       {mayAdd ? (
-        <AddItemsSheet searchPayers={searchPayers} submitAddBookingItems={submitAddBookingItems}
+        <AddItemsSheet submitAddBookingItems={submitAddBookingItems} submitWalkInSale={submitWalkInSale}
           open={addOpen}
           onClose={() => setAddOpen(false)}
           bookingId={bookingId}

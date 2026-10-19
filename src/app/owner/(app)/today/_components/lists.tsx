@@ -62,7 +62,7 @@ import { isCancelWindowClosed, isNoShowWindowEnded } from "@/modules/booking/dom
 import { ClockText } from "@/components/ui/ltr-isolate";
 import { LiveRequestCount } from "@/modules/booking/ui/live-queue";
 import { loadSeriesSheetAction, previewCancelRestAction, previewSeriesAction, submitCancelRest, submitSeriesSave } from "@/app/owner/(app)/series/actions";
-import { searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem } from "@/app/owner/(app)/today/items-actions";
+import { submitAddBookingItems, submitCollectTab, submitRemoveBookingItem, submitWalkInSale } from "@/app/owner/(app)/today/items-actions";
 import { submitAdjustBookingDue, submitCancelBooking, submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitRecordNoShow, submitSwitchToPerPlayer, submitSwitchToWhole } from "@/app/owner/(app)/today/actions";
 import { submitExtendBooking } from "@/app/owner/(app)/today/extend-actions";
 import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
@@ -242,7 +242,7 @@ export async function OwnerToday({
           submitCollectAllRemaining,
         }}
         extendActions={{ submitExtendBooking }}
-        itemsActions={{ searchPayers, submitAddBookingItems, submitCollectTab, submitRemoveBookingItem }}
+        itemsActions={{ submitAddBookingItems, submitWalkInSale, submitCollectTab, submitRemoveBookingItem }}
         seriesActions={{
           loadSeriesSheetAction,
           previewCancelRestAction,
