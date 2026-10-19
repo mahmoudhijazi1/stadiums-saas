@@ -5,10 +5,10 @@ import type { UiLocale } from "@/lib/locale";
 import { OwedAmounts } from "@/modules/booking/ui/owed-amounts";
 
 const rowClass =
-  "flex min-h-11 w-full items-center gap-3 rounded-lg border border-owed/60 bg-owed-subtle px-3 py-2 text-start text-sm font-semibold text-owed";
+  "flex min-h-11 w-full items-center gap-3 rounded-lg border bg-card px-3 py-2 text-start text-sm font-semibold text-foreground";
 
 /**
- * The one place Today shows money owed from earlier days: alert icon, "To collect" over "from earlier
+ * The one place Today shows money owed from earlier days: a neutral surface, amber only on the alert icon and the amounts, "To collect" over "from earlier
  * days", and the EXACT amount owed by all of them, never "at least". Each currency has its own line,
  * pounds then dollars, never added together (DR-007); a currency that owes nothing is not shown. Every
  * amount is an LTR isolate written the same way in both languages (digits, then the unit), so the
@@ -34,12 +34,12 @@ export function EarlierDebtsHeader({
 }) {
   const content = (
     <>
-      <CircleAlert aria-hidden className="size-5 shrink-0" />
+      <CircleAlert aria-hidden className="size-5 shrink-0 text-owed" />
       <span className="flex min-w-0 flex-1 flex-col leading-snug">
         <span id="earlier-debts-heading">{ui("owner.toCollect", locale)}</span>
         <span className="text-xs font-medium opacity-80">{ui("owner.owedFromEarlier", locale)}</span>
       </span>
-      <OwedAmounts usd={usd} lbp={lbp} locale={locale} />
+      <OwedAmounts usd={usd} lbp={lbp} locale={locale} className="text-owed" />
     </>
   );
   if (!expandable) return <div className={rowClass}>{content}</div>;

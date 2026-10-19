@@ -133,7 +133,7 @@ Order every screen by what needs the owner **now**, then reference information.
 
 | | AR | EN |
 |---|---|---|
-| Today | طلبات جديدة → للتحصيل → المباريات → الساعات المتاحة (عُدّل 2026-10-12) | New requests → To collect → Games → Available hours (amended 2026-10-12) |
+| Today | طلبات جديدة → للتحصيل → المباراة الجارية → انتهت → القادمة → ملغاة (مطوية) → الساعات المتاحة (عُدّل 2026-10-20) | New requests → To collect → the game running now → Ended → Upcoming → Cancelled (collapsed) → Available hours (amended 2026-10-20) |
 
 Reference information never pushes an action below the fold. A collapsed row may hold the detail (for example the To collect accordion), but the row itself stays visible and amber.
 

@@ -3,13 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon } from "lucide-react";
-import { enGB } from "react-day-picker/locale";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { CalendarSheet } from "@/components/ui/calendar-sheet";
 
 function parseYyyyMmDd(value: string): Date | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -69,37 +63,33 @@ export function DateCalendarChip({
   const selected = selectedIsPast ? undefined : parsedSelected;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          aria-label={otherDateLabel}
-          aria-pressed={isSelected}
-          className={className}
-        >
-          <CalendarIcon className="size-4 text-current" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          required
-          selected={selected}
-          defaultMonth={selected ?? todayDate}
-          disabled={todayDate ? { before: todayDate } : undefined}
-          onSelect={(date) => {
-            setOpen(false);
-            const next = formatYyyyMmDd(date);
-            if (todayYmd && next < todayYmd) return;
-            if (next === selectedDate) return;
-            const query = new URLSearchParams();
-            query.set(dateQueryKey, next);
-            router.push(`${pathname}?${query.toString()}`, { scroll: false });
-          }}
-          locale={enGB}
-          numerals="latn"
-        />
-      </PopoverContent>
-    </Popover>
+    <>
+      <button
+        type="button"
+        aria-label={otherDateLabel}
+        aria-pressed={isSelected}
+        aria-haspopup="dialog"
+        onClick={() => setOpen(true)}
+        className={className}
+      >
+        <CalendarIcon className="size-4 text-current" />
+      </button>
+      <CalendarSheet
+        open={open}
+        onOpenChange={setOpen}
+        title={otherDateLabel}
+        selected={selected}
+        defaultMonth={todayDate}
+        disabled={todayDate ? { before: todayDate } : undefined}
+        onSelect={(date) => {
+          const next = formatYyyyMmDd(date);
+          if (todayYmd && next < todayYmd) return;
+          if (next === selectedDate) return;
+          const query = new URLSearchParams();
+          query.set(dateQueryKey, next);
+          router.push(`${pathname}?${query.toString()}`, { scroll: false });
+        }}
+      />
+    </>
   );
 }

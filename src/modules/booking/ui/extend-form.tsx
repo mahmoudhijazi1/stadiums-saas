@@ -10,7 +10,7 @@ import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
 import { formatLbpAmount } from "@/lib/format/money";
 import { normalizeUsdForm } from "@/lib/format/parse-money";
-import { ui } from "@/lib/copy";
+import { extendedBadge, ui } from "@/lib/copy";
 import type { ExtendActionResult } from "@/modules/booking/ui/action-types";
 
 /** The extend action of the booking sheet. */
@@ -54,7 +54,7 @@ export function ExtendedMark({ minutes, locale }: { minutes: number; locale: UiL
     >
       <span className="sr-only">{ui("owner.extendedTitle", locale).replace("{n}", String(minutes))}</span>
       <span aria-hidden>
-        <LtrIsolate>{ui("owner.extendedChip", locale).replace("{n}", String(minutes))}</LtrIsolate>
+        {extendedBadge(minutes, locale)}
       </span>
     </span>
   );

@@ -3,11 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { ar, enGB } from "react-day-picker/locale";
 import { cn } from "cn";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { formatDisplayDate } from "@/lib/format/time";
+import { CalendarSheet } from "@/components/ui/calendar-sheet";
 import type { UiLocale } from "@/lib/locale";
 import type { DayTab } from "@/modules/booking/domain/day-tabs";
 import { keepSelectedTabCentred } from "@/modules/booking/ui/centre-selected-tab";
@@ -105,44 +102,30 @@ export function DayTabs({
       </div>
       {/* Fixed 44px slot outside the scroller; the edge fade ends at the scroller's edge. */}
       <div className="relative size-11 shrink-0">
-        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label={calendarLabel}
-              className="relative grid size-11 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <CalendarIcon aria-hidden className="size-6 text-muted-foreground" />
-              <span
-                aria-hidden
-                className="absolute inset-0 grid place-items-center pt-1 text-xs font-semibold leading-none"
-              >
-                {todayNumber}
-              </span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="single"
-              required
-              selected={parseYmd(selected)}
-              defaultMonth={parseYmd(selected)}
-              disabled={{ after: parseYmd(maxDate) }}
-              onSelect={pickDate}
-              locale={locale === "ar" ? ar : enGB}
-              dir={locale === "ar" ? "rtl" : "ltr"}
-              formatters={{
-                formatCaption: (month) =>
-                  formatDisplayDate(
-                    new Date(Date.UTC(month.getFullYear(), month.getMonth(), 1, 12)),
-                    locale,
-                    { month: "long", year: "numeric" },
-                    "UTC",
-                  ),
-              }}
-            />
-          </PopoverContent>
-        </Popover>
+        <button
+          type="button"
+          aria-label={calendarLabel}
+          aria-haspopup="dialog"
+          onClick={() => setPickerOpen(true)}
+          className="relative grid size-11 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <CalendarIcon aria-hidden strokeWidth={1.5} className="size-9 text-muted-foreground" />
+          <span
+            aria-hidden
+            className="absolute inset-0 grid place-items-center pt-3 text-[0.8125rem] font-semibold leading-none tabular-nums"
+          >
+            {todayNumber}
+          </span>
+        </button>
+        <CalendarSheet
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          title={calendarLabel}
+          selected={parseYmd(selected)}
+          disabled={{ after: parseYmd(maxDate) }}
+          onSelect={pickDate}
+          locale={locale}
+        />
       </div>
     </div>
   );

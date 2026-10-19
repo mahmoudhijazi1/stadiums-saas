@@ -97,6 +97,7 @@ export function lbpUpcomingView(
     id: row.id,
     pitchName: ctx.showPitch ? row.pitchName : null,
     timeRange: formatLocalClockRange(row.start, row.end, hourCycle, locale),
+    startMs: row.start.getTime(),
     extendedMinutes: ctx.extendedMinutes,
     repeatWeekly: ctx.repeatWeekly,
     series: ctx.series
