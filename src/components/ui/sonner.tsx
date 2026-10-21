@@ -24,6 +24,8 @@ function useMinLg(): boolean {
   return wide
 }
 
+const PHONE_BOTTOM = "calc(104px + env(safe-area-inset-bottom))"
+
 const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
   const { resolvedTheme } = useTheme()
   const wide = useMinLg()
@@ -48,11 +50,12 @@ const Toaster = ({ toastOptions, ...props }: ToasterProps) => {
       }
       {...props}
       position={position}
-      offset={
-        wide
-          ? { bottom: "1rem" }
-          : { bottom: "calc(88px + env(safe-area-inset-bottom))" }
-      }
+      // Sonner uses `mobileOffset` below 600px and `offset` above, so both clear the floating tab bar
+      // (about 84px tall plus the safe area) with a gap, and neither covers it.
+      offset={wide ? { bottom: "1rem" } : { bottom: PHONE_BOTTOM }}
+      mobileOffset={{ bottom: PHONE_BOTTOM, left: "0.75rem", right: "0.75rem" }}
+      // Swipe sideways to dismiss, in both directions (the default is only toward the bottom edge).
+      swipeDirections={["left", "right"]}
       closeButton
       toastOptions={{
         closeButton: true,
