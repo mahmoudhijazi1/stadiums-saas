@@ -91,7 +91,7 @@ export function OwnerTabBar({
       : links.find((tab) => tabSelected(pathname, tab.href))?.href;
 
   // One pill slides to the active tab. Measured in pixels (offsetLeft/offsetWidth), so it is
-  // right in RTL without separate logic. Hidden until the first measurement, and the
+  // right in RTL without separate logic, as long as it is measured again when the direction flips (below). Hidden until the first measurement, and the
   // transition is only switched on after it, so it never animates in from the corner.
   useLayoutEffect(() => {
     const track = trackRef.current;
@@ -111,8 +111,16 @@ export function OwnerTabBar({
     if (!pill.dataset.ready) requestAnimationFrame(() => (pill.dataset.ready = "1"));
     const observer = new ResizeObserver(place);
     observer.observe(track);
-    return () => observer.disconnect();
-  }, [activeHref]);
+    // Switching language flips the tabs (dir on <html>) without resizing the track, so the measured
+    // pixels would be stale: place the pill again whenever the direction or language changes.
+    const direction = new MutationObserver(place);
+    direction.observe(document.documentElement, { attributes: true, attributeFilter: ["dir", "lang"] });
+    return () => {
+      observer.disconnect();
+      direction.disconnect();
+    };
+    // `locale` re-runs the placement when the page re-renders in the other language.
+  }, [activeHref, locale]);
 
   useEffect(
     () => () => {
