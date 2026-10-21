@@ -11,6 +11,9 @@ import { StatusPill } from "@/modules/booking/ui/booking-row";
 import { MoneyBlock } from "@/modules/booking/ui/booking-sheet/money-block";
 import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
 
+/** The text a reader sees: tags dropped (the pound sign has its own span, see LtrIsolate). */
+const visible = (html: string) => html.replace(/<[^>]+>/g, "").replace(/s+/g, " ");
+
 /**
  * DR-007 slice 5: an LBP game on Today shows its due in pounds on the card and in the sheet. Slice 6:
  * Collect and "Consider it paid" (under one LBP unit). Slice 7: the split. Slice 8: cancel, no-show,
@@ -129,7 +132,7 @@ describe("an LBP game on Today", () => {
   it("the card's pill shows the due in pounds", () => {
     expect(viewOf("en").display.kind).toBe("unpaid");
     expect(card("en")).toContain("2,000,000 LBP");
-    expect(card("ar")).toContain("2,000,000 ل.ل");
+    expect(visible(card("ar"))).toContain("2,000,000 ل.ل");
     expect(card("en")).not.toContain("$");
   });
 
@@ -141,7 +144,7 @@ describe("an LBP game on Today", () => {
     // The quick Collect sends exactly what is left, in pounds.
     expect(html).toContain('name="lbpAmount" value="2000000"');
     expect(html).not.toContain(ui("owner.considerPaid", "en"));
-    expect(moneyBlock("ar")).toContain("2,000,000 ل.ل");
+    expect(visible(moneyBlock("ar"))).toContain("2,000,000 ل.ل");
   });
 
   it("offers Consider it paid only under 5,000 LBP, in AR and EN", () => {

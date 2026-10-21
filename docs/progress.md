@@ -995,3 +995,11 @@ Also changed in this slice: `test/integration/lbp-games.integration.test.ts` (th
 **What:** On a phone, switching between Arabic and English mirrored the tab bar but the active-tab pill stayed where it was, so it pointed at the wrong tab. The pill is placed from measured pixels (`offsetLeft`) and was re-measured only when the active tab or the bar's size changed; a direction flip changes neither. `owner-tab-bar` (`components/shell/tab-bar.tsx`) now measures again when `locale` changes and whenever `dir` or `lang` on `<html>` changes (a `MutationObserver`).
 
 **Tests:** none added (jsdom has no layout, so a test cannot measure the pill). Existing tests changed: none. Only `npx tsc --noEmit` was run, last.
+
+## Fix: numbers and the pound sign in Arabic (branch `general-fixes`)
+
+**When:** 2026-10-21
+
+**What:** In Arabic, Western digits were drawn from Plex Arabic's Latin subset (narrow, and unlike the English screens) and the sign ل.ل looked bigger than the amount beside it, because Arabic glyphs run large at the same size. Now every LTR island in Arabic (`bdi[dir=ltr]`, `span[dir=ltr]`: amounts, times, phones) uses Manrope first, like English, with Plex Arabic as the fallback for the Arabic letters inside it (globals.css). `LtrIsolate` wraps ل.ل in a plain string in `<span class="lbp-unit">` (0.8em, Plex Arabic), so the sign sits at the height of the digits. Toast text (plain strings) is unchanged. Also in this branch: the toast clears the phone tab bar (`mobileOffset`) and swipes left or right to dismiss (`components/ui/sonner.tsx`).
+
+**Tests:** `today-lbp-game.test.ts` now reads the visible text for the Arabic amount (the sign has its own span); `test/modules` and `test/app` pass except `qr.test.ts`, which timed out under the full load and passes alone. `npx tsc --noEmit` last.
