@@ -397,6 +397,24 @@
   line-height: 1.55;
 }
 
+/*
+  Numbers in Arabic. Amounts, times and phones are Western digits in LTR islands; they use the same
+  face as English (Manrope), whose digits are wider and clearer than Plex Arabic's Latin subset, so a
+  figure looks the same in both languages. Arabic letters inside an island (the period mark, ل.ل)
+  fall back to Plex Arabic.
+*/
+:lang(ar) :is(bdi[dir="ltr"], span[dir="ltr"]) {
+  font-family: var(--font-manrope), var(--font-plex-arabic), var(--font-plex-arabic-latin), system-ui, sans-serif;
+}
+/* The pound sign beside an amount: Arabic glyphs run large, so it is set a little smaller to sit
+   at the height of the digits instead of towering over them (LtrIsolate wraps it). */
+.lbp-unit {
+  font-family: var(--font-plex-arabic), var(--font-ui);
+  font-size: 0.8em;
+  font-weight: inherit;
+  line-height: 1;
+}
+
 /* The display face is never used in Arabic: the UI face takes over. */
 :lang(ar) .font-display,
 [dir="rtl"] .font-display {

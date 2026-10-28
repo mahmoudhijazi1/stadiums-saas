@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react"
+import { Fragment, type ComponentProps, type ReactNode } from "react"
 import {
   splitDisplayedClock,
   type ClockRangeLabel,
@@ -9,11 +9,31 @@ import {
  * Direction only. Typography is not its job (docs/ui-rules.md rule 7): digits are
  * tabular from the body, and the one big figure per screen uses <Figure>.
  */
-function LtrIsolate({ className, ...props }: ComponentProps<"bdi">) {
+function LtrIsolate({ className, children, ...props }: ComponentProps<"bdi">) {
   return (
     // Digits in times and amounts line up (tabular); other text stays proportional.
-    <bdi dir="ltr" className={className ? `tabular-nums ${className}` : "tabular-nums"} {...props} />
+    <bdi dir="ltr" className={className ? `tabular-nums ${className}` : "tabular-nums"} {...props}>
+      {withLbpUnit(children)}
+    </bdi>
   )
+}
+
+/** The Arabic pound sign as `formatLbpAmount` writes it. */
+const LBP_UNIT_AR = "ل.ل"
+
+/**
+ * Arabic letters look bigger than Latin digits at the same size, so "2,000,000 ل.ل" read as a small
+ * number beside a big sign. The sign gets its own span (`.lbp-unit` in globals.css: a little smaller,
+ * Arabic face) so it sits at the height of the digits. Only plain string children are touched.
+ */
+function withLbpUnit(children: ReactNode): ReactNode {
+  if (typeof children !== "string" || !children.includes(LBP_UNIT_AR)) return children
+  return children.split(LBP_UNIT_AR).map((part, index) => (
+    <Fragment key={index}>
+      {index > 0 ? <span className="lbp-unit">{LBP_UNIT_AR}</span> : null}
+      {part}
+    </Fragment>
+  ))
 }
 
 export { LtrIsolate }
