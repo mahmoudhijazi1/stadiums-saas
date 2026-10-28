@@ -2,6 +2,7 @@ import { ClockRangeText } from "@/components/ui/ltr-isolate";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import { dollars } from "@/lib/format/money";
 import { BookingRow, OwedPill } from "@/modules/booking/ui/booking-row";
 
 /** What the debt variant needs from a booking still owed from an earlier day. */
@@ -67,7 +68,7 @@ export function DebtRow({
             className="inline-flex min-h-11 shrink-0 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
           >
             <span className="inline-flex h-9 items-center gap-1 rounded-full bg-owed-subtle px-4 type-button text-owed whitespace-nowrap">
-              {ui("owner.collect", locale)} <LtrIsolate>{row.owedText ?? `$${row.owedUsd}`}</LtrIsolate>
+              {ui("owner.collect", locale)} <LtrIsolate>{row.owedText ?? dollars(row.owedUsd)}</LtrIsolate>
             </span>
           </button>
         ) : undefined

@@ -10,7 +10,7 @@ import { LbpInput } from "@/components/ui/lbp-input";
 import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { formatParts } from "@/lib/format/money";
+import { currencyLabel, formatParts } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
 
@@ -66,11 +66,11 @@ export function PayNowStep({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="game-sale-lbp">{ui("owner.lbp", locale)}</Label>
+        <Label htmlFor="game-sale-lbp">{currencyLabel("LBP", locale)}</Label>
         <LbpInput id="game-sale-lbp" value={lbp} onValueChange={setLbp} />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="game-sale-usd">USD</Label>
+        <Label htmlFor="game-sale-usd">{currencyLabel("USD", locale)}</Label>
         <Input id="game-sale-usd" inputMode="decimal" autoComplete="off" value={usd} onChange={(event) => setUsd(event.target.value)} />
       </div>
       <PartsBalance owed={parts} usdText={usd} lbpText={lbp} lbpPerUsd={lbpPerUsd} locale={locale} />

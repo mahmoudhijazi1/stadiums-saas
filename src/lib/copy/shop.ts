@@ -3,7 +3,8 @@ import type { CopyArea } from "./types";
 /** Shop: items, sales, items on a game. */
 export const shop: CopyArea = {
   ar: {
-    "owner.tabsOnGame": "الحسابات على هذه المباراة",
+    "owner.itemsHeading": "الأغراض",
+    "owner.itemsAdd": "+ إضافة",
     "owner.itemsNext": "التالي",
     "owner.itemsBack": "رجوع",
     "owner.itemsPayNow": "ادفع الآن",
@@ -48,7 +49,8 @@ export const shop: CopyArea = {
     "owner.sellNoAccessNext": "اطلب من المالك أن يمنحك صلاحية البيع.",
   },
   en: {
-    "owner.tabsOnGame": "Tabs on this game",
+    "owner.itemsHeading": "Items",
+    "owner.itemsAdd": "+ Add",
     "owner.itemsNext": "Next",
     "owner.itemsBack": "Back",
     "owner.itemsPayNow": "Pay now",

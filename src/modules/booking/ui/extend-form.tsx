@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { formatLbpAmount } from "@/lib/format/money";
+import { dollars, formatLbpAmount } from "@/lib/format/money";
 import { normalizeUsdForm } from "@/lib/format/parse-money";
 import { extendedBadge, ui } from "@/lib/copy";
 import type { ExtendActionResult } from "@/modules/booking/ui/action-types";
@@ -64,7 +64,7 @@ const POUNDS = /^(?:0|[1-9][0-9]*)$/;
 
 /** An amount of the game's currency, written for a screen: "$15.00" or "1,000,000 LBP". */
 function moneyText(currency: "USD" | "LBP", amount: string, locale: UiLocale): string {
-  return currency === "LBP" ? formatLbpAmount(amount, locale) : `$${amount}`;
+  return currency === "LBP" ? formatLbpAmount(amount, locale) : dollars(amount);
 }
 
 const MONEY = /^(?:0|[1-9]\d*)\.\d{2}$/;

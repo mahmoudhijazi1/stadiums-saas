@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { formatParts } from "@/lib/format/money";
+import { currencyLabel, formatParts } from "@/lib/format/money";
 import { changeDescription, soldToast, ui } from "@/lib/copy";
 
 export type { SellItem };
@@ -138,11 +138,11 @@ export function SellScreen({
               {ui("owner.sellTotal", locale)}: <LtrIsolate>{totalText}</LtrIsolate>
             </p>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sale-lbp">{ui("owner.lbp", locale)}</Label>
+              <Label htmlFor="sale-lbp">{currencyLabel("LBP", locale)}</Label>
               <LbpInput id="sale-lbp" value={lbp} onValueChange={setLbp} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sale-usd">USD</Label>
+              <Label htmlFor="sale-usd">{currencyLabel("USD", locale)}</Label>
               <Input
                 id="sale-usd"
                 inputMode="decimal"

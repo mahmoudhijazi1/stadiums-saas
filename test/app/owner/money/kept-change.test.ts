@@ -5,7 +5,7 @@ import { describe, expect, it } from "@jest/globals";
 import { mapActivityEntry, sourceName } from "@/app/owner/(app)/money/_components/activity-map";
 import { ui } from "@/lib/copy";
 import { giveBackText } from "@/lib/copy/helpers";
-import { LbpGameBalance } from "@/modules/booking/ui/booking-sheet/lbp-collect";
+import { otherAmountView } from "@/modules/booking/ui/booking-sheet/other-amount-view";
 import type { LedgerEntryRow } from "@/modules/ledger/infrastructure/entries";
 import { TenderBalance } from "@/modules/payment/ui/tender-balance";
 
@@ -49,50 +49,17 @@ describe("an Activity row of kept change", () => {
 });
 
 describe("the Keep it control", () => {
-  const balance = (props: { kept?: boolean; onKeptChange?: (kept: boolean) => void }) =>
-    text(
-      renderToStaticMarkup(
-        createElement(LbpGameBalance, {
-          remainingLbp: new Decimal(2000000),
-          usdText: "",
-          lbpText: "2100000",
-          lbpPerUsd: "89500",
-          locale: "en",
-          ...props,
-        }),
-      ),
-    );
+  // The game form (`OtherAmountForm`) shows Keep it only next to Give back: its jsdom test is in
+  // test/app/owner/booking-sheet-clarity.test.ts. Here, the line it is built on.
+  const result = (lbpText: string) =>
+    otherAmountView({ currency: "LBP", remaining: "2000000", usdText: "", lbpText, lbpPerUsd: "89500", locale: "en", about: "about" }).result;
 
-  it("a game in pounds with change offers Keep it next to Give back, and says Kept once it is on", () => {
-    const off = balance({ kept: false, onKeptChange: () => {} });
-    expect(off).toContain("Give back");
-    expect(off).toContain("Keep it");
-    const on = balance({ kept: true, onKeptChange: () => {} });
-    expect(on).toContain("Kept");
-    expect(on).not.toContain("Give back");
-  });
-
-  it("without the handler (any other screen) there is no Keep it", () => {
-    expect(balance({})).toContain("Give back");
-    expect(balance({})).not.toContain("Keep it");
+  it("a game in pounds handed more than it owes has change to give back (or keep)", () => {
+    expect(result("2100000")).toEqual({ kind: "change", amount: "100,000 LBP" });
   });
 
   it("with no change there is nothing to keep", () => {
-    const html = text(
-      renderToStaticMarkup(
-        createElement(LbpGameBalance, {
-          remainingLbp: new Decimal(2000000),
-          usdText: "",
-          lbpText: "2000000",
-          lbpPerUsd: "89500",
-          locale: "en",
-          kept: false,
-          onKeptChange: () => {},
-        }),
-      ),
-    );
-    expect(html).not.toContain("Keep it");
-    expect(html).not.toContain("Give back");
+    expect(result("2000000")).toEqual({ kind: "exact" });
   });
 
   it("the dollar form offers it only when asked to (the shop and expenses do not)", () => {

@@ -121,7 +121,7 @@ describe.each([
     const { container } = block(rowOf(UPCOMING));
     expect(screen.getByText(ADVANCE)).toBeTruthy();
     expect(container.innerHTML).not.toContain(COLLECT_FORM(currency));
-    expect(screen.queryByText(ui("owner.payAnotherWay", "en"))).toBeNull();
+    expect(screen.queryByText(ui("owner.otherAmount", "en"))).toBeNull();
     expect(screen.queryByText(QUESTION)).toBeNull();
   });
 
@@ -132,7 +132,7 @@ describe.each([
     expect(container.innerHTML).not.toContain(COLLECT_FORM(currency));
     fireEvent.click(screen.getByRole("button", { name: ADVANCE }));
     expect(container.innerHTML).toContain(COLLECT_FORM(currency));
-    expect(screen.getByText(ui("owner.payAnotherWay", "en"))).toBeTruthy();
+    expect(screen.getByText(ui("owner.otherAmount", "en"))).toBeTruthy();
     expect(screen.queryByText(QUESTION)).toBeNull();
   });
 
@@ -205,17 +205,13 @@ describe("a share of a split game", () => {
     render(
       createElement(PerPlayerCollect, {
         view,
-        part: "slots",
         mayCollect: true,
         advanceNeeded,
-        mayAdjust: true,
         locale: "en",
         lbpPerUsd: "89500",
         submitCollectAllRemaining: noop,
         submitCollectSlot: noop,
         submitConsiderSharePaid: noop,
-        submitSwitchToPerPlayer: noop,
-        submitSwitchToWhole: noop,
       }),
     );
   const pay = () => screen.queryAllByText(new RegExp(`^${ui("owner.payPlayer", "en")}`));

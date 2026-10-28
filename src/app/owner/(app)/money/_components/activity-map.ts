@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import { formatDisplayDate } from "@/lib/format/time";
-import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
+import { dollars, formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
 import type { KeptPart } from "@/modules/payment/domain/entry-payments";
 import type { UiLocale } from "@/lib/locale";
 import { shopActivityLabel, ui } from "@/lib/copy";
@@ -230,5 +230,5 @@ export function keptText(
 export function signedAmount(direction: "IN" | "OUT", amountUsd: string): string {
   const value = new Decimal(amountUsd);
   const compact = value.toFixed(2).endsWith(".00") ? value.toFixed(0) : value.toFixed(2);
-  return direction === "IN" ? `+$${compact}` : `−$${compact}`;
+  return `${direction === "IN" ? "+" : "−"}${dollars(compact)}`;
 }

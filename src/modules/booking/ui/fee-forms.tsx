@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type Ref } from "react";
+import { useState, type Ref } from "react";
 import { useBrowserOrigin } from "@/lib/use-browser-origin";
 import { CountedPhrase } from "@/modules/booking/ui/notify-list";
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { UiLocale } from "@/lib/locale";
-import { formatLbpAmount, formatPrice } from "@/lib/format/money";
-import { normalizeUsdForm, parseUsd } from "@/lib/format/parse-money";
+import { formatPrice } from "@/lib/format/money";
 import { ui, uiCount } from "@/lib/copy";
 import { previewMessage } from "@/modules/notification/domain/whatsapp-link";
 import Decimal from "decimal.js";
 import type { UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
+import { AmountField, offUnit, typedAmount } from "@/modules/booking/ui/amount-field";
+import { cn } from "cn";
 
 /** The fee actions of the booking sheet: cancel, no-show and adjust due. */
 export type FeeActions = {
@@ -37,15 +38,7 @@ function currencyOf(row: UpcomingRowView): Currency {
 
 /** An amount of the game's currency, written for a screen: "$15" or "1,000,000 LBP". */
 function moneyText(currency: Currency, amount: string, locale: UiLocale): string {
-  return currency === "LBP" ? formatLbpAmount(amount, locale) : `$${amount}`;
-}
-
-/** What the owner typed, when it is a valid amount of the currency: cents in dollars, whole pounds in pounds. */
-function typedAmount(currency: Currency, raw: string): Decimal | null {
-  const text = raw.trim();
-  if (currency === "LBP") return /^(?:0|[1-9]\d*)$/.test(text) ? new Decimal(text) : null;
-  const normalized = normalizeUsdForm(text);
-  return /^(?:0|[1-9]\d*)\.\d{2}$/.test(normalized) ? parseUsd(normalized) : null;
+  return formatPrice({ currency, amount }, locale);
 }
 
 /** The form field a fee or an amount is sent in: one per currency, so the server can tell them apart. */
@@ -204,6 +197,12 @@ export function NoShowDecisionForm({
   );
 }
 
+/**
+ * "Adjust the amount": the current amount and what was paid so far in the game's currency, the new amount
+ * with its currency beside it (digits grouped in pounds), the reason as chips with a filled selected state,
+ * a live "Remaining will be X", and "Save new amount". An amount below what was collected is refused here
+ * as before (no refund yet); pounds off the money unit show the unit error under the field.
+ */
 export function AdjustDueForm({
   row,
   locale,
@@ -219,63 +218,73 @@ export function AdjustDueForm({
   onBack: () => void;
   submitAdjustBookingDue: (formData: FormData) => Promise<void>;
 }) {
-  const [blocked, setBlocked] = useState(false);
   const currency = currencyOf(row);
   const field = currency === "LBP" ? "toLbp" : "toUsd";
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    const typed = typedAmount(currency, String(new FormData(event.currentTarget).get(field) ?? ""));
-    if (typed === null) {
-      setBlocked(false);
-      return;
-    }
-    if (typed.lt(new Decimal(row.collectedExact))) {
-      event.preventDefault();
-      setBlocked(true);
-      return;
-    }
-    setBlocked(false);
-  }
+  const [amount, setAmount] = useState(row.priceUsd);
+  const [reason, setReason] = useState<string | null>(null);
+  const paid = new Decimal(row.collectedExact);
+  const typed = typedAmount(currency, amount);
+  const belowPaid = typed !== null && typed.lt(paid);
+  const ready = typed !== null && !belowPaid && !offUnit(currency, amount) && reason !== null;
+  const money = (value: Decimal | string) => moneyText(currency, value.toString(), locale);
 
   return (
-    <form action={submitAdjustBookingDue} className="flex flex-col gap-4" onSubmit={onSubmit}>
+    <form action={submitAdjustBookingDue} className="flex flex-col gap-4">
       <input type="hidden" name="bookingId" value={row.id} />
       {date ? <input type="hidden" name="date" value={date} /> : null}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`due-${row.id}`}>{ui("owner.newDue", locale)}</Label>
-        <Input
-          id={`due-${row.id}`}
-          dir="ltr"
-          type="text"
-          name={field}
-          required
-          inputMode={currency === "LBP" ? "numeric" : "decimal"}
-          defaultValue={row.priceUsd}
-          className="font-mono"
-        />
-      </div>
+      {reason ? <input type="hidden" name="reason" value={reason} /> : null}
+      <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
+        <dt className="type-secondary">{ui("owner.currentAmount", locale)}</dt>
+        <dd className="type-strong">
+          <LtrIsolate>{money(row.priceUsd)}</LtrIsolate>
+        </dd>
+        <dt className="type-secondary">{ui("owner.paidSoFar", locale)}</dt>
+        <dd className="type-strong">
+          <LtrIsolate>{money(row.collectedExact)}</LtrIsolate>
+        </dd>
+      </dl>
+      <AmountField
+        id={`due-${row.id}`}
+        name={field}
+        label={ui("owner.newDue", locale)}
+        currency={currency}
+        value={amount}
+        onValueChange={setAmount}
+        locale={locale}
+      />
       <fieldset className="flex flex-col gap-2">
         <legend className="sr-only">{ui("owner.adjustDue", locale)}</legend>
         <div className="flex flex-wrap gap-2">
-          <Reason name="reason" value="DISCOUNT" label={ui("owner.reasonDiscount", locale)} />
-          <Reason name="reason" value="PARTIAL_GAME" label={ui("owner.reasonPartial", locale)} />
-          <Reason name="reason" value="WAIVER" label={ui("owner.reasonWaiver", locale)} />
-          <Reason name="reason" value="CORRECTION" label={ui("owner.reasonCorrection", locale)} />
+          {(
+            [
+              ["DISCOUNT", "owner.reasonDiscount"],
+              ["PARTIAL_GAME", "owner.reasonPartial"],
+              ["WAIVER", "owner.reasonWaiver"],
+              ["CORRECTION", "owner.reasonCorrection"],
+            ] as const
+          ).map(([value, key]) => (
+            <ReasonChip key={value} selected={reason === value} onSelect={() => setReason(value)} label={ui(key, locale)} />
+          ))}
         </div>
       </fieldset>
       <div className="flex flex-col gap-2">
         <Label htmlFor={`note-${row.id}`}>{ui("owner.noteOptional", locale)}</Label>
         <Input id={`note-${row.id}`} type="text" name="note" maxLength={200} />
       </div>
-      {blocked ? (
-        <p role="alert" className="text-sm text-alert">
-          {ui("owner.collectedPrefix", locale)}{" "}
-          <LtrIsolate>{moneyText(currency, row.collectedCompact, locale)}</LtrIsolate>
-          {ui("owner.noRefundYet", locale)}
-        </p>
-      ) : null}
-      <SubmitButton ref={confirmRef} className="w-full">
-        {ui("owner.saveRules", locale)}
+      <p aria-live="polite" className="type-label empty:hidden">
+        {belowPaid ? (
+          <span role="alert" className="text-alert">
+            {ui("owner.collectedPrefix", locale)} <LtrIsolate>{moneyText(currency, row.collectedCompact, locale)}</LtrIsolate>
+            {ui("owner.noRefundYet", locale)}
+          </span>
+        ) : typed !== null ? (
+          <>
+            {ui("owner.remainingWillBe", locale)} <LtrIsolate>{money(typed.minus(paid))}</LtrIsolate>
+          </>
+        ) : null}
+      </p>
+      <SubmitButton ref={confirmRef} className="w-full" disabled={!ready}>
+        {ui("owner.saveNewAmount", locale)}
       </SubmitButton>
       <Button type="button" variant="ghost" className="w-full" onClick={onBack}>
         {ui("owner.cancelBack", locale)}
@@ -352,18 +361,17 @@ function FeeLine({
         </p>
       ) : null}
       {mode === "edit" ? (
-        <Input
-          dir="ltr"
-          type="text"
+        <AmountField
+          id={`fee-${lead}`}
           name={FEE_FIELD[currency]}
-          required
-          inputMode={currency === "LBP" ? "numeric" : "decimal"}
-          defaultValue={exact}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            onDraft?.(event.target.value);
+          label={ui("owner.feeWord", locale)}
+          currency={currency}
+          value={draft}
+          onValueChange={(value) => {
+            setDraft(value);
+            onDraft?.(value);
           }}
-          className="font-mono"
+          locale={locale}
         />
       ) : null}
       {mode === "waive" ? <input type="hidden" name={FEE_FIELD[currency]} value={WAIVED_FEE[currency]} /> : null}
@@ -419,20 +427,19 @@ function Choice({
   );
 }
 
-function Reason({
-  name,
-  value,
-  label,
-}: {
-  name: string;
-  value: string;
-  label: string;
-}) {
+function ReasonChip({ selected, onSelect, label }: { selected: boolean; onSelect: () => void; label: string }) {
   return (
-    <label className="flex min-h-11 cursor-pointer items-center rounded-full border px-3 has-[:checked]:bg-selected has-[:checked]:text-selected-ink">
-      <input type="radio" name={name} value={value} className="sr-only" required />
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className={cn(
+        "inline-flex min-h-11 items-center rounded-full border px-4 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        selected ? "border-transparent bg-selected text-selected-ink" : "border-line-strong bg-surface text-foreground",
+      )}
+    >
       {label}
-    </label>
+    </button>
   );
 }
 

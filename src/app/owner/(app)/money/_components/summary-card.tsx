@@ -3,8 +3,7 @@ import Decimal from "decimal.js";
 import { Figure } from "@/components/ui/figure";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact } from "@/lib/format/money";
-import { groupDigits } from "@/lib/format/money";
+import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
 import { comparisonLine, profitHeadline, ui } from "@/lib/copy";
 import type { LedgerPeriodSummary } from "@/modules/ledger/application/summarize-ledger-period";
 import type { LbpPeriodSummary } from "@/modules/payment/application/summarize-lbp-period";
@@ -14,11 +13,9 @@ import { sourceName } from "@/app/owner/(app)/money/_components/activity-map";
 import { comparedWithLabel, periodChipLabel, rangeLabel } from "@/modules/ledger/ui/period-label";
 import { activityHref } from "@/app/owner/(app)/money/query";
 
-function amountText(amountUsd: Decimal, lbpPerUsd: Decimal | null): string {
-  if (lbpPerUsd) {
-    return `${groupDigits(usdToDisplayLbp(amountUsd.abs(), lbpPerUsd))} LBP`;
-  }
-  return `$${formatUsdCompact(amountUsd.abs())}`;
+function amountText(amountUsd: Decimal, lbpPerUsd: Decimal | null, locale: UiLocale): string {
+  if (lbpPerUsd) return formatLbpAmount(usdToDisplayLbp(amountUsd.abs(), lbpPerUsd), locale);
+  return formatUsdAmount(amountUsd.abs());
 }
 
 /** The sources that brought money IN, biggest first. The source line shows only with two or more. */
@@ -70,7 +67,7 @@ export function SummaryCard({
     : previous && showsComparison(summary)
       ? summary.netUsd.minus(previous.netUsd)
       : null;
-  const text = (value: Decimal) => (pounds ? `${groupDigits(value.abs())} LBP` : amountText(value, conversion));
+  const text = (value: Decimal) => (pounds ? formatLbpAmount(value.abs(), locale) : amountText(value, conversion, locale));
   const against = comparedWithLabel(range, previousRange(range), locale);
   const sources = pounds
     ? pounds.inBySource.filter((source) => source.lbp.gt(0)).map((source) => ({ sourceType: source.sourceType, usd: source.lbp }))
