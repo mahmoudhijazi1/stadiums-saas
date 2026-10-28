@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 import type Decimal from "decimal.js";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsdCompact, groupDigits } from "@/lib/format/money";
+import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
 import { shopRowLine } from "@/lib/copy";
 import type { CivilRange, PeriodKind } from "@/modules/ledger/domain/period";
 import { periodChipLabel } from "@/modules/ledger/ui/period-label";
@@ -36,7 +36,7 @@ export function ShopRow({
   locale: UiLocale;
 }) {
   const name = periodChipLabel(kind, range, locale);
-  const amount = salesLbp ? `${groupDigits(salesLbp)} LBP` : `$${formatUsdCompact(salesUsd)}`;
+  const amount = salesLbp ? formatLbpAmount(salesLbp, locale) : formatUsdAmount(salesUsd);
   const [before = "", after = ""] = shopRowLine(kind, name, "{amount}", locale).split("{amount}");
 
   return (

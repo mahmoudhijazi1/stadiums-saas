@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
+import { dollars } from "@/lib/format/money";
 import type { CardDisplay } from "@/modules/booking/domain/card-display";
 import { cn } from "cn";
 
@@ -92,7 +93,7 @@ export function StatusPill({
           <CircleAlert aria-hidden className="size-4 shrink-0" />
           <span>{ui("owner.noShow", locale)}</span>
           <span aria-hidden>·</span>
-          <LtrIsolate>{amountText ?? `$${amountUsd}`}</LtrIsolate>
+          <LtrIsolate>{amountText ?? dollars(amountUsd)}</LtrIsolate>
           <span>{ui("owner.dueShort", locale)}</span>
         </span>
       );
@@ -116,7 +117,7 @@ export function StatusPill({
 export function ExpectedPill({ amountUsd, word }: { amountUsd: string; word: string }) {
   return (
     <span className={cn(PILL, "bg-expected-subtle text-muted-foreground")}>
-      <LtrIsolate>${amountUsd}</LtrIsolate>
+      <LtrIsolate>{dollars(amountUsd)}</LtrIsolate>
       <span>{word}</span>
     </span>
   );
@@ -127,7 +128,7 @@ export function OwedPill({ amountUsd, text, word }: { amountUsd: string; text?: 
   return (
     <span className={cn(PILL, "bg-owed-subtle text-owed")}>
       <CircleAlert aria-hidden className="size-4 shrink-0" />
-      <LtrIsolate>{text ?? `$${amountUsd}`}</LtrIsolate>
+      <LtrIsolate>{text ?? dollars(amountUsd)}</LtrIsolate>
       <span>{word}</span>
     </span>
   );

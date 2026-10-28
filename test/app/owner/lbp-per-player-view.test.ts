@@ -35,16 +35,12 @@ function sheet(view: ReturnType<typeof perPlayerViewOf>, locale: "en" | "ar" = "
   return renderToStaticMarkup(
     createElement(PerPlayerCollect, {
       view,
-      part: "slots",
       mayCollect: true,
-      mayAdjust: true,
       locale,
       lbpPerUsd: rate,
       submitCollectAllRemaining: noop,
       submitCollectSlot: noop,
       submitConsiderSharePaid: noop,
-      submitSwitchToPerPlayer: noop,
-      submitSwitchToWhole: noop,
     }),
   );
 }
@@ -77,11 +73,11 @@ describe("the split of a game in pounds", () => {
     expect([view.unpaidTotalUsd, view.unassignedUsd, view.hasAllocations]).toEqual(["575000", "0", true]);
   });
 
-  it("the sheet shows the shares in pounds, with Pay another way and the pay-all total", () => {
+  it("the sheet shows the shares in pounds, with Other amount or currency and the pay-all total", () => {
     const html = text(sheet(lbpView(slots, 285000)));
     expect(html).toContain("290,000 LBP");
     expect(html).toContain("285,000 LBP");
-    expect(html).toContain("Pay another way");
+    expect(html).toContain("Other amount or currency");
     expect(html).toContain("Booker pays all remaining 575,000 LBP");
     expect(html).not.toContain("$");
     expect(text(sheet(lbpView(slots, 285000), "ar"))).toContain("290,000 ل.ل");
@@ -121,6 +117,6 @@ describe("the split of a game in dollars is as before", () => {
     const html = text(sheet(view));
     expect(html).toContain("$5.00");
     expect(html).toContain("Booker pays all remaining $10.00");
-    expect(html).not.toContain("Pay another way");
+    expect(html).not.toContain("Other amount or currency");
   });
 });

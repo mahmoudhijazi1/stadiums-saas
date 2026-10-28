@@ -4,7 +4,7 @@ import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
-import { formatPrice } from "@/lib/format/money";
+import { dollars, formatPrice } from "@/lib/format/money";
 import { getUiLocale } from "@/lib/get-ui-locale";
 import { ui } from "@/lib/copy";
 import { SETTINGS_MANAGE, can } from "@/modules/access/domain/can";
@@ -19,7 +19,7 @@ import { formatHoursSummary, hoursToRows } from "@/modules/venue/domain/pitch-fo
  * whose pitch misses a price in pounds says so instead of showing a dollar price (DR-007).
  */
 function PitchPrice({ pitch, locale }: { pitch: PitchSummary; locale: UiLocale }) {
-  if (pitch.defaultPrice?.currency === "USD") return <LtrIsolate>${pitch.defaultPrice.amount}</LtrIsolate>;
+  if (pitch.defaultPrice?.currency === "USD") return <LtrIsolate>{dollars(pitch.defaultPrice.amount)}</LtrIsolate>;
   if (pitch.defaultPrice && pitch.hasPrices) return <LtrIsolate>{formatPrice(pitch.defaultPrice, locale)}</LtrIsolate>;
   return <span className="text-owed">{ui("owner.pitchSetLbpPrices", locale)}</span>;
 }

@@ -15,7 +15,7 @@ import {
 import { MAX_PRICE_RULES } from "@/modules/venue/schemas/pitch-draft";
 import { WEEKDAYS, type Weekday } from "@/modules/venue/domain/schedule-config";
 import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
-import { formatPrice } from "@/lib/format/money";
+import { dollars, formatPrice } from "@/lib/format/money";
 import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { isLbpPriceString } from "@/modules/venue/domain/schedule-config";
 import { LbpPriceField } from "@/app/owner/(app)/more/settings/pitches/_components/lbp-price-field";
@@ -49,7 +49,7 @@ export function PriceCards({
   // A kept timed rule shows its price in the stadium's currency, or says it has none in it.
   const timedPrice = (rule: TimedRule["rule"]): string | null => {
     const amount = inLbp ? rule.priceLbp : rule.priceUsd;
-    return amount === undefined ? null : inLbp ? formatPrice({ currency: "LBP", amount }, locale) : `$${amount}`;
+    return amount === undefined ? null : inLbp ? formatPrice({ currency: "LBP", amount }, locale) : dollars(amount);
   };
   const used = new Set(cards.flatMap((card) => card.days));
 

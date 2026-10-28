@@ -12,7 +12,7 @@ import { MoneyBlock } from "@/modules/booking/ui/booking-sheet/money-block";
 import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
 
 /** The text a reader sees: tags dropped (the pound sign has its own span, see LtrIsolate). */
-const visible = (html: string) => html.replace(/<[^>]+>/g, "").replace(/s+/g, " ");
+const visible = (html: string) => html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
 
 /**
  * DR-007 slice 5: an LBP game on Today shows its due in pounds on the card and in the sheet. Slice 6:
@@ -128,6 +128,8 @@ function moneyBlock(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
   );
 }
 
+const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
 describe("an LBP game on Today", () => {
   it("the card's pill shows the due in pounds", () => {
     expect(viewOf("en").display.kind).toBe("unpaid");
@@ -136,11 +138,11 @@ describe("an LBP game on Today", () => {
     expect(card("en")).not.toContain("$");
   });
 
-  it("the sheet's money block shows the due in pounds, Collect and Pay another way (slice 6)", () => {
+  it("the sheet's money block shows the due in pounds, Collect and Other amount or currency (slice 6)", () => {
     const html = moneyBlock("en");
     expect(html).toContain("2,000,000 LBP");
     expect(html).toContain(ui("owner.collect", "en"));
-    expect(html).toContain(ui("owner.payAnotherWay", "en"));
+    expect(html).toContain(ui("owner.otherAmount", "en"));
     // The quick Collect sends exactly what is left, in pounds.
     expect(html).toContain('name="lbpAmount" value="2000000"');
     expect(html).not.toContain(ui("owner.considerPaid", "en"));
@@ -187,7 +189,8 @@ describe("an LBP game on Today", () => {
     expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP", remaining: "210000" });
     expect(view.display.kind).toBe("partial");
     expect(moneyBlock("en", PART_PAID)).toContain("210,000 LBP");
-    expect(moneyBlock("en", PART_PAID)).not.toContain("2,000,000 LBP");
+    // The game price shows only on the muted line under the figure, never as the figure.
+    expect(text(moneyBlock("en", PART_PAID))).toContain("Game price 2,000,000 LBP · Paid 1,790,000 LBP");
   });
 
   it("a game settled in full reads as paid, in pounds", () => {

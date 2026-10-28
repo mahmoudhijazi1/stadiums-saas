@@ -125,3 +125,18 @@ export function samePrice(
 export function compactUsd(amount: string): string {
   return `$${amount.endsWith(".00") ? amount.slice(0, -3) : amount}`;
 }
+
+/**
+ * The one currency label, beside a field or on a currency switch: "$" for dollars in both languages;
+ * pounds are "ل.ل" in Arabic (as `lbpUnit` writes it in every amount) and "LBP" in English. Screens never write a currency sign or word by hand
+ * (test/architecture/currency-text.test.ts); an amount goes through the formatters above.
+ */
+export function currencyLabel(currency: "USD" | "LBP", locale: UiLocale): string {
+  if (currency === "USD") return "$";
+  return lbpUnit(locale);
+}
+
+/** A dollar amount the caller already wrote as digits ("12.50", "30"): just the sign in front, nothing rounded. */
+export function dollars(digits: string): string {
+  return `$${digits}`;
+}

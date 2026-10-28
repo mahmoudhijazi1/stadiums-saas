@@ -4,7 +4,7 @@ import { requireOwnerMembership } from "@/app/owner/require-owner";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { getUiLocale } from "@/lib/get-ui-locale";
-import { formatUsdCompact } from "@/lib/format/money";
+import { formatUsdAmount } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { REPORTS_VIEW, can } from "@/modules/access/domain/can";
 import { sumExpenseCategory } from "@/modules/expense/application/sum-expense-category";
@@ -34,7 +34,7 @@ export default async function MoneyShopPage({ searchParams }: { searchParams: Pr
     summarizeShopPeriod(range),
     sumExpenseCategory({ ...range, category: "SHOP_SUPPLIES" }),
   ]);
-  const usd = (value: Decimal) => `$${formatUsdCompact(value)}`;
+  const usd = (value: Decimal) => formatUsdAmount(value);
 
   return (
     <section className="flex flex-col gap-4">

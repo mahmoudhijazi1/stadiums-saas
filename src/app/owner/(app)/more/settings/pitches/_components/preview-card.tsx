@@ -11,7 +11,7 @@ import {
   ui,
   unusedTimeLabel,
 } from "@/lib/copy";
-import { formatPrice } from "@/lib/format/money";
+import { dollars, formatPrice } from "@/lib/format/money";
 import type { GamePriceCurrency } from "@/lib/tenant-settings";
 import { cn } from "cn";
 import {
@@ -138,7 +138,7 @@ export function PreviewCard({
                   {min.eq(max) ? null : (
                     <LtrIsolate>
                       {currency === "USD"
-                        ? `$${priceOf(slot.start).toFixed(0)}`
+                        ? dollars(priceOf(slot.start).toFixed(0))
                         : formatPrice({ currency, amount: priceOf(slot.start) }, locale)}
                     </LtrIsolate>
                   )}

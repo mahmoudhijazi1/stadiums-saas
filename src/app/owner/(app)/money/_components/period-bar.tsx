@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { UiLocale } from "@/lib/locale";
+import { currencyLabel } from "@/lib/format/money";
 import { type PeriodKind } from "@/modules/ledger/domain/period";
 import { cn } from "cn";
 import { PeriodSheet } from "@/app/owner/(app)/money/_components/period-sheet";
@@ -44,7 +45,7 @@ export function PeriodBar({
                 view === choice ? "bg-selected text-selected-ink" : "text-muted-foreground",
               )}
             >
-              {choice === "usd" ? "$" : "LBP"}
+              {currencyLabel(choice === "usd" ? "USD" : "LBP", locale)}
             </Link>
           ))}
         </div>

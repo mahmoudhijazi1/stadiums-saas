@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Decimal from "decimal.js";
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import type { UiLocale } from "@/lib/locale";
 import { errorMessage } from "@/lib/copy/errors";
@@ -13,17 +13,14 @@ import {
   playerLabel,
   ui,
 } from "@/lib/copy";
-import { formatLbpAmount } from "@/lib/format/money";
+import { dollars, formatLbpAmount } from "@/lib/format/money";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LbpInput } from "@/components/ui/lbp-input";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
 import { TonalCollectButton } from "@/modules/payment/ui/tonal-collect";
 import { isForgivable } from "@/modules/payment/domain/units";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
-import { LbpGameBalance } from "@/modules/booking/ui/booking-sheet/lbp-collect";
+import { OtherAmountForm, OtherAmountToggle } from "@/modules/booking/ui/booking-sheet/other-amount";
 import { CollectAdvance, type AdvanceStep } from "@/modules/booking/ui/booking-sheet/collect-advance";
 import { giveBackText } from "@/lib/copy/helpers";
 
@@ -64,89 +61,27 @@ export type PerPlayerView = {
 };
 
 /**
- * One slot's cash form on an LBP game: pounds (starting at the charge) and dollars, with the same live
- * line as the whole-game form (what the dollars cover, what is left, Give back). The server applies
- * the cash the same way, so what this shows is what will be recorded.
- */
-function SlotCashForm({
-  slot,
-  lbpPerUsd,
-  locale,
-  busy,
-  onPay,
-}: {
-  slot: SlotView;
-  lbpPerUsd: string | null;
-  locale: UiLocale;
-  busy: boolean;
-  onPay: (cash: { lbpAmount: string; usdAmount: string; keepChange: boolean }) => void;
-}) {
-  const charge = slot.chargeUsd ?? "0";
-  const [lbp, setLbp] = useState(charge);
-  const [usd, setUsd] = useState("");
-  const [kept, setKept] = useState(false);
-  return (
-    <div className="flex flex-col gap-3 pb-3">
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`slot-lbp-${slot.participantId}`}>{ui("owner.lbp", locale)}</Label>
-        <LbpInput id={`slot-lbp-${slot.participantId}`} value={lbp} onValueChange={setLbp} className="font-mono" />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`slot-usd-${slot.participantId}`}>USD</Label>
-        <Input
-          id={`slot-usd-${slot.participantId}`}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={usd}
-          onChange={(event) => setUsd(event.target.value)}
-          className="font-mono"
-        />
-      </div>
-      <LbpGameBalance
-        remainingLbp={new Decimal(charge)}
-        usdText={usd}
-        lbpText={lbp}
-        lbpPerUsd={lbpPerUsd}
-        locale={locale}
-        kept={kept}
-        onKeptChange={setKept}
-      />
-      <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => onPay({ lbpAmount: lbp, usdAmount: usd, keepChange: kept })}>
-        {ui("owner.collect", locale)}
-      </Button>
-    </div>
-  );
-}
-
-/**
- * Mode switch + slot list for one booking (SPEC-15 §3.1, §3.2).
+ * The slot list of a split game (SPEC-15 §3.2); the split switch itself is in More actions.
  * Actions do not redirect, so the sheet stays open across taps. Each tap is guarded
  * here per slot; the server also locks the booking, so a double tap pays once.
  * On a game in pounds (DR-007 slice 7) the amounts are pounds, a slot can take pounds and dollars
- * ("Pay another way", with Give back), and a share left under 5,000 LBP can be marked paid.
+ * and a share left under one money unit can be marked paid. On a game in pounds "Other amount or currency"
+ * opens the same form as the whole game (`OtherAmountForm`); a dollar share keeps its one exact-dollar Pay.
  */
 export function PerPlayerCollect({
   view,
-  part,
   mayCollect,
   advanceNeeded = false,
-  mayAdjust,
   locale,
   lbpPerUsd = null,
   submitCollectAllRemaining,
   submitCollectSlot,
   submitConsiderSharePaid,
-  submitSwitchToPerPlayer,
-  submitSwitchToWhole,
 }: {
   view: PerPlayerView;
-  /** "slots": the players and their Pay buttons (the money block). "mode": the Whole / Per player switch (More actions). */
-  part: "slots" | "mode";
   mayCollect: boolean;
   /** The game has not been played yet: the shares are paid only after "Collect in advance" is confirmed, and none is forgiven. */
   advanceNeeded?: boolean;
-  mayAdjust: boolean;
   locale: UiLocale;
   /** The current exchange rate, to tell which leftover is small enough to forgive and to show Give back. */
   lbpPerUsd?: string | null;
@@ -160,15 +95,11 @@ export function PerPlayerCollect({
   }) => Promise<PerPlayerResult>;
   /** Absent: "Consider it paid" is not offered on a share. */
   submitConsiderSharePaid?: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
-  submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
-  submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
 }) {
   const [advance, setAdvance] = useState<AdvanceStep>("idle");
   const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const [errorKey, setErrorKey] = useState<string | null>(null);
-  const [splitOpen, setSplitOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState<string | null>(null);
-  const [count, setCount] = useState(String(view.defaultPlayerCount));
 
   const perPlayer = view.mode === "PER_PLAYER";
   const gated = advanceNeeded && advance !== "open";
@@ -177,9 +108,8 @@ export function PerPlayerCollect({
   const inPounds = view.currency === "LBP";
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
   /** An amount of this view, written with its currency. */
-  const money = (amount: string) => (inPounds ? formatLbpAmount(amount, locale) : `$${amount}`);
-  if (part === "slots" && !perPlayer) return null;
-  if (part === "mode" && !(mayAdjust && (perPlayer || view.canSplit))) return null;
+  const money = (amount: string) => (inPounds ? formatLbpAmount(amount, locale) : dollars(amount));
+  if (!perPlayer) return null;
 
   async function run(key: string, action: () => Promise<PerPlayerResult>) {
     if (busy.has(key)) return;
@@ -189,7 +119,6 @@ export function PerPlayerCollect({
       const result = await action();
       if ("error" in result) setErrorKey(result.error);
       else {
-        setSplitOpen(false);
         setCashOpen(null);
         const change = result.kept
           ? giveBackText({ lbp: result.changeLbp ?? "0", usd: result.changeUsd ?? "0" }, locale, true)
@@ -209,87 +138,10 @@ export function PerPlayerCollect({
 
   const paidCount = view.slots.filter((slot) => slot.paid).length;
   const payAllOpen = new Decimal(view.unpaidTotalUsd).gt(0);
-  const locked = view.hasAllocations;
 
   return (
     <div className="flex flex-col gap-3">
-      {part === "mode" ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold text-muted-foreground">
-            {ui("owner.modeLabel", locale)}
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(!perPlayer && "border-transparent bg-selected text-selected-ink")}
-              aria-pressed={!perPlayer}
-              disabled={busy.has("switch") || (perPlayer && locked)}
-              onClick={() => {
-                if (perPlayer) void run("switch", () => submitSwitchToWhole({ bookingId: view.bookingId }));
-              }}
-            >
-              {ui("owner.modeWhole", locale)}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(perPlayer && "border-transparent bg-selected text-selected-ink")}
-              aria-pressed={perPlayer}
-              disabled={busy.has("switch")}
-              onClick={() => {
-                if (!perPlayer) setSplitOpen((open) => !open);
-              }}
-            >
-              {ui("owner.modePerPlayer", locale)}
-            </Button>
-          </div>
-          {perPlayer && locked ? (
-            <p className="text-xs text-muted-foreground">
-              {ui("owner.perPlayerLocked", locale)}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
-      {part === "mode" && !perPlayer && splitOpen ? (
-        <div className="flex items-end gap-2">
-          <div className="flex flex-1 flex-col gap-2">
-            <Label htmlFor={`count-${view.bookingId}`}>
-              {ui("owner.playerCount", locale)}
-            </Label>
-            <Input
-              id={`count-${view.bookingId}`}
-              type="number"
-              min={1}
-              max={30}
-              step={1}
-              inputMode="numeric"
-              value={count}
-              onChange={(event) => setCount(event.target.value)}
-              className="font-mono"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-11"
-            disabled={busy.has("switch")}
-            onClick={() =>
-              void run("switch", () =>
-                submitSwitchToPerPlayer({
-                  bookingId: view.bookingId,
-                  count: Number(count),
-                }),
-              )
-            }
-          >
-            {ui("owner.splitConfirm", locale)}
-          </Button>
-        </div>
-      ) : null}
-
-      {part === "slots" && perPlayer ? (
+      {perPlayer ? (
         <>
           <p className="text-sm text-muted-foreground">
             {paidOfLine(paidCount, view.slots.length, locale)}
@@ -310,6 +162,8 @@ export function PerPlayerCollect({
                 slot.state === "pay" &&
                 !slot.partial &&
                 isForgivable(new Decimal(slot.remainingUsd), inPounds ? "LBP" : "USD", rate);
+              // Pounds only: a share of a dollar game is paid with its exact dollars, since the server records
+              // the charge in dollars whatever is typed (`payInDollars` in collect-player-payment.ts).
               const mayPayOtherWay = inPounds && mayPay && slot.state === "pay";
               return (
                 <li key={slot.participantId} className="rounded-lg bg-muted px-3 py-1">
@@ -354,23 +208,21 @@ export function PerPlayerCollect({
                     ) : null}
                   </div>
                   {mayPayOtherWay ? (
-                    <button
-                      type="button"
-                      aria-expanded={cashOpen === slot.participantId}
-                      onClick={() => setCashOpen((open) => (open === slot.participantId ? null : slot.participantId))}
-                      className="-ms-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-3 type-label text-muted-foreground outline-none hover:bg-background hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    >
-                      {cashOpen === slot.participantId ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
-                      <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", cashOpen === slot.participantId && "rotate-180")} />
-                    </button>
+                    <OtherAmountToggle
+                      open={cashOpen === slot.participantId}
+                      onToggle={() => setCashOpen((open) => (open === slot.participantId ? null : slot.participantId))}
+                      locale={locale}
+                    />
                   ) : null}
                   {mayPayOtherWay && cashOpen === slot.participantId ? (
-                    <SlotCashForm
-                      slot={slot}
+                    <div className="pb-3">
+                    <OtherAmountForm
+                      id={`slot-${slot.participantId}`}
+                      currency={inPounds ? "LBP" : "USD"}
+                      remaining={slot.chargeUsd ?? slot.remainingUsd}
                       lbpPerUsd={lbpPerUsd}
                       locale={locale}
-                      busy={busy.has(slot.participantId)}
-                      onPay={(cash) =>
+                      submit={{ kind: "callback", busy: busy.has(slot.participantId), onPay: (cash) =>
                         void run(slot.participantId, () =>
                           submitCollectSlot({
                             bookingId: view.bookingId,
@@ -379,9 +231,9 @@ export function PerPlayerCollect({
                             usdAmount: cash.usdAmount,
                             keepChange: cash.keepChange,
                           }),
-                        )
-                      }
+                        ) }}
                     />
+                    </div>
                   ) : null}
                   {mayForgive ? (
                     <Button

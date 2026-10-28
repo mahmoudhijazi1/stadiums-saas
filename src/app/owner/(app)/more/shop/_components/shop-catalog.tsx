@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
+import { currencyLabel, formatLbpAmount, formatUsdAmount } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
 import { isValidUsd, MoneyInput } from "@/components/ui/money-input";
@@ -136,7 +136,7 @@ export function ShopCatalog({ items, locale }: { items: CatalogItem[]; locale: U
                       currency === choice ? "bg-selected text-selected-ink" : "text-muted-foreground",
                     )}
                   >
-                    {choice === "LBP" ? "ل.ل" : "$"}
+                    {currencyLabel(choice, locale)}
                   </button>
                 ))}
               </div>

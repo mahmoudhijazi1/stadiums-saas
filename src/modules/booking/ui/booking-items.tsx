@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/format/money";
+import { currencyLabel, formatLbpAmount, formatParts, formatUsdAmount } from "@/lib/format/money";
 import { changeDescription, ui } from "@/lib/copy";
 import { cn } from "cn";
 import { AddItemsSheet } from "@/modules/booking/ui/add-items-sheet";
@@ -114,7 +114,7 @@ export function BookingItems({
       <div className="flex items-baseline justify-between gap-3">
         <h4 className="type-strong flex items-center gap-2">
           <ShoppingBag aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-          {ui("owner.tabsOnGame", locale)}
+          {ui("owner.itemsHeading", locale)}
         </h4>
         {mayAdd ? (
           <button
@@ -123,7 +123,7 @@ export function BookingItems({
             className="-my-1.5 inline-flex min-h-11 items-center outline-none focus-visible:[&>span]:ring-[3px] focus-visible:[&>span]:ring-ring/50"
           >
             <span className="inline-flex h-9 items-center rounded-full px-3 type-label text-action-ink hover:bg-muted">
-              {ui("owner.addItems", locale)}
+              {ui("owner.itemsAdd", locale)}
             </span>
           </button>
         ) : null}
@@ -299,8 +299,8 @@ function TabRow({
         {!owes ? (
           <span className="type-strong shrink-0 text-paid">{ui("owner.paidInFull", locale)}</span>
         ) : mayCollect ? (
-          // The button carries the amount: "Collect $1" / "Collect 20,000 ل.ل".
-          <TonalCollectButton tone={owedNow ? "owed" : "expected"} disabled={pending} onClick={() => send(exactUsd, exactLbp)}>
+          // The button carries the amount. Always secondary (bordered ink), never the amber fill or the primary.
+          <TonalCollectButton tone="expected" disabled={pending} onClick={() => send(exactUsd, exactLbp)}>
             {ui("owner.collect", locale)} <LtrIsolate>{remainingText}</LtrIsolate>
           </TonalCollectButton>
         ) : (
@@ -323,18 +323,18 @@ function TabRow({
               onClick={openOther}
               className="-ms-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-3 type-label text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
-              {ui("owner.payAnotherWay", locale)}
+              {ui("owner.otherAmount", locale)}
               <ChevronDown aria-hidden className="size-4 shrink-0" />
             </button>
           ) : null}
           {paying ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`tab-lbp-${tab.saleId}`}>{ui("owner.lbp", locale)}</Label>
+                <Label htmlFor={`tab-lbp-${tab.saleId}`}>{currencyLabel("LBP", locale)}</Label>
                 <LbpInput id={`tab-lbp-${tab.saleId}`} value={lbp} onValueChange={setLbp} />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor={`tab-usd-${tab.saleId}`}>USD</Label>
+                <Label htmlFor={`tab-usd-${tab.saleId}`}>{currencyLabel("USD", locale)}</Label>
                 <Input
                   id={`tab-usd-${tab.saleId}`}
                   inputMode="decimal"

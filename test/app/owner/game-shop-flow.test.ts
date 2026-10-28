@@ -246,7 +246,7 @@ describe("Tabs on this game", () => {
 
   it("is one row per tab: name, a short list of items, the total per currency and Collect", () => {
     list();
-    expect(text(t("owner.tabsOnGame"))).toBeTruthy();
+    expect(text(t("owner.itemsHeading"))).toBeTruthy();
     expect(screen.getAllByRole("button", { expanded: false })).toHaveLength(2);
     expect(document.body.textContent).toContain("Cola ×2");
     expect(document.body.textContent).toContain("Water ×1");

@@ -23,7 +23,7 @@ import {
   type ExpenseDetailView,
   type SaleDetailView,
 } from "@/app/owner/(app)/money/_components/activity-map";
-import { formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/format/money";
+import { dollars, formatLbpAmount, formatUsdAmount, groupDigits } from "@/lib/format/money";
 import { loadMoreActivity } from "@/app/owner/(app)/money/actions";
 import { activityHref } from "@/app/owner/(app)/money/query";
 
@@ -251,7 +251,7 @@ function ExpenseDetailSheet({
             <BottomSheetBody className="flex flex-col gap-4 pb-4">
               <dl className="flex flex-col gap-3">
                 <Detail label={ui("owner.expenseAmount", locale)}>
-                  <LtrIsolate className="type-strong">{`−$${detail.amountUsd}`}</LtrIsolate>
+                  <LtrIsolate className="type-strong">{`−${dollars(detail.amountUsd)}`}</LtrIsolate>
                 </Detail>
                 <Detail label={ui("owner.expenseCategory", locale)}>{detail.categoryLabel}</Detail>
                 <Detail label={ui("owner.expenseDate", locale)}>
@@ -266,12 +266,12 @@ function ExpenseDetailSheet({
                       <li key={index} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
                         <span className="type-body">
                           <LtrIsolate>
-                            {tender.currency === "USD" ? `$${tender.amount}` : `${groupDigits(tender.amount)} LBP`}
+                            {tender.currency === "USD" ? dollars(tender.amount) : formatLbpAmount(tender.amount, locale)}
                           </LtrIsolate>
                         </span>
                         <span className="type-secondary">
                           {tender.currency === "LBP" && tender.rate ? (
-                            <LtrIsolate>{`@ ${groupDigits(tender.rate)} → $${tender.usd}`}</LtrIsolate>
+                            <LtrIsolate>{`@ ${groupDigits(tender.rate)} → ${dollars(tender.usd)}`}</LtrIsolate>
                           ) : null}
                         </span>
                       </li>
@@ -307,7 +307,7 @@ function SaleDetailSheet({
             <BottomSheetBody className="flex flex-col gap-4 pb-4">
               <dl className="flex flex-col gap-3">
                 <Detail label={ui("owner.sellTotal", locale)}>
-                  <LtrIsolate className="type-strong">{`+$${detail.totalUsd}`}</LtrIsolate>
+                  <LtrIsolate className="type-strong">{`+${dollars(detail.totalUsd)}`}</LtrIsolate>
                 </Detail>
                 <Detail label={ui("owner.expenseDate", locale)}>
                   <LtrIsolate>{detail.dateLabel}</LtrIsolate>
@@ -336,12 +336,12 @@ function SaleDetailSheet({
                       <li key={index} className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0">
                         <span className="type-body">
                           <LtrIsolate>
-                            {tender.currency === "USD" ? `$${tender.amount}` : `${groupDigits(tender.amount)} LBP`}
+                            {tender.currency === "USD" ? dollars(tender.amount) : formatLbpAmount(tender.amount, locale)}
                           </LtrIsolate>
                         </span>
                         <span className="type-secondary">
                           {tender.currency === "LBP" && tender.rate ? (
-                            <LtrIsolate>{`@ ${groupDigits(tender.rate)} → $${tender.usd}`}</LtrIsolate>
+                            <LtrIsolate>{`@ ${groupDigits(tender.rate)} → ${dollars(tender.usd)}`}</LtrIsolate>
                           ) : null}
                         </span>
                       </li>

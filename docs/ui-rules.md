@@ -50,6 +50,8 @@ A bare `$30` is never enough. The label names the owner of the figure: the game,
 | One player | حصته `$3` | His share `$3` |
 | Cash taken | محصّل `$12` | Collected `$12` |
 
+**Currency labels (2026-10-21).** No screen writes a currency sign or word by hand. An amount goes through the money formatters (`lib/format/money.ts`: `formatPrice`, `formatParts`, `formatUsdAmount`, `formatLbpAmount`, `dollars`); a field or a currency switch is labelled with `currencyLabel`: "$" for dollars in both languages, "ل.ل" in Arabic (the same unit the formatters write) and "LBP" in English for pounds. `test/architecture/currency-text.test.ts` fails with file:line otherwise.
+
 The label is short and sits before the number in reading order. In a dense row the label may be the column or group title, as long as it is always visible.
 
 **Cards (amended 2026-10-07).** A booking card shows money only when it signals a state: an owed or partial amount (`$30 due`, `$12 left`), Paid, a no-show or cancel fee. A plain upcoming game shows no price and no pill; the "Game `$30`" label is gone from cards. The booking sheet always shows the game price, labelled. One component, `BookingRow` (`app/owner/booking-row.tsx`), draws every booking card; the pill is the only money on it.

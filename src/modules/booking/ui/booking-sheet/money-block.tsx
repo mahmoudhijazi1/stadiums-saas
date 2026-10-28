@@ -1,28 +1,26 @@
 import Decimal from "decimal.js";
-import { useState, type ReactNode } from "react";
-import { ChevronDown, CircleAlert, CircleCheck } from "lucide-react";
+import { useState } from "react";
+import { CircleAlert, CircleCheck } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { Input } from "@/components/ui/input";
-import { LbpInput } from "@/components/ui/lbp-input";
-import { Label } from "@/components/ui/label";
+import { formatPrice } from "@/lib/format/money";
+import { Figure } from "@/components/ui/figure";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { cn } from "cn";
-import { TenderBalance } from "@/modules/payment/ui/tender-balance";
 import { isForgivable } from "@/modules/payment/domain/units";
-import { ConsiderPaidButton, LbpCollectForm } from "@/modules/booking/ui/booking-sheet/lbp-collect";
 import { PerPlayerCollect } from "@/modules/booking/ui/per-player-collect";
 import type { PerPlayerResult } from "@/modules/booking/ui/action-types";
 import { CollectAdvance, type AdvanceStep } from "@/modules/booking/ui/booking-sheet/collect-advance";
-import { collectMode, isPerPlayer, owesCash, splitAdjustOf, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
+import { OtherAmountForm, OtherAmountToggle } from "@/modules/booking/ui/booking-sheet/other-amount";
+import { collectMode, isPerPlayer, owesCash, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
 
 /** The collect actions of the sheet: whole collect, two-currency, per-player switches and slot collects. */
 export type CollectActions = {
   submitCollectPayment: (formData: FormData) => Promise<void>;
   submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
   submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
-  submitCollectSlot: (input: { bookingId: string; participantId: string; usdAmount?: string; lbpAmount?: string }) => Promise<PerPlayerResult>;
+  submitCollectSlot: (input: { bookingId: string; participantId: string; usdAmount?: string; lbpAmount?: string; keepChange?: boolean }) => Promise<PerPlayerResult>;
   submitCollectAllRemaining: (input: { bookingId: string }) => Promise<PerPlayerResult>;
   /** "Consider it paid" (DR-007 decision 8). Absent: the button is not shown. */
   submitConsiderPaid?: (formData: FormData) => Promise<void>;
@@ -30,237 +28,155 @@ export type CollectActions = {
   submitConsiderSharePaid?: (input: { bookingId: string; participantId: string }) => Promise<PerPlayerResult>;
 };
 
-type MoneyTone = "paid" | "owed" | "expected";
+export type MoneyTone = "paid" | "owed" | "expected";
 
-const TONE_TEXT: Record<MoneyTone, string> = {
-  paid: "text-paid",
-  owed: "text-owed",
-  expected: "text-expected",
-};
-const TONE_BG: Record<MoneyTone, string> = {
-  paid: "bg-paid-subtle",
-  owed: "bg-owed-subtle",
-  expected: "bg-expected-subtle",
+/** The money of one game in its own currency: what is left, the price and what was paid ("30.00" or whole pounds). */
+export type GameMoneyView = {
+  currency: "USD" | "LBP";
+  remaining: string;
+  price: string;
+  paid: string;
+  tone: MoneyTone;
+  /** Something was paid and something is left: the card adds "Game price X · Paid Y". */
+  partial: boolean;
 };
 
-/** Paid = settled, owed = the game ended and money is due, expected = not played yet. */
-function moneyTone(row: UpcomingRowView): MoneyTone {
-  if (row.remainingUsd === "0.00") return "paid";
-  return owesCash(row) ? "owed" : "expected";
+/** Paid = nothing left, owed = the game ended (or a fee is due) and money is left, expected = not played yet. */
+export function gameMoneyOf(row: UpcomingRowView): GameMoneyView {
+  const currency = row.lbp ? "LBP" : "USD";
+  const remaining = row.lbp ? row.lbp.remaining : row.remainingUsd;
+  const left = new Decimal(remaining);
+  const paid = row.collectedExact;
+  const tone: MoneyTone = left.lte(0) || row.lbp?.settled ? "paid" : owesCash(row) ? "owed" : "expected";
+  return { currency, remaining, price: row.priceUsd, paid, tone, partial: left.gt(0) && new Decimal(paid).gt(0) };
 }
 
+const TONE: Record<MoneyTone, { text: string; bg: string; label: string }> = {
+  owed: { text: "text-owed", bg: "bg-owed-subtle", label: "owner.remaining" },
+  paid: { text: "text-paid", bg: "bg-paid-subtle", label: "owner.paid" },
+  expected: { text: "text-foreground", bg: "bg-expected-subtle", label: "owner.expectedLabel" },
+};
+
 /**
- * The money block, one row: a tinted container in the state token (paid / owed / expected), the
- * label above the amount on the start side, and the action (Collect) on the end side. Paid and
- * Expected show the same row without a button.
+ * The money card (ui-rules rule 1, by state): amber "Remaining" when owed, green "✓ Paid" when settled,
+ * neutral "Expected" before the game. The remaining is the sheet's one big figure (rule 7); after a part
+ * payment one muted line says the game price and what was paid. No button inside the card.
  */
-function DueRemainingFigures({
-  paidUsd,
-  remainingUsd,
-  amountText,
-  tone,
-  locale,
-  action,
-}: {
-  paidUsd: string;
-  remainingUsd: string;
-  /** The amount already written with its currency (an LBP game); replaces the dollar figure. */
-  amountText?: string;
-  tone: MoneyTone;
-  locale: UiLocale;
-  action?: ReactNode;
-}) {
-  const Icon = tone === "paid" ? CircleCheck : tone === "owed" ? CircleAlert : null;
+export function MoneyCard({ money, locale }: { money: GameMoneyView; locale: UiLocale }) {
+  const tone = TONE[money.tone];
+  const Icon = money.tone === "paid" ? CircleCheck : money.tone === "owed" ? CircleAlert : null;
+  const amount = (value: string) => formatPrice({ currency: money.currency, amount: value }, locale);
   return (
-    <div className={cn("flex items-center gap-3 rounded-xl px-4 py-3 text-start", TONE_BG[tone])}>
-      <div className="min-w-0 flex-1">
-        <p className={cn("type-caption flex items-center gap-1", TONE_TEXT[tone])}>
-          {Icon ? <Icon aria-hidden className="size-3.5 shrink-0" /> : null}
-          {ui(
-            tone === "paid" ? "owner.paid" : tone === "owed" ? "owner.remaining" : "owner.expectedLabel",
-            locale,
-          )}
+    <div data-tone={money.tone} className={cn("flex flex-col gap-1 rounded-xl px-4 py-3 text-start", tone.bg)}>
+      <p className={cn("type-caption flex items-center gap-1", money.tone === "expected" ? "text-muted-foreground" : tone.text)}>
+        {Icon ? <Icon aria-hidden className="size-3.5 shrink-0" /> : null}
+        {ui(tone.label, locale)}
+      </p>
+      <Figure className={cn("text-3xl leading-tight", tone.text)}>{amount(money.tone === "paid" ? money.paid : money.remaining)}</Figure>
+      {money.partial ? (
+        <p className="type-caption">
+          {ui("owner.gamePrice", locale)} <LtrIsolate>{amount(money.price)}</LtrIsolate>
+          <span aria-hidden> · </span>
+          {ui("owner.paid", locale)} <LtrIsolate>{amount(money.paid)}</LtrIsolate>
         </p>
-        <p className={cn("type-strong", TONE_TEXT[tone])}>
-          <LtrIsolate>{amountText ?? `$${tone === "paid" ? paidUsd : remainingUsd}`}</LtrIsolate>
-        </p>
-      </div>
-      {action}
+      ) : null}
     </div>
   );
 }
 
-/** The money block of the sheet: paid / remaining, Collect, the two-currency form and the player slots. */
+/**
+ * The money block of the sheet: the card, then the sheet's ONE primary button "Collect <exact remaining>"
+ * (it collects exactly that), then the secondary "Other amount or currency" form, then "Consider it paid"
+ * and the player shares. Before the game there is no primary Collect: "Collect in advance" asks first
+ * (v1.9.1). A paid game has no Collect at all. Every action is the existing Server Action.
+ */
 export function MoneyBlock({
   row,
   lbpPerUsd,
   locale,
   mayCollect,
-  mayAdjust,
   collectActions,
 }: {
   row: UpcomingRowView;
   lbpPerUsd: string | null;
   locale: UiLocale;
   mayCollect: boolean;
-  mayAdjust: boolean;
+  /** Kept for the callers: the split switch that needs it now lives in More actions. */
+  mayAdjust?: boolean;
   collectActions: CollectActions;
 }) {
-  const [mixedOpen, setMixedOpen] = useState(false);
+  const [otherOpen, setOtherOpen] = useState(false);
   const [advance, setAdvance] = useState<AdvanceStep>("idle");
-  // One rule for both currencies (collectMode): Collect is primary on an ended game or a fee; before the
-  // game it is hidden behind "Collect in advance", which asks first. Forgiving needs an ended game.
   const mode = collectMode(row);
+  const money = gameMoneyOf(row);
   const showCollect = mode === "primary" || (mode === "advance" && advance === "open");
+  const canCollect = mayCollect && showCollect && !isPerPlayer(row) && money.tone !== "paid";
   const gate = mayCollect && mode === "advance" && advance !== "open" && !isPerPlayer(row);
-  const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid, submitSwitchToPerPlayer, submitSwitchToWhole } =
+  const { submitCollectAllRemaining, submitCollectPayment, submitCollectSlot, submitConsiderPaid, submitConsiderSharePaid } =
     collectActions;
   const rate = lbpPerUsd ? new Decimal(lbpPerUsd) : null;
-  // An LBP game (DR-007): the due in pounds, Collect and the two-currency form, "Consider it paid"
-  // under one money unit, and the per-player split. Its other actions are in the sheet's own sections.
-  if (row.lbp) {
-    const lbp = row.lbp;
-    const tone: MoneyTone = lbp.settled ? "paid" : owesCash(row) ? "owed" : "expected";
-    const canCollectLbp = mayCollect && showCollect && !isPerPlayer(row);
-    const forgivable = canCollectLbp && mode === "primary" && submitConsiderPaid && isForgivable(new Decimal(lbp.remaining), "LBP", rate);
-    return (
-      <section className="flex flex-col gap-3">
-        <DueRemainingFigures
-          paidUsd={row.collectedExact}
-          remainingUsd={row.remainingUsd}
-          amountText={lbp.settled ? lbp.paid : lbp.due}
-          tone={tone}
-          locale={locale}
-          action={
-            canCollectLbp && !mixedOpen ? (
-              <form action={submitCollectPayment} className="shrink-0">
-                <input type="hidden" name="bookingId" value={row.id} />
-                <input type="hidden" name="lbpAmount" value={lbp.remaining} />
-                <SubmitButton variant="outline" className={collectButtonClass(tone)}>
-                  {ui("owner.collect", locale)}
-                </SubmitButton>
-              </form>
-            ) : null
-          }
-        />
-        {gate ? <CollectAdvance step={advance} onStep={setAdvance} locale={locale} /> : null}
-        {canCollectLbp ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
-        {canCollectLbp && mixedOpen ? (
-          <LbpCollectForm bookingId={row.id} remainingLbp={lbp.remaining} lbpPerUsd={lbpPerUsd} locale={locale} submitCollectPayment={submitCollectPayment} />
-        ) : null}
-        {forgivable ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
-        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} advanceNeeded={mode === "advance"} mayAdjust={splitAdjustOf(row, mayAdjust)} lbpPerUsd={lbpPerUsd} locale={locale} />
-      </section>
-    );
-  }
-  const canCollect = mayCollect && showCollect && !isPerPlayer(row);
-  const splitAdjust = splitAdjustOf(row, mayAdjust);
-  const forgivableUsd = canCollect && mode === "primary" && submitConsiderPaid && isForgivable(new Decimal(row.remainingUsd), "USD", rate);
+  const forgivable =
+    canCollect && mode === "primary" && submitConsiderPaid && isForgivable(new Decimal(money.remaining), money.currency, rate);
+  const field = money.currency === "LBP" ? "lbpAmount" : "usdAmount";
 
   return (
-      <section className="flex flex-col gap-3">
-        <DueRemainingFigures
-          paidUsd={row.collectedExact}
-          remainingUsd={row.remainingUsd}
-          tone={moneyTone(row)}
+    <section className="flex flex-col gap-3">
+      <MoneyCard money={money} locale={locale} />
+      {gate ? <CollectAdvance step={advance} onStep={setAdvance} locale={locale} /> : null}
+      {canCollect ? (
+        <form action={submitCollectPayment}>
+          <input type="hidden" name="bookingId" value={row.id} />
+          <input type="hidden" name={field} value={money.remaining} />
+          <SubmitButton className="w-full">
+            {ui("owner.collect", locale)} <LtrIsolate>{formatPrice({ currency: money.currency, amount: money.remaining }, locale)}</LtrIsolate>
+          </SubmitButton>
+        </form>
+      ) : null}
+      {canCollect ? <OtherAmountToggle open={otherOpen} onToggle={() => setOtherOpen((open) => !open)} locale={locale} /> : null}
+      {canCollect && otherOpen ? (
+        <OtherAmountForm
+          id={`game-${row.id}`}
+          currency={money.currency}
+          remaining={money.remaining}
+          lbpPerUsd={lbpPerUsd}
           locale={locale}
-          action={
-            canCollect && !mixedOpen ? (
-              <form action={submitCollectPayment} className="shrink-0">
-                <input type="hidden" name="bookingId" value={row.id} />
-                <input type="hidden" name="usdAmount" value={row.remainingUsd} />
-                <SubmitButton variant="outline" className={collectButtonClass(moneyTone(row))}>
-                  {ui("owner.collect", locale)}
-                </SubmitButton>
-              </form>
-            ) : null
-          }
+          submit={{ kind: "action", action: submitCollectPayment, hidden: { bookingId: row.id } }}
         />
-        {gate ? <CollectAdvance step={advance} onStep={setAdvance} locale={locale} /> : null}
-        {canCollect ? <PayAnotherWayToggle open={mixedOpen} onToggle={() => setMixedOpen((open) => !open)} locale={locale} /> : null}
-        {canCollect && mixedOpen ? <MixedCollectForm submitCollectPayment={submitCollectPayment} row={row} lbpPerUsd={lbpPerUsd} locale={locale} /> : null}
-        {forgivableUsd ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
-        <PerPlayerCollect submitCollectAllRemaining={submitCollectAllRemaining} submitCollectSlot={submitCollectSlot} submitConsiderSharePaid={submitConsiderSharePaid} submitSwitchToPerPlayer={submitSwitchToPerPlayer} submitSwitchToWhole={submitSwitchToWhole} view={row.perPlayer} part="slots" mayCollect={mayCollect} advanceNeeded={mode === "advance"} mayAdjust={splitAdjust} lbpPerUsd={lbpPerUsd} locale={locale} />
-      </section>
-  );
-}
-
-/** The Collect button: amber once owed, bordered ink before. */
-function collectButtonClass(tone: MoneyTone): string {
-  return cn(
-    "h-11 rounded-full px-5 type-button",
-    // The owed row is already amber-tinted, so the button sits on the surface with an amber border to
-    // stand out from it (in light mode an amber fill merged with the row; dark keeps the outline's own fill).
-    tone === "owed" ? "border-owed/40 bg-surface text-owed hover:bg-surface/80" : "border-line-strong bg-surface-2 text-foreground",
-  );
-}
-
-/** "Pay another way (LBP, partial)": opens the two-currency form. */
-function PayAnotherWayToggle({ open, onToggle, locale }: { open: boolean; onToggle: () => void; locale: UiLocale }) {
-  return (
-    <button
-      type="button"
-      aria-expanded={open}
-      onClick={onToggle}
-      className="-ms-3 inline-flex min-h-11 w-fit items-center gap-1 rounded-full px-3 type-label text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      {open ? ui("owner.hideCollectMixed", locale) : ui("owner.payAnotherWay", locale)}
-      <ChevronDown aria-hidden className={cn("size-4 shrink-0 transition-transform", open && "rotate-180")} />
-    </button>
+      ) : null}
+      {forgivable ? <ConsiderPaidButton bookingId={row.id} locale={locale} submitConsiderPaid={submitConsiderPaid} /> : null}
+      <PerPlayerCollect
+        submitCollectAllRemaining={submitCollectAllRemaining}
+        submitCollectSlot={submitCollectSlot}
+        submitConsiderSharePaid={submitConsiderSharePaid}
+        view={row.perPlayer}
+        mayCollect={mayCollect}
+        advanceNeeded={mode === "advance"}
+        lbpPerUsd={lbpPerUsd}
+        locale={locale}
+      />
+    </section>
   );
 }
 
 /**
- * USD + LBP collect. Both fields are controlled so the line under them shows the total
- * and what is left as the owner types; "Complete with … LBP" fills the rest.
+ * "Consider it paid" (DR-007 decision 8): a secondary button, shown only when what is left is
+ * forgivable. The use case checks again under the booking lock.
  */
-function MixedCollectForm({
-  row,
-  lbpPerUsd,
+function ConsiderPaidButton({
+  bookingId,
   locale,
-  submitCollectPayment,
+  submitConsiderPaid,
 }: {
-  row: UpcomingRowView;
-  lbpPerUsd: string | null;
+  bookingId: string;
   locale: UiLocale;
-  submitCollectPayment: (formData: FormData) => Promise<void>;
+  submitConsiderPaid: (formData: FormData) => Promise<void>;
 }) {
-  const [usd, setUsd] = useState(row.remainingUsd);
-  const [lbp, setLbp] = useState("");
-  const [kept, setKept] = useState(false);
-
   return (
-    <form action={submitCollectPayment} className="flex flex-col gap-4">
-      <input type="hidden" name="bookingId" value={row.id} />
-      <input type="hidden" name="keepChange" value={kept ? "1" : ""} />
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`usd-${row.id}`}>{ui("owner.usdRemaining", locale)}</Label>
-        <Input
-          id={`usd-${row.id}`}
-          type="text"
-          name="usdAmount"
-          inputMode="decimal"
-          value={usd}
-          onChange={(event) => setUsd(event.target.value)}
-          placeholder={row.remainingUsd}
-          className="font-mono"
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor={`lbp-${row.id}`}>{ui("owner.lbp", locale)}</Label>
-        <LbpInput id={`lbp-${row.id}`} name="lbpAmount" value={lbp} onValueChange={setLbp} className="font-mono" />
-      </div>
-      <TenderBalance
-        usdText={usd}
-        lbpText={lbp}
-        lbpPerUsd={lbpPerUsd}
-        targetUsd={row.remainingUsd}
-        locale={locale}
-        onFillLbp={setLbp}
-        kept={kept}
-        onKeptChange={setKept}
-      />
-      <SubmitButton className="w-full">{ui("owner.moneyGroup", locale)}</SubmitButton>
+    <form action={submitConsiderPaid} className="w-fit">
+      <input type="hidden" name="bookingId" value={bookingId} />
+      <SubmitButton variant="ghost" size="sm" className="-ms-3 min-h-11 rounded-full px-3 type-label text-muted-foreground">
+        {ui("owner.considerPaid", locale)}
+      </SubmitButton>
     </form>
   );
 }

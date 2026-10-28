@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LtrIsolate } from "@/components/ui/ltr-isolate";
 import { errorMessage } from "@/lib/copy/errors";
 import type { UiLocale } from "@/lib/locale";
-import { formatUsd } from "@/lib/format/money";
+import { formatLbpAmount, formatUsdMoney, groupDigits } from "@/lib/format/money";
 import { ui } from "@/lib/copy";
 import { previewTenders } from "@/modules/payment/domain/tender-preview";
 import { KeepItButton } from "@/modules/payment/ui/keep-it";
@@ -14,8 +14,7 @@ import { friendlyLbp } from "@/modules/payment/domain/units";
 
 /** Whole pounds with thousands commas ("895,000 LBP"): long LBP figures are hard to read. */
 function lbpText(amount: Decimal, locale: UiLocale): string {
-  const grouped = amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `${grouped} ${ui("owner.lbp", locale)}`;
+  return formatLbpAmount(amount, locale);
 }
 
 /**
@@ -25,8 +24,7 @@ function lbpText(amount: Decimal, locale: UiLocale): string {
 function lbpWithFriendly(amount: Decimal, locale: UiLocale): string {
   const friendly = friendlyLbp(amount);
   if (friendly.equals(amount)) return lbpText(amount, locale);
-  const grouped = friendly.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return `${lbpText(amount, locale)}, ${ui("owner.aboutAmount", locale)} ${grouped}`;
+  return `${lbpText(amount, locale)}, ${ui("owner.aboutAmount", locale)} ${groupDigits(friendly)}`;
 }
 
 /**
@@ -87,13 +85,13 @@ export function TenderBalance({
       <>
         <p className="flex items-baseline justify-between gap-3 text-sm text-muted-foreground">
           <span>{ui("owner.tenderTotal", locale)}</span>
-          <LtrIsolate className="font-semibold text-foreground">${formatUsd(preview.totalUsd)}</LtrIsolate>
+          <LtrIsolate className="font-semibold text-foreground">{formatUsdMoney(preview.totalUsd)}</LtrIsolate>
         </p>
         {remaining === null ? null : remaining.gt(0) ? (
           <p className="flex items-baseline justify-between gap-3 text-sm font-medium text-owed">
             <span>{ui("owner.tenderStillDue", locale)}</span>
             <span>
-              <LtrIsolate>${formatUsd(remaining)}</LtrIsolate>
+              <LtrIsolate>{formatUsdMoney(remaining)}</LtrIsolate>
               {preview.remainingLbp ? (
                 <>
                   <span aria-hidden> · </span>
@@ -112,7 +110,7 @@ export function TenderBalance({
           <p className="flex items-baseline justify-between gap-3 text-sm font-medium text-owed">
             <span>{ui(kept ? "owner.kept" : "owner.giveBack", locale)}</span>
             <span>
-              <LtrIsolate>${formatUsd(remaining.abs())}</LtrIsolate>
+              <LtrIsolate>{formatUsdMoney(remaining.abs())}</LtrIsolate>
               {preview.remainingLbp ? (
                 <>
                   <span aria-hidden> · </span>

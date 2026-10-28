@@ -6,6 +6,7 @@ import { PersonLink } from "@/modules/people/ui/person-link";
 import { Check } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui, uiCount } from "@/lib/copy";
+import { dollars } from "@/lib/format/money";
 import { Button } from "@/components/ui/button";
 import {
   ClockRangeText,
@@ -147,7 +148,7 @@ export function DebtNoticeLine({
       className="text-sm text-owed underline-offset-2 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
     >
       {ui("owner.debtLead", locale)}{" "}
-      <LtrIsolate>{notice.totalText ?? `$${notice.totalCompact}`}</LtrIsolate>
+      <LtrIsolate>{notice.totalText ?? dollars(notice.totalCompact)}</LtrIsolate>
       <span aria-hidden> · </span>
       {notice.reasonLabel ? (
         <>
