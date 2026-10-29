@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { currentBrandIdentity } from "@/app/brand/current-brand";
-import { accentThemeColor } from "@/modules/stadium/domain/accent-css";
 import { brandIconPath } from "@/modules/stadium/domain/brand-identity";
 import { platformDb } from "@/lib/platform-db";
 import { pwaShortName } from "@/modules/stadium/domain/pwa-short-name";
 import { resolveTenantFromHeaders } from "@/lib/tenant-slug";
+import { THEME_COLOR } from "@/lib/theme-color";
 
 const FALLBACK_NAME = "lebstads";
 
@@ -36,9 +36,11 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     start_url: "/owner/today",
     scope: "/owner/",
     display: "standalone",
-    background_color: "#F6F5EF",
-    // The stadium's accent (its dark-theme fill); the default lime for an unknown or suspended host.
-    theme_color: accentThemeColor(identity?.preset),
+    background_color: THEME_COLOR.light,
+    // The page background, never the stadium's accent: an installed app paints the phone's system bars
+    // (status and navigation) with this until the page loads, and a lime or yellow bar under the app looks
+    // broken. Once the page is up, the theme-color tags follow the light or dark theme (src/lib/theme-color.ts).
+    theme_color: THEME_COLOR.light,
     // The generated logo of this host's stadium (neutral lebstads for an unknown or suspended one).
     // Versioned, so a changed letter or colour is fetched again.
     icons: [
