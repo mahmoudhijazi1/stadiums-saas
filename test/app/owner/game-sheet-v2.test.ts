@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import Decimal from "decimal.js";
-import { createElement, useRef, useState } from "react";
+import { createElement, useState } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
@@ -50,7 +50,6 @@ const ENDED: LbpOwnerDayBooking = {
   remainingLbp: D(2000000),
   unassignedLbp: D(0),
 };
-const PART_PAID: LbpOwnerDayBooking = { ...ENDED, owedLbp: D(210000), settledLbp: D(1790000), remainingLbp: D(210000) };
 const SETTLED: LbpOwnerDayBooking = { ...ENDED, owedLbp: D(0), settledLbp: D(2000000), remainingLbp: D(0) };
 const UPCOMING: LbpOwnerDayBooking = { ...ENDED, start: new Date("2026-10-16T22:00:00Z"), end: new Date("2026-10-16T23:00:00Z") };
 const CANCELLED: LbpOwnerDayBooking = { ...UPCOMING, status: "CANCELLED", owedLbp: D(0), amountDueLbp: D(0), remainingLbp: D(0) };
@@ -265,8 +264,8 @@ describe("items", () => {
 describe("steps instead of inline expansion", () => {
   function Sheet({ row, start = "details" }: { row: UpcomingRowView; start?: SheetStep }) {
     const [step, setStep] = useState<SheetStep>(start);
-    const confirmRef = useRef<HTMLButtonElement>(null);
-    const cancelRef = useRef<HTMLButtonElement>(null);
+    const [confirmRef] = useState(() => ({ current: null as HTMLButtonElement | null }));
+    const [cancelRef] = useState(() => ({ current: null as HTMLButtonElement | null }));
     return createElement(BookingSheet, {
       sheetRow: row,
       open: true,

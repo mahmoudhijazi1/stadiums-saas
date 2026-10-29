@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
@@ -83,12 +83,12 @@ export function BookingSheet({
   const [nowMs] = useState(() => Date.now());
   // After a collection the game's money changes: the "Other amount or currency" step goes back to the main view.
   const moneyKey = sheetRow ? `${sheetRow.id}:${gameMoneyOf(sheetRow).remaining}` : "";
-  const [seenMoney, setSeenMoney] = useState(moneyKey);
+  const seenMoney = useRef(moneyKey);
   useEffect(() => {
-    if (seenMoney === moneyKey) return;
-    setSeenMoney(moneyKey);
+    if (seenMoney.current === moneyKey) return;
+    seenMoney.current = moneyKey;
     if (sheetStep === "other") moveStep("details");
-  }, [moneyKey, seenMoney, sheetStep, moveStep]);
+  }, [moneyKey, sheetStep, moveStep]);
   const back = () => moveStep("details");
   const router = useRouter();
   return (
