@@ -98,6 +98,9 @@ const ACTIONS = {
 
 afterEach(cleanup);
 
+// jsdom has no matchMedia; the sheet's step animation asks it for reduced motion.
+window.matchMedia ??= ((query: string) => ({ matches: false, media: query, onchange: null, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false })) as typeof window.matchMedia;
+
 const collectBar = (container: HTMLElement) => container.querySelector('[data-slot="collect-bar"]');
 
 describe("the status chip", () => {
