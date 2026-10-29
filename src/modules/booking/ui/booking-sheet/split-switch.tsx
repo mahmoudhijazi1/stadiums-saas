@@ -23,15 +23,18 @@ export function SplitSwitchRow({
   locale,
   submitSwitchToPerPlayer,
   submitSwitchToWhole,
+  initialAsking = false,
 }: {
   view: PerPlayerView;
   locale: UiLocale;
   submitSwitchToPerPlayer: (input: { bookingId: string; count: number }) => Promise<PerPlayerResult>;
   submitSwitchToWhole: (input: { bookingId: string }) => Promise<PerPlayerResult>;
+  /** Opened from the quick tile: ask how many players straight away. */
+  initialAsking?: boolean;
 }) {
   const on = view.mode === "PER_PLAYER";
   const locked = on && view.hasAllocations;
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState(initialAsking);
   const [count, setCount] = useState(String(view.defaultPlayerCount));
   const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -65,7 +68,7 @@ export function SplitSwitchRow({
         aria-checked={checked}
         disabled={busy || locked}
         onClick={toggle}
-        className="flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-60"
+        className="flex min-h-14 w-full items-center gap-3 px-4 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50 disabled:opacity-60"
       >
         <Users aria-hidden className="size-5 shrink-0" />
         <span className="flex min-w-0 flex-1 flex-col">
@@ -89,7 +92,7 @@ export function SplitSwitchRow({
         </span>
       </button>
       {asking && !on ? (
-        <div className="flex items-end gap-2 ps-9">
+        <div className="flex items-end gap-2 px-4 pb-3 ps-12">
           <div className="flex flex-1 flex-col gap-2">
             <Label htmlFor={`count-${view.bookingId}`}>{ui("owner.playerCount", locale)}</Label>
             <Input
@@ -116,7 +119,7 @@ export function SplitSwitchRow({
         </div>
       ) : null}
       {errorKey ? (
-        <p role="alert" className="type-secondary text-destructive">
+        <p role="alert" className="px-4 pb-3 type-secondary text-destructive">
           {errorMessage(errorKey, locale)}
         </p>
       ) : null}

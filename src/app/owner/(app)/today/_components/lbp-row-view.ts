@@ -104,6 +104,7 @@ export function lbpUpcomingView(
       ? {
           seriesId: ctx.series.seriesId,
           line: seriesRowLine({ anchor: ctx.series.anchor, left: ctx.series.left, lastStart: ctx.series.lastStart, locale, hourCycle }),
+          fact: seriesRowLine({ anchor: ctx.series.anchor, left: ctx.series.left, lastStart: ctx.series.lastStart, locale, hourCycle, short: true }),
         }
       : null,
     dayLabel: formatEarlierDayLabel(row.start, now, locale, dayStartHour),

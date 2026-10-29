@@ -1,4 +1,7 @@
-import type { RefObject } from "react";
+"use client";
+
+import { useEffect, useState, type RefObject } from "react";
+import { useRouter } from "next/navigation";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
 import { cn } from "cn";
@@ -11,15 +14,22 @@ import { ExtendForm, type ExtendActions } from "@/modules/booking/ui/extend-form
 import { WeeklyConfirm } from "@/modules/booking/ui/weekly-confirm";
 import { SeriesManage, type SeriesActions } from "@/modules/booking/ui/series-manage";
 import type { ItemsActions } from "@/modules/booking/ui/booking-items";
-import type { CollectActions } from "@/modules/booking/ui/booking-sheet/money-block";
+import { gameMoneyOf, type CollectActions } from "@/modules/booking/ui/booking-sheet/money-block";
+import { MoreActionsList } from "@/modules/booking/ui/booking-sheet/more-actions";
+import { OtherAmountForm } from "@/modules/booking/ui/booking-sheet/other-amount";
+import { ShopTabs } from "@/modules/booking/ui/booking-sheet/shop-tabs";
+import { SplitSwitchRow } from "@/modules/booking/ui/booking-sheet/split-switch";
+import { PerPlayerCollect } from "@/modules/booking/ui/per-player-collect";
+import { collectMode } from "@/modules/booking/ui/booking-sheet/row-view";
 import type { UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
 import { SheetHeader, type SheetStep } from "@/modules/booking/ui/booking-sheet/sheet-header";
 import { UpcomingRowActions } from "@/modules/booking/ui/booking-sheet/sheet-details";
 
 /**
- * The booking sheet: header, then either the notify/interest view or the two stages (details, and
- * the confirm step: cancel, no-show, adjust, extend, repeat weekly, series). Actions come in as five
- * typed groups; the page passes the real Server Actions.
+ * The game sheet: header, then either the notify/interest view or the two stages: the main view, and
+ * one step at a time in place of it (other amount, items, More actions, the shares of a split game,
+ * split, cancel, no-show, adjust, extend, repeat weekly, series) with a back arrow, never by growing the
+ * main view. Actions come in as five typed groups; the page passes the real Server Actions.
  */
 export function BookingSheet({
   sheetRow,
@@ -28,7 +38,6 @@ export function BookingSheet({
   locale,
   interestOpen,
   saved,
-  showDate,
   sheetStep,
   moveStep,
   confirmRef,
@@ -53,8 +62,6 @@ export function BookingSheet({
   locale: UiLocale;
   interestOpen: boolean;
   saved?: OutcomeNotify | null;
-  /** The game is listed under To collect, so its date is shown in the header. */
-  showDate: boolean;
   sheetStep: SheetStep;
   moveStep: (next: SheetStep) => void;
   confirmRef: RefObject<HTMLButtonElement | null>;
@@ -72,6 +79,18 @@ export function BookingSheet({
   seriesActions: SeriesActions;
   feeActions: FeeActions;
 }) {
+  // The clock for the status chip ("in 25 min"), read once when the sheet renders on the client.
+  const [nowMs] = useState(() => Date.now());
+  // After a collection the game's money changes: the "Other amount or currency" step goes back to the main view.
+  const moneyKey = sheetRow ? `${sheetRow.id}:${gameMoneyOf(sheetRow).remaining}` : "";
+  const [seenMoney, setSeenMoney] = useState(moneyKey);
+  useEffect(() => {
+    if (seenMoney === moneyKey) return;
+    setSeenMoney(moneyKey);
+    if (sheetStep === "other") moveStep("details");
+  }, [moneyKey, seenMoney, sheetStep, moveStep]);
+  const back = () => moveStep("details");
+  const router = useRouter();
   return (
       <BottomSheet
         open={open}
@@ -81,7 +100,7 @@ export function BookingSheet({
       >
         {sheetRow ? (
           <BottomSheetContent closeLabel={ui("dialog.close", locale)} showCloseButton={false}>
-            <SheetHeader sheetRow={sheetRow} sheetStep={sheetStep} locale={locale} showDate={showDate} />
+            <SheetHeader sheetRow={sheetRow} sheetStep={sheetStep} locale={locale} onBack={back} nowMs={nowMs} />
             {interestOpen ? (
               <BottomSheetBody className="flex flex-col gap-4 pb-4">
                 {saved?.bookingId === sheetRow.id ? (
@@ -133,23 +152,84 @@ export function BookingSheet({
                   mayNoShow={mayNoShow}
                   mayAdjust={mayAdjust}
                   shop={shop}
-                  cancelRef={cancelRef}
-                  onCancelBooking={() => moveStep("cancel")}
-                  onNoShow={() => moveStep("noshow")}
-                  onAdjust={() => moveStep("adjust")}
                   onExtend={() => moveStep("extend")}
-                  onRepeat={() => moveStep("repeat")}
                   onSeries={() => moveStep("series")}
+                  onOther={() => moveStep("other")}
+                  onItems={() => moveStep("items")}
+                  onMore={() => moveStep("more")}
+                  onShares={() => moveStep("shares")}
+                  onSplit={() => moveStep("split")}
+                  onItemsDone={() => router.refresh()}
                 />
               </BottomSheetBody>
               <BottomSheetBody
                 className={cn(
-                  "flex flex-none flex-col gap-3 overflow-hidden pb-4 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
+                  "flex flex-col gap-3 pb-4 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden transition-opacity duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none",
                   sheetStep === "details" &&
                     "pointer-events-none absolute inset-x-0 top-0 opacity-0",
                 )}
                 inert={sheetStep === "details" ? true : undefined}
               >
+                {sheetStep === "other" ? (
+                  <OtherAmountForm
+                    id={`game-${sheetRow.id}`}
+                    currency={gameMoneyOf(sheetRow).currency}
+                    remaining={gameMoneyOf(sheetRow).remaining}
+                    lbpPerUsd={lbpPerUsd}
+                    locale={locale}
+                    submit={{ kind: "action", action: collectActions.submitCollectPayment, hidden: { bookingId: sheetRow.id } }}
+                  />
+                ) : null}
+                {sheetStep === "items" ? (
+                  <ShopTabs
+                    row={sheetRow}
+                    shop={shop}
+                    mayAdjust={mayAdjust}
+                    mayCollect={mayCollect}
+                    lbpPerUsd={lbpPerUsd}
+                    locale={locale}
+                    itemsActions={itemsActions}
+                  />
+                ) : null}
+                {sheetStep === "more" ? (
+                  <MoreActionsList
+                    row={sheetRow}
+                    locale={locale}
+                    mayCancel={mayCancel}
+                    mayNoShow={mayNoShow}
+                    mayAdjust={mayAdjust}
+                    cancelRef={cancelRef}
+                    onCancelBooking={() => moveStep("cancel")}
+                    onNoShow={() => moveStep("noshow")}
+                    onAdjust={() => moveStep("adjust")}
+                    onExtend={() => moveStep("extend")}
+                    onRepeat={() => moveStep("repeat")}
+                    collectActions={collectActions}
+                  />
+                ) : null}
+                {sheetStep === "shares" ? (
+                  <PerPlayerCollect
+                    view={sheetRow.perPlayer}
+                    mayCollect={mayCollect}
+                    advanceNeeded={collectMode(sheetRow) === "advance"}
+                    lbpPerUsd={lbpPerUsd}
+                    locale={locale}
+                    submitCollectAllRemaining={collectActions.submitCollectAllRemaining}
+                    submitCollectSlot={collectActions.submitCollectSlot}
+                    submitConsiderSharePaid={collectActions.submitConsiderSharePaid}
+                  />
+                ) : null}
+                {sheetStep === "split" ? (
+                  <div className="overflow-hidden rounded-xl border bg-card">
+                    <SplitSwitchRow
+                      view={sheetRow.perPlayer}
+                      locale={locale}
+                      initialAsking
+                      submitSwitchToPerPlayer={collectActions.submitSwitchToPerPlayer}
+                      submitSwitchToWhole={collectActions.submitSwitchToWhole}
+                    />
+                  </div>
+                ) : null}
                 {sheetStep === "cancel" ? (
                   <CancelDecisionForm submitCancelBooking={feeActions.submitCancelBooking}
                     row={sheetRow}

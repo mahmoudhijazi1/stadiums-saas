@@ -89,6 +89,22 @@ const COUNTED: Record<string, Record<UiLocale, PluralForms>> = {
       other: "{n} people interested",
     },
   },
+  "owner.inMinutes": {
+    ar: { one: "بعد دقيقة", two: "بعد دقيقتين", few: "بعد {n} دقائق", many: "بعد {n} دقيقة", other: "بعد {n} دقيقة" },
+    en: { one: "in {n} min", other: "in {n} min" },
+  },
+  "owner.inHours": {
+    ar: { one: "بعد ساعة", two: "بعد ساعتين", few: "بعد {n} ساعات", many: "بعد {n} ساعة", other: "بعد {n} ساعة" },
+    en: { one: "in {n} hour", other: "in {n} hours" },
+  },
+  "owner.inDays": {
+    ar: { one: "بعد يوم", two: "بعد يومين", few: "بعد {n} أيام", many: "بعد {n} يوماً", other: "بعد {n} يوم" },
+    en: { one: "in {n} day", other: "in {n} days" },
+  },
+  "owner.tabCount": {
+    ar: { one: "حساب واحد", two: "حسابان", few: "{n} حسابات", many: "{n} حساباً", other: "{n} حساب" },
+    en: { one: "{n} tab", other: "{n} tabs" },
+  },
   "owner.hoursBefore": {
     ar: {
       one: "ألغى قبل ساعة",

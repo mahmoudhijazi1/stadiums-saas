@@ -276,7 +276,6 @@ export function UpcomingPanel({
         locale={locale}
         interestOpen={interestOpen}
         saved={saved}
-        showDate={sheetRow ? toCollect.some((item) => item.id === sheetRow.id) : false}
         sheetStep={sheetStep}
         moveStep={moveStep}
         confirmRef={confirmSubmitRef}

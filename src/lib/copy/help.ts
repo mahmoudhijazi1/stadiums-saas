@@ -71,7 +71,7 @@ export const help: CopyArea = {
     "help.makeWeekly.what": "كرّر مباراة في اليوم والساعة نفسيهما كل أسبوع.",
     "help.makeWeekly.where": "اليوم",
     "help.makeWeekly.step1": "افتح المباراة واضغط «إجراءات أخرى».",
-    "help.makeWeekly.step2": "اختر «كرّر كل أسبوع» وعدد الأسابيع.",
+    "help.makeWeekly.step2": "افتح «إجراءات أخرى» واختر «تكرار أسبوعياً» وعدد الأسابيع.",
     "help.makeWeekly.step3": "راجع الأسابيع المحجوزة أو خارج الساعات، ثم أكّد.",
 
     "help.weeklyList.title": "قائمة الحجوزات الثابتة",
@@ -84,7 +84,7 @@ export const help: CopyArea = {
     "help.cancelRest.tip": "الأسابيع التي فيها دفعة تبقى. ألغِها واحداً واحداً.",
 
     "help.collect.title": "تحصيل دفعة",
-    "help.collect.what": "افتح المباراة واضغط «تحصيل». للدفع بالليرة أو لجزء من المبلغ اختر «الدفع بطريقة أخرى».",
+    "help.collect.what": "افتح المباراة واضغط «تحصيل» أسفلها. لعملة أخرى أو لجزء من المبلغ اختر «مبلغ آخر أو عملة أخرى».",
     "help.collect.where": "اليوم",
 
     "help.split.title": "تقسيم المباراة بين اللاعبين",
@@ -250,7 +250,7 @@ export const help: CopyArea = {
     "help.makeWeekly.what": "Repeat a game on the same day and hour every week.",
     "help.makeWeekly.where": "Today",
     "help.makeWeekly.step1": "Open the game and tap More actions.",
-    "help.makeWeekly.step2": "Choose Repeat weekly and the number of weeks.",
+    "help.makeWeekly.step2": "Open More actions, choose Repeat weekly and the number of weeks.",
     "help.makeWeekly.step3": "Check the weeks that are taken or outside your hours, then confirm.",
 
     "help.weeklyList.title": "Your weekly bookings",
@@ -263,7 +263,7 @@ export const help: CopyArea = {
     "help.cancelRest.tip": "Weeks that already have a payment stay. Cancel those one by one.",
 
     "help.collect.title": "Collect a payment",
-    "help.collect.what": "Open the game and tap Collect. For pounds or part of the amount, choose Pay another way.",
+    "help.collect.what": "Open the game and tap Collect at the bottom. For the other currency or part of the amount, choose Other amount or currency.",
     "help.collect.where": "Today",
 
     "help.split.title": "Split a game between players",
