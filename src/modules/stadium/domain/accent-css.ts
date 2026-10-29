@@ -22,7 +22,7 @@ export function accentCss(key: unknown): string {
   return `html:root{${declarations(preset.light)}}${DARK}{${declarations(preset.dark)}}`;
 }
 
-/** The dark-theme fill: the manifest's theme_color. */
+/** The dark-theme fill of a preset. (No longer the manifest's theme_color: the system bars use the page background.) */
 export function accentThemeColor(key: unknown): string {
   return presetOf(key).dark.fill;
 }

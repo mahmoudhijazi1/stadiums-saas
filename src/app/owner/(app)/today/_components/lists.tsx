@@ -447,6 +447,7 @@ function toUpcomingViews(
           ? {
               seriesId: info.seriesId,
               line: seriesRowLine({ anchor: info.anchor, left: info.left, lastStart: info.lastStart, locale, hourCycle }),
+              fact: seriesRowLine({ anchor: info.anchor, left: info.left, lastStart: info.lastStart, locale, hourCycle, short: true }),
             }
           : null;
       })(),

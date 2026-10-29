@@ -8,8 +8,9 @@ import { ui } from "@/lib/copy";
 import type { UiLocale } from "@/lib/locale";
 import type { LbpOwnerDayBooking } from "@/modules/booking/application/load-owner-day";
 import { StatusPill } from "@/modules/booking/ui/booking-row";
-import { MoneyBlock } from "@/modules/booking/ui/booking-sheet/money-block";
+import type { CollectActions } from "@/modules/booking/ui/booking-sheet/money-block";
 import { UpcomingRows } from "@/modules/booking/ui/upcoming-rows";
+import { mainView } from "./game-sheet-main";
 
 /** The text a reader sees: tags dropped (the pound sign has its own span, see LtrIsolate). */
 const visible = (html: string) => html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
@@ -100,7 +101,7 @@ const COLLECT_ACTIONS = {
   submitSwitchToWhole: noop,
   submitCollectSlot: noop,
   submitCollectAllRemaining: noop,
-} as unknown as Parameters<typeof MoneyBlock>[0]["collectActions"];
+} as unknown as CollectActions;
 
 function card(locale: UiLocale) {
   return renderToStaticMarkup(
@@ -115,17 +116,9 @@ function card(locale: UiLocale) {
   );
 }
 
+/** The money area of the game sheet: the money row and the bottom bar of the main view. */
 function moneyBlock(locale: UiLocale, game: LbpOwnerDayBooking = GAME) {
-  return renderToStaticMarkup(
-    createElement(MoneyBlock, {
-      row: viewOf(locale, game),
-      lbpPerUsd: "89500",
-      locale,
-      mayCollect: true,
-      mayAdjust: true,
-      collectActions: COLLECT_ACTIONS,
-    }),
-  );
+  return renderToStaticMarkup(mainView(viewOf(locale, game), COLLECT_ACTIONS, { locale }));
 }
 
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -189,8 +182,8 @@ describe("an LBP game on Today", () => {
     expect(view.lbp).toEqual({ due: "210,000 LBP", paid: "1,790,000 LBP", settled: false, pill: "210,000 LBP", remaining: "210000" });
     expect(view.display.kind).toBe("partial");
     expect(moneyBlock("en", PART_PAID)).toContain("210,000 LBP");
-    // The game price shows only on the muted line under the figure, never as the figure.
-    expect(text(moneyBlock("en", PART_PAID))).toContain("Game price 2,000,000 LBP · Paid 1,790,000 LBP");
+    // The game price shows only on the muted line under the amount, never as the amount.
+    expect(text(moneyBlock("en", PART_PAID))).toContain("of 2,000,000 LBP · paid 1,790,000 LBP");
   });
 
   it("a game settled in full reads as paid, in pounds", () => {

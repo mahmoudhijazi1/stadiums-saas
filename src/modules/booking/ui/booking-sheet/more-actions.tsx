@@ -1,8 +1,7 @@
-import { useState, type Ref } from "react";
-import { Ban, ChevronDown, Clock, Pencil, Repeat, UserX } from "lucide-react";
+import type { Ref } from "react";
+import { Ban, ChevronRight, Clock, Ellipsis, Pencil, Repeat, UserX } from "lucide-react";
 import type { UiLocale } from "@/lib/locale";
 import { ui } from "@/lib/copy";
-import { cn } from "cn";
 import { ActionRow } from "@/modules/booking/ui/booking-sheet/action-row";
 import type { CollectActions } from "@/modules/booking/ui/booking-sheet/money-block";
 import { SplitSwitchRow } from "@/modules/booking/ui/booking-sheet/split-switch";
@@ -32,8 +31,30 @@ export function moreActionsOf(
   return (["adjust", "split", "extend", "repeat", "noshow", "cancel"] as const).filter((key) => shown[key]);
 }
 
-/** "More actions" (AR: إجراءات أخرى): a disclosure over the ordered list. */
-export function MoreActions({
+/**
+ * "More actions" (AR: إجراءات أخرى) on the game sheet: ONE row that opens the list as its own step.
+ * Not shown when no action is available.
+ */
+export function MoreActionsRow({ count, locale, onOpen }: { count: number; locale: UiLocale; onOpen: () => void }) {
+  if (count === 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex min-h-14 w-full items-center gap-3 rounded-xl border bg-card px-4 text-start type-label outline-none hover:bg-muted/60 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    >
+      <Ellipsis aria-hidden className="size-5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1">{ui("owner.moreActions", locale)}</span>
+      <ChevronRight aria-hidden className="size-5 shrink-0 text-muted-foreground rtl:rotate-180" />
+    </button>
+  );
+}
+
+/**
+ * The More actions step: the ordered list (icon + label, 56px rows), each row only when its action is
+ * available today (rule 4); cancel the booking in red, in its own group, last (rule 5).
+ */
+export function MoreActionsList({
   row,
   locale,
   mayCancel,
@@ -49,7 +70,6 @@ export function MoreActions({
 }: {
   row: UpcomingRowView;
   locale: UiLocale;
-  mayCollect?: boolean;
   mayCancel: boolean;
   mayNoShow: boolean;
   mayAdjust: boolean;
@@ -61,9 +81,7 @@ export function MoreActions({
   onRepeat: () => void;
   collectActions: CollectActions;
 }) {
-  const [moreOpen, setMoreOpen] = useState(false);
   const rows = moreActionsOf(row, { mayCancel, mayNoShow, mayAdjust });
-  if (rows.length === 0) return null;
 
   const render = (key: MoreActionKey) => {
     switch (key) {
@@ -110,18 +128,13 @@ export function MoreActions({
     }
   };
 
+  const main = rows.filter((key) => key !== "cancel");
   return (
     <div className="flex flex-col gap-3">
-      <button
-        type="button"
-        aria-expanded={moreOpen}
-        onClick={() => setMoreOpen((open) => !open)}
-        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 type-label outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-      >
-        {ui("owner.moreActions", locale)}
-        <ChevronDown aria-hidden className={cn("size-5 shrink-0 transition-transform", moreOpen && "rotate-180")} />
-      </button>
-      {moreOpen ? <div className="flex flex-col gap-1">{rows.map(render)}</div> : null}
+      {main.length > 0 ? <div className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card">{main.map(render)}</div> : null}
+      {rows.includes("cancel") ? (
+        <div className="flex flex-col divide-y overflow-hidden rounded-xl border bg-card">{render("cancel")}</div>
+      ) : null}
     </div>
   );
 }

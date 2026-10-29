@@ -17,7 +17,8 @@ export type UpcomingRowView = {
   /** "Repeat weekly" is offered: confirmed, not over, not in a series, and the member may create. */
   repeatWeekly: boolean;
   /** The weekly series this game belongs to, with the line shown under the time. */
-  series: { seriesId: string; line: string } | null;
+  /** `line` for the Today card; `fact` for the sheet's Weekly row (no "Weekly · every": the row's icon and label say it). */
+  series: { seriesId: string; line: string; fact: string } | null;
   dateLabel: string;
   /** Day an owed game belongs to: "Yesterday", a weekday, or the date. */
   dayLabel: string;

@@ -9,16 +9,17 @@ import { ui } from "@/lib/copy";
 import { currencyLabel, formatLbpAmount } from "@/lib/format/money";
 import type { LbpOwnerDayBooking, OwnerSlot } from "@/modules/booking/application/load-owner-day";
 import { AdjustDueForm } from "@/modules/booking/ui/fee-forms";
-import { MoneyBlock, MoneyCard, gameMoneyOf } from "@/modules/booking/ui/booking-sheet/money-block";
-import { MoreActions, moreActionsOf } from "@/modules/booking/ui/booking-sheet/more-actions";
+import { MoreActionsList, moreActionsOf } from "@/modules/booking/ui/booking-sheet/more-actions";
+import { mainView } from "./game-sheet-main";
 import { OtherAmountForm } from "@/modules/booking/ui/booking-sheet/other-amount";
 import type { UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
 import { PerPlayerCollect } from "@/modules/booking/ui/per-player-collect";
 
 /**
- * The booking sheet's money area, clear in both currencies: the card by state with the remaining as the
- * one big figure, one primary "Collect <amount>", the one "Other amount or currency" form (whole game and
- * share), the adjust screen, and the ordered More actions. Written, not run when authored.
+ * The booking sheet's money area, clear in both currencies. Since the game sheet v2 the card is the
+ * money ROW of the main view and the one primary "Collect <amount>" is its bottom bar; "Other amount or
+ * currency" is a step the bar's link opens (the form is tested on its own below), and More actions is a
+ * step with the ordered list. Written, not run when authored.
  */
 const NOW = new Date("2026-10-16T20:00:00Z");
 const D = (value: number | string) => new Decimal(value);
@@ -99,9 +100,11 @@ const ACTIONS = {
 
 afterEach(cleanup);
 
-const card = (row: UpcomingRowView) => render(createElement(MoneyCard, { money: gameMoneyOf(row), locale: "en" }));
-const block = (row: UpcomingRowView) =>
-  render(createElement(MoneyBlock, { row, lbpPerUsd: "89500", locale: "en", mayCollect: true, collectActions: ACTIONS }));
+/** The money row of the main view (the old card). */
+const card = (row: UpcomingRowView) => render(mainView(row, ACTIONS));
+const moneyRow = (container: HTMLElement) => container.querySelector("[data-tone]");
+/** The main view with its bottom bar (the old block). */
+const block = (row: UpcomingRowView, steps: NonNullable<Parameters<typeof mainView>[2]>["steps"] = {}) => render(mainView(row, ACTIONS, { steps }));
 const body = () => document.body.textContent?.replace(/\s+/g, " ") ?? "";
 
 describe("currencyLabel", () => {
@@ -112,25 +115,26 @@ describe("currencyLabel", () => {
   });
 });
 
-describe("the money card", () => {
+describe("the money row (was the money card)", () => {
   it.each([
     ["pounds", lbpRow(ENDED), "2,000,000 LBP"],
     ["dollars", usdRow(ENDED, "30.00", "0.00"), "$30"],
-  ])("owed (%s): amber Remaining and the remaining as the figure", (_name, row, figure) => {
+  ])("owed (%s): amber Due and the remaining", (_name, row, amount) => {
     const { container } = card(row);
-    expect(container.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe("owed");
-    expect(body()).toContain(t("owner.remaining"));
-    expect(container.querySelector(".font-display")?.textContent).toBe(figure);
-    expect(body()).not.toContain(t("owner.gamePrice"));
+    expect(moneyRow(container)?.getAttribute("data-tone")).toBe("owed");
+    expect(moneyRow(container)?.textContent).toContain(t("owner.moneyDue"));
+    expect(moneyRow(container)?.textContent).toContain(amount);
+    expect(moneyRow(container)?.textContent).not.toContain(t("owner.ofWord"));
   });
 
   it.each([
-    ["pounds", lbpRow(PART_PAID), "210,000 LBP", "Game price 2,000,000 LBP · Paid 1,790,000 LBP"],
-    ["dollars", usdRow(ENDED, "20.00", "10.00"), "$20", "Game price $30 · Paid $10"],
-  ])("partial (%s): the remaining, then one muted line with the price and what was paid", (_name, row, figure, line) => {
+    ["pounds", lbpRow(PART_PAID), "210,000 LBP", "of 2,000,000 LBP · paid 1,790,000 LBP"],
+    ["dollars", usdRow(ENDED, "20.00", "10.00"), "$20", "of $30 · paid $10"],
+  ])("partial (%s): Remaining, then one muted line with the price and what was paid", (_name, row, amount, line) => {
     const { container } = card(row);
-    expect(container.querySelector(".font-display")?.textContent).toBe(figure);
-    expect(body()).toContain(line);
+    expect(moneyRow(container)?.textContent).toContain(t("owner.remaining"));
+    expect(moneyRow(container)?.textContent).toContain(amount);
+    expect(moneyRow(container)?.textContent?.replace(/\s+/g, " ")).toContain(line);
   });
 
   it.each([
@@ -138,22 +142,22 @@ describe("the money card", () => {
     ["dollars", usdRow(SETTLED, "0.00", "30.00")],
   ])("paid (%s): green Paid", (_name, row) => {
     const { container } = card(row);
-    expect(container.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe("paid");
-    expect(body()).toContain(t("owner.paid"));
+    expect(moneyRow(container)?.getAttribute("data-tone")).toBe("paid");
+    expect(moneyRow(container)?.textContent).toContain(t("owner.paid"));
   });
 
   it.each([
     ["pounds", lbpRow(UPCOMING)],
     ["dollars", usdRow(UPCOMING, "30.00", "0.00")],
-  ])("not played yet (%s): neutral Expected", (_name, row) => {
+  ])("not played yet (%s): neutral, the price and Not paid yet", (_name, row) => {
     const { container } = card(row);
-    expect(container.querySelector("[data-tone]")?.getAttribute("data-tone")).toBe("expected");
-    expect(body()).toContain(t("owner.expectedLabel"));
+    expect(moneyRow(container)?.getAttribute("data-tone")).toBe("expected");
+    expect(moneyRow(container)?.textContent).toContain(t("owner.notPaidYet"));
   });
 
-  it("has no button inside", () => {
+  it("has no Collect button inside", () => {
     const { container } = card(lbpRow(ENDED));
-    expect(container.querySelector("button")).toBeNull();
+    expect(moneyRow(container)?.querySelector("button")).toBeNull();
   });
 });
 
@@ -166,8 +170,9 @@ describe("the one primary Collect", () => {
     const { container } = block(row);
     const primary = screen.getByRole("button", { name: label });
     expect(primary.closest("form")?.querySelector(`input[name="${field}"]`)?.getAttribute("value")).toBe(value);
-    // The only Collect that is not inside the other-amount form, which starts closed.
+    // The only Collect on the main view: the other-amount form is a step of its own.
     expect(container.querySelectorAll('input[name="usdAmount"], input[name="lbpAmount"]')).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: label })).toHaveLength(1);
   });
 
   it("a paid game has no Collect at all", () => {
@@ -184,12 +189,11 @@ describe("the one primary Collect", () => {
     expect(screen.getByRole("button", { name: "Collect 2,000,000 LBP" })).toBeTruthy();
   });
 
-  it("the disclosure keeps its wording open or closed; the chevron shows the state", () => {
-    block(lbpRow(ENDED));
-    const toggle = screen.getByRole("button", { name: t("owner.otherAmount") });
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(toggle);
-    expect(screen.getByRole("button", { name: t("owner.otherAmount") }).getAttribute("aria-expanded")).toBe("true");
+  it("Other amount or currency is a link under the primary that opens its own step", () => {
+    const opened: string[] = [];
+    block(lbpRow(ENDED), { onOther: () => opened.push("other") });
+    fireEvent.click(screen.getByRole("button", { name: t("owner.otherAmount") }));
+    expect(opened).toEqual(["other"]);
   });
 });
 
@@ -423,7 +427,7 @@ describe("More actions", () => {
 
   function more(row: UpcomingRowView) {
     render(
-      createElement(MoreActions, {
+      createElement(MoreActionsList, {
         row,
         locale: "en",
         ...may,
@@ -436,7 +440,6 @@ describe("More actions", () => {
         collectActions: ACTIONS,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: t("owner.moreActions") }));
   }
 
   it("renders the order on screen, with cancel in red and last", () => {

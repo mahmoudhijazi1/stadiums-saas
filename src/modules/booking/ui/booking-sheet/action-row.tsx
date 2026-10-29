@@ -1,7 +1,7 @@
 import type { ComponentType, ReactNode, Ref } from "react";
 import { cn } from "cn";
 
-/** One line of "More actions": a plain list row (body role, 48px, optional leading icon), no border. */
+/** One line of "More actions": a list row in a grouped card (body role, 56px, leading icon). */
 export function ActionRow({
   icon: Icon,
   onClick,
@@ -27,7 +27,7 @@ export function ActionRow({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex min-h-12 w-full items-center gap-3 rounded-lg px-1 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-60",
+        "flex min-h-14 w-full items-center gap-3 px-4 type-body text-start outline-none hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-60",
         destructive && "text-destructive",
       )}
     >

@@ -4,6 +4,7 @@ import type { CopyArea } from "./types";
 export const shop: CopyArea = {
   ar: {
     "owner.itemsHeading": "الأغراض",
+    "owner.itemsNone": "لا شيء",
     "owner.itemsAdd": "+ إضافة",
     "owner.itemsNext": "التالي",
     "owner.itemsBack": "رجوع",
@@ -50,6 +51,7 @@ export const shop: CopyArea = {
   },
   en: {
     "owner.itemsHeading": "Items",
+    "owner.itemsNone": "None",
     "owner.itemsAdd": "+ Add",
     "owner.itemsNext": "Next",
     "owner.itemsBack": "Back",

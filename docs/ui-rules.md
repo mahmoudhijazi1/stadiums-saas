@@ -151,6 +151,10 @@ Buttons, highlights, accent text and the focus ring take their colour from the s
 
 Top to bottom: period chip and $ / LBP toggle; one summary card (profit or loss as the one big figure); the Owed card; the cash-today line; the actions row; recent activity (5 rows); the shop row. Rules that follow from the numbered ones above: **one primary button** (rule 5) is "+ Expense", Sell is secondary; the comparison and the source split **hide themselves** when they would say nothing (rule 4: an empty previous period, a single source); a **loss is neutral**, never red (rule 1: red is destructive); sales and shop supplies are **never side by side** on the page (supplies are bought in lots), the shop row shows sales only and the detail page has both; **cash today is the one figure in a currency other than USD** (per currency, never converted, one business day), a documented exception in [domain/money.md](./domain/money.md), shown only to members with reports.view.
 
+### 11. The game sheet
+
+State first, facts in rows, money as one row, one action at the bottom, sub-screens instead of inline expansion. The sheet that opens on a game reads top to bottom: the name (a link to the person) with one status chip, then call, WhatsApp and close; a facts card (time, pitch, weekly series, a 56px row each); ONE money row by state (amber Due or Remaining, neutral Not paid yet with "Collect in advance", green Paid, or "Split between N · K paid"); quick tiles only on a game not ended; one Items row; one More actions row; and, only when something can be collected now, a bottom bar with the one primary "Collect <amount>" and the "Other amount or currency" link. Other amount, Items, More actions, the shares, adjust and the fee forms open as steps with a back arrow and a title, never by growing the main view. No second button with the primary's label on the same screen.
+
 ## Audit
 
 Checked against the code on `feat/today-free-slots` (2026-10-01). "Verified" means I read the code path; the booking sheet and Today card were also seen in a screenshot.

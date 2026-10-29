@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "@jest/globals";
 import { lbpUpcomingView } from "@/app/owner/(app)/today/_components/lbp-row-view";
 import { perPlayerViewOf } from "@/app/owner/(app)/today/_components/per-player-view";
 import type { LbpOwnerDayBooking, OwnerSlot } from "@/modules/booking/application/load-owner-day";
-import { MoneyBlock } from "@/modules/booking/ui/booking-sheet/money-block";
+import { mainView } from "./game-sheet-main";
 import { collectMode, type UpcomingRowView } from "@/modules/booking/ui/booking-sheet/row-view";
 import { PerPlayerCollect } from "@/modules/booking/ui/per-player-collect";
 import { ui } from "@/lib/copy";
@@ -89,8 +89,9 @@ const ACTIONS = {
   submitCollectAllRemaining: noop,
 };
 
+/** The game sheet's main view: the money row (Collect in advance, Consider it paid) and the bottom bar (Collect). */
 function block(row: UpcomingRowView, locale: "en" | "ar" = "en") {
-  return render(createElement(MoneyBlock, { row, lbpPerUsd: "89500", locale, mayCollect: true, mayAdjust: true, collectActions: ACTIONS }));
+  return render(mainView(row, ACTIONS, { locale }));
 }
 
 afterEach(cleanup);

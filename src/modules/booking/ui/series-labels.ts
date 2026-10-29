@@ -31,10 +31,12 @@ export function seriesRowLine(input: {
   lastStart: Date | null;
   locale: UiLocale;
   hourCycle: HourCycle;
+  /** The game sheet's Weekly row: its icon and label already say "weekly", so the line starts at the weekday. */
+  short?: boolean;
 }): string {
   const { weekday, time } = weeklyWeekdayAndTime(input.anchor, input.locale, input.hourCycle);
   if (input.left <= 0 || !input.lastStart) {
-    return ui("owner.seriesRowEnded", input.locale).replace("{weekday}", weekday).replace("{time}", time);
+    return ui(input.short ? "owner.seriesFactEnded" : "owner.seriesRowEnded", input.locale).replace("{weekday}", weekday).replace("{time}", time);
   }
   const until = formatDisplayDate(
     input.lastStart,
@@ -42,7 +44,7 @@ export function seriesRowLine(input: {
     { day: "numeric", month: "short" },
     TIME_ZONE,
   );
-  return ui("owner.seriesRowLine", input.locale)
+  return ui(input.short ? "owner.seriesFactLine" : "owner.seriesRowLine", input.locale)
     .replace("{weekday}", weekday)
     .replace("{time}", time)
     .replace("{left}", String(input.left))
